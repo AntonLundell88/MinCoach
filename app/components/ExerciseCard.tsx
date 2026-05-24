@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { getExerciseProfile } from "../lib/exercises";
 
 type LastByExercise = Record<
   string,
@@ -37,9 +38,11 @@ type Props = {
   setFailNoteInput: (v: string) => void;
   addSet: () => void;
   removeLastSet: () => void;
+  onSkipExercise: () => void;
+  canSkipExercise: boolean;
+  skippedExerciseName: string | null;
+  undoSkipExercise: () => void;
   personalRecords: PersonalRecords;
-  progression: { weight: number; reps: number }[];
-  
 };
 
 export default function ExerciseCard({
@@ -49,7 +52,6 @@ export default function ExerciseCard({
   weightInput,
   setWeightInput,
   repsInput,
-  progression,
   setRepsInput,
   rirInput,
   setRirInput,
@@ -59,9 +61,15 @@ export default function ExerciseCard({
   setFailNoteInput,
   addSet,
   removeLastSet,
+  onSkipExercise,
+  canSkipExercise,
+  skippedExerciseName,
+  undoSkipExercise,
   personalRecords,
 }: Props) {
   const [showRirInfo, setShowRirInfo] = useState(false);
+  const [showExerciseInfo, setShowExerciseInfo] = useState(false);
+  const exerciseInfo = getExerciseProfile(currentExerciseName);
 useEffect(() => {
   if (rirInput > 1 && didFailInput) {
     setDidFailInput(false);
@@ -75,71 +83,125 @@ useEffect(() => {
 }, [didFailInput, failNoteInput, setFailNoteInput]);
   
  return (
-  <div className="rounded-3xl border border-blue-400/20 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),rgba(24,24,27,0.88)_38%,rgba(10,10,15,0.94)_100%)] p-4 space-y-3 shadow-[0_0_50px_rgba(59,130,246,0.14),inset_0_1px_0_rgba(255,255,255,0.04)]">
+  <div className="space-y-2 rounded-[1.35rem] border border-white/[0.09] bg-white/[0.052] p-3 shadow-[0_14px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl">
+    {skippedExerciseName ? (
+      <div className="rounded-2xl border border-white/[0.09] bg-slate-950/18 px-3 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/45">
+              Övning hoppad
+            </p>
+            <p className="mt-1 truncate text-sm text-white/82">
+              {skippedExerciseName}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="shrink-0 rounded-xl border border-white/[0.09] bg-white/6 px-3 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white"
+            onClick={undoSkipExercise}
+          >
+            Ångra
+          </button>
+        </div>
+      </div>
+    ) : null}
+
     <div>
-      <p className="text-2xl font-semibold tracking-tight">{currentExerciseName}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="min-w-0 truncate text-lg font-semibold tracking-tight">
+            {currentExerciseName}
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowExerciseInfo(true)}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+            aria-label={`Visa info om ${currentExerciseName}`}
+          >
+            i
+          </button>
+        </div>
+
+        <button
+          type="button"
+          className="shrink-0 rounded-lg border border-white/[0.09] bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-white/72 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+          onClick={onSkipExercise}
+          disabled={!canSkipExercise}
+        >
+          Hoppa över
+        </button>
+      </div>
+
+      {showExerciseInfo ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-4 backdrop-blur-sm">
+          <div className="w-full max-w-[430px] rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+                  Övningsinfo
+                </p>
+                <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
+                  {currentExerciseName}
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-lg leading-none text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                onClick={() => setShowExerciseInfo(false)}
+                aria-label="Stäng"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-100/42">
+                {exerciseInfo.equipment}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-white/72">
+                {exerciseInfo.detail}
+              </p>
+              <div className="mt-3 rounded-xl border border-white/8 bg-white/[0.035] p-2.5">
+                <p className="text-xs leading-5 text-white/66">
+                  {exerciseInfo.techniqueCue}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-white/44">
+                  {exerciseInfo.progressionRule}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {(() => {
         const lastForUI = lastByExercise[exerciseKey(currentExerciseName)];
         const prForUI = personalRecords[exerciseKey(currentExerciseName)];
 
         return (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {lastForUI ? (
-              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
-                Senast {lastForUI.weight} × {lastForUI.reps}
-              </div>
-            ) : (
-              <div className="rounded-full border border-zinc-700 bg-zinc-800/60 px-3 py-1 text-xs text-gray-400">
-                Senast –
-              </div>
-            )}
-
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
-              RIR {lastForUI?.rir ?? "—"}
-            </div>
-
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {prForUI ? (
-              <div className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-200 shadow-[0_0_18px_rgba(59,130,246,0.18)]">
-                PR {prForUI.weight} × {prForUI.reps}
+              <div className="rounded-full border border-amber-200/18 bg-amber-200/[0.08] px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_0_18px_rgba(251,191,36,0.06)]">
+                Personbästa {prForUI.weight} × {prForUI.reps}
               </div>
             ) : (
-              <div className="rounded-full border border-zinc-700 bg-zinc-800/60 px-3 py-1 text-xs text-gray-400">
-                PR –
+              <div className="rounded-full border border-white/[0.09] bg-white/[0.042] px-2.5 py-1 text-[11px] text-white/38">
+                Personbästa –
               </div>
             )}
 
-         {lastForUI?.rir === 0 && lastForUI.failNote && (
-  <div className="mt-1 rounded-2xl border border-orange-400/20 bg-[radial-gradient(circle_at_left,rgba(251,146,60,0.12),rgba(10,10,15,0.6))] px-3 py-2 text-sm text-orange-100/90 shadow-[0_0_20px_rgba(251,146,60,0.08)]">
-    <span className="font-medium text-orange-200">Senaste fail:</span>{" "}
-    {lastForUI.failNote}
-  </div>
-)}
           </div>
         );
       })()}
-{progression.length > 0 && (
-  <div className="mt-3">
-    <p className="text-xs uppercase tracking-wide text-gray-500">Progression</p>
-    <div className="mt-2 flex flex-wrap gap-2">
-      {progression.map((p, i) => (
-        <span
-          key={`${p.weight}-${p.reps}-${i}`}
-          className="rounded-full border border-zinc-700 bg-zinc-800/50 px-3 py-1 text-xs text-gray-300"
-        >
-          {p.weight} × {p.reps}
-        </span>
-      ))}
-    </div>
-  </div>
-)}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <label className="text-sm text-gray-300">Vikt (kg)</label>
+          <label className="text-xs text-gray-300">Vikt (kg)</label>
           <input
-            className="w-full rounded-xl bg-black border border-zinc-700 p-3"
+            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/55 px-3 py-2 text-base font-semibold text-white outline-none focus:border-blue-300/35"
             inputMode="decimal"
             value={weightInput}
             onChange={(e) => setWeightInput(e.target.value)}
@@ -148,9 +210,9 @@ useEffect(() => {
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm text-gray-300">Reps</label>
+          <label className="text-xs text-gray-300">Reps</label>
           <input
-            className="w-full rounded-xl bg-black border border-zinc-700 p-3"
+            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/55 px-3 py-2 text-base font-semibold text-white outline-none focus:border-blue-300/35"
             inputMode="numeric"
             value={repsInput}
             onChange={(e) => setRepsInput(e.target.value)}
@@ -161,21 +223,21 @@ useEffect(() => {
 
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-  <label className="text-sm text-gray-300">
+  <label className="text-xs text-gray-300">
     RIR (reps kvar i tanken)
   </label>
 
   <button
     type="button"
     onClick={() => setShowRirInfo(!showRirInfo)}
-    className="text-xs text-gray-400 border border-zinc-600 rounded-full w-5 h-5 flex items-center justify-center hover:bg-zinc-700"
+    className="flex h-4 w-4 items-center justify-center rounded-full border border-zinc-600 text-[10px] text-gray-400 hover:bg-zinc-700"
   >
     i
   </button>
 </div>
 
 {showRirInfo && (
-  <div className="text-xs text-gray-300 bg-black/40 border border-zinc-700 rounded-xl p-3 mt-2">
+  <div className="text-xs text-gray-300 bg-slate-950/48 border border-zinc-700 rounded-xl p-3 mt-2">
     Hur många reps du hade kvar innan det tog stopp.
     <br />
     <br />
@@ -187,7 +249,7 @@ useEffect(() => {
   </div>
 )}
 
-<div className="mt-2 grid grid-cols-6 gap-2">
+<div className="mt-1.5 grid grid-cols-6 gap-1">
   {[0, 1, 2, 3, 4, 5].map((value) => {
     const isActive = rirInput === value;
 
@@ -196,10 +258,10 @@ useEffect(() => {
         key={value}
         type="button"
         onClick={() => setRirInput(value)}
-        className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${
+        className={`rounded-lg border px-2 py-1.5 text-sm font-semibold transition ${
           isActive
-            ? "border-blue-400/30 bg-blue-500/15 text-white shadow-[0_0_18px_rgba(59,130,246,0.14)]"
-            : "border-white/10 bg-black/30 text-white/75 hover:bg-white/5 hover:text-white"
+            ? "border-blue-400/25 bg-blue-500/[0.14] text-white"
+            : "border-white/[0.09] bg-slate-950/38 text-white/75 hover:bg-white/5 hover:text-white"
         }`}
       >
         {value === 5 ? "5+" : value}
@@ -209,18 +271,18 @@ useEffect(() => {
 </div>
       </div>
 {rirInput <= 1 ? (
-  <label className="mt-3 flex items-center gap-3 text-sm text-white/85">
+  <label className="mt-1.5 flex items-center gap-3 text-sm text-white/85">
     <input
       type="checkbox"
       checked={didFailInput}
       onChange={(e) => setDidFailInput(e.target.checked)}
-      className="h-4 w-4 rounded border border-white/20 bg-black/30"
+      className="h-4 w-4 rounded border border-white/20 bg-slate-950/38"
     />
     <span>Setet gick till failure</span>
   </label>
 ) : null}
 {didFailInput ? (
-  <div className="mt-2 space-y-2">a
+  <div className="mt-1.5 space-y-2">
     <p className="text-sm text-white/75">Varför tog det stopp?</p>
 
     <div className="grid grid-cols-2 gap-2">
@@ -232,10 +294,10 @@ useEffect(() => {
             key={reason}
             type="button"
             onClick={() => setFailNoteInput(reason)}
-            className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
               isActive
-                ? "border-blue-400/30 bg-blue-500/15 text-white"
-                : "border-white/10 bg-black/30 text-white/75 hover:bg-white/5 hover:text-white"
+                ? "border-blue-400/30 bg-blue-500/[0.10] text-white"
+                : "border-white/[0.09] bg-slate-950/38 text-white/75 hover:bg-white/5 hover:text-white"
             }`}
           >
             {reason.charAt(0).toUpperCase() + reason.slice(1)}
@@ -250,7 +312,7 @@ useEffect(() => {
         <div className="space-y-1">
           <label className="text-sm text-gray-300">Vad hände? (valfritt)</label>
           <input
-            className="w-full rounded-xl bg-black border border-zinc-700 p-3"
+            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/55 p-2.5 text-sm text-white outline-none focus:border-blue-300/35"
             value={failNoteInput}
             onChange={(e) => setFailNoteInput(e.target.value)}
             placeholder='t.ex. "tappade greppet" eller "ont i handleden"'
@@ -260,14 +322,14 @@ useEffect(() => {
 
       <div className="flex gap-2">
         <button
-       className="flex-1 rounded-2xl border border-blue-400/20 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.25),rgba(37,99,235,0.9))] px-6 py-3 text-base font-semibold text-white shadow-[0_0_30px_rgba(59,130,246,0.25)] hover:shadow-[0_0_40px_rgba(59,130,246,0.35)] hover:brightness-110 active:scale-[0.98] transition"
+       className="flex-1 rounded-xl border border-blue-500/20 bg-[#2f6df6] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4f83ff] active:scale-[0.98]"
           onClick={addSet}
         >
           Lägg till set
         </button>
 
         <button
-          className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm px-5 py-3 text-base font-semibold text-white/80 hover:bg-white/10 hover:text-white hover:shadow-[0_0_18px_rgba(59,130,246,0.12)] transition"
+          className="rounded-xl border border-white/[0.09] bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
           onClick={removeLastSet}
           title="Ta bort senaste set"
         >

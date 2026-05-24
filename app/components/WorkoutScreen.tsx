@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ExerciseCard from "./ExerciseCard";
 import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
@@ -14,7 +14,13 @@ type WorkoutHeaderData = {
 
 type Props = {
   workout: WorkoutHeaderData;
-  progression: { weight: number; reps: number }[];
+  progression: { weight: number; reps: number; rir?: number | null; failNote?: string | null }[];
+  progressionPlan: {
+    weight: string;
+    repsText: string;
+    rirText: string;
+    note: string;
+  };
   exerciseIndex: number;
   activePlan: string[];
   passLabel: string;
@@ -31,11 +37,14 @@ type Props = {
   dayForm: "trött" | "normal" | "stark" | null;
   setDayForm: (v: "trött" | "normal" | "stark") => void;
   formatTime: (d: Date) => string;
-  chatLog: { role: "you" | "coach"; text: string }[];
+  chatLog: { role: "you" | "coach"; text: string; setNumber?: number }[];
   chatInput: string;
   setChatInput: (v: string) => void;
   addCoachMessage: (text: string) => void;
   sendChat: () => void;
+  workoutExerciseInput: string;
+  setWorkoutExerciseInput: (v: string) => void;
+  addExerciseDuringWorkout: () => void;
   currentExerciseName: string;
   lastByExercise: Record<
     string,
@@ -60,6 +69,10 @@ type Props = {
   setFailNoteInput: (v: string) => void;
   addSet: () => void;
   removeLastSet: () => void;
+  skipCurrentExercise: () => void;
+  canSkipCurrentExercise: boolean;
+  skippedExerciseName: string | null;
+  undoSkipExercise: () => void;
   currentSets: { createdAt: string; weight: number; reps: number; rir?: number }[];
   prevExercise: () => void;
   nextExercise: () => void;
@@ -83,61 +96,196 @@ function getTopSet(progression: { weight: number; reps: number }[]) {
     return b.reps - a.reps;
   })[0];
 }
+function getRestTime(exerciseName: string) {
+  const lower = exerciseName.toLowerCase();
+
+  const heavyWords = [
+    "bänk",
+    "mark",
+    "knäböj",
+    "press",
+    "rodd",
+    "deadlift",
+    "squat",
+    "benpress",
+  ];
+
+  const isHeavy = heavyWords.some((word) => lower.includes(word));
+
+  if (isHeavy) return "2–3 min";
+  return "60–90 sek";
+}
+
+function formatRestTimer(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function getRestTargetRange(exerciseName: string, rir?: number) {
+  if (typeof rir === "number") {
+    if (rir === 0) return { min: 240, max: 240, label: "4:00" };
+    if (rir === 1) return { min: 180, max: 180, label: "3:00" };
+    return { min: 120, max: 120, label: "2:00" };
+  }
+
+  const recommendation = getRestTime(exerciseName);
+
+  if (recommendation.includes("2") && recommendation.includes("3")) {
+    return { min: 120, max: 180, label: "2:00–3:00" };
+  }
+
+  return { min: 60, max: 90, label: "1:00–1:30" };
+}
+
+function getManualRestTarget(seconds: number) {
+  return {
+    min: seconds,
+    max: seconds,
+    label: formatRestTimer(seconds),
+  };
+}
+
+function getIntroTarget(args: {
+  last: { reps: number; rir: number | null } | undefined;
+  topSet: { weight: number; reps: number } | null;
+  baseWeight: number | null;
+}) {
+  const { last, topSet, baseWeight } = args;
+
+  if (!last) {
+    return {
+      reps: "8–10 reps",
+      rir: "RIR 2",
+      note: "Första setet visar oss var vi ligger.",
+    };
+  }
+
+  if (topSet && baseWeight === topSet.weight) {
+    return {
+      reps: `${Math.max(1, topSet.reps - 1)}–${topSet.reps} reps`,
+      rir: "RIR 1–2",
+      note: "Samma vikt som ditt bästa. Vi siktar lite lägre först.",
+    };
+  }
+
+  if (last.rir === 0) {
+    return {
+      reps: `${Math.max(1, last.reps - 2)}–${Math.max(1, last.reps - 1)} reps`,
+      rir: "RIR 1–2",
+      note: "Vi börjar lite lägre här.",
+    };
+  }
+
+  if (last.rir === 1) {
+    return {
+      reps: `${Math.max(1, last.reps - 1)}–${last.reps} reps`,
+      rir: "RIR 1–2",
+      note: "Vi börjar lugnt. Första setet visar oss var vi ligger.",
+    };
+  }
+
+  if (typeof last.rir === "number" && last.rir >= 3) {
+    return {
+      reps: `${last.reps + 1} reps`,
+      rir: "RIR 1–2",
+      note: "Vi börjar lugnt och låter RIR styra.",
+    };
+  }
+
+  return {
+    reps: `${last.reps} reps`,
+    rir: "RIR 2",
+    note: "Första setet visar oss var vi ligger.",
+  };
+}
 
 function buildExerciseIntroCoachText(args: {
   exerciseName: string;
   progression: { weight: number; reps: number }[];
+  progressionPlan: {
+    weight: string;
+    repsText: string;
+    rirText: string;
+    note: string;
+  };
   lastByExercise: Props["lastByExercise"];
   exerciseKey: (name: string) => string;
+  personalRecords: Props["personalRecords"];
 }) {
-  const { exerciseName, progression, lastByExercise, exerciseKey } = args;
+  const {
+    exerciseName,
+    progression,
+    progressionPlan,
+    lastByExercise,
+    exerciseKey,
+    personalRecords,
+  } = args;
 
   const key = exerciseKey(exerciseName);
   const last = lastByExercise[key];
-  const topSet = getTopSet(progression);
+  const pr = personalRecords[key];
+  const topSet = pr
+    ? { weight: pr.weight, reps: pr.reps }
+    : getTopSet(progression);
+  const rest = getRestTime(exerciseName);
+  const plannedWeight = Number(progressionPlan.weight);
+  const baseWeight = topSet?.weight ?? (Number.isFinite(plannedWeight) && plannedWeight > 0
+    ? plannedWeight
+    : last?.weight ?? null);
+  const target = progressionPlan
+    ? {
+        reps: progressionPlan.repsText,
+        rir: progressionPlan.rirText,
+        note: progressionPlan.note,
+      }
+    : getIntroTarget({ last, topSet, baseWeight });
 
   if (!last && !topSet) {
-    return `Nu kör vi ${exerciseName}.
+    return `Då tar vi ${exerciseName}.
 
-Jag har ingen tydlig historik här ännu.
-Börja kontrollerat med en låg vikt.
-Jobba upp tills första setet känns stabilt.`;
+Det här är första gången vi kör den tillsammans.
+Första setet visar oss var vi ligger.
+
+Sikta på:
+${target.reps}
+${target.rir}
+
+Vila ${rest}.`;
   }
 
-  const lines: string[] = [`Nu kör vi ${exerciseName}.`, ""];
+  const lines: string[] = [`Då tar vi ${exerciseName}.`, ""];
 
-  if (progression.length > 0) {
-    const summary = progression
-      .map((set) => `${set.weight} × ${set.reps}`)
-      .join("\n");
-
-    lines.push("Förra gången:");
-    lines.push(summary);
+  if (last?.failNote) {
+    lines.push("Senast tog det stopp här, så vi öppnar smart.");
     lines.push("");
+  } else if (topSet) {
+    lines.push(`Ditt bästa här är ${topSet.weight} × ${topSet.reps}.`);
   } else if (last) {
-    lines.push("Senast:");
-    lines.push(`${last.weight} × ${last.reps}`);
-    lines.push("");
+    lines.push(`Senast låg du på ${last.weight} × ${last.reps}.`);
   }
 
-  const baseWeight = topSet?.weight ?? last?.weight ?? null;
-  const baseReps = topSet?.reps ?? last?.reps ?? null;
+  if (baseWeight !== null) {
+    lines.push(
+      topSet && baseWeight === topSet.weight
+        ? `Vi börjar på samma vikt och siktar på ${target.reps}, ${target.rir}.`
+        : `Vi börjar på ${baseWeight} kg och siktar på ${target.reps}, ${target.rir}.`
+    );
 
-  if (baseWeight !== null && baseReps !== null) {
-    const targetReps = baseReps >= 12 ? baseReps : baseReps + 1;
-
-    lines.push(`Starta på ${baseWeight} kg.`);
-    lines.push(`Målet är ${targetReps} reps med bra teknik.`);
-
-    if (topSet && topSet.reps >= 10) {
-      lines.push("Känns det lätt kan vi höja efter första setet.");
-    } else {
-      lines.push("Känns det tungt håller vi vikten och bygger rent.");
+    if (progressionPlan.note && !(topSet && baseWeight === topSet.weight)) {
+      lines.push(progressionPlan.note);
     }
   } else {
-    lines.push("Börja lågt och hitta rätt belastning.");
-    lines.push("Första setet får styra resten.");
+    lines.push("Sikta på:");
+    lines.push(target.reps);
+    lines.push(target.rir);
+    lines.push("");
+    lines.push("Första setet visar oss var vi ligger.");
   }
+
+  lines.push("");
+  lines.push(`Vila ${rest}.`);
 
   return lines.join("\n");
 }
@@ -154,6 +302,9 @@ export default function WorkoutScreen({
   chatInput,
   setChatInput,
   sendChat,
+  workoutExerciseInput,
+  setWorkoutExerciseInput,
+  addExerciseDuringWorkout,
   formatTime,
   currentExerciseName,
   lastByExercise,
@@ -170,13 +321,86 @@ export default function WorkoutScreen({
   setFailNoteInput,
   addSet,
   removeLastSet,
+  skipCurrentExercise,
+  canSkipCurrentExercise,
+  skippedExerciseName,
+  undoSkipExercise,
   currentSets,
   prevExercise,
   nextExercise,
   finishWorkout,
   progression,
+  progressionPlan,
   addCoachMessage,
 }: Props) {
+  const [showRestTimer, setShowRestTimer] = useState(false);
+  const [showAddExercise, setShowAddExercise] = useState(false);
+  const [autoStartRestTimer, setAutoStartRestTimer] = useState(false);
+  const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
+  const [restElapsed, setRestElapsed] = useState(0);
+  const [manualRestTarget, setManualRestTarget] = useState<{
+    min: number;
+    max: number;
+    label: string;
+  } | null>(null);
+  const previousSetCountRef = useRef(currentSets.length);
+  const latestSet = currentSets.at(-1);
+  const coachRestTarget = getRestTargetRange(currentExerciseName, latestSet?.rir);
+  const restTarget = manualRestTarget ?? coachRestTarget;
+  const restProgress = Math.min(restElapsed / restTarget.max, 1);
+  const restTargetReached = restStartedAt !== null && restElapsed >= restTarget.min;
+  const restOverMax =
+    restStartedAt !== null &&
+    restTarget.max > restTarget.min &&
+    restElapsed >= restTarget.max;
+  const restTimerState = restOverMax
+    ? "over"
+    : restTargetReached
+    ? "ready"
+    : "resting";
+  const shouldShowRestDock = showRestTimer;
+
+  useEffect(() => {
+    if (currentSets.length > previousSetCountRef.current) {
+      setRestElapsed(0);
+      setManualRestTarget(null);
+      setRestStartedAt(autoStartRestTimer ? Date.now() : null);
+      if (autoStartRestTimer) {
+        setShowRestTimer(true);
+      }
+    }
+
+    previousSetCountRef.current = currentSets.length;
+  }, [autoStartRestTimer, currentSets.length]);
+
+  useEffect(() => {
+    if (!restStartedAt) return;
+
+    const interval = window.setInterval(() => {
+      setRestElapsed(Math.floor((Date.now() - restStartedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [restStartedAt]);
+
+  function startRestTimer() {
+    setRestStartedAt(Date.now());
+    setRestElapsed(0);
+    setShowRestTimer(true);
+  }
+
+  function startManualRestTimer(seconds: number) {
+    setManualRestTarget(getManualRestTarget(seconds));
+    setRestStartedAt(Date.now());
+    setRestElapsed(0);
+    setShowRestTimer(true);
+  }
+
+  function resetRestTimer() {
+    setRestStartedAt(null);
+    setRestElapsed(0);
+    setManualRestTarget(null);
+  }
   
 // eslint-disable-next-line react-hooks/exhaustive-deps
 // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -187,46 +411,17 @@ useEffect(() => {
     buildExerciseIntroCoachText({
       exerciseName: currentExerciseName,
       progression,
+      progressionPlan,
       lastByExercise,
       exerciseKey,
+      personalRecords,
     })
   );
 }, [exerciseIndex]);
 
-useEffect(() => {
-  if (!currentExerciseName) return;
- if (currentSets.length < 3) return;
-
-if (currentSets.length > 3) {
-  addCoachMessage(
-    `Du har redan fått in ${currentSets.length} set här.
-Jag rekommenderar att vi går vidare nu och sparar kvalitet till resten av passet.`
-  );
-  return;
-}
-
-  const hardSets = currentSets.filter(
-    (set) => set.rir === 0 || set.rir === 1
-  ).length;
-
-  const easySets = currentSets.filter(
-    (set) => typeof set.rir === "number" && set.rir >= 3
-  ).length;
-
-  let message = "";
-
-  if (hardSets >= 2) {
-    message = `Bra jobbat. 3 tunga set klara.\nJag tycker vi går vidare nu och sparar kvalitet till nästa övning.`;
-  } else if (easySets >= 2) {
-    message = `3 set klara och du hade bra marginal.\nVill du köra ett extraset kan du göra det, annars går vi vidare.`;
-  } else {
-    message = `Bra. 3 set klara.\nJag rekommenderar att vi går vidare till nästa övning.`;
-  }
-// eslint-disable-next-line react-hooks/set-state-in-effect
- addCoachMessage(message);
-}, [currentSets, currentExerciseName]);
   return (
-    <div className="w-full max-w-md space-y-3">
+    <>
+    <div className={`w-full max-w-xl space-y-2.5 sm:space-y-3 ${shouldShowRestDock ? "pb-44" : ""}`}>
 <CoachPanel
   coachData={coachData}
   dayForm={dayForm}
@@ -261,11 +456,213 @@ Jag rekommenderar att vi går vidare nu och sparar kvalitet till resten av passe
         setFailNoteInput={setFailNoteInput}
         addSet={addSet}
         removeLastSet={removeLastSet}
+        onSkipExercise={skipCurrentExercise}
+        canSkipExercise={canSkipCurrentExercise}
+        skippedExerciseName={skippedExerciseName}
+        undoSkipExercise={undoSkipExercise}
         personalRecords={personalRecords}
-        progression={progression}
       />
 
+      <div
+        className={`rounded-[1.2rem] border border-white/[0.09] bg-white/[0.038] p-2.5 backdrop-blur-2xl ${
+          showRestTimer ? "hidden" : ""
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setShowRestTimer((value) => !value)}
+            className="min-w-0 flex-1 text-left"
+          >
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+              Vila
+            </span>
+            <span className="mt-0.5 flex items-center gap-2 text-sm font-semibold text-white/86">
+              {formatRestTimer(restElapsed)}
+              <span className="text-xs font-medium text-white/42">
+                coach {restTarget.label}
+              </span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={startRestTimer}
+            className="shrink-0 rounded-lg border border-blue-400/20 bg-blue-500/[0.08] px-2.5 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.14]"
+          >
+            {restStartedAt ? "Om" : "Starta"}
+          </button>
+
+          <label className="flex shrink-0 items-center gap-1 rounded-lg border border-white/[0.09] bg-white/[0.048] px-2 py-2 text-xs font-semibold text-white/58">
+            <input
+              type="checkbox"
+              checked={autoStartRestTimer}
+              onChange={(event) => setAutoStartRestTimer(event.target.checked)}
+              className="h-3 w-3 rounded border-white/20 bg-slate-950/38"
+            />
+            Auto
+          </label>
+
+          <button
+            type="button"
+            onClick={() => setShowRestTimer((value) => !value)}
+            className="shrink-0 rounded-lg border border-white/[0.09] bg-white/[0.048] px-2.5 py-2 text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            {showRestTimer ? "Dölj" : "Visa"}
+          </button>
+        </div>
+
+        {showRestTimer ? (
+          <div
+            className={`hidden mt-2 rounded-[1.1rem] border p-2.5 transition ${
+              restTimerState === "over"
+                ? "animate-pulse border-red-300/35 bg-red-500/[0.08] shadow-[0_0_30px_rgba(248,113,113,0.20)]"
+                : restTimerState === "ready"
+                ? "animate-pulse border-orange-300/35 bg-orange-500/[0.08] shadow-[0_0_28px_rgba(251,146,60,0.18)]"
+                : "border-blue-400/15 bg-slate-950/22"
+            }`}
+          >
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+                  Vila
+                </p>
+                <p
+                  className={`mt-0.5 text-2xl font-semibold tracking-[-0.04em] ${
+                    restTimerState === "over"
+                      ? "text-red-100"
+                      : restTimerState === "ready"
+                      ? "text-orange-100"
+                      : "text-white"
+                  }`}
+                >
+                  {formatRestTimer(restElapsed)}
+                </p>
+              </div>
+
+              <p
+                className={`pb-0.5 text-xs font-medium ${
+                  restTimerState === "over"
+                    ? "text-red-100/72"
+                    : restTimerState === "ready"
+                    ? "text-orange-100/72"
+                    : "text-white/50"
+                }`}
+              >
+                {restTimerState === "over"
+                  ? "klart. Kör när du vill."
+                  : restTimerState === "ready"
+                  ? "vilan är klar"
+                  : manualRestTarget
+                  ? `mål ${restTarget.label}`
+                  : `coach ${restTarget.label}`}
+              </p>
+            </div>
+
+            <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/8">
+              <div
+                className={`h-full rounded-full shadow-[0_0_18px_rgba(96,165,250,0.35)] transition-all duration-500 ${
+                  restTimerState === "over"
+                    ? "bg-red-400"
+                    : restTimerState === "ready"
+                    ? "bg-orange-300"
+                    : "bg-blue-400"
+                }`}
+                style={{ width: `${restProgress * 100}%` }}
+              />
+            </div>
+
+            <div className="mt-2.5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={startRestTimer}
+                className="rounded-lg border border-blue-400/20 bg-blue-500/[0.10] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.16]"
+              >
+                {restStartedAt ? "Starta om" : "Starta"}
+              </button>
+
+              <button
+                type="button"
+                onClick={resetRestTimer}
+                className="rounded-lg border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-xs font-semibold text-white/72 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                {restStartedAt ? "Stoppa" : "Nollställ"}
+              </button>
+            </div>
+
+            <div className="mt-2 grid grid-cols-4 gap-1.5">
+              {[
+                [60, "1:00"],
+                [120, "2:00"],
+                [180, "3:00"],
+                [240, "4:00"],
+              ].map(([seconds, label]) => (
+                <button
+                  key={seconds}
+                  type="button"
+                  onClick={() => startManualRestTimer(Number(seconds))}
+                  className={`rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${
+                    manualRestTarget?.min === seconds
+                      ? "border-blue-400/30 bg-blue-500/[0.14] text-blue-100"
+                      : "border-white/[0.09] bg-white/[0.042] text-white/58 hover:bg-white/[0.07] hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
       <SetList currentSets={currentSets} />
+
+      <div className="rounded-[1.2rem] border border-white/[0.09] bg-white/[0.038] p-2.5 backdrop-blur-2xl">
+        <button
+          type="button"
+          onClick={() => setShowAddExercise((value) => !value)}
+          className="flex w-full items-center justify-between gap-3 text-left"
+        >
+          <span>
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
+              Lägg till övning
+            </span>
+            <span className="mt-0.5 block text-xs leading-5 text-white/50">
+              Om gymmet eller kroppen styr om.
+            </span>
+          </span>
+          <span className="rounded-lg border border-white/[0.09] bg-white/[0.048] px-3 py-1.5 text-xs font-semibold text-white/62">
+            {showAddExercise ? "Dölj" : "+"}
+          </span>
+        </button>
+
+        {showAddExercise ? (
+          <div className="mt-2 flex gap-2">
+            <input
+              className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/42 px-3 py-2 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
+              value={workoutExerciseInput}
+              onChange={(e) => setWorkoutExerciseInput(e.target.value)}
+              placeholder='t.ex. "Chins"'
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  addExerciseDuringWorkout();
+                  setShowAddExercise(false);
+                }
+              }}
+            />
+
+            <button
+              className="rounded-xl border border-blue-400/20 bg-blue-500/[0.10] px-4 text-sm font-semibold text-white transition hover:bg-[#4f83ff]/[0.14]"
+              onClick={() => {
+                addExerciseDuringWorkout();
+                setShowAddExercise(false);
+              }}
+            >
+              Lägg till
+            </button>
+          </div>
+        ) : null}
+      </div>
 
       <div className="space-y-3">
         <WorkoutNavigation
@@ -277,5 +674,117 @@ Jag rekommenderar att vi går vidare nu och sparar kvalitet till resten av passe
         />
       </div>
     </div>
+    {shouldShowRestDock ? (
+      <div className="fixed inset-x-0 bottom-3 z-40 px-3 sm:bottom-5">
+        <div
+          className={`mx-auto w-full max-w-[430px] rounded-[1.35rem] border p-3 shadow-[0_18px_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl transition ${
+            restTimerState === "over"
+              ? "animate-pulse border-red-300/35 bg-[#2a1417]/92 shadow-[0_0_34px_rgba(248,113,113,0.22)]"
+              : restTimerState === "ready"
+              ? "animate-pulse border-orange-300/35 bg-[#2a1d12]/92 shadow-[0_0_32px_rgba(251,146,60,0.20)]"
+              : "border-white/[0.11] bg-[#111a25]/94"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">
+                Vila
+              </p>
+              <div className="mt-0.5 flex items-baseline gap-2">
+                <p
+                  className={`text-2xl font-semibold tracking-tight ${
+                    restTimerState === "over"
+                      ? "text-red-100"
+                      : restTimerState === "ready"
+                      ? "text-orange-100"
+                      : "text-white"
+                  }`}
+                >
+                  {formatRestTimer(restElapsed)}
+                </p>
+                <p
+                  className={`truncate text-xs font-semibold ${
+                    restTimerState === "over"
+                      ? "text-red-100/72"
+                      : restTimerState === "ready"
+                      ? "text-orange-100/72"
+                      : "text-white/48"
+                  }`}
+                >
+                  {restTimerState === "over"
+                    ? "över målet"
+                    : restTimerState === "ready"
+                    ? "vilan är klar"
+                    : manualRestTarget
+                    ? `mål ${restTarget.label}`
+                    : `coach ${restTarget.label}`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={startRestTimer}
+                className="rounded-xl border border-blue-400/20 bg-blue-500/[0.14] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.18]"
+              >
+                {restStartedAt ? "Om" : "Starta"}
+              </button>
+              <button
+                type="button"
+                onClick={resetRestTimer}
+                className="rounded-xl border border-white/[0.09] bg-white/[0.06] px-3 py-2 text-xs font-semibold text-white/72 transition hover:bg-white/[0.09] hover:text-white"
+              >
+                {restStartedAt ? "Stoppa" : "Nollställ"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRestTimer(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.06] text-sm font-semibold text-white/52 transition hover:bg-white/[0.09] hover:text-white"
+                aria-label="Dölj vilotimer"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/8">
+            <div
+              className={`h-full rounded-full shadow-[0_0_18px_rgba(96,165,250,0.35)] transition-all duration-500 ${
+                restTimerState === "over"
+                  ? "bg-red-400"
+                  : restTimerState === "ready"
+                  ? "bg-orange-300"
+                  : "bg-blue-400"
+              }`}
+              style={{ width: `${restProgress * 100}%` }}
+            />
+          </div>
+
+          <div className="mt-2 grid grid-cols-4 gap-1.5">
+            {[
+              [60, "1:00"],
+              [120, "2:00"],
+              [180, "3:00"],
+              [240, "4:00"],
+            ].map(([seconds, label]) => (
+              <button
+                key={seconds}
+                type="button"
+                onClick={() => startManualRestTimer(Number(seconds))}
+                className={`rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${
+                  manualRestTarget?.min === seconds
+                    ? "border-blue-400/30 bg-blue-500/[0.16] text-blue-100"
+                    : "border-white/[0.09] bg-white/[0.052] text-white/62 hover:bg-white/[0.08] hover:text-white"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 }

@@ -14,7 +14,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #0b1018;
     --foreground: #ededed;
   }
 }
@@ -23,6 +23,196 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+html[data-theme="light"],
+[data-theme="light"] {
+  background:
+    radial-gradient(circle at top left, rgba(47, 109, 246, 0.13), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(125, 96, 64, 0.08), transparent 26%),
+    linear-gradient(180deg, #f3eee4 0%, #f8f4ec 48%, #efe7da 100%) !important;
+  color: #172033 !important;
+}
+
+[data-theme="light"] body {
+  background:
+    radial-gradient(circle at top left, rgba(47, 109, 246, 0.13), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(125, 96, 64, 0.08), transparent 26%),
+    linear-gradient(180deg, #f3eee4 0%, #f8f4ec 48%, #efe7da 100%) !important;
+  color: #172033 !important;
+}
+
+[data-theme="light"] [class*="fixed"][class*="inset-0"][class*="-z-10"],
+[data-theme="light"] [class*="fixed"][class*="inset-0"][class*="z-0"] {
+  background:
+    radial-gradient(circle at top left, rgba(47, 109, 246, 0.13), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(125, 96, 64, 0.08), transparent 26%),
+    linear-gradient(180deg, #f3eee4 0%, #f8f4ec 48%, #efe7da 100%) !important;
+}
+
+[data-theme="light"] main[class*="bg-[#0b1018]"],
+[data-theme="light"] main[class*="bg-[#080d14]"],
+[data-theme="light"] section[class*="bg-[#0b1018]"],
+[data-theme="light"] div[class*="bg-[#0b1018]"] {
+  background:
+    radial-gradient(circle at top left, rgba(47, 109, 246, 0.13), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(125, 96, 64, 0.08), transparent 26%),
+    linear-gradient(180deg, #f3eee4 0%, #f8f4ec 48%, #efe7da 100%) !important;
+}
+
+[data-theme="light"] [class*="text-white"] {
+  color: #172033 !important;
+}
+
+[data-theme="light"] [class*="text-white/"],
+[data-theme="light"] [class*="text-blue-100/"],
+[data-theme="light"] [class*="text-gray-"],
+[data-theme="light"] [class*="text-zinc-"],
+[data-theme="light"] [class*="text-slate-"] {
+  color: #4d5a6b !important;
+}
+
+[data-theme="light"] [class*="text-blue-100"],
+[data-theme="light"] [class*="text-blue-200"],
+[data-theme="light"] [class*="text-blue-300"] {
+  color: #2563eb !important;
+}
+
+[data-theme="light"] [class*="text-amber"] {
+  color: #7a5208 !important;
+}
+
+[data-theme="light"] [class*="bg-amber"] {
+  background-color: rgba(255, 247, 214, 0.84) !important;
+}
+
+[data-theme="light"] [class*="border-amber"] {
+  border-color: rgba(180, 132, 28, 0.34) !important;
+}
+
+[data-theme="light"] [class*="text-emerald"] {
+  color: #087443 !important;
+}
+
+[data-theme="light"] [class*="bg-emerald"] {
+  background-color: rgba(218, 250, 229, 0.82) !important;
+}
+
+[data-theme="light"] [class*="border-emerald"] {
+  border-color: rgba(16, 185, 129, 0.32) !important;
+}
+
+[data-theme="light"] [class*="bg-[#2f6df6]"],
+[data-theme="light"] [class*="bg-blue-500"],
+[data-theme="light"] [class*="bg-blue-600"] {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] [class*="border-white"] {
+  border-color: rgba(216, 207, 192, 0.78) !important;
+}
+
+[data-theme="light"] [class*="bg-white/"],
+[data-theme="light"] [class*="bg-white["] {
+  background-color: rgba(255, 255, 255, 0.64) !important;
+}
+
+[data-theme="light"] [class*="bg-slate-950"] {
+  background-color: rgba(255, 255, 255, 0.42) !important;
+}
+
+[data-theme="light"] [class*="bg-slate-900"],
+[data-theme="light"] [class*="bg-[#131c27]"],
+[data-theme="light"] [class*="bg-[#101824]"] {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+}
+
+[data-theme="light"] [class*="bg-black"] {
+  background-color: #f3eee4 !important;
+}
+
+[data-theme="light"] [class*="bg-black/70"],
+[data-theme="light"] [class*="bg-black/60"] {
+  background-color: rgba(23, 32, 51, 0.38) !important;
+}
+
+[data-theme="light"] [class*="shadow-[0_14px"],
+[data-theme="light"] [class*="shadow-[0_16px"] {
+  box-shadow: 0 16px 46px rgba(91, 72, 48, 0.1) !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] textarea {
+  color: #172033 !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: rgba(77, 90, 107, 0.55) !important;
+}
+
+[data-theme="light"] .coach-panel-shell {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(216, 207, 192, 0.86) !important;
+  box-shadow: 0 16px 46px rgba(91, 72, 48, 0.1) !important;
+}
+
+[data-theme="light"] .coach-message {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 247, 240, 0.86)) !important;
+  border-color: rgba(216, 207, 192, 0.92) !important;
+  color: #172033 !important;
+  box-shadow: 0 10px 26px rgba(91, 72, 48, 0.08) !important;
+}
+
+[data-theme="light"] .user-message,
+[data-theme="light"] .coach-empty-message {
+  background: rgba(239, 244, 255, 0.78) !important;
+  border-color: rgba(191, 219, 254, 0.85) !important;
+  color: #172033 !important;
+}
+
+[data-theme="light"] .coach-message-label {
+  color: rgba(77, 90, 107, 0.58) !important;
+}
+
+[data-theme="light"] .coach-message p {
+  color: #172033 !important;
+}
+
+[data-theme="light"] .coach-message p[class*="text-blue"] {
+  color: #2563eb !important;
+}
+
+[data-theme="light"] .coach-set-marker {
+  background: rgba(47, 109, 246, 0.1) !important;
+  border-color: rgba(47, 109, 246, 0.24) !important;
+  color: #2563eb !important;
+  box-shadow: 0 8px 22px rgba(47, 109, 246, 0.12) !important;
+}
+
+[data-theme="light"] .user-message-text {
+  color: #172033 !important;
+}
+
+[data-theme="light"] .coach-input {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(216, 207, 192, 0.92) !important;
+}
+
+[data-theme="light"] .settings-backdrop {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(47, 109, 246, 0.08), transparent 28%),
+    radial-gradient(circle at 88% 4%, rgba(125, 96, 64, 0.08), transparent 30%),
+    rgba(239, 231, 218, 0.32) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.16) !important;
+  backdrop-filter: blur(18px) saturate(1.16) !important;
+}
+
+[data-theme="dark"] .settings-backdrop {
+  background: rgba(2, 6, 24, 0.58) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.08) !important;
+  backdrop-filter: blur(16px) saturate(1.08) !important;
 }
 
 @keyframes logoFloat {
@@ -43,16 +233,18 @@ body {
 @keyframes messageIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px);
+    filter: blur(5px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
 }
 
 .animate-message-in {
-  animation: messageIn 0.35s ease-out;
+  animation: messageIn 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes fadeUp {
@@ -71,4 +263,62 @@ body {
 .fade-up {
   opacity: 0;
   animation: fadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes splashMark {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+    filter: blur(8px);
+  }
+  42% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+  78% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.03) translateY(-8px);
+    filter: blur(8px);
+  }
+}
+
+@keyframes splashWord {
+  0%,
+  24% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  48%,
+  82% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+.splash-mark {
+  animation: splashMark 1.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.splash-word {
+  animation: splashWord 1.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-mark,
+  .splash-word,
+  .animate-message-in,
+  .fade-up {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
 }

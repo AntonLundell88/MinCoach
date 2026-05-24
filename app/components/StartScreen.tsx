@@ -1,80 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { getExerciseInfo } from "../lib/exercises";
 
 type PassType = "A" | "B" | "C" | "D";
 
-type CoachNote = {
-  createdAt: string;
-  pass: PassType;
-  gym: string;
-  exerciseName?: string;
-  text: string;
-};
-
-type CoachMemory = {
-  notes: CoachNote[];
-};
-
 type CustomExercisesByPass = Record<PassType, string[]>;
-
-type WorkoutSummary = {
-  durationMinutes: number;
-  totalSets: number;
-  exerciseCount: number;
-  bestSetText: string;
-  coachSummary: string;
-};
-
-type WorkoutReview = {
-  passLabel: string;
-  durationMinutes: number;
-  totalSets: number;
-  exerciseCount: number;
-  bestSetText: string;
-  coachSummary: string;
-  positives: string[];
-  adjustments: string[];
-  nextFocus: string[];
-  progression: {
-  improved: string[];
-  same: string[];
-  worse: string[];
-};
-coachMemoryTakeaway: string[];
-};
-
-type LoggedSet = {
-  weight: number;
-  reps: number;
-  rir?: number;
-  failNote?: string;
-  createdAt: string;
-};
-
-type LoggedExercise = {
-  name: string;
-  sets: LoggedSet[];
-};
-
-type Workout = {
-  id: string;
-  startedAt: string;
-  gym: string;
-  pass: PassType;
-  exercises: LoggedExercise[];
-  summary?: WorkoutSummary;
-};
 
 type Props = {
   name: string;
-  userProfile: {
-    daysPerWeek: number;
-  };
-  lastPass: PassType | null;
   nextPass: PassType;
   nextPassLabel: string;
-  lastPassLabel: string;
   now: Date;
 
   plan: string[];
@@ -95,9 +31,12 @@ type Props = {
   customExerciseInput: string;
   setCustomExerciseInput: (v: string) => void;
   addCustomExercise: (pass: PassType, name: string) => void;
+  addTodayExercise: (pass: PassType, name: string) => void;
+  removeTodayExercise: (pass: PassType, name: string) => void;
   removeCustomExercise: (pass: PassType, name: string) => void;
   removePlannedExercise: (name: string) => void;
   customExercisesByPass: CustomExercisesByPass;
+  todayExercisesByPass: CustomExercisesByPass;
 
   checkInInput: string;
   setCheckInInput: (v: string) => void;
@@ -105,26 +44,18 @@ type Props = {
   setCheckInCoachReply: (v: string) => void;
 
   startWorkout: () => void;
-
-  history: Workout[];
-  coachMemory: CoachMemory;
-  latestReview: WorkoutReview | null;
-  weeklyStats: {
-    passCount: number;
-    totalMinutes: number;
-    totalSets: number;
-  };
+  hasAcceptedTrainingSafety: boolean;
+  onAcceptTrainingSafety: () => void;
 
   setEditingProfile: (v: boolean) => void;
 
-  formatTime: (d: Date) => string;
 };
 
 const cardClassName =
-  "rounded-2xl border border-white/8 bg-black/20 p-4 backdrop-blur-sm";
+  "rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl";
 
 const secondaryButtonClassName =
-  "rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-white/70 transition hover:bg-white/10 hover:text-white";
+  "rounded-lg px-2.5 py-1 text-xs font-medium text-white/42 transition hover:bg-white/5 hover:text-white/78";
 
 function TypewriterText({
   text,
@@ -134,14 +65,180 @@ function TypewriterText({
   return <>{text}</>;
 }
 
+type CheckInIntent = {
+  topic:
+    | "warmup"
+    | "conditioning"
+    | "pain"
+    | "fatigue"
+    | "strong"
+    | "mobility"
+    | "exerciseChange"
+    | "addExercise"
+    | "general";
+  tense: "past" | "present" | "future" | "unknown";
+  intensity: "light" | "hard" | "unknown";
+};
+
+function hasAny(text: string, terms: string[]) {
+  return terms.some((term) => text.includes(term));
+}
+
+function parseCheckInIntent(message: string): CheckInIntent {
+  const lower = message.trim().toLowerCase();
+  const pastWarmup = [
+    "varmde upp",
+    "har varmt upp",
+    "varmt upp",
+    "uppvarmd",
+    "redan varm",
+    "ar varm",
+  ];
+  const futureWarmup = [
+    "ska varma",
+    "kommer varma",
+    "varmer upp",
+    "varma upp",
+    "uppvarmning",
+  ];
+  const cardio = [
+    "lopband",
+    "gangband",
+    "cykl",
+    "rodd",
+    "crosstrainer",
+    "spring",
+    "loper",
+    "kondition",
+    "cardio",
+    "intervall",
+  ];
+
+  const normalized = lower
+    .replaceAll("\u00e5", "a")
+    .replaceAll("\u00e4", "a")
+    .replaceAll("\u00f6", "o");
+
+  const hasPastWarmup = hasAny(normalized, pastWarmup);
+  const hasFutureWarmup = hasAny(normalized, futureWarmup) && !hasPastWarmup;
+  const mentionsCardio = hasAny(normalized, cardio);
+  const hardCardio =
+    normalized.includes("intervall") ||
+    /(?:spring|loper|lopband|cykl|rodd).{0,24}(?:20|30|40|45|60)\s*(?:min|minuter)/.test(
+      normalized
+    );
+
+  if (hasPastWarmup) {
+    return {
+      topic: mentionsCardio ? "conditioning" : "warmup",
+      tense: "past",
+      intensity: hardCardio ? "hard" : "light",
+    };
+  }
+
+  if (hasFutureWarmup) {
+    return {
+      topic: mentionsCardio ? "conditioning" : "warmup",
+      tense: "future",
+      intensity: hardCardio ? "hard" : "light",
+    };
+  }
+
+  if (mentionsCardio) {
+    const tense =
+      hasAny(normalized, ["ska", "kommer", "forst", "innan", "fore"])
+        ? "future"
+        : hasAny(normalized, ["sprang", "cyklade", "rodde", "gjorde"])
+        ? "past"
+        : "unknown";
+
+    return {
+      topic: "conditioning",
+      tense,
+      intensity: hardCardio ? "hard" : "unknown",
+    };
+  }
+
+  if (hasAny(normalized, ["ont", "smart", "kanning", "knat", "landrygg", "rygg"])) {
+    return { topic: "pain", tense: "present", intensity: "unknown" };
+  }
+
+  if (hasAny(normalized, ["trott", "sliten", "seg", "sovit daligt"])) {
+    return { topic: "fatigue", tense: "present", intensity: "unknown" };
+  }
+
+  if (hasAny(normalized, ["stark", "pigga ben", "redo", "taggad"])) {
+    return { topic: "strong", tense: "present", intensity: "unknown" };
+  }
+
+  if (hasAny(normalized, ["stel", "stel i ryggen", "stel i axeln"])) {
+    return { topic: "mobility", tense: "present", intensity: "unknown" };
+  }
+
+  if (hasAny(normalized, ["byta", "byt", "vill inte kora"])) {
+    return { topic: "exerciseChange", tense: "future", intensity: "unknown" };
+  }
+
+  if (hasAny(normalized, ["lagga till", "lagg till", "extra ovning"])) {
+    return { topic: "addExercise", tense: "future", intensity: "unknown" };
+  }
+
+  return { topic: "general", tense: "unknown", intensity: "unknown" };
+}
+
+function buildIntentAwareCheckInReply(intent: CheckInIntent) {
+  if (intent.topic === "warmup" && intent.tense === "past") {
+    return "Bra. Starta passet n\u00e4r du \u00e4r redo.";
+  }
+
+  if (intent.topic === "warmup" && intent.tense === "future") {
+    return "Bra. G\u00f6r den lugnt. Starta passet n\u00e4r du \u00e4r redo.";
+  }
+
+  if (intent.topic === "conditioning" && intent.tense === "past") {
+    return intent.intensity === "hard"
+      ? "Bra att du s\u00e4ger det. Jag har med mig att benen kan vara lite p\u00e5verkade idag. Starta passet n\u00e4r du \u00e4r redo."
+      : "Bra. Starta passet n\u00e4r du \u00e4r redo.";
+  }
+
+  if (intent.topic === "conditioning" && intent.tense === "future") {
+    return intent.intensity === "hard"
+      ? "L\u00e4gg den helst efter styrkan idag. Vill du v\u00e4rma upp f\u00f6rst, h\u00e5ll det lugnt."
+      : "Bra. H\u00e5ll den lugn och starta passet n\u00e4r du \u00e4r redo.";
+  }
+
+  if (intent.topic === "pain") {
+    return "Okej. D\u00e5 startar vi lugnt idag. Avbryt direkt om n\u00e5got k\u00e4nns fel.";
+  }
+
+  if (intent.topic === "fatigue") {
+    return "Okej. D\u00e5 b\u00f6rjar vi lite lugnare idag.";
+  }
+
+  if (intent.topic === "strong") {
+    return "Bra. D\u00e5 kan vi vara lite mer offensiva idag.";
+  }
+
+  if (intent.topic === "mobility") {
+    return "Bra att du s\u00e4ger till. D\u00e5 tar vi f\u00f6rsta delen lugnare.";
+  }
+
+  if (intent.topic === "exerciseChange") {
+    return "Absolut. Vill du byta ut en \u00f6vning idag kan du g\u00f6ra det i listan under dagens pass.";
+  }
+
+  if (intent.topic === "addExercise") {
+    return "Absolut. Vill du komplettera dagens pass kan du l\u00e4gga till en extra \u00f6vning under dagens pass.";
+  }
+
+  return "Okej. Starta passet n\u00e4r du \u00e4r redo.";
+}
+
 
 export default function StartScreen({
-  lastPass,
   nextPass,
   nextPassLabel,
-  lastPassLabel,
   now,
-  userProfile,
   plan,
   exerciseKey,
   name,
@@ -154,68 +251,35 @@ export default function StartScreen({
   customExerciseInput,
   setCustomExerciseInput,
   addCustomExercise,
+  addTodayExercise,
+  removeTodayExercise,
   removeCustomExercise,
   removePlannedExercise,
   customExercisesByPass,
+  todayExercisesByPass,
   checkInInput,
   setCheckInInput,
   checkInCoachReply,
   setCheckInCoachReply,
   startWorkout,
-  history,
-  coachMemory,
-  latestReview,
-  weeklyStats,
+  hasAcceptedTrainingSafety,
+  onAcceptTrainingSafety,
   setEditingProfile,
 }: Props) {
-  const passCount = Number.isFinite(weeklyStats.passCount)
-    ? weeklyStats.passCount
-    : 0;
-
   const [localCheckInSubmittedText, setLocalCheckInSubmittedText] = useState("");
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
+  const [exerciseInfoName, setExerciseInfoName] = useState<string | null>(null);
+  const exerciseInfo = exerciseInfoName ? getExerciseInfo(exerciseInfoName) : null;
 
   const cleanNextPassLabel = nextPassLabel.replace(" 1", "").replace(" 2", "");
+  const todayExercises = todayExercisesByPass[nextPass] ?? [];
+  const savedCustomExercises = customExercisesByPass[nextPass] ?? [];
+  const addedExerciseCount = todayExercises.length + savedCustomExercises.length;
 
 
 
 function getLobbyIntro() {
-  const lower = checkInInput.trim().toLowerCase();
-  const passName = cleanNextPassLabel.toLowerCase();
-
-  if (
-    lower.includes("ont") ||
-    lower.includes("smärta") ||
-    lower.includes("stel") ||
-    lower.includes("rygg")
-  ) {
-    return `Bra att du är här.\nNu kör vi ${passName}.\nFokus idag: ren teknik och jämna, stabila set från start.`;
-  }
-
-  if (
-    lower.includes("trött") ||
-    lower.includes("sliten") ||
-    lower.includes("seg")
-  ) {
-    return `Bra att du är här. Nu kör vi ${passName}.\nVi tar det kontrollerat idag och låter första övningen sätta nivån.`;
-  }
-
-  if (
-    lower.includes("stark") ||
-    lower.includes("taggad") ||
-    lower.includes("redo")
-  ) {
-    return `Bra att du är här. Nu kör vi ${passName}.\nDu känns redo idag, så vi bygger därifrån med bra kontroll från start.`;
-  }
-
-  if (latestReview?.coachMemoryTakeaway?.length) {
-    return `Bra att du är här. Nu kör vi ${passName}.\n${latestReview.coachMemoryTakeaway[0]}`;
-  }
-
-  if (latestReview) {
-    return `Bra att du är här. Nu kör vi ${passName}.\nSenast såg det stabilt ut, så idag bygger vi vidare därifrån.`;
-  }
-
-  return `Bra att du är här. Nu kör vi ${passName}.\nIdag vill jag se ren teknik och jämna set från start.`;
+  return "Nu kör vi!";
 }
 
 
@@ -223,20 +287,13 @@ function getLobbyIntro() {
   function getTimeGreeting(date: Date, personName: string) {
     const hour = date.getHours();
 
-    if (hour < 10) return `God morgon ${personName}.`;
-    if (hour < 18) return `Hej ${personName}.`;
-    return `God kväll ${personName}.`;
+    if (hour < 10) return `God morgon ${personName}!`;
+    if (hour < 18) return `Hej ${personName}!`;
+    return `God kväll ${personName}!`;
   }
 
-  function getCheckInQuestion(currentPassCount: number) {
-    const options = [
-      "Hur känns kroppen idag?",
-      "Hur känns det inför passet?",
-      "Är du redo att köra?",
-      "Något vi ska ta hänsyn till idag?",
-    ];
-
-    return options[currentPassCount % options.length];
+  function getCheckInQuestion() {
+    return "Är det något jag ska ta hänsyn till innan vi drar igång?";
   }
 
   function buildCheckInCoachReply(message: string) {
@@ -244,12 +301,103 @@ function getLobbyIntro() {
 
     if (!lower) return "";
 
+    const intent = parseCheckInIntent(message);
+
+    if (intent.topic !== "general") {
+      return buildIntentAwareCheckInReply(intent);
+    }
+
+    const hasFinishedWarmup =
+      lower.includes("värmde") ||
+      lower.includes("har värmt") ||
+      lower.includes("värmt upp") ||
+      lower.includes("uppvärmd") ||
+      lower.includes("redan varm") ||
+      lower.includes("är varm");
+
+    if (hasFinishedWarmup) {
+      return "Bra. Starta passet när du är redo.";
+    }
+
+    if (
+      lower.includes("intervall") ||
+      /(?:spring|löp|lop|cykl|rodd|gångband|gangband).{0,20}(?:20|30|40|45|60)\s*(?:min|minuter)/.test(lower)
+    ) {
+      return "Lägg den efter styrkan idag.";
+    }
+
+    if (
+      lower.includes("ingen uppvärmning") ||
+      lower.includes("ingen uppvarmning") ||
+      lower.includes("hoppar uppvärm") ||
+      lower.includes("hoppar uppvarm") ||
+      lower.includes("skippar uppvärm") ||
+      lower.includes("skippar uppvarm") ||
+      lower.includes("utan uppvärm") ||
+      lower.includes("utan uppvarm")
+    ) {
+      return "Okej. Då startar vi lugnt.";
+    }
+
+    if (
+      lower.includes("cykl") ||
+      lower.includes("löpband") ||
+      lower.includes("gångband") ||
+      lower.includes("rodd") ||
+      lower.includes("crosstrainer")
+    ) {
+      return "Bra. Starta passet när du är redo.";
+    }
+
+    if (
+      lower.includes("kondition") ||
+      lower.includes("cardio") ||
+      lower.includes("spring") ||
+      lower.includes("löp") ||
+      lower.includes("lop")
+    ) {
+      if (lower.includes("efter")) {
+        return "Bra. Vi lägger den efter styrkan.";
+      }
+
+      if (
+        lower.includes("innan") ||
+        lower.includes("före") ||
+        lower.includes("fore") ||
+        lower.includes("först") ||
+        lower.includes("forst")
+      ) {
+        return "Håll den lugn före styrkan. Vill du köra hårt lägger vi den efter.";
+      }
+
+      return "Jag har det med mig i passet.";
+    }
+
+    if (
+      lower.includes("lätt set") ||
+      lower.includes("lätta set") ||
+      lower.includes("uppvärmningsset")
+    ) {
+      return "Bra. Starta passet när du är redo.";
+    }
+
+    if (
+      lower.includes("redan varm") ||
+      lower.includes("är varm") ||
+      lower.includes("värmer") ||
+      lower.includes("värma") ||
+      lower.includes("värmt upp") ||
+      lower.includes("uppvärmd")
+    ) {
+      return "Bra. Då tar vi första arbetssetet.";
+    }
+
     if (
       lower.includes("rygg") ||
       lower.includes("ländrygg") ||
       lower.includes("ont")
     ) {
-      return "Okej. Då tar vi det kontrollerat idag. Fokusera på ren teknik från start och var försiktig om något känns fel.";
+      return "Okej. Då startar vi lugnt idag. Avbryt direkt om något känns fel.";
     }
 
     if (
@@ -258,7 +406,7 @@ function getLobbyIntro() {
       lower.includes("seg") ||
       lower.includes("sovit dåligt")
     ) {
-      return "Noterat. Då håller vi passet stabilt idag och bygger det lugnt från första övningen.";
+      return "Okej. Då börjar vi lite lugnare idag.";
     }
 
     if (
@@ -267,7 +415,7 @@ function getLobbyIntro() {
       lower.includes("redo") ||
       lower.includes("taggad")
     ) {
-      return "Bra. Då kan vi trycka på lite mer idag, men fortfarande med kontroll i första övningen.";
+      return "Bra. Då kan vi vara lite mer offensiva idag.";
     }
 
     if (
@@ -275,7 +423,7 @@ function getLobbyIntro() {
       lower.includes("stel i ryggen") ||
       lower.includes("stel i axeln")
     ) {
-      return "Bra att du säger till. Då tar vi första delen av passet lugnt och känner in kroppen innan vi driver på.";
+      return "Bra att du säger till. Då tar vi första delen lugnare.";
     }
 
     if (
@@ -294,58 +442,45 @@ function getLobbyIntro() {
       return "Absolut. Vill du komplettera dagens pass kan du lägga till en extra övning i rutan 'Lägg till övning' under dagens pass.";
     }
 
-    return "Noterat. Jag tar med det in i dagens pass. Kör kontrollerat från start så justerar vi efter känslan.";
+    return "Okej. Första setet visar oss var vi ligger.";
   }
-
-  const latestCoachSummary =
-    history[0]?.summary?.coachSummary ??
-    latestReview?.coachSummary ??
-    "Ingen notis än.";
-
-  const latestBestSet = history[0]?.summary?.bestSetText ?? "-";
-  const latestDuration = history[0]?.summary?.durationMinutes
-    ? `${history[0].summary.durationMinutes} min`
-    : "-";
 
   return (
     <div className="w-full max-w-lg space-y-5">
-      <div className="rounded-3xl border border-blue-400/20 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),rgba(24,24,27,0.92)_42%,rgba(10,10,15,0.98)_100%)] p-5 shadow-[0_0_60px_rgba(59,130,246,0.14)]">
-        <div className="space-y-5">
+      <div className="rounded-[1.75rem] border border-white/[0.09] bg-white/[0.05] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14)] backdrop-blur-xl">
+        <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-blue-400/20 bg-blue-500/10 text-sm font-semibold text-blue-200 shadow-[0_0_18px_rgba(59,130,246,0.18)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.055] text-sm font-semibold text-blue-100">
               C
             </div>
 
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-white/40">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-white/38">
                 Coachen
-              </p>
-              <p className="text-sm font-medium text-white/85">
-                Din personliga PT
               </p>
             </div>
           </div>
 
           <div className="space-y-2">
             <h1
-              className="fade-up text-3xl font-semibold leading-tight text-white"
+              className="fade-up text-2xl font-semibold leading-tight text-white"
               style={{ animationDelay: "0s" }}
             >
               {getTimeGreeting(now, name)}
             </h1>
 
 <p
-  className="fade-up max-w-md whitespace-pre-line text-[15px] leading-7 text-white/90"
+  className="fade-up max-w-md whitespace-pre-line text-[15px] leading-6 text-white/82"
   style={{ animationDelay: "0.24s" }}
 >
   {getLobbyIntro()}
 </p>
 
     <p
-  className="fade-up text-sm font-medium text-white/85"
+  className="fade-up pt-1 text-sm font-medium text-white/78"
   style={{ animationDelay: "0.36s" }}
 >
-  Något jag ska ta hänsyn till idag?
+  {getCheckInQuestion()}
 </p>
 
             <div
@@ -353,7 +488,7 @@ function getLobbyIntro() {
               style={{ animationDelay: "0.48s" }}
             >
               <input
-                className="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-blue-400/30"
+                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 p-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-blue-400/30"
                 value={checkInInput}
                 onChange={(e) => setCheckInInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -362,11 +497,11 @@ function getLobbyIntro() {
                     setCheckInCoachReply(buildCheckInCoachReply(checkInInput));
                   }
                 }}
-                placeholder="t.ex. stel i ryggen, trött, stark..."
+                placeholder="Skriv till coachen..."
               />
 
               <button
-                className="rounded-xl border border-blue-400/20 bg-blue-500/15 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_18px_rgba(59,130,246,0.16)] transition hover:bg-blue-500/20 hover:brightness-110"
+                className="rounded-xl border border-blue-500/20 bg-[#2f6df6] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4f83ff]"
                 onClick={() => {
                   if (!checkInInput.trim()) return;
                   setLocalCheckInSubmittedText(checkInInput);
@@ -377,8 +512,15 @@ function getLobbyIntro() {
               </button>
             </div>
 
+            <p
+              className="fade-up text-xs leading-5 text-white/38"
+              style={{ animationDelay: "0.56s" }}
+            >
+              Skriv fritt, t.ex. “uppvärmning 5 min löpband”, “jag är trött” eller “jag springer 20 min först”.
+            </p>
+
             {localCheckInSubmittedText ? (
-              <div className="fade-up rounded-2xl border border-white/10 bg-white/6 p-3 backdrop-blur-sm">
+              <div className="fade-up rounded-2xl border border-white/[0.09] bg-white/6 p-3 backdrop-blur-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[11px] uppercase tracking-[0.14em] text-white/35">
@@ -394,11 +536,11 @@ function getLobbyIntro() {
 
             {checkInCoachReply ? (
               <div
-                className="fade-up rounded-2xl border border-blue-400/18 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),rgba(37,99,235,0.08)_55%,rgba(255,255,255,0.02)_100%)] p-3 backdrop-blur-sm"
+                className="fade-up rounded-2xl border border-white/[0.09] bg-slate-950/18 p-3 backdrop-blur-sm"
                 style={{ animationDelay: "0.56s" }}
               >
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-400/20 bg-blue-500/10 text-[11px] font-semibold text-blue-200">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.052] text-[11px] font-semibold text-blue-100">
                     C
                   </div>
 
@@ -415,45 +557,42 @@ function getLobbyIntro() {
             ) : null}
           </div>
           
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-sm">
-            <p className="text-xs uppercase tracking-[0.14em] text-white/35">
-              Dagens pass
-            </p>
-
-            <p className="mt-2 text-2xl font-semibold text-white">
+          <div className="rounded-2xl border border-white/[0.09] bg-slate-950/18 p-4 backdrop-blur-sm">
+            <p className="text-2xl font-semibold text-white">
               {cleanNextPassLabel}
             </p>
-<p className="mt-1 text-sm text-white/50">
-  {plan.length} övningar idag
-</p>
+            <p className="mt-1 text-sm text-white/50">
+              {plan.length + todayExercises.length} övningar idag
+            </p>
           </div>
 
           <button
-            className="w-full rounded-2xl bg-[linear-gradient(135deg,rgba(59,130,246,1),rgba(37,99,235,0.9))] py-4 font-semibold text-white shadow-[0_0_30px_rgba(59,130,246,0.35)] transition hover:scale-[1.01] hover:shadow-[0_0_50px_rgba(59,130,246,0.5)]"
-            onClick={startWorkout}
+            className="w-full rounded-2xl bg-[#2f6df6] py-4 font-semibold text-white transition hover:bg-[#4f83ff]"
+            onClick={() => {
+              if (!hasAcceptedTrainingSafety) {
+                setShowSafetyModal(true);
+                return;
+              }
+
+              startWorkout();
+            }}
           >
             Starta passet
           </button>
+
+          <p className="px-1 text-center text-[12px] leading-5 text-white/42">
+            Coachen kan ha fel. Avbryt eller justera om något gör ont, känns
+            fel eller gör dig osäker.
+          </p>
         </div>
       </div>
 
       <div className={cardClassName}>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-white/35">
-              Övningar idag
-            </p>
-          
-          </div>
-
-          <p className="text-sm font-medium text-white/55">{plan.length} övningar</p>
-        </div>
-
-        <div className="mt-3 space-y-2">
+        <div className="space-y-2">
           {plan.map((ex, index) => (
             <div
               key={exerciseKey(ex)}
-              className="flex items-center justify-between rounded-xl border border-white/8 bg-black/20 px-3 py-3 transition hover:border-blue-400/20"
+              className="flex items-center justify-between rounded-xl border border-white/8 bg-slate-950/20 px-3 py-3 transition hover:border-white/14 hover:bg-white/[0.042]"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="text-xs font-semibold text-white/35">
@@ -464,75 +603,139 @@ function getLobbyIntro() {
                 </span>
               </div>
 
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
+                  type="button"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                  onClick={() => setExerciseInfoName(ex)}
+                  aria-label={`Visa info om ${ex}`}
+                >
+                  i
+                </button>
               <button
   className={secondaryButtonClassName}
   onClick={() => removePlannedExercise(ex)}
 >
   Ta bort
 </button>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/6 bg-black/15 p-3 backdrop-blur-sm">
+      <div className="rounded-[1.5rem] border border-white/8 bg-slate-950/18 p-3 backdrop-blur-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.14em] text-white/30">
               Lägg till övning
             </p>
-            <p className="mt-1 text-sm text-white/58">
-              Komplettera passet med något extra här.
-            </p>
           </div>
 
-          {(customExercisesByPass[nextPass]?.length ?? 0) > 0 ? (
+          {addedExerciseCount > 0 ? (
             <p className="text-xs text-white/40">
-              {customExercisesByPass[nextPass].length} tillagd
-              {customExercisesByPass[nextPass].length > 1 ? "a" : ""}
+              {addedExerciseCount} tillagd
+              {addedExerciseCount > 1 ? "a" : ""}
             </p>
           ) : null}
         </div>
 
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 space-y-2">
           <input
-            className="flex-1 rounded-xl border border-white/10 bg-black/30 p-2.5 text-sm text-white placeholder:text-white/25 outline-none"
+            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 p-2.5 text-sm text-white placeholder:text-white/25 outline-none"
             value={customExerciseInput}
             onChange={(e) => setCustomExerciseInput(e.target.value)}
             placeholder='t.ex. "Chins"'
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                addCustomExercise(nextPass, customExerciseInput);
+                addTodayExercise(nextPass, customExerciseInput);
                 setCustomExerciseInput("");
               }
             }}
           />
 
-          <button
-            className="rounded-xl border border-white/10 bg-white/5 px-3 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
-            onClick={() => {
-              addCustomExercise(nextPass, customExerciseInput);
-              setCustomExerciseInput("");
-            }}
-          >
-            Lägg till
-          </button>
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <button
+              className="rounded-xl bg-white/88 px-3 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-white"
+              onClick={() => {
+                addTodayExercise(nextPass, customExerciseInput);
+                setCustomExerciseInput("");
+              }}
+            >
+              Bara idag
+            </button>
+
+            <button
+              className="rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-medium text-white/62 transition hover:bg-white/10 hover:text-white"
+              onClick={() => {
+                addCustomExercise(nextPass, customExerciseInput);
+                setCustomExerciseInput("");
+              }}
+            >
+              I upplägget
+            </button>
+          </div>
         </div>
 
-        {(customExercisesByPass[nextPass]?.length ?? 0) === 0 ? null : (
+        {todayExercises.length === 0 ? null : (
           <ul className="mt-3 space-y-2">
-            {customExercisesByPass[nextPass].map((ex) => (
+            {todayExercises.map((ex) => (
               <li
-                key={exerciseKey(ex)}
-                className="flex items-center justify-between rounded-xl border border-white/8 bg-black/20 px-3 py-2.5"
+                key={`today-${exerciseKey(ex)}`}
+              className="flex items-center justify-between rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2.5"
               >
-                <span className="text-sm text-white/88">{ex}</span>
-                <button
-                  className={secondaryButtonClassName}
-                  onClick={() => removeCustomExercise(nextPass, ex)}
-                >
-                  Ta bort
-                </button>
+                <div className="min-w-0">
+                  <span className="block truncate text-sm text-white/88">{ex}</span>
+                  <span className="text-[11px] text-white/35">Bara idag</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                    onClick={() => setExerciseInfoName(ex)}
+                    aria-label={`Visa info om ${ex}`}
+                  >
+                    i
+                  </button>
+                  <button
+                    className={secondaryButtonClassName}
+                    onClick={() => removeTodayExercise(nextPass, ex)}
+                  >
+                    Ta bort
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {savedCustomExercises.length === 0 ? null : (
+          <ul className="mt-3 space-y-2">
+            {savedCustomExercises.map((ex) => (
+              <li
+                key={`saved-${exerciseKey(ex)}`}
+              className="flex items-center justify-between rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2.5"
+              >
+                <div className="min-w-0">
+                  <span className="block truncate text-sm text-white/88">{ex}</span>
+                  <span className="text-[11px] text-white/35">I upplägget</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                    onClick={() => setExerciseInfoName(ex)}
+                    aria-label={`Visa info om ${ex}`}
+                  >
+                    i
+                  </button>
+                  <button
+                    className={secondaryButtonClassName}
+                    onClick={() => removeCustomExercise(nextPass, ex)}
+                  >
+                    Ta bort
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -548,7 +751,7 @@ function getLobbyIntro() {
 
           <div className="flex gap-2">
             <input
-              className="flex-1 rounded-xl border border-white/10 bg-black/30 p-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-blue-400/30 focus:shadow-[0_0_20px_rgba(59,130,246,0.12)]"
+              className="flex-1 rounded-xl border border-white/[0.09] bg-slate-950/18 p-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-blue-400/30"
               value={swapToInput}
               onChange={(e) => setSwapToInput(e.target.value)}
               placeholder='t.ex. "Hip thrust"'
@@ -563,7 +766,7 @@ function getLobbyIntro() {
               }}
             />
             <button
-              className="rounded-xl border border-blue-400/20 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.22),rgba(37,99,235,0.88))] px-5 font-semibold text-white shadow-[0_0_22px_rgba(59,130,246,0.28)] transition hover:brightness-110"
+              className="rounded-xl border border-blue-500/20 bg-[#2f6df6] px-5 font-semibold text-white transition hover:bg-[#4f83ff]"
               onClick={() => {
                 if (swapFrom) {
                   setExerciseOverride(nextPass, swapFrom, swapToInput);
@@ -578,7 +781,7 @@ function getLobbyIntro() {
 
           <div className="flex gap-2">
             <button
-              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+              className="flex-1 rounded-xl border border-white/[0.09] bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10"
               onClick={() => {
                 if (swapFrom) {
                   clearExerciseOverride(nextPass, swapFrom);
@@ -591,7 +794,7 @@ function getLobbyIntro() {
             </button>
 
             <button
-              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+              className="flex-1 rounded-xl border border-white/[0.09] bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10"
               onClick={() => {
                 setSwapFrom(null);
                 setSwapToInput("");
@@ -603,47 +806,93 @@ function getLobbyIntro() {
         </div>
       )}
 
-      <div className={cardClassName}>
-        <p className="text-xs uppercase tracking-[0.16em] text-white/35">
-          Snabb överblick
-        </p>
-
-        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-          <div>
-            <p className="text-white/45">Senaste</p>
-            <p className="text-white">{lastPass ? lastPassLabel : "Inget än"}</p>
-          </div>
-
-          <div>
-            <p className="text-white/45">Nästa</p>
-            <p className="font-semibold text-white">{cleanNextPassLabel}</p>
-          </div>
-
-          <div>
-            <p className="text-white/45">Tid</p>
-            <p className="text-white">{latestDuration}</p>
-          </div>
-
-          <div>
-            <p className="text-white/45">Bästa set</p>
-            <p className="truncate text-white">{latestBestSet}</p>
-          </div>
-        </div>
-
-        <div className="mt-4 border-t border-white/10 pt-3">
-          <p className="text-xs uppercase tracking-[0.12em] text-white/35">
-            Senaste coachnotis
-          </p>
-          <p className="mt-2 text-sm text-white/75">{latestCoachSummary}</p>
-        </div>
-      </div>
-
       <button
-        className="w-full rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-lg font-semibold text-white/90 backdrop-blur-sm transition hover:bg-white/10 hover:text-white hover:shadow-[0_0_18px_rgba(59,130,246,0.12)]"
+        className="w-full rounded-xl px-4 py-2 text-sm font-medium text-white/35 transition hover:bg-white/5 hover:text-white/65"
         onClick={() => setEditingProfile(true)}
       >
         Ändra upplägg
       </button>
+      {exerciseInfoName && exerciseInfo ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-4 backdrop-blur-sm">
+          <div className="w-full max-w-[430px] rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+                  Övningsinfo
+                </p>
+                <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
+                  {exerciseInfoName}
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-lg leading-none text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                onClick={() => setExerciseInfoName(null)}
+                aria-label="Stäng"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-100/42">
+                {exerciseInfo.equipment}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-white/72">
+                {exerciseInfo.detail}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {showSafetyModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-4 backdrop-blur-sm">
+          <div className="max-h-[calc(100svh-2rem)] w-full max-w-lg overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)] sm:p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+              Innan du startar
+            </p>
+            <h2 className="mt-3 text-xl font-semibold tracking-normal text-white sm:text-2xl">
+              Du bestämmer alltid över passet.
+            </h2>
+
+            <div className="mt-4 space-y-2.5 text-sm leading-6 text-white/72">
+              <p>
+                MinCoach är en AI-coach. Den kan ge fel råd, missa information
+                eller föreslå något som inte passar dig just idag.
+              </p>
+              <p>
+                Gör inte en övning, vikt eller progression bara för att coachen
+                föreslår det. Avbryt, sänk vikten eller hoppa över om något gör
+                ont, känns fel eller gör dig osäker.
+              </p>
+              <p>
+                Vid skada, sjukdom eller medicinska frågor ska du rådgöra med
+                vårdpersonal.
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              <button
+                className="w-full rounded-2xl bg-[#2f6df6] py-3.5 text-sm font-semibold text-white transition hover:bg-[#4f83ff]"
+                onClick={() => {
+                  onAcceptTrainingSafety();
+                  setShowSafetyModal(false);
+                  startWorkout();
+                }}
+              >
+                Jag förstår och vill starta
+              </button>
+              <button
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.048] py-3 text-sm font-medium text-white/62 transition hover:bg-white/[0.07] hover:text-white"
+                onClick={() => setShowSafetyModal(false)}
+              >
+                Tillbaka
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

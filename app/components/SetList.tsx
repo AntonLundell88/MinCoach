@@ -28,31 +28,29 @@ export default function SetList({ currentSets }: Props) {
     });
   }, [currentSets.length]);
 
+  if (currentSets.length === 0) return null;
+
   return (
     <div
       ref={setListContainerRef}
-      className="rounded-2xl bg-zinc-900/80 p-2 max-h-24 overflow-y-auto"
+      className="max-h-24 overflow-y-auto rounded-[1.15rem] border border-white/[0.09] bg-white/[0.042] p-2"
     >
-      {currentSets.length > 0 ? (
-        <ul className="space-y-1 text-sm text-gray-300">
-          {currentSets.map((s, i) => (
-            <li
-              key={s.createdAt + i}
-              className="flex items-center justify-between rounded-lg bg-black/80 border border-zinc-800 px-2 py-1"
-            >
-              <span className="text-white/90">
-                {i + 1}. {s.weight} × {s.reps}
-              </span>
+      <ul className="space-y-1 text-sm text-gray-300">
+        {currentSets.map((set, index) => (
+          <li
+            key={set.createdAt + index}
+            className="flex items-center justify-between rounded-lg border border-white/8 bg-slate-950/40 px-2.5 py-1.5"
+          >
+            <span className="text-sm font-semibold text-white/90">
+              {index + 1}. {set.weight} x {set.reps}
+            </span>
 
-              <span className="text-[11px] text-gray-400">
-                {typeof s.rir === "number" ? `RIR ${s.rir}` : "—"}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-gray-400">Inga set ännu.</p>
-      )}
+            <span className="text-[11px] text-gray-400">
+              {typeof set.rir === "number" ? `RIR ${set.rir}` : "-"}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

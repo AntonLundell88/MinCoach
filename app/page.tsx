@@ -1,12 +1,60 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import StartScreen from "./components/StartScreen";
 import WorkoutScreen from "./components/WorkoutScreen";
 import SetupScreen from "./components/SetupScreen";
 import WorkoutReviewScreen from "./components/WorkoutReviewScreen";
 import WorkoutCompleteScreen from "./components/WorkoutCompleteScreen";
+import LobbyScreen from "./components/LobbyScreen";
+import ExerciseProgressScreen from "./components/ExerciseProgressScreen";
+import StatisticsScreen from "./components/StatisticsScreen";
+import HistoryScreen from "./components/HistoryScreen";
+import PersonalRecordsScreen from "./components/PersonalRecordsScreen";
+import ProgramReviewScreen from "./components/ProgramReviewScreen";
+import SettingsScreen from "./components/SettingsScreen";
+import {
+  requestAiCoachChatReply,
+  requestAiCoachSetReply,
+  requestAiProgramReply,
+  type CoachProgramSuggestion,
+  type CoachProgramSuggestionAction,
+  type CoachSetContext,
+} from "./lib/coachAi";
+import {
+  getExerciseProfile,
+  normalizeExerciseSearchText,
+  resolveExerciseName,
+} from "./lib/exercises";
 type PassType = "A" | "B" | "C" | "D";
+type AppTheme = "dark" | "light";
+
+function AppControls({
+  theme,
+  onOpenSettings,
+}: {
+  theme: AppTheme;
+  onOpenSettings: () => void;
+}) {
+  const isLight = theme === "light";
+  const buttonClassName = isLight
+    ? "rounded-full border border-[#d8cfc0]/85 bg-white/86 px-3.5 py-2 text-[11px] font-semibold text-[#445064] shadow-[0_14px_34px_rgba(91,72,48,0.14)] backdrop-blur-2xl transition hover:bg-white"
+    : "rounded-full border border-white/[0.09] bg-[#101824]/72 px-3.5 py-2 text-[11px] font-semibold text-white/68 shadow-[0_14px_34px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition hover:border-blue-400/16 hover:bg-[#131c27]/86 hover:text-white/84";
+
+  return (
+    <div className="fixed right-5 top-5 z-40 flex items-center gap-1.5 sm:right-7 sm:top-6">
+      <button
+        type="button"
+        onClick={onOpenSettings}
+        className={buttonClassName}
+      >
+        Inställningar
+      </button>
+    </div>
+  );
+}
+
 type PassDefinition = {
   key: PassType;
   displayName: string;
@@ -14,9 +62,30 @@ type PassDefinition = {
 };
 
 type DayForm = "trött" | "normal" | "stark";
+type WarmupStatus = "unknown" | "skipped" | "light" | "cardio" | "ready";
+
+type WarmupContext = {
+  status: WarmupStatus;
+  note: string;
+  mentionedAt: string;
+};
+
+type ConditioningContext = {
+  timing: "before" | "after" | "unknown";
+  intensity: "light" | "hard" | "unknown";
+  activity: string;
+  minutes: number | null;
+  note: string;
+  mentionedAt: string;
+};
 
 type UserProfile = {
+  name: string;
+  age?: number | null;
+  gender?: "kvinna" | "man" | "annat" | "vill-inte-saga";
+  trainingExperience?: "nyborjare" | "van" | "erfaren";
   goalPrimary: "muskel" | "styrka" | "fett";
+  goalSecondary?: ("muskel" | "styrka" | "fett")[];
   daysPerWeek: number;
   minutesPerSession: number;
   location: "gym" | "hemma";
@@ -47,6 +116,9 @@ type WorkoutPlan = {
   passes: WorkoutPass[];
 };
 
+type StoredWorkoutPlan = WorkoutPlan;
+type PassDisplayNamesByPass = Partial<Record<PassType, string>>;
+
 type PersonalRecords = Record<string, PersonalRecord>;
 
 
@@ -66,10 +138,19 @@ type LoggedExercise = {
   sets: LoggedSet[];
 };
 
+type SkippedExercise = {
+  exercise: LoggedExercise;
+  index: number;
+};
+
 type WorkoutSummary = {
   durationMinutes: number;
   totalSets: number;
   exerciseCount: number;
+  completedExerciseCount: number;
+  isPartial: boolean;
+  totalVolumeKg: number;
+  totalVolumeText: string;
   bestSetText: string;
   coachSummary: string;
 };
@@ -78,6 +159,10 @@ type WorkoutReview = {
   durationMinutes: number;
   totalSets: number;
   exerciseCount: number;
+  completedExerciseCount: number;
+  isPartial: boolean;
+  totalVolumeKg: number;
+  totalVolumeText: string;
   bestSetText: string;
   coachSummary: string;
   positives: string[];
@@ -99,6 +184,8 @@ type Workout = {
   displayName: string;
   planTitle?: string;
   exercises: LoggedExercise[];
+  warmupContext?: WarmupContext | null;
+  conditioningContext?: ConditioningContext | null;
   summary?: WorkoutSummary;
 };
 
@@ -150,27 +237,228 @@ function getNextPass(
 function formatTime(d: Date) {
   return d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
 }
-function getWorkoutIntro(dayForm: DayForm | null, passDisplayName?: string) {
-  const passPrefix =
-    passDisplayName && passDisplayName.trim().length > 0
-      ? `Vi kör ${passDisplayName} idag. `
-      : "";
-
+function getWorkoutIntro(dayForm: DayForm | null) {
   if (dayForm === "trött") {
-    return `${passPrefix}Jag ser att du är trött idag. Vi kör smart och kontrollerat.`;
+    return "Vi startar lugnt idag.";
   }
 
   if (dayForm === "stark") {
-    return `${passPrefix}Du är i bra mode idag. Vi kan trycka lite mer.`;
+    return "Du verkar pigg idag. Första setet visar hur offensiva vi kan vara.";
   }
 
  const options = [
-  "Fokus på bra form och jämna set.",
-  "Vi jobbar kontrollerat och håller kvalitet i varje set.",
-  "Håll tekniken ren och bygg stabila set idag.",
+  "Första setet visar oss var vi ligger.",
+  "Vi öppnar lugnt och höjer om det sitter.",
+  "Första setet först. Lugnt och tydligt.",
 ];
 
-return `${passPrefix}${options[Math.floor(Math.random() * options.length)]}`;
+return options[Math.floor(Math.random() * options.length)];
+}
+
+function buildWarmupContext(input: string): WarmupContext | null {
+  const note = input.trim();
+  const lower = note.toLowerCase();
+
+  if (!note) return null;
+
+  const mentionsWarmup =
+    lower.includes("uppvärm") ||
+    lower.includes("uppvarm") ||
+    lower.includes("värmer") ||
+    lower.includes("värma") ||
+    lower.includes("värmt") ||
+    lower.includes("varm") ||
+    lower.includes("cykl") ||
+    lower.includes("löpband") ||
+    lower.includes("gångband") ||
+    lower.includes("rodd") ||
+    lower.includes("crosstrainer") ||
+    lower.includes("lätt set") ||
+    lower.includes("lätta set") ||
+    lower.includes("uppvärmningsset");
+
+  if (!mentionsWarmup) return null;
+
+  let status: WarmupStatus = "unknown";
+
+  if (
+    lower.includes("ingen uppvärmning") ||
+    lower.includes("ingen uppvarmning") ||
+    lower.includes("hoppar uppvärm") ||
+    lower.includes("hoppar uppvarm") ||
+    lower.includes("skippar uppvärm") ||
+    lower.includes("skippar uppvarm") ||
+    lower.includes("utan uppvärm") ||
+    lower.includes("utan uppvarm")
+  ) {
+    status = "skipped";
+  } else if (
+    lower.includes("cykl") ||
+    lower.includes("löpband") ||
+    lower.includes("gångband") ||
+    lower.includes("rodd") ||
+    lower.includes("crosstrainer")
+  ) {
+    status = "cardio";
+  } else if (
+    lower.includes("lätt set") ||
+    lower.includes("lätta set") ||
+    lower.includes("uppvärmningsset")
+  ) {
+    status = "light";
+  } else if (
+    lower.includes("redan varm") ||
+    lower.includes("är varm") ||
+    lower.includes("värmt upp") ||
+    lower.includes("uppvärmd")
+  ) {
+    status = "ready";
+  }
+
+  return {
+    status,
+    note,
+    mentionedAt: new Date().toISOString(),
+  };
+}
+
+function getWarmupCoachReply(warmup: WarmupContext) {
+  if (warmup.status === "skipped") {
+    return "Okej. Då startar vi lugnt.";
+  }
+
+  if (warmup.status === "cardio") {
+    return "Bra. Jag har uppvärmningen med mig.";
+  }
+
+  if (warmup.status === "light") {
+    return "Bra. Jag har uppvärmningsseten med mig.";
+  }
+
+  if (warmup.status === "ready") {
+    return "Bra. Då tar vi första arbetssetet.";
+  }
+
+  return "Jag har det med mig.";
+}
+
+function getPainCoachReply(warmup: WarmupContext | null) {
+  if (!warmup || warmup.status === "unknown") {
+    return "Avbryt den övningen. Värm upp lätt nästa gång innan första arbetssetet.";
+  }
+
+  if (warmup.status === "skipped") {
+    return "Avbryt den övningen. Nästa gång vill jag att du värmer upp lätt först.";
+  }
+
+  return "Avbryt den övningen. Du värmde upp, så vi tar ingen mer risk här.";
+}
+
+function getPainCoachActionText(warmup: WarmupContext | null) {
+  return `${getPainCoachReply(warmup)} Tryck Hoppa över om du vill lämna den.`;
+}
+
+function getPainCoachContextText(warmup: WarmupContext | null) {
+  if (!warmup || warmup.status === "unknown") {
+    return "Värm upp lätt nästa gång innan första arbetssetet.";
+  }
+
+  if (warmup.status === "skipped") {
+    return "Nästa gång vill jag att du värmer upp lätt först.";
+  }
+
+  return "Du värmde upp, så vi tar ingen mer risk här.";
+}
+
+function buildConditioningContext(input: string): ConditioningContext | null {
+  const note = input.trim();
+  const lower = note.toLowerCase();
+
+  if (!note) return null;
+
+  const mentionsConditioning =
+    lower.includes("kondition") ||
+    lower.includes("cardio") ||
+    lower.includes("spring") ||
+    lower.includes("sprang") ||
+    lower.includes("löp") ||
+    lower.includes("lop") ||
+    lower.includes("cykl") ||
+    lower.includes("rodd") ||
+    lower.includes("gångband") ||
+    lower.includes("gangband") ||
+    lower.includes("intervall");
+
+  if (!mentionsConditioning) return null;
+
+  const minuteMatch = lower.match(/(\d+)\s*(min|minuter)/);
+  const minutes = minuteMatch ? Number(minuteMatch[1]) : null;
+
+  const timing =
+    lower.includes("efter") || lower.includes("avslut")
+      ? "after"
+      : lower.includes("innan") ||
+        lower.includes("före") ||
+        lower.includes("fore") ||
+        lower.includes("först") ||
+        lower.includes("forst")
+      ? "before"
+      : "unknown";
+
+  const activity = lower.includes("cykl")
+    ? "cykel"
+    : lower.includes("rodd")
+    ? "rodd"
+    : lower.includes("gångband") || lower.includes("gangband")
+    ? "gångband"
+    : lower.includes("löp") || lower.includes("lop") || lower.includes("spring")
+    ? "löpning"
+    : "kondition";
+
+  const hardByWords =
+    lower.includes("intervall") ||
+    lower.includes("hårt") ||
+    lower.includes("hart") ||
+    lower.includes("snabbt") ||
+    lower.includes("max");
+  const intensity =
+    hardByWords || (timing === "before" && minutes !== null && minutes >= 20)
+      ? "hard"
+      : minutes !== null && minutes <= 10
+      ? "light"
+      : "unknown";
+
+  return {
+    timing,
+    intensity,
+    activity,
+    minutes,
+    note,
+    mentionedAt: new Date().toISOString(),
+  };
+}
+
+function getConditioningCoachReply(
+  conditioning: ConditioningContext,
+  goalPrimary?: UserProfile["goalPrimary"]
+) {
+  if (conditioning.timing === "after") {
+    return "Bra. Vi lägger den efter styrkan.";
+  }
+
+  if (conditioning.timing === "before" && conditioning.intensity === "light") {
+    return "Bra. Håll det lugnt före första arbetssetet.";
+  }
+
+  if (conditioning.timing === "before" && conditioning.intensity === "hard") {
+    if (goalPrimary === "fett") {
+      return "Håll den lugn före styrkan. Vill du köra hårt lägger vi den efter.";
+    }
+
+    return "Lägg den efter styrkan idag.";
+  }
+
+  return "Jag har det med mig i passet.";
 }
 function loadJSON<T>(key: string, fallback: T): T {
   try {
@@ -187,13 +475,60 @@ function saveJSON(key: string, value: unknown) {
 function exerciseKey(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
   }
-  function getExerciseProgression(
+
+type ExerciseBestSet = {
+  weight: number;
+  reps: number;
+  rir?: number | null;
+  failNote?: string | null;
+  createdAt?: string;
+};
+
+type ExerciseProgressionPlan = {
+  action: "start" | "hold" | "increase" | "decrease" | "deload";
+  weight: string;
+  reps: string;
+  repsText: string;
+  rirText: string;
+  note: string;
+  reason: string;
+};
+
+function formatWeightInput(weight: number) {
+  return Number.isInteger(weight) ? String(weight) : String(Number(weight.toFixed(1)));
+}
+
+function formatRepRange(min: number, max: number) {
+  if (min === max) return `${min} reps`;
+  return `${min}–${max} reps`;
+}
+
+function getBestSetFromSets(sets: LoggedSet[]): ExerciseBestSet | null {
+  if (sets.length === 0) return null;
+
+  const best = sets.reduce((bestSet, set) => {
+    if (set.weight > bestSet.weight) return set;
+    if (set.weight === bestSet.weight && set.reps > bestSet.reps) return set;
+    return bestSet;
+  });
+
+  return {
+    weight: best.weight,
+    reps: best.reps,
+    rir: best.rir ?? null,
+    failNote: best.failNote ?? null,
+    createdAt: best.createdAt,
+  };
+}
+
+function getExerciseBestSets(
   history: Workout[],
-  exerciseName: string
+  exerciseName: string,
+  limit = 6
 ) {
   const key = exerciseKey(exerciseName);
 
-  const sets: { weight: number; reps: number }[] = [];
+  const sets: ExerciseBestSet[] = [];
 
   for (const w of history) {
     const ex = w.exercises.find(
@@ -202,21 +537,206 @@ function exerciseKey(name: string) {
 
     if (!ex) continue;
 
-    if (ex.sets.length === 0) continue;
+    const best = getBestSetFromSets(ex.sets);
+    if (!best) continue;
 
-    const best = ex.sets.reduce((best, s) => {
-      if (s.weight > best.weight) return s;
-      if (s.weight === best.weight && s.reps > best.reps) return s;
-      return best;
-    });
-
-    sets.push({
-      weight: best.weight,
-      reps: best.reps,
-    });
+    sets.push(best);
+    if (sets.length >= limit) break;
   }
 
-  return sets.slice(0, 3);
+  return sets;
+}
+
+function getExerciseProgression(
+  history: Workout[],
+  exerciseName: string
+) {
+  return getExerciseBestSets(history, exerciseName, 3);
+}
+
+function isHardOrFailedSet(set: ExerciseBestSet) {
+  if (set.failNote) return true;
+  return typeof set.rir === "number" && set.rir <= 0;
+}
+
+function hasUsefulMargin(set: ExerciseBestSet) {
+  if (set.failNote) return false;
+  return typeof set.rir !== "number" || set.rir >= 1;
+}
+
+function buildProgressionPlan(args: {
+  history: Workout[];
+  exerciseName: string;
+  targetReps: number;
+  dayForm: DayForm | null;
+}) {
+  const { history, exerciseName, targetReps, dayForm } = args;
+  const recentBestSets = getExerciseBestSets(history, exerciseName, 6);
+
+  if (recentBestSets.length === 0) {
+    return {
+      action: "start",
+      weight: "",
+      reps: String(targetReps),
+      repsText: `${targetReps} reps`,
+      rirText: "RIR 2",
+      note: "Första setet visar oss var vi ligger.",
+      reason: "Ingen historik än.",
+    } satisfies ExerciseProgressionPlan;
+  }
+
+  const topSet = [...recentBestSets].sort((a, b) => {
+    if (b.weight !== a.weight) return b.weight - a.weight;
+    return b.reps - a.reps;
+  })[0];
+  const latestSet = recentBestSets[0];
+  const latestHard = isHardOrFailedSet(latestSet);
+  const topWeightSets = recentBestSets.filter((set) => set.weight === topSet.weight);
+  const topWeightStableSets = topWeightSets.filter(
+    (set) => set.reps >= Math.max(targetReps, topSet.reps - 1) && hasUsefulMargin(set)
+  );
+  const recentHardCount = recentBestSets
+    .slice(0, 4)
+    .filter((set) => set.failNote || (typeof set.rir === "number" && set.rir <= 1))
+    .length;
+  const shouldDeload = recentHardCount >= 3;
+  const canIncrease =
+    dayForm !== "trött" &&
+    !shouldDeload &&
+    !latestHard &&
+    topWeightStableSets.length >= 2;
+
+  if (shouldDeload) {
+    const deloadWeight = Math.max(0, topSet.weight - PROGRESSION_STEP);
+    const reps = Math.max(1, Math.min(topSet.reps, targetReps));
+
+    return {
+      action: "deload",
+      weight: formatWeightInput(deloadWeight),
+      reps: String(reps),
+      repsText: formatRepRange(Math.max(1, reps - 1), reps),
+      rirText: "RIR 2",
+      note: "Du har haft flera tunga set. Idag håller vi igen lite.",
+      reason: "Flera senaste set har varit nära failure.",
+    } satisfies ExerciseProgressionPlan;
+  }
+
+  if (latestHard && latestSet.weight >= topSet.weight) {
+    const loweredWeight = Math.max(0, topSet.weight - PROGRESSION_STEP);
+    const maxReps = Math.max(1, topSet.reps - 1);
+
+    return {
+      action: "decrease",
+      weight: formatWeightInput(loweredWeight),
+      reps: String(Math.max(1, maxReps - 1)),
+      repsText: formatRepRange(Math.max(1, maxReps - 2), maxReps),
+      rirText: "RIR 1–2",
+      note: "Senast tog det stopp. Vi börjar lite lägre här.",
+      reason: "Senaste bästa setet var för tungt.",
+    } satisfies ExerciseProgressionPlan;
+  }
+
+  if (canIncrease) {
+    const nextWeight = topSet.weight + PROGRESSION_STEP;
+    const maxReps = Math.max(1, topSet.reps - 1);
+    const minReps = Math.max(1, topSet.reps - 3);
+
+    return {
+      action: "increase",
+      weight: formatWeightInput(nextWeight),
+      reps: String(minReps),
+      repsText: formatRepRange(minReps, maxReps),
+      rirText: "RIR 1–2",
+      note: `${formatWeightInput(topSet.weight)} kg har suttit flera pass. Nu testar vi lite upp.`,
+      reason: "Samma toppvikt har suttit flera pass med tillräckligt många reps.",
+    } satisfies ExerciseProgressionPlan;
+  }
+
+  if (dayForm === "trött") {
+    const maxReps = Math.max(1, topSet.reps - 1);
+    const minReps = Math.max(1, topSet.reps - 2);
+
+    return {
+      action: "hold",
+      weight: formatWeightInput(topSet.weight),
+      reps: String(minReps),
+      repsText: formatRepRange(minReps, maxReps),
+      rirText: "RIR 2",
+      note: "Du har mer här, men idag börjar vi kontrollerat.",
+      reason: "Dagsformen är trött.",
+    } satisfies ExerciseProgressionPlan;
+  }
+
+  const maxReps = Math.max(1, topSet.reps);
+  const minReps = Math.max(1, topSet.reps - 1);
+
+  return {
+    action: "hold",
+    weight: formatWeightInput(topSet.weight),
+    reps: String(minReps),
+    repsText: formatRepRange(minReps, maxReps),
+    rirText: "RIR 1–2",
+      note: "Samma vikt som ditt bästa. Vi siktar lite lägre först.",
+    reason: `Jag vill se att ${formatWeightInput(topSet.weight)} kg sitter nära ${topSet.reps} reps minst ett pass till innan vi höjer.`,
+  } satisfies ExerciseProgressionPlan;
+}
+
+function buildProgressionCoachExplanation(args: {
+  plan: ExerciseProgressionPlan;
+  exerciseName: string;
+}) {
+  const { plan, exerciseName } = args;
+  const target = plan.weight
+    ? `${plan.weight} kg · ${plan.repsText} · ${plan.rirText}`
+    : `${plan.repsText} · ${plan.rirText}`;
+
+  if (plan.action === "increase") {
+    return `Ja. I ${exerciseName} har samma vikt suttit flera pass, så nu testar vi upp lite.\n\nIdag: ${target}.`;
+  }
+
+  if (plan.action === "hold") {
+    return `Inte än: ${plan.reason}\n\nIdag vill jag se ${target}.`;
+  }
+
+  if (plan.action === "decrease") {
+    return `Inte idag. ${plan.reason}\n\nVi börjar på ${target} och ser hur första setet känns.`;
+  }
+
+  if (plan.action === "deload") {
+    return `Idag håller vi igen. ${plan.reason}\n\nMålet är ${target}.`;
+  }
+
+  return `Jag saknar historik här än. Första setet visar oss var vi ligger: ${target}.`;
+}
+
+function isProgressionQuestion(message: string) {
+  const lower = message
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const hasAny = (terms: string[]) => terms.some((term) => lower.includes(term));
+  const asksWhy = hasAny([
+    "varfor",
+    "hur kommer det sig",
+    "varfor inte",
+    "borde jag",
+    "ska jag",
+    "kan jag",
+  ]);
+  const mentionsProgression = hasAny([
+    "hogre",
+    "hoja",
+    "oka",
+    "okar",
+    "vikt",
+    "tyngre",
+    "lagre",
+    "reps",
+    "progression",
+  ]);
+
+  return mentionsProgression && (asksWhy || lower.includes("?"));
 }
 
 function getStagnationInsight(
@@ -358,6 +878,38 @@ const PASS_TEMPLATES: Record<PassType, string[]> = {
   C: ["Lutande hantelpress", "Latsdrag", "Cable cross"],
   D: ["Benpress", "Utfall", "Vadpress"],
 };
+function hasHomeEquipment(profile: UserProfile, equipment: string) {
+  return profile.equipment?.includes(equipment) ?? false;
+}
+
+function buildBodyweightPlan(pass: PassType, daysPerWeek: number) {
+  if (daysPerWeek <= 1) {
+    return ["Knäböj", "Armhävningar", "Höftlyft", "Ryggresningar", "Planka"];
+  }
+
+  if (daysPerWeek === 2) {
+    return pass === "A"
+      ? ["Knäböj", "Armhävningar", "Utfall", "Planka"]
+      : ["Höftlyft", "Pike push-up", "Step-up", "Sidoplanka"];
+  }
+
+  if (pass === "A") return ["Armhävningar", "Pike push-up", "Planka"];
+  if (pass === "B") return ["Knäböj", "Utfall", "Höftlyft", "Vadpress"];
+  if (pass === "C") return ["Armhävningar", "Ryggresningar", "Sidoplanka"];
+  return ["Knäböj", "Step-up", "Höftlyft", "Planka"];
+}
+
+function buildBandsOnlyPlan(pass: PassType, daysPerWeek: number) {
+  if (daysPerWeek <= 1) {
+    return ["Knäböj", "Bandrodd", "Armhävningar", "Band pull-apart", "Planka"];
+  }
+
+  if (pass === "A") return ["Armhävningar", "Bandrodd", "Band pull-apart", "Bicepscurl med band"];
+  if (pass === "B") return ["Knäböj", "Utfall", "Höftlyft", "Vadpress"];
+  if (pass === "C") return ["Bandpress", "Bandrodd", "Sidolyft med band", "Tricepspress med band"];
+  return ["Knäböj", "Step-up", "Höftlyft", "Planka"];
+}
+
 function getDefaultPassDisplayName(
   profile: UserProfile,
   pass: PassType
@@ -481,6 +1033,21 @@ function buildPlan(profile: UserProfile, pass: PassType): string[] {
   }
 
   // Hemma
+  const hasNoEquipment =
+    !profile.equipment?.length || hasHomeEquipment(profile, "none");
+  const hasDumbbells = hasHomeEquipment(profile, "dumbbells");
+  const hasKettlebell = hasHomeEquipment(profile, "kettlebell");
+  const hasBands = hasHomeEquipment(profile, "bands");
+  const hasWeights = hasDumbbells || hasKettlebell || hasHomeEquipment(profile, "barbell");
+
+  if (hasNoEquipment) {
+    return buildBodyweightPlan(pass, profile.daysPerWeek);
+  }
+
+  if (hasBands && !hasWeights) {
+    return buildBandsOnlyPlan(pass, profile.daysPerWeek);
+  }
+
   if (profile.daysPerWeek === 1) {
     return [
       "Armhävningar",
@@ -640,6 +1207,106 @@ const passes = passKeys.map((passKey) =>
   };
 }
 
+function applyWorkoutPlanEdits(args: {
+  plan: WorkoutPlan;
+  customExercisesByPass: CustomExercisesByPass;
+  exerciseOverridesByPass: ExerciseOverridesByPass;
+  removedExercisesByPass: RemovedExercisesByPass;
+  passDisplayNamesByPass: PassDisplayNamesByPass;
+}) {
+  const {
+    plan,
+    customExercisesByPass,
+    exerciseOverridesByPass,
+    removedExercisesByPass,
+    passDisplayNamesByPass,
+  } = args;
+
+  return {
+    ...plan,
+    passes: plan.passes.map((pass) => {
+      const removed = removedExercisesByPass[pass.key] ?? [];
+      const overrides = exerciseOverridesByPass[pass.key] ?? {};
+      const custom = customExercisesByPass[pass.key] ?? [];
+
+      const editedExercises = pass.exercises
+        .map((exercise) => exercise.name)
+        .filter(
+          (name) =>
+            !removed.some(
+              (removedName) => exerciseKey(removedName) === exerciseKey(name)
+            )
+        )
+        .map((name) => overrides[exerciseKey(name)] ?? name);
+
+      return {
+        ...pass,
+        displayName: passDisplayNamesByPass[pass.key]?.trim() || pass.displayName,
+        exercises: mergePlan(editedExercises, custom).map((name) => ({ name })),
+      };
+    }),
+  };
+}
+
+function getManualPlanExerciseName(rawExercise: string) {
+  const cleaned = rawExercise
+    .replace(/^\d+[\).]\s*/, "")
+    .replace(/^[-•]\s*/, "")
+    .trim();
+
+  if (!cleaned) return "";
+
+  const resolved = resolveExerciseName(cleaned);
+
+  if (resolved.status === "known") return resolved.name;
+  if (resolved.status === "suggest") return resolved.suggestion;
+
+  return cleaned;
+}
+
+function parseManualWorkoutPlan(
+  rawText: string,
+  profile: UserProfile
+): StoredWorkoutPlan | null {
+  const text = rawText.trim();
+  const markerRegex = /(dag|pass)\s*([1-4a-d])\s*:?\s*/gi;
+  const matches = [...text.matchAll(markerRegex)];
+
+  if (matches.length === 0) return null;
+
+  const passes = matches.slice(0, 4).map((match, index) => {
+    const start = (match.index ?? 0) + match[0].length;
+    const nextMatch = matches[index + 1];
+    const end = nextMatch?.index ?? text.length;
+    const content = text.slice(start, end);
+    const key = ["A", "B", "C", "D"][index] as PassType;
+    const label = match[2].toUpperCase();
+    const displayName = /^\d+$/.test(label) ? `Dag ${label}` : `Pass ${label}`;
+    const exercises = content
+      .split(/,|;|\n|\r|\s+och\s+/i)
+      .map(getManualPlanExerciseName)
+      .filter(Boolean)
+      .slice(0, 10);
+
+    return {
+      key,
+      displayName,
+      exercises: exercises.map((name) => ({ name })),
+    };
+  });
+
+  const usablePasses = passes.filter((pass) => pass.exercises.length > 0);
+
+  if (usablePasses.length === 0) return null;
+
+  return {
+    title: "Eget upplägg",
+    goalPrimary: profile.goalPrimary,
+    daysPerWeek: usablePasses.length,
+    passes: usablePasses,
+  };
+}
+
 const DEFAULT_TARGET_SETS = 3;
 const DEFAULT_TARGET_REPS = 5;
 const PROGRESSION_STEP = 2.5;
@@ -683,7 +1350,35 @@ type CoachMemory = {
 >;
 
 function getExerciseCue(exerciseName: string) {
+  return getExerciseProfile(exerciseName).techniqueCue;
+}
+
+function getLegacyExerciseCue(exerciseName: string) {
   const name = exerciseName.toLowerCase();
+
+  if (name.includes("hantelpress")) {
+    return "Fokus: stabil handled, kontrollerad sänkning, inga studs.";
+  }
+
+  if (name.includes("rumänska") || name.includes("rdl")) {
+    return "Fokus: höften bak, ryggen låst och ingen ful failure.";
+  }
+
+  if (name.includes("benspark")) {
+    return "Fokus: paus i toppen och kontakt före mer vikt.";
+  }
+
+  if (name.includes("vad")) {
+    return "Fokus: stretch i botten och paus i toppen.";
+  }
+
+  if (name.includes("biceps") || name.includes("curl")) {
+    return "Fokus: ren curl och stoppa innan senan börjar bråka.";
+  }
+
+  if (name.includes("triceps") || name.includes("pushdown")) {
+    return "Fokus: kontakt i triceps och smärtfritt grepp.";
+  }
 
   if (name.includes("knäböj") || name.includes("squat")) {
     return "Fokus på kontroll hela vägen och stabilitet i botten.";
@@ -749,10 +1444,10 @@ function getSetTrend(args: {
         return "Nu blev det tyngre än förra setet.";
       }
 
-      return "Du håller samma nivå som i förra setet.";
+      return "Du matchade förra setet.";
     }
 
-    return "Du håller samma nivå som i förra setet.";
+    return "Du matchade förra setet.";
   }
 
   if (weight > previousSet.weight) {
@@ -803,7 +1498,7 @@ function getExerciseFatigueSignal(args: {
   }
 
   if (averagePreviousRir >= 2 && rir >= 2) {
-    return "Du håller nivån stabil genom övningen.";
+    return "Seten ser jämna ut.";
   }
 
   return "";
@@ -842,7 +1537,7 @@ function getWorkoutFatigueSignal(args: {
 function getGoalTone(goalPrimary: UserProfile["goalPrimary"]) {
   if (goalPrimary === "styrka") {
     return {
-      rir2: "Bra kvalitet. Bygg vidare därifrån.",
+      rir2: "Bra kvalitet. Håll det rent.",
       cueStyle: "Fokus på stark och ren teknik.",
     };
   }
@@ -862,6 +1557,428 @@ function getGoalTone(goalPrimary: UserProfile["goalPrimary"]) {
 function shortCoach(lines: string[]) {
   return lines.filter(Boolean).join("\n");
 }
+
+function rirAsCoachText(rir: number) {
+  if (rir <= 0) return "ingen rep kvar";
+  if (rir === 1) return "en rep kvar";
+  return `${rir} reps kvar`;
+}
+
+function getNextSetRepRange(args: {
+  reps: number;
+  rir: number;
+  sameWeight?: boolean;
+}) {
+  const { reps, rir } = args;
+
+  if (rir <= 0) {
+    const max = Math.max(1, reps - 2);
+    return `${Math.max(1, max - 1)}–${max} reps`;
+  }
+
+  if (rir === 1) {
+    const max = Math.max(1, reps - 1);
+    return `${Math.max(1, max - 1)}–${max} reps`;
+  }
+
+  if (rir === 2) {
+    return `${Math.max(1, reps - 1)}–${reps} reps`;
+  }
+
+  return `${Math.max(6, reps - 1)}–${reps} reps`;
+}
+
+function getNextSetRepInput(args: { reps: number; rir: number }) {
+  const { reps, rir } = args;
+
+  if (rir <= 0) return Math.max(1, reps - 3);
+  if (rir === 1) return Math.max(1, reps - 2);
+  if (rir === 2) return Math.max(1, reps - 1);
+  return Math.max(1, reps - 1);
+}
+
+function getNextSetRirInput(rir: number) {
+  if (rir <= 1) return 1;
+  return 2;
+}
+
+function formatCoachWeight(weight: number) {
+  return Number.isInteger(weight) ? String(weight) : String(Number(weight.toFixed(1)));
+}
+
+type NextSetPlan = {
+  weight: number;
+  repsText: string;
+  repsInput: number;
+  rirText: string;
+  rirInput: number;
+  restText: string;
+  techniqueCue: string;
+  strategy: "press" | "hold" | "backoff" | "reduce" | "complete";
+  reason: string;
+};
+
+function getNextSetPlan(args: {
+  weight: number;
+  reps: number;
+  rir: number;
+  failNote?: string;
+  setNumber: number;
+  exerciseName?: string;
+}) {
+  const { weight, reps, rir, setNumber } = args;
+  const fail = args.failNote?.trim().toLowerCase() ?? "";
+  const restText = getRestTextForRir(rir);
+  const techniqueCue = getExerciseCue(args.exerciseName ?? "");
+  const range = (min: number, max: number) =>
+    min === max ? `${min} reps` : `${min}–${max} reps`;
+  const hasTechniqueIssue =
+    fail.includes("teknik") ||
+    fail.includes("formen") ||
+    fail.includes("slarv") ||
+    fail.includes("kontakt") ||
+    fail.includes("kast") ||
+    fail.includes("ostabil");
+
+  if (fail) {
+    if (setNumber >= 3) {
+      return {
+        weight,
+        repsText: "gå vidare",
+        repsInput: reps,
+        rirText: "klar",
+        rirInput: 2,
+        restText,
+        techniqueCue,
+        strategy: "complete",
+        reason: "Övningen är klar här. Vi tar nästa när du är redo.",
+      } satisfies NextSetPlan;
+    }
+
+    if (hasTechniqueIssue) {
+      const nextWeight = Math.max(0, weight - PROGRESSION_STEP);
+      const min = Math.max(1, reps - 3);
+      const max = Math.max(min, reps - 1);
+      return {
+        weight: nextWeight,
+        repsText: range(min, max),
+        repsInput: min,
+        rirText: "RIR 1–2",
+        rirInput: 2,
+        restText,
+        techniqueCue,
+        strategy: "reduce",
+        reason: "Tekniken var inte där. Vi sänker lite så nästa set blir renare.",
+      } satisfies NextSetPlan;
+    }
+
+    if (fail.includes("grepp")) {
+      const min = Math.max(1, reps - 2);
+      const max = Math.max(min, reps - 1);
+      return {
+        weight,
+        repsText: range(min, max),
+        repsInput: min,
+        rirText: "RIR 1",
+        rirInput: 1,
+        restText,
+        techniqueCue,
+        strategy: "hold",
+        reason: "Greppet gav upp, inte hela lyftet. Vi håller vikten men jagar inte extra reps.",
+      } satisfies NextSetPlan;
+    }
+
+    const nextWeight = Math.max(0, weight - PROGRESSION_STEP);
+    const min = Math.max(1, reps - 1);
+    const max = Math.max(min, reps);
+    return {
+      weight: nextWeight,
+      repsText: range(min, max),
+      repsInput: min,
+      rirText: "RIR 1–2",
+      rirInput: 2,
+      restText,
+      techniqueCue,
+      strategy: "reduce",
+      reason: "Det tog stopp. Vi sänker lite och jagar inte fler maxreps här.",
+    } satisfies NextSetPlan;
+  }
+
+  if (rir <= 0) {
+    if (setNumber >= 3) {
+      return {
+        weight,
+        repsText: "gå vidare",
+        repsInput: reps,
+        rirText: "klar",
+        rirInput: 2,
+        restText,
+        techniqueCue,
+        strategy: "complete",
+        reason: "Det räcker för den här övningen idag. Vi går vidare.",
+      } satisfies NextSetPlan;
+    }
+
+    const nextWeight = Math.max(0, weight - PROGRESSION_STEP);
+    const min = Math.max(1, reps - 1);
+    const max = Math.max(min, reps);
+    return {
+      weight: nextWeight,
+      repsText: range(min, max),
+      repsInput: min,
+      rirText: "RIR 1–2",
+      rirInput: 2,
+      restText,
+      techniqueCue,
+      strategy: "reduce",
+      reason: "Nu sänker vi lite och gör nästa set kontrollerat.",
+    } satisfies NextSetPlan;
+  }
+
+  if (setNumber >= 3 && rir <= 2) {
+    return {
+      weight,
+      repsText: "gå vidare",
+      repsInput: reps,
+      rirText: "klar",
+      rirInput: 2,
+      restText,
+      techniqueCue,
+      strategy: "complete",
+      reason: "Tre arbetsset räcker här. Vi tar nästa övning.",
+    } satisfies NextSetPlan;
+  }
+
+  if (rir === 1) {
+    const isBackoff = setNumber >= 2;
+    const nextWeight = isBackoff ? Math.max(0, weight - PROGRESSION_STEP) : weight;
+    const min = Math.max(1, reps - 2);
+    const max = Math.max(min, isBackoff ? reps : reps - 1);
+
+    return {
+      weight: nextWeight,
+      repsText: range(min, max),
+      repsInput: min,
+      rirText: isBackoff ? "RIR 1–2" : "RIR 1",
+      rirInput: isBackoff ? 2 : 1,
+      restText,
+      techniqueCue,
+      strategy: isBackoff ? "backoff" : "hold",
+      reason: isBackoff
+        ? "Nu tar vi ett kontrollerat backoff-set."
+        : "Vi håller vikten men sänker repsmålet.",
+    } satisfies NextSetPlan;
+  }
+
+  if (rir === 2) {
+    const min = Math.max(1, reps - 1);
+    return {
+      weight,
+      repsText: range(min, reps),
+      repsInput: min,
+      rirText: "RIR 1–2",
+      rirInput: 2,
+      restText,
+      techniqueCue,
+      strategy: "hold",
+      reason: "Bra. Samma vikt en gång till.",
+    } satisfies NextSetPlan;
+  }
+
+  const nextWeight = weight + PROGRESSION_STEP;
+  const min = Math.max(1, reps - 2);
+  return {
+    weight: nextWeight,
+    repsText: range(min, reps),
+    repsInput: min,
+    rirText: "RIR 1–2",
+    rirInput: 2,
+    restText,
+    techniqueCue,
+    strategy: "press",
+    reason: "Vi höjer lite. Du har mer att ge här.",
+  } satisfies NextSetPlan;
+}
+
+function getRestTextForRir(rir: number) {
+  if (rir <= 0) return "4 minuter";
+  if (rir === 1) return "3 minuter";
+  return "2 minuter";
+}
+
+function buildCoachSetContext(args: {
+  userName?: string;
+  goalPrimary: UserProfile["goalPrimary"];
+  passLabel?: string;
+  exerciseName: string;
+  setNumber: number;
+  weight: number;
+  reps: number;
+  rir: number;
+  failNote: string;
+  nextWeight: number;
+  nextSetPlan: NextSetPlan;
+  previousSets: { weight: number; reps: number; rir?: number }[];
+  personalRecordText?: string;
+  lastCoachMessage?: string;
+  warmupContext: WarmupContext | null;
+  conditioningContext: ConditioningContext | null;
+}): CoachSetContext {
+  const previousSet = args.previousSets[args.previousSets.length - 1];
+  const signals: string[] = [];
+
+  if (args.personalRecordText) signals.push(args.personalRecordText);
+
+  if (previousSet && args.weight === previousSet.weight && args.reps > previousSet.reps) {
+    signals.push(`Reps upp på samma vikt: +${args.reps - previousSet.reps}.`);
+  }
+
+  if (
+    previousSet &&
+    typeof previousSet.rir === "number" &&
+    args.weight === previousSet.weight &&
+    args.reps === previousSet.reps &&
+    args.rir > previousSet.rir
+  ) {
+    signals.push("Samma reps som förra setet, men mer kvar i tanken.");
+  }
+
+  if (previousSet && args.weight > previousSet.weight) {
+    signals.push(`Vikten höjdes från ${previousSet.weight} kg till ${args.weight} kg.`);
+  }
+
+  if (
+    previousSet &&
+    typeof previousSet.rir === "number" &&
+    args.weight === previousSet.weight &&
+    args.reps < previousSet.reps &&
+    args.reps >= Math.max(1, previousSet.reps - 2) &&
+    args.rir >= 1
+  ) {
+    signals.push(
+      "Planerad repsänkning träffad med marginal kvar. Beskriv det som bra utfört, inte som problem eller tappad styrka."
+    );
+  }
+
+  if (args.failNote) signals.push(`Failure-orsak: ${args.failNote}.`);
+  const exerciseCategory = getExerciseProfile(args.exerciseName).category;
+
+  return {
+    kind: "set_feedback",
+    userName: args.userName,
+    goalPrimary: args.goalPrimary,
+    passLabel: args.passLabel?.trim() || undefined,
+    exerciseName: args.exerciseName,
+    exerciseCategory,
+    setNumber: args.setNumber,
+    currentSet: {
+      weight: args.weight,
+      reps: args.reps,
+      rir: args.rir,
+      failNote: args.failNote || undefined,
+    },
+    previousSet: previousSet
+      ? {
+          weight: previousSet.weight,
+          reps: previousSet.reps,
+          rir: previousSet.rir,
+        }
+      : undefined,
+    personalRecordText: args.personalRecordText || undefined,
+    nextTarget: {
+      weight: args.nextWeight,
+      repsText: args.nextSetPlan.repsText,
+      rirText: args.nextSetPlan.rirText,
+      strategy: args.nextSetPlan.strategy,
+      reason: args.nextSetPlan.reason,
+      techniqueCue: args.nextSetPlan.techniqueCue,
+    },
+    restText: args.nextSetPlan.restText,
+    warmupNote: args.warmupContext?.note,
+    conditioningNote: args.conditioningContext?.note,
+    previousCoachReply: args.lastCoachMessage?.trim() || undefined,
+    computedSignals: signals,
+  };
+}
+
+function pickEarnedExcitement(args: {
+  isNewPersonalBest: boolean;
+  clearProgression: boolean;
+  repsUpSameWeight: boolean;
+  sameRepsMoreMargin: boolean;
+  rir: number;
+  setNumber: number;
+  exerciseName: string;
+}) {
+  const {
+    isNewPersonalBest,
+    clearProgression,
+    repsUpSameWeight,
+    sameRepsMoreMargin,
+    rir,
+    setNumber,
+    exerciseName,
+  } = args;
+  const exerciseCategory = getExerciseProfile(exerciseName).category;
+
+  if (isNewPersonalBest) {
+    if (setNumber >= 3) {
+      if (exerciseCategory === "rygg") return "Okej, ryggen är med på riktigt idag! 🚀";
+      if (exerciseCategory === "ben") return "Okej, benen är med på riktigt idag! 🚀";
+      if (exerciseCategory === "bröst" || exerciseCategory === "axlar") {
+        return "Okej, pressen sitter på riktigt idag! 🚀";
+      }
+
+      return "Okej, det här är en stark träningsdag! 🚀";
+    }
+    if (setNumber === 2) return "Vänta lite. Ännu ett personbästa! 🔥";
+    return rir >= 2 ? "Oj. Nu snackar vi! 🔥" : "Nu snackar vi!";
+  }
+
+  if (repsUpSameWeight) return setNumber <= 2 ? "Där satt den!" : "Snyggt. Den repen ville vi ha.";
+  if (sameRepsMoreMargin) return "Den där gillar jag.";
+  if (clearProgression) return "Bra. Riktigt bra.";
+  return setNumber === 1 ? "Bra start." : "Bra jobbat där.";
+}
+
+function getPersonalBestMeaning(args: {
+  setNumber: number;
+  rir: number;
+  marginText: string;
+  previousSets: { weight: number; reps: number; rir?: number }[];
+}) {
+  const { setNumber, rir, marginText, previousSets } = args;
+  const priorHardSets = previousSets.filter(
+    (set) => set.weight > 0 && set.reps > 0
+  ).length;
+
+  if (priorHardSets >= 2) {
+    return rir > 0
+      ? `Ännu ett personbästa i samma övning, och fortfarande ${marginText}.`
+      : "Ännu ett tungt personbästa i samma övning. Nu räcker det här.";
+  }
+
+  if (priorHardSets >= 1 || setNumber === 2) {
+    return rir > 0
+      ? `Och du hade fortfarande ${marginText}. Den gamla nivån var för låg idag.`
+      : "Den gamla nivån var för låg idag. Nu har vi hittat taket.";
+  }
+
+  return rir > 0 ? `Och du hade ${marginText}.` : "";
+}
+
+function getPersonalBestPayoff(
+  setNumber: number,
+  previousSets: { weight: number; reps: number; rir?: number }[]
+) {
+  if (previousSets.length >= 2 || setNumber >= 3) {
+    return "Vi stänger den här övningen med stil.";
+  }
+
+  if (setNumber === 2) return "Det där är riktig progression.";
+  return "Det där är exakt sånt jag vill se.";
+}
+
 function buildCoachMessage(args: {
   weight: number;
   reps: number;
@@ -870,179 +1987,387 @@ function buildCoachMessage(args: {
   exerciseName: string;
   setNumber: number;
   nextWeight: number;
+  nextSetPlan: NextSetPlan;
   lastCoachMessage: string;
   previousSets: { weight: number; reps: number; rir?: number }[];
   completedExercises: { sets: { rir?: number }[] }[];
   goalPrimary: UserProfile["goalPrimary"];
+  personalRecordText?: string;
+  warmupContext: WarmupContext | null;
+  conditioningContext: ConditioningContext | null;
 }) {
   const {
-  weight,
-  reps,
-  rir,
-  failNote,
-  exerciseName,
-  setNumber,
-  nextWeight,
-  lastCoachMessage,
-  previousSets,
-  completedExercises,
-   goalPrimary,
-} = args;
-const cue = getExerciseCue(exerciseName);
-const goalTone = getGoalTone(goalPrimary);
-const trend = getSetTrend({
-  previousSets,
-  weight,
-  reps,
-  rir,
-});
-const fatigueSignal = getExerciseFatigueSignal({
-  previousSets,
-  rir,
-});
-const workoutFatigueSignal = getWorkoutFatigueSignal({
-  completedExercises,
-});
-const isEarlySet = setNumber <= 1;
-const isLaterSet = setNumber >= 3;
-const setPhase = isEarlySet
-  ? "early"
-  : isLaterSet
-  ? "late"
-  : "mid";
+    weight,
+    reps,
+    rir,
+    failNote,
+    exerciseName,
+    setNumber,
+    nextWeight,
+    nextSetPlan,
+    previousSets,
+    personalRecordText,
+    warmupContext,
+    conditioningContext,
+  } = args;
 
-if (rir >= 3) {
-  const options =
-    setPhase === "early"
-      ? [
-          shortCoach(["Lätt start.", `Höj till ${nextWeight} kg nästa.`]),
-          shortCoach(["Bra marginal.", "Du kan gå upp lite."]),
-        ]
-      : setPhase === "late"
-      ? [
-          shortCoach(["Fortfarande lätt.", `Testa ${nextWeight} kg om tekniken känns bra.`]),
-          shortCoach(["Du har mer kvar.", "Höj lite om du vill trycka på."]),
-        ]
-      : [
-          shortCoach(["Lätt set.", `Höj till ${nextWeight} kg nästa.`]),
-          shortCoach(["Bra kontroll.", "Du kan gå upp lite."]),
-        ];
+  const previousSet = previousSets[previousSets.length - 1];
+  const hasPreviousSet = Boolean(previousSet);
+  const restTime = nextSetPlan.restText;
+  const marginText = rirAsCoachText(rir);
+  const nextSetRepRange = nextSetPlan.repsText;
+  const nextSetWeightText = `${formatCoachWeight(nextSetPlan.weight)} kg`;
+  const nextSetRirText = nextSetPlan.rirText;
+  const nextTechniqueCue = nextSetPlan.techniqueCue;
 
-  return pickDifferentOption(options, lastCoachMessage);
-}
-if (rir === 2) {
-  const options = isEarlySet
-    ? [
-        shortCoach(["Bra start.", "Behåll vikten."]),
-        shortCoach(["Rätt nivå.", "Bygg vidare därifrån."]),
-      ]
-    : isLaterSet
-    ? [
-        shortCoach(["Bra nivå.", "Avsluta lika rent."]),
-        shortCoach(["Stabilt.", "Håll samma linje."]),
-      ]
-    : [
-        shortCoach(["Bra set.", "Behåll vikten."]),
-        shortCoach(["Rätt nivå.", "Fortsätt så."]),
-      ];
+  const currentText = `${weight} × ${reps} · RIR ${rir}`;
+  const currentCoachText = `${weight} × ${reps} med ${marginText}`;
+  const previousText = previousSet
+    ? `${previousSet.weight} × ${previousSet.reps} · RIR ${previousSet.rir ?? "—"}`
+    : "";
+  const previousRir =
+    previousSet && typeof previousSet.rir === "number" ? previousSet.rir : null;
+  const repsUpSameWeight =
+    hasPreviousSet && weight === previousSet.weight && reps > previousSet.reps;
+  const sameRepsMoreMargin =
+    hasPreviousSet &&
+    previousRir !== null &&
+    weight === previousSet.weight &&
+    reps === previousSet.reps &&
+    rir > previousRir;
+  const weightUpFromPrevious = hasPreviousSet && weight > previousSet.weight;
+  const heldWeightUnderFatigue =
+    hasPreviousSet &&
+    previousRir !== null &&
+    weight === previousSet.weight &&
+    reps >= Math.max(1, previousSet.reps - 1) &&
+    rir < previousRir;
+  const plannedRepDropHit =
+    hasPreviousSet &&
+    previousRir !== null &&
+    weight === previousSet.weight &&
+    reps >= Math.max(1, previousSet.reps - 2) &&
+    reps < previousSet.reps &&
+    rir >= 1;
+  const clearProgression = repsUpSameWeight || sameRepsMoreMargin;
+  const isNewPersonalBest = personalRecordText?.startsWith("Nytt personbästa");
+  const specificObservation = (() => {
+    if (!hasPreviousSet) {
+      if (rir >= 3) return "Det var starkt gjort med så mycket kvar.";
+      if (rir === 2) return "Två reps kvar på första setet. Bra öppning.";
+      if (rir === 1) return "En rep kvar på första setet.";
+      return "Ingen rep kvar på första setet. Då backar vi lite.";
+    }
 
-  return pickDifferentOption(options, lastCoachMessage);
-}
+    if (repsUpSameWeight) {
+      return `Du tog ${reps - previousSet!.reps} rep mer på samma vikt.`;
+    }
 
-if (rir === 1) {
-  const options =
-    setPhase === "early"
-      ? [
-          shortCoach(["Tung öppning.", "Sänk tempot och håll kontroll."]),
-          shortCoach(["Redan tungt.", "Teknik först nu."]),
-        ]
-      : setPhase === "late"
-      ? [
-          shortCoach(["Nu blir det tungt.", "Håll ihop tekniken."]),
-          shortCoach(["Rätt tungt nu.", "Avsluta rent."]),
-        ]
-      : [
-          shortCoach(["Tungt set.", "Behåll kontrollen."]),
-          shortCoach(["På gränsen.", "Håll tekniken ren."]),
-        ];
+    if (sameRepsMoreMargin) {
+      return "Samma reps som förra setet, men med mer kvar.";
+    }
 
-  return pickDifferentOption(options, lastCoachMessage);
-}
-if (rir === 0 && !failNote.trim()) {
-  const options =
-    setPhase === "early"
-      ? [
-          shortCoach(["Maxnära direkt.", "Jaga inte mer vikt nu."]),
-          shortCoach(["Väldigt tung öppning.", "Behåll kontrollen."]),
-        ]
-      : setPhase === "late"
-      ? [
-          shortCoach(["Nu är du nära taket.", "Nästa set ska fortfarande vara rent."]),
-          shortCoach(["Riktigt tungt.", "Backa lite om tekniken glider."]),
-        ]
-      : [
-          shortCoach(["Tungt men klarat.", "Nästa set ska se lika rent ut."]),
-          shortCoach(["Precis på gränsen.", "Håll ihop tekniken nu."]),
-        ];
+    if (weightUpFromPrevious) {
+      return `Du gick upp till ${weight} kg och fick ${reps} reps.`;
+    }
 
-  return pickDifferentOption(options, lastCoachMessage);
-}
-if (failNote.trim()) {
+    if (heldWeightUnderFatigue) {
+      return `Du höll nästan samma reps trots mindre marginal.`;
+    }
+
+    if (
+      hasPreviousSet &&
+      previousRir !== null &&
+      weight === previousSet.weight &&
+      reps < previousSet.reps &&
+      rir <= 1 &&
+      previousRir <= 1 &&
+      !plannedRepDropHit
+    ) {
+      return "Det där var nära gränsen efter jobbet innan.";
+    }
+
+    if (hasPreviousSet && weight === previousSet.weight && reps === previousSet.reps) {
+      if (previousRir !== null && rir < previousRir) {
+        return "Samma reps, men med mindre kvar.";
+      }
+
+      return "Du matchade förra setet.";
+    }
+
+    if (hasPreviousSet && weight < previousSet.weight) {
+      if (reps >= previousSet.reps) {
+        return "Du sänkte vikten och höll repsen.";
+      }
+
+      return "Det här blev ett backoff-set efter tyngre arbete.";
+    }
+
+    if (hasPreviousSet && reps < previousSet.reps) {
+      if (plannedRepDropHit) {
+        return "Du träffade repsmålet med marginal kvar. Bra utfört.";
+      }
+
+      return "Repsen sjönk lite efter tidigare arbete.";
+    }
+
+    return "Jag har setet.";
+  })();
+  const payoffLines =
+    isNewPersonalBest || clearProgression
+      ? [
+          pickEarnedExcitement({
+            isNewPersonalBest: Boolean(isNewPersonalBest),
+            clearProgression,
+            repsUpSameWeight,
+            sameRepsMoreMargin,
+            rir,
+            setNumber,
+            exerciseName,
+          }),
+          isNewPersonalBest
+            ? `${weight} × ${reps} är nytt personbästa i ${exerciseName}.`
+            : "",
+          isNewPersonalBest
+            ? getPersonalBestMeaning({ setNumber, rir, marginText, previousSets })
+            : "",
+          clearProgression ? specificObservation : "",
+          clearProgression || isNewPersonalBest
+            ? rir <= 1
+              ? "Det där var starkt gjort."
+              : isNewPersonalBest
+              ? getPersonalBestPayoff(setNumber, previousSets)
+              : "Det där är exakt sånt jag vill se."
+            : "",
+        ]
+      : [];
+  const hasPayoff = payoffLines.filter(Boolean).length > 0;
+  const bodyObservation = clearProgression || hasPayoff ? "" : specificObservation;
+
   const fail = failNote.trim().toLowerCase();
+  const conditioningNote =
+    setNumber === 1 &&
+    conditioningContext?.timing === "before" &&
+    conditioningContext.intensity === "hard"
+      ? "Konditionen innan kan påverka trycket idag."
+      : "";
+  const coachResponse = (lines: string[]) =>
+    shortCoach(
+      payoffLines.length > 0 || conditioningNote
+        ? [
+            ...(payoffLines.length > 0 ? [...payoffLines, ""] : []),
+            ...lines,
+            ...(conditioningNote ? ["", conditioningNote] : []),
+          ]
+        : lines
+    );
 
-  const trendText = trend ? ` ${trend}` : "";
-  const fatigueText = fatigueSignal ? ` ${fatigueSignal}` : "";
-  const workoutText = workoutFatigueSignal ? ` ${workoutFatigueSignal}` : "";
+  if (nextSetPlan.strategy === "complete") {
+    if (hasPayoff) {
+      return coachResponse([
+        `${exerciseName} är klar för idag.`,
+        "Tryck Nästa övning när du är redo.",
+      ]);
+    }
 
-  // 🔹 GREPP
-  if (fail.includes("grepp")) {
-const options = [
-  shortCoach(["Greppet gav upp.", "Behåll vikten nästa set."]),
-  shortCoach(["Det var greppet.", "Justera greppet, inte vikten först."]),
-  shortCoach(["Greppet begränsar dig.", "Samma vikt, renare set."]),
-];
-    return pickDifferentOption(options, lastCoachMessage);
+    if (fail || rir <= 0) {
+      return coachResponse([
+        "Riktigt bra jobbat här.",
+        currentText,
+        hasPreviousSet
+          ? "Du gjorde det viktiga här och avslutade utan att jaga fula reps. Det gillar jag."
+          : "Det räcker för idag.",
+        `${exerciseName} är klar för idag.`,
+        "Tryck Nästa övning när du är redo.",
+      ]);
+    }
+
+    return coachResponse([
+      "Snyggt jobbat här.",
+      currentText,
+      nextSetPlan.reason,
+      "Tryck Nästa övning när du är redo.",
+    ]);
   }
 
-  // 🔹 TEKNIK
-  if (fail.includes("teknik") || fail.includes("formen")) {
-const options = [
-  shortCoach(["Tekniken brast.", "Sänk lite nästa set."]),
-  shortCoach(["Du tappade positionen.", "Backa och håll lyftet rent."]),
-  shortCoach(["Bra att du märkte det.", "Nästa set ska se bättre ut."]),
-];
-    return pickDifferentOption(options, lastCoachMessage);
+  if (fail) {
+    if (fail.includes("grepp")) {
+      return coachResponse([
+        `Där började greppet ge upp: ${currentText}.`,
+        "",
+        nextSetPlan.reason,
+        "",
+        "Nästa set:",
+        nextSetWeightText,
+        `sikta på ${nextSetRepRange}`,
+        `${nextSetRirText}.`,
+        nextTechniqueCue,
+        `Vila ${restTime}.`,
+      ]);
+    }
+
+    if (fail.includes("ont") || fail.includes("smärta")) {
+      return coachResponse([
+        "Okej, vi avbryter den övningen.",
+        "",
+        "Nu:",
+        currentText,
+        "",
+        getPainCoachContextText(warmupContext),
+      ]);
+    }
+
+    return coachResponse([
+      `Där tog det stopp: ${currentText}.`,
+      "",
+      hasPreviousSet
+        ? "Det är trötthet från arbetet innan. Vi jagar inte igenom det."
+        : "Då har vi dagens tak här.",
+      nextSetPlan.reason,
+      "",
+      "Nästa set:",
+      nextSetWeightText,
+      `sikta på ${nextSetRepRange}`,
+      `${nextSetRirText}.`,
+      nextTechniqueCue,
+      `Vila ${restTime}.`,
+    ]);
   }
 
-  // 🔹 MUSKEL / ORK
-  if (fail.includes("ork") || fail.includes("muskel") || fail.includes("slut")) {
-const options = [
-  shortCoach(["Muskeln tog slut.", "Sänk lite eller kapa reps."]),
-  shortCoach(["Du nådde gränsen.", "Håll nästa set mer kontrollerat."]),
-  shortCoach(["Rent stopp i muskeln.", "Justera lite nästa."]),
-];
-    return pickDifferentOption(options, lastCoachMessage);
+  if (rir >= 3) {
+    if (isNewPersonalBest) {
+      return coachResponse([
+        `Personbästa med ${marginText}. Det är starkt.`,
+        "",
+        nextSetPlan.reason,
+        "",
+        "Nästa set:",
+        nextSetWeightText,
+        `sikta på ${nextSetRepRange}`,
+        `${nextSetRirText}.`,
+        nextTechniqueCue,
+        "",
+        `Vila ${restTime}.`,
+      ]);
+    }
+
+    return coachResponse([
+      rir >= 4 ? "Bra jobbat! Det där var starkt 🔥" : "Bra jobbat. Det där satt fint.",
+      currentText,
+      nextSetPlan.reason,
+      "",
+      "Nästa set:",
+      nextSetWeightText,
+      `sikta på ${nextSetRepRange}`,
+      `${nextSetRirText}.`,
+      nextTechniqueCue,
+      `Vila ${restTime}.`,
+    ]);
   }
 
-  // 🔹 SMÄRTA
-  if (fail.includes("ont") || fail.includes("smärta")) {
-const options = [
-  shortCoach(["Känning där.", "Backa direkt nästa set."]),
-  shortCoach(["Bra att du avbröt.", "Prioritera smärtfri rörelse nu."]),
-  shortCoach(["Noterat.", "Klart lättare nästa set."]),
-];
-    return pickDifferentOption(options, lastCoachMessage);
+  if (rir === 2) {
+    if (hasPayoff) {
+      return coachResponse([
+        "",
+        "Nästa set:",
+        nextSetWeightText,
+        `sikta på ${nextSetRepRange}`,
+        `${nextSetRirText}.`,
+        nextTechniqueCue,
+        `Vila ${restTime}.`,
+      ]);
+    }
+
+    return coachResponse([
+      setNumber === 1
+        ? "Bra första set."
+        : hasPreviousSet && reps < previousSet!.reps
+        ? "Bra. Det där var precis uppgiften."
+        : "Bra jobbat där.",
+      currentText,
+      hasPreviousSet && reps < previousSet!.reps
+        ? "Repsen sjönk, men du höll marginalen."
+        : bodyObservation,
+      hasPreviousSet && reps < previousSet!.reps
+        ? `Vi kör ${nextSetWeightText} en gång till.`
+        : nextSetPlan.reason,
+      "",
+      "Nästa set:",
+      nextSetWeightText,
+      `sikta på ${nextSetRepRange}`,
+      `${nextSetRirText}.`,
+      nextTechniqueCue,
+      `Vila ${restTime}.`,
+    ]);
   }
 
-  // 🔹 GENERELL
-const options = [
-  shortCoach(["Där tog det stopp.", "Backa lite nästa set."]),
-  shortCoach(["Nu nådde du taket.", "Sänk eller kapa reps."]),
-  shortCoach(["Stopp där.", "Nästa set ska vara renare."]),
-];
+  if (rir === 1) {
+    if (hasPayoff) {
+      return coachResponse([
+        "",
+        "Nästa set:",
+        nextSetWeightText,
+        `sikta på ${nextSetRepRange}`,
+        `${nextSetRirText}.`,
+        nextTechniqueCue,
+        `Vila ${restTime}.`,
+      ]);
+    }
 
-  return pickDifferentOption(options, lastCoachMessage);
-}
+    return coachResponse([
+      payoffLines.length > 0
+        ? ""
+        : setNumber === 1
+        ? "Starkt första set."
+        : nextSetPlan.strategy === "backoff"
+        ? "Snyggt. Bra kontroll på ett tungt set."
+        : "Bra tryck där.",
+      "",
+      currentText,
+      bodyObservation,
+      nextSetPlan.reason,
+      "",
+      "Nästa set:",
+      nextSetWeightText,
+      `sikta på ${nextSetRepRange}`,
+      `${nextSetRirText}.`,
+      nextTechniqueCue,
+      `Vila ${restTime}.`,
+    ]);
+  }
+
+  if (rir === 0) {
+    return coachResponse([
+      "Bra kämpat! Där var vi vid gränsen.",
+      currentText,
+      hasPreviousSet
+        ? "Det där var väntat efter jobbet innan."
+        : bodyObservation,
+      nextSetPlan.reason,
+      "",
+      "Nästa set:",
+      nextSetWeightText,
+      `sikta på ${nextSetRepRange}`,
+      `${nextSetRirText}.`,
+      nextTechniqueCue,
+      `Vila ${restTime}.`,
+    ]);
+  }
+
+  return coachResponse([
+    "Bra jobbat där.",
+    currentText,
+    bodyObservation,
+    nextSetPlan.reason,
+    "",
+    "Nästa set:",
+    nextSetWeightText,
+    `sikta på ${nextSetRepRange}`,
+    `${nextSetRirText}.`,
+    nextTechniqueCue,
+    "",
+    `Vila ${restTime}.`,
+  ]);
 }
 type CheckInSignal = {
   dayForm: DayForm;
@@ -1065,11 +2390,11 @@ function buildCheckInSignal(input: string): CheckInSignal | null {
     return {
       dayForm: "trött",
       coachIntro:
-        "Jag tar hänsyn till att kroppen inte känns helt hundra idag. Vi öppnar kontrollerat och känner in passet.",
+        "Vi startar lugnt idag.",
       coachChatMessage:
-        "Noterat. Vi håller passet kontrollerat idag och prioriterar teknik från första övningen.",
+        "Säg till direkt om något känns fel.",
       caution:
-        "Extra fokus idag: lugn start, ren teknik och backa direkt om något känns fel.",
+        "Avbryt om något gör ont.",
     };
   }
 
@@ -1082,11 +2407,11 @@ function buildCheckInSignal(input: string): CheckInSignal | null {
     return {
       dayForm: "trött",
       coachIntro:
-        "Jag hör dig. Då bygger vi passet lugnt från start och håller kvaliteten hög.",
+        "Vi börjar lite lugnare idag.",
       coachChatMessage:
-        "Noterat. Vi kör smart idag och låter första arbetssetet styra hur hårt vi går vidare.",
+        "Första arbetssetet visar oss var vi ligger.",
       caution:
-        "Extra fokus idag: jämn kontroll och ingen stress upp i vikt direkt.",
+        "Ingen stress upp i vikt direkt.",
     };
   }
 
@@ -1099,22 +2424,22 @@ function buildCheckInSignal(input: string): CheckInSignal | null {
     return {
       dayForm: "stark",
       coachIntro:
-        "Härligt. Då kan vi vara lite mer offensiva idag, men fortfarande med kontroll från start.",
+        "Bra. Du verkar pigg idag.",
       coachChatMessage:
-        "Bra. Du verkar redo idag. Vi öppnar stabilt och trycker på om första setet ser bra ut.",
+        "Bra. Första setet visar hur offensiva vi kan vara.",
       caution:
-        "Extra fokus idag: håll kvalitet i första setet, sedan kan vi bygga vidare.",
+        "Vi börjar fortfarande med kontroll.",
     };
   }
 
   return {
     dayForm: "normal",
-    coachIntro:
-      "Noterat. Jag tar med det in i passet och vi känner av läget från första övningen.",
-    coachChatMessage:
-      "Jag tar med det i dagens plan. Vi börjar kontrollerat och justerar efter känslan.",
+      coachIntro:
+        "Vi startar lugnt.",
+      coachChatMessage:
+        "Första setet visar oss var vi ligger.",
     caution:
-      "Extra fokus idag: logga första setet tidigt så kan jag guida dig bättre vidare.",
+      "Logga första setet tidigt.",
   };
 }
 
@@ -1180,14 +2505,14 @@ function buildRemovedExercisesCoachNote(removedExercises: string[]) {
   if (removedExercises.length === 0) return "";
 
   if (removedExercises.length === 1) {
-    return `Jag ser att du plockade bort ${removedExercises[0]}. Då håller vi upplägget lite renare idag.`;
+    return `Vi hoppar över ${removedExercises[0]} idag.`;
   }
 
   if (removedExercises.length === 2) {
-    return `Jag ser att du plockade bort ${removedExercises[0]} och ${removedExercises[1]}. Då håller vi passet lite mer fokuserat idag.`;
+    return `Vi hoppar över ${removedExercises[0]} och ${removedExercises[1]} idag.`;
   }
 
-  return `Jag ser att du har justerat bort några övningar. Bra — då håller vi passet tydligare och mer fokuserat idag.`;
+  return `Vi hoppar över några övningar idag.`;
 }
 function buildExerciseMemoryInsight(args: {
   coachMemory: CoachMemory;
@@ -1206,24 +2531,25 @@ function buildExerciseMemoryInsight(args: {
   const text = note.text.toLowerCase();
 
   if (text.includes("greppet")) {
-    return "Jag minns att greppet begränsade dig här sist. Håll setet rent innan vi jagar mer vikt.";
+    return "Jag minns att greppet begränsade dig här sist. Vi börjar på samma vikt och ser om det håller längre.";
   }
 
   if (text.includes("tekniken")) {
-    return "Jag minns att tekniken brast här sist. Prioritera kvalitet i första setet.";
+    return "Jag minns att tekniken brast här sist. Om det känns likadant vill jag att du säger till direkt.";
   }
 
   if (text.includes("smärta") || text.includes("känning")) {
-    return "Jag minns att du kände av den här övningen sist. Var extra noga med kontroll från start.";
+    return "Jag minns att du kände av den här övningen sist. Säg till direkt om det kommer tillbaka.";
   }
 
   if (text.includes("gränsen i muskeln")) {
-    return "Jag minns att du nådde gränsen ordentligt här sist. Bygg vidare, men håll setet rent.";
+    return "Jag minns att du nådde gränsen här sist. Första setet visar hur nära vi ska gå idag.";
   }
 
-  return "Jag minns att det blev tufft här sist. Ta första setet kontrollerat så justerar vi därifrån.";
+  return "Jag minns att det blev tufft här sist. Första setet visar oss var vi ligger idag.";
 }
 export default function Home() {
+  const [showSplash, setShowSplash] = useState(true);
   const [started, setStarted] = useState(false);
   const [workoutReview, setWorkoutReview] = useState<WorkoutReview | null>(null);
   const [latestCompletedReview, setLatestCompletedReview] =
@@ -1232,7 +2558,18 @@ export default function Home() {
   const [gym, setGym] = useState<string>("Sjöviksgymmet");
   const [lastPass, setLastPass] = useState<PassType | null>(null);
   const [coachMemory, setCoachMemory] = useState<CoachMemory>({ notes: [] });
-  const [workoutComplete, setWorkoutComplete] = useState(false);
+const [workoutComplete, setWorkoutComplete] = useState(false);
+const [showDailyPlan, setShowDailyPlan] = useState(false);
+const [hasAcceptedTrainingSafety, setHasAcceptedTrainingSafety] = useState(false);
+const [showExerciseProgress, setShowExerciseProgress] = useState(false);
+  const [showStatistics, setShowStatistics] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showPersonalRecords, setShowPersonalRecords] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [appTheme, setAppTheme] = useState<AppTheme>("dark");
+  const [selectedProgressExercise, setSelectedProgressExercise] = useState<
+    string | null
+  >(null);
 
   // “Databas”
   const [history, setHistory] = useState<Workout[]>([]);
@@ -1244,6 +2581,7 @@ export default function Home() {
   // Pågående pass
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [exerciseIndex, setExerciseIndex] = useState(0);
+  const [skippedExercise, setSkippedExercise] = useState<SkippedExercise | null>(null);
 
 
 const [dayForm, setDayForm] = useState<DayForm | null>(null);
@@ -1262,17 +2600,31 @@ const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
 
 
-  const [chatInput, setChatInput] = useState("");
-const [chatLog, setChatLog] = useState<{ role: "you" | "coach"; text: string }[]>([]);
+const [chatInput, setChatInput] = useState("");
+const [chatLog, setChatLog] = useState<
+  { role: "you" | "coach"; text: string; setNumber?: number }[]
+>([]);
+const [nameInput, setNameInput] = useState("");
+const [ageInput, setAgeInput] = useState("");
+const [genderInput, setGenderInput] =
+  useState<UserProfile["gender"]>("vill-inte-saga");
+const [trainingExperienceInput, setTrainingExperienceInput] =
+  useState<NonNullable<UserProfile["trainingExperience"]>>("van");
 const [daysPerWeekInput, setDaysPerWeekInput] = useState("3");
 const [minutesPerSessionInput, setMinutesPerSessionInput] = useState("60");
 const [locationInput, setLocationInput] = useState<UserProfile["location"]>("gym");
+const [equipmentInput, setEquipmentInput] = useState<string[]>([]);
 const [limitationsInput, setLimitationsInput] = useState("");
 const [goalInput, setGoalInput] = useState< 
   "muskel" | "styrka" | "fett"
 >("muskel");
+const [secondaryGoalsInput, setSecondaryGoalsInput] = useState<
+  ("muskel" | "styrka" | "fett")[]
+>([]);
 
 const [editingProfile, setEditingProfile] = useState(false);
+
+const profileName = userProfile?.name?.trim() || "du";
 
 const [customExercisesByPass, setCustomExercisesByPass] =
   useState<CustomExercisesByPass>({
@@ -1281,7 +2633,14 @@ const [customExercisesByPass, setCustomExercisesByPass] =
     C: [],
     D: [],
   });
-  const [removedExercisesByPass, setRemovedExercisesByPass] =
+const [todayExercisesByPass, setTodayExercisesByPass] =
+  useState<CustomExercisesByPass>({
+    A: [],
+    B: [],
+    C: [],
+    D: [],
+  });
+const [removedExercisesByPass, setRemovedExercisesByPass] =
   useState<RemovedExercisesByPass>({
     A: [],
     B: [],
@@ -1299,13 +2658,62 @@ const [swapFrom, setSwapFrom] = useState<string | null>(null);
 const [swapToInput, setSwapToInput] = useState("");
 
 const [customExerciseInput, setCustomExerciseInput] = useState("");
+const [workoutExerciseInput, setWorkoutExerciseInput] = useState("");
 const [checkInInput, setCheckInInput] = useState("");
 const [checkInCoachReply, setCheckInCoachReply] = useState("")
+const [showProgramReview, setShowProgramReview] = useState(false);
+const [programPreferenceInput, setProgramPreferenceInput] = useState("");
+const [programPreferenceReply, setProgramPreferenceReply] = useState("");
+const [programPreferences, setProgramPreferences] = useState<string[]>([]);
+const [pendingProgramSuggestion, setPendingProgramSuggestion] =
+  useState<CoachProgramSuggestion | null>(null);
+const [customWorkoutPlan, setCustomWorkoutPlan] =
+  useState<StoredWorkoutPlan | null>(null);
+const [passDisplayNamesByPass, setPassDisplayNamesByPass] =
+  useState<PassDisplayNamesByPass>({});
 const [activeCheckInSignal, setActiveCheckInSignal] =
   useState<CheckInSignal | null>(null);
+const [activeWarmupContext, setActiveWarmupContext] =
+  useState<WarmupContext | null>(null);
+const [activeConditioningContext, setActiveConditioningContext] =
+  useState<ConditioningContext | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowSplash(false);
+    }, 1250);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = appTheme;
+  }, [appTheme]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [
+    started,
+    workoutComplete,
+    workoutReview,
+    showDailyPlan,
+    showExerciseProgress,
+    showStatistics,
+    showHistory,
+    showPersonalRecords,
+    showProgramReview,
+    editingProfile,
+  ]);
 
 // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("reset") === "1") {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.history.replaceState(null, "", window.location.pathname);
+      window.location.reload();
+      return;
+    }
 
     const savedLastPass = localStorage.getItem("lastPass") as PassType | null;
     const savedGym = localStorage.getItem("lastGym");
@@ -1325,8 +2733,22 @@ if (
     setLastByExercise(loadJSON<LastByExercise>("lastByExercise", {}));
     setCoachMemory(loadJSON<CoachMemory>("coachMemory", { notes: [] }));
     setPersonalRecords(loadJSON<PersonalRecords>("personalRecords", {}));
+    setProgramPreferences(loadJSON<string[]>("programPreferences", []));
+    setCustomWorkoutPlan(loadJSON<StoredWorkoutPlan | null>("customWorkoutPlan", null));
+    setPassDisplayNamesByPass(loadJSON<PassDisplayNamesByPass>("passDisplayNamesByPass", {}));
+    setAppTheme(loadJSON<AppTheme>("appTheme", "dark"));
+    setHasAcceptedTrainingSafety(
+      loadJSON<boolean>("acceptedTrainingSafety", false)
+    );
     const savedProfile = loadJSON<UserProfile | null>("userProfile", null);
-if (savedProfile) setUserProfile(savedProfile);
+if (savedProfile) {
+  setUserProfile(savedProfile);
+  if (!savedProfile.name?.trim()) {
+    setEditingProfile(true);
+  } else if (!loadJSON<boolean>("approvedWorkoutPlan", false)) {
+    setShowProgramReview(true);
+  }
+}
 setCustomExercisesByPass(
   loadJSON<CustomExercisesByPass>("customExercisesByPass", {
     A: [],
@@ -1350,12 +2772,29 @@ setExerciseOverridesByPass(
   // ⭐ FYLL FORMULÄR FRÅN PROFIL
   // eslint-disable-next-line react-hooks/set-state-in-effect
 useEffect(() => {
-  if (!userProfile) return;
+if (!userProfile) return;
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
+  setNameInput(userProfile.name ?? "");
+  setAgeInput(userProfile.age ? String(userProfile.age) : "");
+  setGenderInput(userProfile.gender ?? "vill-inte-saga");
+  setTrainingExperienceInput(userProfile.trainingExperience ?? "van");
   setDaysPerWeekInput(String(userProfile.daysPerWeek));
   setMinutesPerSessionInput(String(userProfile.minutesPerSession));
   setLocationInput(userProfile.location);
+  setEquipmentInput(
+    userProfile.location === "hemma"
+      ? userProfile.equipment?.length
+        ? userProfile.equipment
+        : ["none"]
+      : []
+  );
+  setGoalInput(userProfile.goalPrimary);
+  setSecondaryGoalsInput(
+    (userProfile.goalSecondary ?? []).filter(
+      (goal) => goal !== userProfile.goalPrimary
+    )
+  );
   setLimitationsInput(userProfile.limitations);
 }, [userProfile]);
 
@@ -1384,21 +2823,42 @@ return buildPassDefinition({
 const workoutPlan = useMemo(() => {
   if (!userProfile) return null;
 
-return buildDefaultWorkoutPlan({
-  profile: userProfile,
+const basePlan =
+  customWorkoutPlan ??
+  buildDefaultWorkoutPlan({
+    profile: userProfile,
+    customExercisesByPass: { A: [], B: [], C: [], D: [] },
+    exerciseOverridesByPass: { A: {}, B: {}, C: {}, D: {} },
+    removedExercisesByPass: { A: [], B: [], C: [], D: [] },
+  });
+
+return applyWorkoutPlanEdits({
+  plan: basePlan,
   customExercisesByPass,
   exerciseOverridesByPass,
   removedExercisesByPass,
+  passDisplayNamesByPass,
 });
-}, [userProfile, customExercisesByPass, exerciseOverridesByPass]);
+}, [
+  userProfile,
+  customWorkoutPlan,
+  customExercisesByPass,
+  exerciseOverridesByPass,
+  removedExercisesByPass,
+  passDisplayNamesByPass,
+]);
 
 const nextPlannedPass: WorkoutPass | null =
   workoutPlan?.passes.find((pass: WorkoutPass) => pass.key === nextPass) ?? null;
 
-const plan: string[] =
+const savedPlan: string[] =
   nextPlannedPass?.exercises.map((exercise: PlannedExercise) => exercise.name) ?? [];
+const plan: string[] = mergePlan(savedPlan, todayExercisesByPass[nextPass] ?? []);
 
-  const removedExercisesForNextPass = removedExercisesByPass[nextPass] ?? [];
+  const removedExercisesForNextPass = useMemo(
+    () => removedExercisesByPass[nextPass] ?? [],
+    [removedExercisesByPass, nextPass]
+  );
 
 const activePlan = workout ? workout.exercises.map((e) => e.name) : plan;
 
@@ -1423,8 +2883,96 @@ const goalTargets = useMemo(() => {
 const progression = useMemo(() => {
   if (!currentExerciseName) return [];
 
-  return getExerciseProgression(history, currentExerciseName);
-}, [history, currentExerciseName]);
+  const savedProgression = getExerciseProgression(history, currentExerciseName);
+  const currentWorkoutExercise = workout?.exercises.find(
+    (exercise) => exerciseKey(exercise.name) === exerciseKey(currentExerciseName)
+  );
+  const currentWorkoutBest = currentWorkoutExercise
+    ? getBestSetFromSets(currentWorkoutExercise.sets)
+    : null;
+  const pr = personalRecords[exerciseKey(currentExerciseName)];
+
+  const liveBestSets = [
+    ...(currentWorkoutBest
+      ? [
+          {
+            weight: currentWorkoutBest.weight,
+            reps: currentWorkoutBest.reps,
+            rir: currentWorkoutBest.rir,
+            failNote: currentWorkoutBest.failNote,
+            createdAt: currentWorkoutBest.createdAt,
+          },
+        ]
+      : []),
+    ...(pr
+      ? [
+          {
+            weight: pr.weight,
+            reps: pr.reps,
+            createdAt: pr.createdAt,
+          },
+        ]
+      : []),
+    ...savedProgression,
+  ];
+
+  return liveBestSets
+    .filter(
+      (set, index, sets) =>
+        sets.findIndex(
+          (candidate) =>
+            candidate.weight === set.weight && candidate.reps === set.reps
+        ) === index
+    )
+    .sort((a, b) => {
+      if (b.weight !== a.weight) return b.weight - a.weight;
+      return b.reps - a.reps;
+    })
+    .slice(0, 3);
+}, [history, currentExerciseName, workout, personalRecords]);
+
+const progressionHistory = useMemo(() => {
+  const baseHistory = workout ? [workout, ...history] : history;
+  if (!currentExerciseName) return baseHistory;
+
+  const pr = personalRecords[exerciseKey(currentExerciseName)];
+  if (!pr) return baseHistory;
+
+  const alreadyHasPr = baseHistory.some((item) =>
+    item.exercises.some(
+      (exercise) =>
+        exerciseKey(exercise.name) === exerciseKey(currentExerciseName) &&
+        exercise.sets.some(
+          (set) => set.weight === pr.weight && set.reps === pr.reps
+        )
+    )
+  );
+
+  if (alreadyHasPr) return baseHistory;
+
+  const prWorkout: Workout = {
+    id: `personal-record-${exerciseKey(currentExerciseName)}`,
+    startedAt: pr.createdAt,
+    gym: workout?.gym ?? "",
+    pass: workout?.pass ?? nextPass,
+    displayName: workout?.displayName ?? "Personbästa",
+    exercises: [
+      {
+        name: currentExerciseName,
+        sets: [
+          {
+            weight: pr.weight,
+            reps: pr.reps,
+            createdAt: pr.createdAt,
+          },
+        ],
+      },
+    ],
+  };
+
+  return [prWorkout, ...baseHistory];
+}, [currentExerciseName, history, nextPass, personalRecords, workout]);
+
 const stagnationInsight = useMemo(() => {
   if (!currentExerciseName) return "";
 
@@ -1476,61 +3024,38 @@ const weeklyStats = useMemo(() => {
   };
 }, [history]);
  
-
-const suggestion = useMemo(() => {
-  const last = lastByExercise[exerciseKey(currentExerciseName)];
-  if (!last) {
+const progressionPlan = useMemo(() => {
+  if (!currentExerciseName) {
     return {
+      action: "start",
       weight: "",
       reps: String(goalTargets.targetReps),
-    };
+      repsText: `${goalTargets.targetReps} reps`,
+      rirText: "RIR 2",
+      note: "Första setet visar oss var vi ligger.",
+      reason: "Ingen övning vald.",
+    } satisfies ExerciseProgressionPlan;
   }
 
-  const lastWorkoutWithExercise = history.find((w) =>
-    w.exercises.some((e) => e.name === currentExerciseName)
-  );
+  return buildProgressionPlan({
+    history: progressionHistory,
+    exerciseName: currentExerciseName,
+    targetReps: goalTargets.targetReps,
+    dayForm,
+  });
+}, [currentExerciseName, progressionHistory, goalTargets.targetReps, dayForm]);
 
-  let suggestedWeight = last.weight;
 
-  if (lastWorkoutWithExercise) {
-    const ex = lastWorkoutWithExercise.exercises.find(
-      (e) => e.name === currentExerciseName
-    );
-
-    if (ex && ex.sets.length >= goalTargets.targetSets) {
-      const firstTargetSets = ex.sets.slice(0, goalTargets.targetSets);
-
-      const allSetsPassed = firstTargetSets.every(
-        (s) => s.reps >= goalTargets.targetReps
-      );
-
-      if (allSetsPassed) {
-        suggestedWeight = last.weight + PROGRESSION_STEP;
-      }
-    }
-  }
-
+const suggestion = useMemo(() => {
   return {
-    weight: String(suggestedWeight),
-    reps: String(goalTargets.targetReps),
+    weight: progressionPlan.weight,
+    reps: progressionPlan.reps,
   };
-}, [currentExerciseName, lastByExercise, history, goalTargets]);
+}, [progressionPlan]);
 
 const adjustedSuggestion = useMemo(() => {
-  const baseWeight = Number(suggestion.weight);
-  if (!Number.isFinite(baseWeight) || baseWeight <= 0) {
-    return suggestion; // inget att justera
-  }
-
-  let delta = 0;
-  if (dayForm === "trött") delta = -PROGRESSION_STEP;
-  if (dayForm === "stark") delta = PROGRESSION_STEP;
-
-  return {
-    weight: String(Math.max(0, baseWeight + delta)),
-    reps: suggestion.reps,
-  };
-}, [suggestion, dayForm]);
+  return suggestion;
+}, [suggestion]);
 
 const latestCoachNoteForExercise = useMemo(() => {
   if (!currentExerciseName) return "";
@@ -1553,34 +3078,34 @@ function getProgressionSuggestion(
   if (!last) {
     return {
       targetWeight: 40,
-      reason: "Ingen historik än. Börja kontrollerat och bygg därifrån.",
+      reason: "Ingen historik än. Första setet visar nivån.",
     };
   }
 
   if (last.rir === 0) {
     return {
       targetWeight: Math.max(0, last.weight - 2.5),
-      reason: "Senast nådde du failure. Börja lite lättare eller håll igen.",
+      reason: "Senast nådde du failure. Vi börjar lite lättare.",
     };
   }
 
     if (typeof last.rir === "number" && last.rir >= 3 && last.reps >= targetReps) {
     return {
       targetWeight: last.weight + PROGRESSION_STEP,
-      reason: "Senast såg det kontrollerat ut. Du kan testa att höja.",
+      reason: "Senast hade du marginal kvar. Du kan testa att höja.",
     };
   }
 
     if ((last.rir === 1 || last.rir === 2) && last.reps >= targetReps) {
     return {
       targetWeight: last.weight,
-      reason: "Senast var ansträngningen bra. Håll vikten och bygg stabilitet.",
+      reason: "Senast låg du nära rätt marginal. Vi håller vikten.",
     };
   }
 
   return {
     targetWeight: last.weight,
-    reason: "Utgå från samma vikt som senast och justera efter känslan.",
+    reason: "Utgå från samma vikt som senast.",
   };
 }
 
@@ -1591,20 +3116,18 @@ function getProgressionSuggestion(
 
   const last = lastByExercise[exerciseKey(currentExerciseName)];
 
-    const progression = getProgressionSuggestion(last, goalTargets.targetReps);
-
   const targetWeight =
     adjustedSuggestion.weight && adjustedSuggestion.weight !== ""
       ? adjustedSuggestion.weight
-      : String(progression.targetWeight);
+      : progressionPlan.weight;
 
 const removedExercisesNote = buildRemovedExercisesCoachNote(
   removedExercisesForNextPass
 );
 
 const introBase = activeCheckInSignal?.coachIntro
-  ? `${getWorkoutIntro(dayForm, workout.displayName)} ${activeCheckInSignal.coachIntro}`
-  : getWorkoutIntro(dayForm, workout.displayName);
+  ? `${getWorkoutIntro(dayForm)} ${activeCheckInSignal.coachIntro}`
+  : getWorkoutIntro(dayForm);
 
 const intro = removedExercisesNote
   ? `${introBase} ${removedExercisesNote}`
@@ -1625,6 +3148,8 @@ let insight = activeCheckInSignal?.caution ?? "";
 if (!insight && memoryInsight) insight = memoryInsight;
 else if (!insight && fatigue) insight = fatigue;
 else if (!insight && stagnation) insight = stagnation;
+else if (!insight && progressionPlan.action === "increase") insight = progressionPlan.reason;
+else if (!insight && progressionPlan.action === "deload") insight = progressionPlan.reason;
 
   return {
     intro,
@@ -1632,8 +3157,10 @@ else if (!insight && stagnation) insight = stagnation;
     gym: workout.gym,
     exercise: currentExerciseName,
     lastText,
-    plan: progression.reason,
-       target: `${targetWeight} kg × ${goalTargets.targetReps} i ${goalTargets.targetSets} set`,
+    plan: progressionPlan.reason,
+       target: targetWeight
+      ? `${targetWeight} kg · ${progressionPlan.repsText} · ${progressionPlan.rirText}`
+      : `${progressionPlan.repsText} · ${progressionPlan.rirText}`,
     insight,
   };
 }, [
@@ -1641,10 +3168,10 @@ else if (!insight && stagnation) insight = stagnation;
   lastByExercise,
   currentExerciseName,
   adjustedSuggestion.weight,
+  progressionPlan,
   dayForm,
   history,
   removedExercisesForNextPass,
-  goalTargets,
   activeCheckInSignal,
   coachMemory,
 ]);
@@ -1663,6 +3190,8 @@ useEffect(() => {
 function startWorkout() {
   if (!nextPlannedPass || !workoutPlan) return;
   const checkInSignal = buildCheckInSignal(checkInInput);
+  const warmupContext = buildWarmupContext(checkInInput);
+  const conditioningContext = buildConditioningContext(checkInInput);
 
   const startedAt = new Date();
 const w: Workout = {
@@ -1673,23 +3202,46 @@ const w: Workout = {
   displayName: nextPlannedPass?.displayName ?? `Pass ${nextPass}`,
   planTitle: workoutPlan?.title,
   exercises: plan.map((name: string) => ({ name, sets: [] })),
+  warmupContext,
+  conditioningContext,
 };
 
     setWorkout(w);
+    setTodayExercisesByPass((prev) => ({ ...prev, [nextPass]: [] }));
     setExerciseIndex(0);
+    setSkippedExercise(null);
     setStarted(true);
     setChatInput("");
     setDayForm(checkInSignal?.dayForm ?? "normal");
     setActiveCheckInSignal(checkInSignal);
+    setActiveWarmupContext(warmupContext);
+    setActiveConditioningContext(conditioningContext);
     setNow(startedAt);
 const firstExerciseName = plan[0] ?? "";
 
-const startMessages: { role: "coach" | "you"; text: string }[] = [];
+const startMessages: { role: "coach" | "you"; text: string; setNumber?: number }[] = [];
 
 if (checkInSignal) {
   startMessages.push({
     role: "coach",
     text: checkInSignal.coachChatMessage,
+  });
+}
+
+if (warmupContext) {
+  startMessages.push({
+    role: "coach",
+    text: getWarmupCoachReply(warmupContext),
+  });
+}
+
+if (
+  conditioningContext &&
+  !(warmupContext?.status === "cardio" && conditioningContext.intensity === "light")
+) {
+  startMessages.push({
+    role: "coach",
+    text: getConditioningCoachReply(conditioningContext, userProfile?.goalPrimary),
   });
 }
 
@@ -1701,6 +3253,7 @@ setWeightInput(adjustedSuggestion.weight);
 setRepsInput(adjustedSuggestion.reps);
     setCheckInCoachReply("");
     setCheckInInput("");
+    setActiveWarmupContext(null);
     setDidFailInput(false);
   }
 function shouldHoldYouToPlan(opts: {
@@ -1718,22 +3271,250 @@ function shouldHoldYouToPlan(opts: {
 
 function coachPushbackText() {
   return pickOne([
-    "Jag hör dig 😈 Men vi ska inte ge efter direkt.",
-    "Okej… men jag är inte övertygad än. 😏",
-    "Jag fattar. Men vi ska vara smarta, inte fega. 💪",
-    "Noterat. Men vi behöver bevis från set 1. 👀",
+    "Jag hör dig.",
+    "Okej.",
+    "Jag fattar.",
   ]);
 }
 
 function coachDealText() {
   return pickOne([
-    "Deal? Kör set 1 först så tar vi beslut efter. 🤝",
-    "Vi kör ett test-set. Sen justerar vi. Deal? ✅",
-    "Ge mig ett set så kan jag coacha på riktigt. 💬",
+    "Första setet visar nivån.",
+    "Första setet visar nivån.",
+    "Vi låter första setet bestämma.",
   ]);
 }
 
-function sendChat() {
+function getExerciseMentionIndex(message: string, exercises: LoggedExercise[]) {
+  const lower = message.toLowerCase();
+
+  return exercises.findIndex((exercise) => {
+    const key = exerciseKey(exercise.name);
+    return lower.includes(key) || key.includes(exerciseKey(message));
+  });
+}
+
+function extractExerciseNameAfter(message: string, triggers: string[]) {
+  const lower = message.toLowerCase();
+
+  for (const trigger of triggers) {
+    const index = lower.indexOf(trigger);
+    if (index === -1) continue;
+
+    return message
+      .slice(index + trigger.length)
+      .replace(/[.!?]+$/g, "")
+      .trim();
+  }
+
+  return "";
+}
+
+function extractExerciseNameAfterNormalized(message: string, triggers: string[]) {
+  const normalized = normalizeExerciseSearchText(message);
+
+  for (const trigger of triggers) {
+    const normalizedTrigger = normalizeExerciseSearchText(trigger);
+    const index = normalized.indexOf(normalizedTrigger);
+    if (index === -1) continue;
+
+    return normalized
+      .slice(index + normalizedTrigger.length)
+      .replace(/[.!?]+$/g, "")
+      .trim();
+  }
+
+  return "";
+}
+
+type WorkoutChatIntent = {
+  topic:
+    | "pain"
+    | "equipment"
+    | "skip"
+    | "swap"
+    | "addExercise"
+    | "fatigue"
+    | "strong"
+    | "warmup"
+    | "conditioning"
+    | "general";
+  tense: "past" | "present" | "future" | "unknown";
+  targetIndex: number | null;
+  addExerciseName: string;
+  swapFrom: string;
+  swapTo: string;
+};
+
+function normalizeIntentText(text: string) {
+  return text
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function includesAnyIntent(text: string, terms: string[]) {
+  return terms.some((term) => text.includes(term));
+}
+
+function parseWorkoutChatIntent(args: {
+  message: string;
+  workout: Workout | null;
+  exerciseIndex: number;
+  plan: string[];
+}): WorkoutChatIntent {
+  const { message, workout, exerciseIndex, plan } = args;
+  const lower = normalizeIntentText(message);
+  const workoutExercises = workout?.exercises ?? [];
+  const targetIndex = workout
+    ? getExerciseMentionIndex(message, workoutExercises)
+    : null;
+  const resolvedTargetIndex =
+    targetIndex !== null && targetIndex >= 0 ? targetIndex : exerciseIndex;
+
+  const base: WorkoutChatIntent = {
+    topic: "general",
+    tense: "unknown",
+    targetIndex: null,
+    addExerciseName: "",
+    swapFrom: "",
+    swapTo: "",
+  };
+
+  if (
+    includesAnyIntent(lower, [
+      "gjorde ont",
+      "gor ont",
+      "ont",
+      "smarta",
+      "kanning",
+      "kanner av",
+    ])
+  ) {
+    return {
+      ...base,
+      topic: "pain",
+      tense: includesAnyIntent(lower, ["gjorde", "fick", "kande"]) ? "past" : "present",
+      targetIndex: workout ? resolvedTargetIndex : null,
+    };
+  }
+
+  if (
+    includesAnyIntent(lower, [
+      "upptagen",
+      "inte ledig",
+      "trasig",
+      "finns inte",
+      "ingen maskin",
+      "maskinen",
+    ])
+  ) {
+    return {
+      ...base,
+      topic: "equipment",
+      tense: "present",
+      targetIndex: workout ? resolvedTargetIndex : null,
+    };
+  }
+
+  if (
+    includesAnyIntent(lower, ["lagg till", "lagga till", "lagg in", "ta med"])
+  ) {
+    return {
+      ...base,
+      topic: "addExercise",
+      tense: "future",
+      addExerciseName: extractExerciseNameAfterNormalized(message, [
+        "lägg till",
+        "lägg in",
+        "ta med",
+      ]),
+    };
+  }
+
+  const toIdx = lower.indexOf(" till ");
+  if (
+    (lower.startsWith("byt ") || lower.startsWith("byt ut ")) &&
+    toIdx !== -1
+  ) {
+    const fromStart = lower.startsWith("byt ut ") ? 7 : 4;
+    const fromPart = message.slice(fromStart, toIdx).trim();
+    const toPart = message.slice(toIdx + 5).trim();
+    const foundFrom = plan.find(
+      (ex: string) =>
+        exerciseKey(ex).includes(exerciseKey(fromPart)) ||
+        exerciseKey(fromPart).includes(exerciseKey(ex))
+    );
+
+    return {
+      ...base,
+      topic: "swap",
+      tense: "future",
+      swapFrom: foundFrom ?? fromPart,
+      swapTo: toPart,
+    };
+  }
+
+  if (
+    includesAnyIntent(lower, ["byt", "ersatt", "vill inte", "orkar inte", "hatar"])
+  ) {
+    const found = plan.find((ex: string) =>
+      lower.includes(normalizeIntentText(ex))
+    );
+
+    return {
+      ...base,
+      topic: "swap",
+      tense: "future",
+      swapFrom: found ?? "",
+      swapTo: found ? suggestReplacementFor(found) : "",
+    };
+  }
+
+  if (includesAnyIntent(lower, ["hoppa over", "skippa", "ta bort"])) {
+    return {
+      ...base,
+      topic: "skip",
+      tense: "future",
+      targetIndex: workout ? resolvedTargetIndex : null,
+    };
+  }
+
+  if (includesAnyIntent(lower, ["trott", "tung", "sov", "helt slut", "sliten"])) {
+    return { ...base, topic: "fatigue", tense: "present" };
+  }
+
+  if (includesAnyIntent(lower, ["stark", "latt", "bra", "pigga", "enkelt"])) {
+    return { ...base, topic: "strong", tense: "present" };
+  }
+
+  if (buildWarmupContext(message)) {
+    return {
+      ...base,
+      topic: "warmup",
+      tense: includesAnyIntent(lower, ["varmde", "har varmt", "varmt upp"])
+        ? "past"
+        : "unknown",
+    };
+  }
+
+  if (buildConditioningContext(message)) {
+    return {
+      ...base,
+      topic: "conditioning",
+      tense: includesAnyIntent(lower, ["sprang", "cyklade", "rodde", "gjorde"])
+        ? "past"
+        : includesAnyIntent(lower, ["ska", "kommer", "forst", "innan", "fore"])
+        ? "future"
+        : "unknown",
+    };
+  }
+
+  return base;
+}
+
+async function sendChat() {
   const msg = chatInput.trim();
   if (!msg) return;
 
@@ -1741,169 +3522,260 @@ function sendChat() {
   setChatLog((prev) => [...prev, { role: "you", text: msg }]);
   setChatInput("");
 
-  const lower = msg.toLowerCase();
-const hasAnyLoggedSet = workout?.exercises?.some((ex) => ex.sets.length > 0) ?? false;
-// ⭐ Byte av övning via chat (enkel version)
-const wantsSwap =
-  lower.includes("byt") ||
-  lower.includes("ersätt") ||
-  lower.includes("vill inte") ||
-  lower.includes("orkar inte") ||
-  lower.includes("hatar");
+  const reply = (text: string) => {
+    setChatLog((prev) => {
+      const last = prev[prev.length - 1];
+      if (last?.role === "coach" && last.text === text) return prev;
+      return [...prev, { role: "coach", text }];
+    });
+  };
 
-if (wantsSwap) {
-  // ⭐ Direktkommando: "byt X till Y"
-const toIdx = lower.indexOf(" till ");
-if ((lower.startsWith("byt ") || lower.startsWith("byt ut ")) && toIdx !== -1) {
-  const fromStart = lower.startsWith("byt ut ") ? 7 : 4; // "byt ut " = 7, "byt " = 4
-  const fromPart = msg.slice(fromStart, toIdx).trim();
-  const toPart = msg.slice(toIdx + 5).trim();  // efter " till "
-
-  // hitta match i plan (fuzzy: innehåller)
-const foundFrom = plan.find(
-  (ex: string) =>
-    exerciseKey(ex).includes(exerciseKey(fromPart)) ||
-    exerciseKey(fromPart).includes(exerciseKey(ex))
-);
-
-  if (foundFrom && toPart) {
-    setExerciseOverride(nextPass, foundFrom, toPart);
-
-    setChatLog((prev) => [
-      ...prev,
-      {
-        role: "coach",
-        text: `Klart. Jag byter ${foundFrom} → ${toPart} i Pass ${nextPass}. ✅`,
-      },
+  const routedIntent = parseWorkoutChatIntent({
+    message: msg,
+    workout,
+    exerciseIndex,
+    plan,
+  });
+  const routedWarmupContext = buildWarmupContext(msg);
+  const routedConditioningContext = buildConditioningContext(msg);
+  const routedHasAnyLoggedSet =
+    workout?.exercises?.some((ex) => ex.sets.length > 0) ?? false;
+  const confirmsPendingSwap =
+    workout &&
+    swapFrom &&
+    swapToInput &&
+    includesAnyIntent(normalizeIntentText(msg), [
+      "ja",
+      "bekrafta",
+      "byt",
+      "kor",
+      "ok",
+      "okej",
+      "stammer",
     ]);
+
+  if (confirmsPendingSwap) {
+    replaceExerciseInCurrentWorkout(swapFrom, swapToInput);
     return;
   }
-}
 
-  // försök hitta vilken övning i dagens plan som nämns
- const found = plan.find((ex: string) => lower.includes(exerciseKey(ex)));
+  if (workout && isProgressionQuestion(msg)) {
+    reply(
+      buildProgressionCoachExplanation({
+        plan: progressionPlan,
+        exerciseName: currentExerciseName,
+      })
+    );
+    return;
+  }
 
-  if (found) {
-    const suggestion = suggestReplacementFor(found);
+  if (routedIntent.topic === "pain") {
+    const nextWarmupContext = routedWarmupContext ?? activeWarmupContext;
+    const painExerciseName =
+      workout && routedIntent.targetIndex !== null
+        ? workout.exercises[routedIntent.targetIndex]?.name ?? currentExerciseName
+        : currentExerciseName;
 
-    // öppna swap-panelen + föreslå text
-    setSwapFrom(found);
+    if (routedWarmupContext) {
+      setActiveWarmupContext(routedWarmupContext);
+      setWorkout((current) =>
+        current ? { ...current, warmupContext: routedWarmupContext } : current
+      );
+    }
+
+    if (workout) {
+      savePainCoachMemory(painExerciseName, msg);
+    }
+
+    reply(
+      workout
+        ? getPainCoachActionText(nextWarmupContext)
+        : getPainCoachReply(nextWarmupContext)
+    );
+    return;
+  }
+
+  if (routedIntent.topic === "equipment") {
+    if (!workout || routedIntent.targetIndex === null) {
+      reply("Okej. Vilken övning gäller det?");
+      return;
+    }
+
+    const targetExercise = workout.exercises[routedIntent.targetIndex];
+    const suggestion = suggestReplacementFor(targetExercise.name);
+    setSwapFrom(targetExercise.name);
     setSwapToInput(suggestion);
-
-    setChatLog((prev) => [
-      ...prev,
-      {
-        role: "coach",
-        text: `Okej. Jag byter ut ${found}. Skriv vad du vill köra istället (förslag: "${suggestion}").`,
-      },
-    ]);
+    reply(
+      `${targetExercise.name} verkar inte gå just nu. Jag har ett förslag: ${suggestion}. Bekräfta om du vill byta.`
+    );
     return;
   }
 
-  setChatLog((prev) => [
-    ...prev,
-    {
-      role: "coach",
-      text: "Okej — vilken övning vill du byta ut? Skriv namnet så fixar jag det.",
-    },
-  ]);
-  return;
-}
+  if (routedIntent.topic === "addExercise") {
+    if (workout && routedIntent.addExerciseName) {
+      addExerciseToCurrentWorkout(routedIntent.addExerciseName);
+      return;
+    }
 
-
- // Enkel coach-logik (med pushback 😈)
-if (
-  lower.includes("tung") ||
-  lower.includes("trött") ||
-  lower.includes("sov")
-) {
-  // GUARD: om inget set är loggat än → coachen kräver bevis först
-  if (!hasAnyLoggedSet) {
-    setChatLog((prev) => [
-      ...prev,
-      {
-        role: "coach",
-        text: `${coachPushbackText()} ${coachDealText()}`,
-      },
-    ]);
+    reply("Vilken övning vill du lägga till?");
     return;
   }
 
-  const last = lastByExercise[exerciseKey(currentExerciseName)];
+  if (routedIntent.topic === "swap") {
+    if (routedIntent.swapFrom && routedIntent.swapTo) {
+      setSwapFrom(routedIntent.swapFrom);
+      setSwapToInput(routedIntent.swapTo);
+      reply(
+        `Jag kan byta ${routedIntent.swapFrom} mot ${routedIntent.swapTo}. Bekräfta om du vill göra bytet.`
+      );
+      return;
+    }
+
+    reply("Vilken övning vill du byta ut?");
+    return;
+  }
+
+  if (routedIntent.topic === "skip") {
+    if (workout && routedIntent.targetIndex !== null) {
+      const targetExercise = workout.exercises[routedIntent.targetIndex];
+      reply(
+        `${targetExercise.name} kan vi lämna idag. Tryck Hoppa över om du vill göra det.`
+      );
+      return;
+    }
+
+    reply("Vilken övning vill du hoppa över?");
+    return;
+  }
+
+  if (routedConditioningContext) {
+    setActiveConditioningContext(routedConditioningContext);
+    setWorkout((current) =>
+      current
+        ? { ...current, conditioningContext: routedConditioningContext }
+        : current
+    );
+    reply(
+      getConditioningCoachReply(
+        routedConditioningContext,
+        userProfile?.goalPrimary
+      )
+    );
+    return;
+  }
+
+  if (routedWarmupContext) {
+    setActiveWarmupContext(routedWarmupContext);
+    setWorkout((current) =>
+      current ? { ...current, warmupContext: routedWarmupContext } : current
+    );
+    reply(getWarmupCoachReply(routedWarmupContext));
+    return;
+  }
+
+  if (routedIntent.topic === "fatigue") {
+    if (!routedHasAnyLoggedSet) {
+      setDayForm("trött");
+      setWeightInput((prev) =>
+        prev.trim() === "" ? adjustedSuggestion.weight : prev
+      );
+      reply("Jag hör dig. Vi öppnar lite lägre idag.");
+      return;
+    }
+
+    const last = lastByExercise[exerciseKey(currentExerciseName)];
     const lastHadTargets = didHitTargets(last, goalTargets.targetReps);
+    const hold = shouldHoldYouToPlan({ dayForm, lastHadTargets });
 
-  const hold = shouldHoldYouToPlan({
-    dayForm,
-    lastHadTargets,
+    if (hold) {
+      setDayForm("normal");
+      reply(
+        "Jag hör dig. Du klarade målet sist, så vi testar planerad vikt först."
+      );
+      return;
+    }
+
+    setDayForm("trött");
+    setWeightInput((prev) =>
+      prev.trim() === "" ? adjustedSuggestion.weight : prev
+    );
+    reply("Okej. Vi går in lite lägre och håller tekniken ren.");
+    return;
+  }
+
+  if (routedIntent.topic === "strong") {
+    setDayForm("stark");
+    reply(
+      routedHasAnyLoggedSet
+        ? "Bra. Då kan vi vara lite mer offensiva idag."
+        : "Bra. Första setet visar om vi ska höja."
+    );
+    return;
+  }
+
+  const lastCoachMessage =
+    [...chatLog].reverse().find((message) => message.role === "coach")?.text || "";
+  const currentWorkoutExercise = workout?.exercises?.[exerciseIndex];
+  const chatReply = await requestAiCoachChatReply({
+    context: {
+      kind: "workout_chat",
+      userName: profileName,
+      userMessage: msg,
+      goalPrimary: userProfile?.goalPrimary ?? "styrka",
+      passLabel: currentPassLabel,
+      dayForm,
+      currentExerciseName,
+      currentExerciseCategory: currentExerciseName
+        ? getExerciseProfile(currentExerciseName).category
+        : undefined,
+      exerciseIndex: workout ? exerciseIndex + 1 : undefined,
+      exerciseCount: workout?.exercises.length,
+      currentSets: currentWorkoutExercise?.sets.map((set) => ({
+        weight: set.weight,
+        reps: set.reps,
+        rir: set.rir,
+        failNote: set.failNote,
+      })),
+      activePlan,
+      warmupNote: activeWarmupContext?.note,
+      conditioningNote: activeConditioningContext?.note,
+      previousCoachReply: lastCoachMessage,
+    },
+    fallbackReply: "Jag har det med mig. Säg till om du vill att vi justerar något.",
   });
 
-  if (hold) {
-    setDayForm("normal");
-    setChatLog((prev) => [
-      ...prev,
-      {
-        role: "coach",
-        text:
-          `${coachPushbackText()} ` +
-          "Men du klarade målet sist – vi testar samma vikt i set 1. " +
-          "Känns det tungt efter set 1 så sänker vi 2.5 kg. Deal? 🤝",
-      },
-    ]);
-    return;
-  }
-
-  // annars: acceptera att det känns tungt → sänk förslag
-  setDayForm("trött");
-  setWeightInput((prev) => (prev.trim() === "" ? adjustedSuggestion.weight : prev));
-  setChatLog((prev) => [
-    ...prev,
-    {
-      role: "coach",
-      text: "Okej. Vi kör smart idag. Jag sänker förslaget 2.5 kg ✅",
-    },
-  ]);
+  reply(chatReply.text);
   return;
-}
-if (
-    lower.includes("stark") ||
-    lower.includes("lätt") ||
-    lower.includes("bra")
-  ) {
-    if (!hasAnyLoggedSet) {
-  setChatLog((prev) => [
-    ...prev,
-    {
-      role: "coach",
-      text:
-        "Härligt. Kör ett första set och logga det så kan jag säga exakt om vi ska höja vikten. 🔥",
-    },
-  ]);
-  return;
-}
-    setDayForm("stark");
-    setChatLog((prev) => [
-      ...prev,
-      {
-        role: "coach",
-        text: "Härligt! Vi trycker på lite idag. Jag höjer vikten 2.5 kg ✅",
-      },
-    ]);
-    return;
-  }
-
-  setDayForm("normal");
-  setChatLog((prev) => [
-    ...prev,
-    {
-      role: "coach",
-      text: "Fattar. Vi kör normal plan idag ✅",
-    },
-  ]);
 }
 
 function addCustomExercise(pass: PassType, nameRaw: string) {
-  const name = nameRaw.trim();
-  if (!name) return;
+  const resolved = resolveExerciseName(nameRaw);
+  if (resolved.status === "empty") return;
+
+  if (resolved.status === "suggest") {
+    setCustomExerciseInput(resolved.suggestion);
+    setCheckInCoachReply(
+      `Menar du ${resolved.suggestion}? Jag har fyllt i det namnet. Tryck igen om det stämmer.`
+    );
+    return;
+  }
+
+  if (resolved.status === "needsCategory") {
+    setCustomExerciseInput(`egen ben: ${resolved.name}`);
+    setCheckInCoachReply(
+      "Vad tränar den främst? Skriv till exempel egen ben:, egen rygg: eller egen armar:. Jag fyllde i ben som exempel."
+    );
+    return;
+  }
+
+  if (resolved.status === "unknown") {
+    setCheckInCoachReply(
+      "Jag är osäker på vilken övning du menar. Skriv gärna det vanligaste namnet, eller börja med egen: om du vill lägga in den exakt så."
+    );
+    return;
+  }
+
+  const name = resolved.name;
 
   setCustomExercisesByPass((prev) => {
     const next: CustomExercisesByPass = {
@@ -1917,6 +3789,287 @@ function addCustomExercise(pass: PassType, nameRaw: string) {
     saveJSON("customExercisesByPass", next);
     return next;
   });
+}
+
+function addTodayExercise(pass: PassType, nameRaw: string) {
+  const resolved = resolveExerciseName(nameRaw);
+  if (resolved.status === "empty") return;
+
+  if (resolved.status === "suggest") {
+    setCustomExerciseInput(resolved.suggestion);
+    setCheckInCoachReply(
+      `Menar du ${resolved.suggestion}? Jag har fyllt i det namnet. Tryck igen om det stämmer.`
+    );
+    return;
+  }
+
+  if (resolved.status === "needsCategory") {
+    setCustomExerciseInput(`egen ben: ${resolved.name}`);
+    setCheckInCoachReply(
+      "Vad tränar den främst? Skriv till exempel egen ben:, egen rygg: eller egen armar:. Jag fyllde i ben som exempel."
+    );
+    return;
+  }
+
+  if (resolved.status === "unknown") {
+    setCheckInCoachReply(
+      "Jag är osäker på vilken övning du menar. Skriv gärna det vanligaste namnet, eller börja med egen: om du vill lägga in den exakt så."
+    );
+    return;
+  }
+
+  const name = resolved.name;
+
+  setTodayExercisesByPass((prev) => {
+    const next: CustomExercisesByPass = {
+      ...prev,
+      [pass]: mergePlan(prev[pass] ?? [], [name]),
+    };
+
+    return next;
+  });
+}
+
+function removeTodayExercise(pass: PassType, nameToRemove: string) {
+  setTodayExercisesByPass((prev) => ({
+    ...prev,
+    [pass]: (prev[pass] ?? []).filter(
+      (name) => exerciseKey(name) !== exerciseKey(nameToRemove)
+    ),
+  }));
+}
+
+function addExerciseToCurrentWorkout(nameRaw: string) {
+  if (!workout) return;
+
+  const resolved = resolveExerciseName(nameRaw);
+  if (resolved.status === "empty") return;
+
+  if (resolved.status === "suggest") {
+    setWorkoutExerciseInput(resolved.suggestion);
+    setChatLog((prev) => [
+      ...prev,
+      {
+        role: "coach",
+        text: `Menar du ${resolved.suggestion}? Jag har fyllt i det namnet. Tryck plus igen om det stämmer.`,
+      },
+    ]);
+    return;
+  }
+
+  if (resolved.status === "needsCategory") {
+    setWorkoutExerciseInput(`egen ben: ${resolved.name}`);
+    setChatLog((prev) => [
+      ...prev,
+      {
+        role: "coach",
+        text: "Vad tränar den främst? Skriv till exempel egen ben:, egen rygg: eller egen armar:. Jag fyllde i ben som exempel.",
+      },
+    ]);
+    return;
+  }
+
+  if (resolved.status === "unknown") {
+    setChatLog((prev) => [
+      ...prev,
+      {
+        role: "coach",
+        text: "Jag är osäker på vilken övning du menar. Skriv gärna det vanligaste namnet, eller börja med egen: om du vill lägga in den exakt så.",
+      },
+    ]);
+    return;
+  }
+
+  const name = resolved.name;
+
+  const key = exerciseKey(name);
+  const alreadyInWorkout = workout.exercises.some(
+    (exercise) => exerciseKey(exercise.name) === key
+  );
+
+  if (alreadyInWorkout) {
+    setChatLog((prev) => [
+      ...prev,
+      {
+        role: "coach",
+        text: `${name} ligger redan i passet.`,
+      },
+    ]);
+    setWorkoutExerciseInput("");
+    return;
+  }
+
+  setWorkout({
+    ...workout,
+    exercises: [...workout.exercises, { name, sets: [] }],
+  });
+  setWorkoutExerciseInput("");
+  setChatLog((prev) => [
+    ...prev,
+    {
+      role: "coach",
+      text: `Bra, vi lägger till ${name}.`,
+    },
+  ]);
+}
+
+function replaceExerciseInCurrentWorkout(fromName: string, toNameRaw: string) {
+  if (!workout) return;
+
+  const resolved = resolveExerciseName(toNameRaw);
+  if (resolved.status !== "known") {
+    addExerciseToCurrentWorkout(toNameRaw);
+    return;
+  }
+
+  const fromKey = exerciseKey(fromName);
+  const replacementName = resolved.name;
+  const alreadyInWorkout = workout.exercises.some(
+    (exercise) => exerciseKey(exercise.name) === exerciseKey(replacementName)
+  );
+
+  if (alreadyInWorkout) {
+    setChatLog((prev) => [
+      ...prev,
+      {
+        role: "coach",
+        text: `${replacementName} ligger redan i dagens pass.`,
+      },
+    ]);
+    return;
+  }
+
+  setWorkout({
+    ...workout,
+    exercises: workout.exercises.map((exercise) =>
+      exerciseKey(exercise.name) === fromKey
+        ? { ...exercise, name: replacementName }
+        : exercise
+    ),
+  });
+  setSwapFrom(null);
+  setSwapToInput("");
+  setChatLog((prev) => [
+    ...prev,
+    {
+      role: "coach",
+      text: `Bra, vi kör ${replacementName} i dagens pass.`,
+    },
+  ]);
+}
+
+function addExerciseDuringWorkout() {
+  addExerciseToCurrentWorkout(workoutExerciseInput);
+}
+
+function resetWorkoutInputs() {
+  setWeightInput("");
+  setRepsInput("");
+  setFailNoteInput("");
+  setRirInput(2);
+  setDidFailInput(false);
+}
+
+function skipExerciseAtIndex(targetIndex: number, coachText?: string | null) {
+  if (!workout) return;
+
+  const exercise = workout.exercises[targetIndex];
+  if (!exercise) return;
+
+  if (exercise.sets.length > 0) {
+    setChatLog((prev) => [
+      ...prev,
+      {
+        role: "coach",
+        text: "Du har redan loggat set här. Vi lämnar den kvar.",
+      },
+    ]);
+    return;
+  }
+
+  if (workout.exercises.length <= 1) {
+    setChatLog((prev) => [
+      ...prev,
+      {
+        role: "coach",
+        text: "Det här är sista övningen. Lägg till en ersättning först.",
+      },
+    ]);
+    return;
+  }
+
+  const nextExercises = workout.exercises.filter((_, index) => index !== targetIndex);
+  const nextIndex =
+    targetIndex < exerciseIndex
+      ? Math.max(0, exerciseIndex - 1)
+      : targetIndex === exerciseIndex
+      ? targetIndex
+      : exerciseIndex;
+
+  setWorkout({
+    ...workout,
+    exercises: nextExercises,
+  });
+  setSkippedExercise({
+    exercise,
+    index: targetIndex,
+  });
+  setExerciseIndex(Math.min(nextIndex, nextExercises.length - 1));
+  resetWorkoutInputs();
+  if (coachText !== null) {
+    setChatLog((prev) => [
+      ...prev,
+      {
+        role: "coach",
+        text: coachText ?? `Okej, vi hoppar över ${exercise.name}.`,
+      },
+    ]);
+  }
+}
+
+function skipCurrentExercise() {
+  skipExerciseAtIndex(exerciseIndex);
+}
+
+function undoSkipExercise() {
+  if (!workout || !skippedExercise) return;
+
+  const insertIndex = Math.min(skippedExercise.index, workout.exercises.length);
+  const nextExercises = [...workout.exercises];
+  nextExercises.splice(insertIndex, 0, skippedExercise.exercise);
+
+  setWorkout({
+    ...workout,
+    exercises: nextExercises,
+  });
+  setExerciseIndex(insertIndex);
+  resetWorkoutInputs();
+  setChatLog((prev) => [
+    ...prev,
+    {
+      role: "coach",
+      text: `${skippedExercise.exercise.name} är tillbaka.`,
+    },
+  ]);
+  setSkippedExercise(null);
+}
+
+function savePainCoachMemory(exerciseName: string, note: string) {
+  if (!workout) return;
+
+  const painNote: CoachNote = {
+    createdAt: new Date().toISOString(),
+    pass: workout.pass,
+    gym: workout.gym,
+    exerciseName,
+    text: `${exerciseName}: användaren kände smärta/känning. ${note}`,
+  };
+  const nextMemory: CoachMemory = {
+    notes: [painNote, ...coachMemory.notes].slice(0, 50),
+  };
+
+  setCoachMemory(nextMemory);
+  saveJSON("coachMemory", nextMemory);
 }
 
 
@@ -2013,11 +4166,18 @@ function suggestReplacementFor(exName: string): string {
 
   if (key.includes("marklyft")) return "Hip thrust";
   if (key.includes("knäböj")) return "Benpress";
+  if (key.includes("knöböj")) return "Benpress";
   if (key.includes("bänkpress")) return "Hantelpress";
   if (key.includes("militärpress")) return "Hantelpress (axlar)";
   if (key.includes("latsdrag")) return "Chins (assisterade)";
+  if (key.includes("benspark")) return "Goblet squat";
+  if (key.includes("vadpress")) return "Tåhävningar med hantlar";
+  if (key.includes("sidolyft")) return "Kabellyft åt sidan";
+  if (key.includes("rodd")) return "Sittande kabelrodd";
+  if (key.includes("curl")) return "Hantelcurl";
+  if (key.includes("triceps")) return "Triceps pushdown med rep";
 
-  return "Valfri maskin-variant";
+  return "närmsta liknande övning";
 }
 
 
@@ -2038,12 +4198,888 @@ function clearExerciseOverride(pass: PassType, fromName: string) {
   });
 }
 
+function removeExercisesFromProgram(
+  matcher: (exerciseName: string) => boolean,
+  replacementForPass?: (pass: WorkoutPass, removed: string[]) => string | null
+) {
+  if (!workoutPlan) return [];
+
+  const removedByPass = workoutPlan.passes
+    .map((pass) => ({
+      pass,
+      removed: pass.exercises
+        .map((exercise) => exercise.name)
+        .filter((name) => matcher(name)),
+    }))
+    .filter((entry) => entry.removed.length > 0);
+
+  if (removedByPass.length === 0) return [];
+
+  setRemovedExercisesByPass((prev) => {
+    const next: RemovedExercisesByPass = { ...prev };
+
+    for (const { pass, removed } of removedByPass) {
+      const current = next[pass.key] ?? [];
+      next[pass.key] = mergePlan(current, removed);
+    }
+
+    saveJSON("removedExercisesByPass", next);
+    return next;
+  });
+
+  setCustomExercisesByPass((prev) => {
+    const next: CustomExercisesByPass = { ...prev };
+
+    for (const { pass, removed } of removedByPass) {
+      const replacement = replacementForPass?.(pass, removed);
+      if (!replacement) continue;
+
+      next[pass.key] = mergePlan(next[pass.key] ?? [], [replacement]);
+    }
+
+    saveJSON("customExercisesByPass", next);
+    return next;
+  });
+
+  return removedByPass;
+}
+
+function addProgramFocusExercise(matchPass: (pass: WorkoutPass) => boolean, exercise: string) {
+  if (!workoutPlan) return 0;
+
+  const resolved = resolveExerciseName(exercise);
+  const exerciseName = resolved.status === "known" ? resolved.name : exercise;
+  const targetPasses = workoutPlan.passes.filter(matchPass);
+  if (targetPasses.length === 0) return 0;
+
+  setCustomExercisesByPass((prev) => {
+    const next: CustomExercisesByPass = { ...prev };
+
+    for (const pass of targetPasses) {
+      next[pass.key] = mergePlan(next[pass.key] ?? [], [exerciseName]);
+    }
+
+    saveJSON("customExercisesByPass", next);
+    return next;
+  });
+
+  return targetPasses.length;
+}
+
+function shortenProgramPasses() {
+  if (!workoutPlan) return 0;
+
+  const removedByPass = workoutPlan.passes
+    .map((pass) => {
+      if (pass.exercises.length <= 4) return null;
+
+      const accessory = [...pass.exercises]
+        .reverse()
+        .find((exercise) => {
+          const key = exerciseKey(exercise.name);
+          return (
+            key.includes("curl") ||
+            key.includes("triceps") ||
+            key.includes("crunch") ||
+            key.includes("cable cross") ||
+            key.includes("sidolyft")
+          );
+        });
+
+      return accessory ? { pass, removed: accessory.name } : null;
+    })
+    .filter((entry): entry is { pass: WorkoutPass; removed: string } =>
+      Boolean(entry)
+    );
+
+  if (removedByPass.length === 0) return 0;
+
+  setRemovedExercisesByPass((prev) => {
+    const next: RemovedExercisesByPass = { ...prev };
+
+    for (const { pass, removed } of removedByPass) {
+      next[pass.key] = mergePlan(next[pass.key] ?? [], [removed]);
+    }
+
+    saveJSON("removedExercisesByPass", next);
+    return next;
+  });
+
+  return removedByPass.length;
+}
+
+function normalizeProgramExerciseName(rawName: string) {
+  const resolved = resolveExerciseName(rawName);
+
+  if (resolved.status === "known") return resolved.name;
+  if (resolved.status === "suggest") return resolved.suggestion;
+  if (resolved.status === "needsCategory") return resolved.name;
+  if (resolved.status === "unknown") return resolved.name;
+
+  return "";
+}
+
+function getProgramPassesWithExercise(exerciseName: string) {
+  if (!workoutPlan) return [];
+
+  const exerciseNameKey = exerciseKey(exerciseName);
+  return workoutPlan.passes.filter((pass) =>
+    pass.exercises.some((exercise) => exerciseKey(exercise.name) === exerciseNameKey)
+  );
+}
+
+function parseProgramSwap(preference: string) {
+  const normalized = normalizeExerciseSearchText(preference);
+  const swapMatch = normalized.match(
+    /(?:byt|byta ut|ersatt|ersatta|ersätt|ersätta)\s+(.+?)\s+(?:mot|till|med)\s+(.+)/
+  );
+  const preferMatch = normalized.match(/hellre\s+(.+?)\s+(?:an|än)\s+(.+)/);
+  const match = swapMatch
+    ? { fromRaw: swapMatch[1], toRaw: swapMatch[2] }
+    : preferMatch
+    ? { fromRaw: preferMatch[2], toRaw: preferMatch[1] }
+    : null;
+
+  if (!match) return null;
+
+  const clean = (value: string) =>
+    value
+      .split(/\b(?:tack|snälla|snalla|istallet|istället|i stallet|i stället)\b/i)[0]
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const fromName = normalizeProgramExerciseName(clean(match.fromRaw));
+  const toName = normalizeProgramExerciseName(clean(match.toRaw));
+
+  if (!fromName || !toName) return null;
+
+  return { fromName, toName };
+}
+
+function swapProgramExercise(fromName: string, toName: string) {
+  const matchingPasses = getProgramPassesWithExercise(fromName);
+
+  for (const pass of matchingPasses) {
+    setExerciseOverride(pass.key, fromName, toName);
+  }
+
+  return matchingPasses.length;
+}
+
+function resolveProgramSuggestionPass(
+  action: CoachProgramSuggestionAction
+): PassType | null {
+  if (!workoutPlan) return null;
+
+  if ("passKey" in action && action.passKey) {
+    const exists = workoutPlan.passes.some((pass) => pass.key === action.passKey);
+    if (exists) return action.passKey;
+  }
+
+  if ("passName" in action && action.passName) {
+    const requested = normalizeExerciseSearchText(action.passName);
+    const matchingPass = workoutPlan.passes.find((pass) => {
+      const displayName = normalizeExerciseSearchText(pass.displayName);
+      return displayName.includes(requested) || requested.includes(displayName);
+    });
+
+    if (matchingPass) return matchingPass.key;
+  }
+
+  const exerciseName =
+    action.type === "add_exercise" ? action.exerciseName : "";
+  const category = exerciseName
+    ? normalizeExerciseSearchText(getExerciseProfile(exerciseName).category)
+    : "";
+
+  const categoryMatch = workoutPlan.passes.find((pass) => {
+    const displayName = normalizeExerciseSearchText(pass.displayName);
+    if (category === "ben") {
+      return displayName.includes("underkropp") || displayName.includes("ben");
+    }
+    if (category === "brost" || category === "rygg" || category === "axlar" || category === "armar") {
+      return displayName.includes("overkropp") || displayName.includes("helkropp");
+    }
+    return displayName.includes("helkropp");
+  });
+
+  if (categoryMatch) return categoryMatch.key;
+
+  return [...workoutPlan.passes].sort(
+    (a, b) => a.exercises.length - b.exercises.length
+  )[0]?.key ?? null;
+}
+
+function applyPendingProgramSuggestion() {
+  if (!pendingProgramSuggestion || !workoutPlan) return;
+
+  const nextCustom: CustomExercisesByPass = {
+    ...customExercisesByPass,
+    A: [...(customExercisesByPass.A ?? [])],
+    B: [...(customExercisesByPass.B ?? [])],
+    C: [...(customExercisesByPass.C ?? [])],
+    D: [...(customExercisesByPass.D ?? [])],
+  };
+  const nextRemoved: RemovedExercisesByPass = {
+    ...removedExercisesByPass,
+    A: [...(removedExercisesByPass.A ?? [])],
+    B: [...(removedExercisesByPass.B ?? [])],
+    C: [...(removedExercisesByPass.C ?? [])],
+    D: [...(removedExercisesByPass.D ?? [])],
+  };
+  const nextOverrides: ExerciseOverridesByPass = {
+    ...exerciseOverridesByPass,
+    A: { ...(exerciseOverridesByPass.A ?? {}) },
+    B: { ...(exerciseOverridesByPass.B ?? {}) },
+    C: { ...(exerciseOverridesByPass.C ?? {}) },
+    D: { ...(exerciseOverridesByPass.D ?? {}) },
+  };
+  const nextNames: PassDisplayNamesByPass = { ...passDisplayNamesByPass };
+  let changedCount = 0;
+
+  for (const action of pendingProgramSuggestion.actions) {
+    if (action.type === "add_exercise") {
+      const passKey = resolveProgramSuggestionPass(action);
+      const exerciseName = normalizeProgramExerciseName(action.exerciseName);
+      if (!passKey || !exerciseName) continue;
+
+      nextCustom[passKey] = mergePlan(nextCustom[passKey] ?? [], [exerciseName]);
+      changedCount += 1;
+      continue;
+    }
+
+    if (action.type === "remove_exercise") {
+      const nameToRemove = normalizeProgramExerciseName(action.exerciseName);
+      const keyToRemove = exerciseKey(nameToRemove);
+      if (!nameToRemove) continue;
+
+      for (const pass of workoutPlan.passes) {
+        const hasExercise = pass.exercises.some(
+          (exercise) => exerciseKey(exercise.name) === keyToRemove
+        );
+        if (!hasExercise) continue;
+
+        nextRemoved[pass.key] = mergePlan(nextRemoved[pass.key] ?? [], [nameToRemove]);
+        nextCustom[pass.key] = (nextCustom[pass.key] ?? []).filter(
+          (name) => exerciseKey(name) !== keyToRemove
+        );
+        changedCount += 1;
+      }
+      continue;
+    }
+
+    if (action.type === "replace_exercise") {
+      const fromName = normalizeProgramExerciseName(action.fromExerciseName);
+      const toName = normalizeProgramExerciseName(action.toExerciseName);
+      const fromKey = exerciseKey(fromName);
+      if (!fromName || !toName) continue;
+
+      for (const pass of workoutPlan.passes) {
+        const hasExercise = pass.exercises.some(
+          (exercise) => exerciseKey(exercise.name) === fromKey
+        );
+        if (!hasExercise) continue;
+
+        nextOverrides[pass.key] = {
+          ...(nextOverrides[pass.key] ?? {}),
+          [fromKey]: toName,
+        };
+        changedCount += 1;
+      }
+      continue;
+    }
+
+    if (action.type === "rename_pass") {
+      nextNames[action.passKey] = action.displayName.trim();
+      changedCount += 1;
+    }
+  }
+
+  setCustomExercisesByPass(nextCustom);
+  setRemovedExercisesByPass(nextRemoved);
+  setExerciseOverridesByPass(nextOverrides);
+  setPassDisplayNamesByPass(nextNames);
+  saveJSON("customExercisesByPass", nextCustom);
+  saveJSON("removedExercisesByPass", nextRemoved);
+  saveJSON("exerciseOverridesByPass", nextOverrides);
+  saveJSON("passDisplayNamesByPass", nextNames);
+
+  setPendingProgramSuggestion(null);
+  setProgramPreferenceReply(
+    changedCount > 0
+      ? "Klart. Jag har lagt in ändringen i upplägget."
+      : "Jag kunde inte lägga in det automatiskt. Skriv gärna lite mer exakt vad du vill ändra."
+  );
+}
+
+async function applyProgramPreference(preferenceRaw: string) {
+  const preference = preferenceRaw.trim();
+  const lower = preference.toLowerCase();
+
+  if (!preference || !workoutPlan) return "";
+  setPendingProgramSuggestion(null);
+
+  if (
+    userProfile &&
+    (/\b(dag|pass)\s*[1-4a-d]\s*:?\s*/i.test(preference) ||
+      lower.includes("eget upplägg") ||
+      lower.includes("eget schema"))
+  ) {
+    const manualPlan = parseManualWorkoutPlan(preference, userProfile);
+
+    if (!manualPlan) {
+      return 'Jag ser att du vill lägga in ett eget upplägg. Skriv gärna så här: "Dag 1: bänkpress, hantelpress. Dag 2: latsdrag, rodd."';
+    }
+
+    setCustomWorkoutPlan(manualPlan);
+    saveJSON("customWorkoutPlan", manualPlan);
+    setRemovedExercisesByPass({ A: [], B: [], C: [], D: [] });
+    setExerciseOverridesByPass({ A: {}, B: {}, C: {}, D: {} });
+    setCustomExercisesByPass({ A: [], B: [], C: [], D: [] });
+    saveJSON("removedExercisesByPass", { A: [], B: [], C: [], D: [] });
+    saveJSON("exerciseOverridesByPass", { A: {}, B: {}, C: {}, D: {} });
+    saveJSON("customExercisesByPass", { A: [], B: [], C: [], D: [] });
+
+    const exerciseCount = manualPlan.passes.reduce(
+      (sum, pass) => sum + pass.exercises.length,
+      0
+    );
+
+    return `Absolut. Jag har lagt in ditt eget upplägg: ${manualPlan.passes.length} pass och ${exerciseCount} övningar. Jag håller koll på progressionen ovanpå det.`;
+  }
+
+  const wantsMore =
+    lower.includes("mer") ||
+    lower.includes("extra") ||
+    lower.includes("fokus");
+  const wantsLessOrAvoid =
+    lower.includes("inte") ||
+    lower.includes("undvik") ||
+    lower.includes("hatar") ||
+    lower.includes("gillar inte") ||
+    lower.includes("tycker inte om") ||
+    lower.includes("vill inte köra") ||
+    lower.includes("ta bort") ||
+    lower.includes("skippa");
+  const wantsAddExercise =
+    lower.includes("lägg till") ||
+    lower.includes("lägga till") ||
+    lower.includes("ta med") ||
+    lower.includes("vill ha");
+  const asksAboutSafetyOrFit =
+    lower.includes("?") ||
+    lower.includes("är detta bra") ||
+    lower.includes("ar detta bra") ||
+    lower.includes("orolig") ||
+    lower.includes("rädd") ||
+    lower.includes("radd") ||
+    lower.includes("resultat") ||
+    lower.includes("funkar") ||
+    lower.includes("kommer funka") ||
+    lower.includes("hjälpa") ||
+    lower.includes("hjalpa") ||
+    lower.includes("farligt") ||
+    lower.includes("säker") ||
+    lower.includes("saker") ||
+    lower.includes("ont") ||
+    lower.includes("smärta") ||
+    lower.includes("smarta") ||
+    lower.includes("känns fel") ||
+    lower.includes("kanns fel") ||
+    lower.includes("obehag") ||
+    lower.includes("70 år") ||
+    lower.includes("70 ar") ||
+    lower.includes("äldre") ||
+    lower.includes("aldre") ||
+    lower.includes("smalare") ||
+    lower.includes("gå ner") ||
+    lower.includes("ga ner") ||
+    lower.includes("fett") ||
+    lower.includes("viktnedgång") ||
+    lower.includes("viktnedgang");
+
+  const swapRequest = parseProgramSwap(preference);
+  if (swapRequest) {
+    const changedCount = swapProgramExercise(swapRequest.fromName, swapRequest.toName);
+
+    return changedCount > 0
+      ? `Klart. Jag byter ${swapRequest.fromName} mot ${swapRequest.toName}.`
+      : `Jag hittar inte ${swapRequest.fromName} i upplägget. Skriv gärna vilken övning du vill byta bort.`;
+  }
+
+  if (
+    lower.includes("tränar hemma") ||
+    lower.includes("tranar hemma") ||
+    lower.includes("hemma") ||
+    lower.includes("bara hantlar") ||
+    lower.includes("har hantlar") ||
+    lower.includes("inga maskiner") ||
+    lower.includes("ingen maskin") ||
+    lower.includes("saknar kabel") ||
+    lower.includes("utan kabel")
+  ) {
+    return 'Bra att du säger det. Utrustningen styr hela upplägget. Tryck "Ändra mina svar" och välj plats/utrustning, eller skriv exakt vad du vill byta, till exempel "byt latsdrag mot hantelrodd".';
+  }
+
+  if (
+    lower.includes("för svårt") ||
+    lower.includes("for svart") ||
+    lower.includes("för tungt") ||
+    lower.includes("for tungt") ||
+    lower.includes("för avancerat") ||
+    lower.includes("for avancerat") ||
+    lower.includes("nybörjare") ||
+    lower.includes("nyborjare") ||
+    lower.includes("ovan")
+  ) {
+    const count = shortenProgramPasses();
+
+    return count > 0
+      ? "Bra att du säger det. Jag gör passen lite lugnare och tar bort sånt som inte behövs just nu."
+      : "Bra att du säger det. Då börjar vi lugnare: kontrollerade set, ingen maxning och tydlig marginal i början.";
+  }
+
+  if (asksAboutSafetyOrFit && !wantsAddExercise && !wantsLessOrAvoid) {
+    const mentionsResults =
+      lower.includes("resultat") ||
+      lower.includes("funkar") ||
+      lower.includes("kommer funka") ||
+      lower.includes("hjälpa") ||
+      lower.includes("hjalpa") ||
+      lower.includes("utveckling") ||
+      lower.includes("starkare") ||
+      lower.includes("bygga muskler") ||
+      lower.includes("muskler");
+    const mentionsAgeOrRisk =
+      lower.includes("70") ||
+      lower.includes("äldre") ||
+      lower.includes("aldre") ||
+      lower.includes("ont") ||
+      lower.includes("smärta") ||
+      lower.includes("smarta") ||
+      lower.includes("känns fel") ||
+      lower.includes("kanns fel") ||
+      lower.includes("obehag") ||
+      lower.includes("farligt") ||
+      lower.includes("säker") ||
+      lower.includes("saker");
+
+    const fallbackReply = lower.includes("smalare") || lower.includes("fett") || lower.includes("gå ner") || lower.includes("ga ner")
+      ? "Ja, styrketräning passar även när målet är att bli smalare. Den hjälper kroppen behålla muskler och form medan kosten styr viktnedgången mest. Vill du kan jag göra upplägget mer fettminskningsvänligt."
+      : mentionsResults
+      ? "Jag fattar. Resultat kommer inte av ett perfekt pass, utan av att vi kan upprepa bra pass vecka efter vecka. Det här upplägget ger oss något att följa, höja och justera. Vill du kan jag förklara exakt hur progressionen ska ske."
+      : mentionsAgeOrRisk
+      ? "Bra att du säger det. Du ska inte behöva känna dig osäker här. Vi börjar med marginal, undviker max och justerar direkt om något gör ont eller känns fel. Vill du kan jag göra upplägget lugnare."
+      : "Bra fråga. Jag kan förklara varför jag valt upplägget eller justera det om något känns fel.";
+
+    const aiReply = await requestAiProgramReply({
+      context: {
+        kind: "program_input",
+        userName: profileName,
+        userMessage: preference,
+        goalPrimary: userProfile?.goalPrimary ?? "styrka",
+        goalSecondary: userProfile?.goalSecondary,
+        daysPerWeek: userProfile?.daysPerWeek ?? workoutPlan.daysPerWeek,
+        minutesPerSession: userProfile?.minutesPerSession ?? 60,
+        location: userProfile?.location ?? "gym",
+        equipment: userProfile?.equipment ?? [],
+        limitations: userProfile?.limitations,
+        workoutPlan: {
+          title: workoutPlan.title,
+          passes: workoutPlan.passes.map((pass) => ({
+            key: pass.key,
+            displayName: pass.displayName,
+            exercises: pass.exercises.map((exercise) => exercise.name),
+          })),
+        },
+        existingPreferences: programPreferences,
+      },
+      fallbackReply,
+    });
+
+    return aiReply.text;
+  }
+
+  if (wantsAddExercise && wantsLessOrAvoid) {
+    const requestedAdditionRaw = extractExerciseNameAfterNormalized(preference, [
+      "lägg till",
+      "lägga till",
+      "ta med",
+      "vill ha",
+    ])
+      .split(/\b(?:men|och|ta bort|skippa|undvik|vill inte|gillar inte)\b/i)[0]
+      .trim();
+    const addition = resolveExerciseName(requestedAdditionRaw);
+    const additionName =
+      addition.status === "known"
+        ? addition.name
+        : addition.status === "suggest"
+        ? addition.suggestion
+        : "";
+    const removedParts: string[] = [];
+    let addedCount = 0;
+
+    if (lower.includes("marklyft")) {
+      const removed = removeExercisesFromProgram((name) =>
+        exerciseKey(name).includes("marklyft")
+      );
+      if (removed.length > 0) removedParts.push("marklyft");
+    }
+
+    if (lower.includes("vadpress")) {
+      const removed = removeExercisesFromProgram((name) =>
+        exerciseKey(name).includes("vadpress")
+      );
+      if (removed.length > 0) removedParts.push("vadpress");
+    }
+
+    if (additionName) {
+      addedCount = addProgramFocusExercise(
+        (pass) => {
+          const key = exerciseKey(pass.displayName);
+          return key.includes("underkropp") || key.includes("helkropp") || key.includes("ben");
+        },
+        additionName
+      );
+    }
+
+    if (removedParts.length > 0 || addedCount > 0) {
+      const removedText =
+        removedParts.length > 0 ? `tar bort ${removedParts.join(" och ")}` : "";
+      const addedText =
+        addedCount > 0 && additionName ? `lägger in ${additionName}` : "";
+      const joiner = removedText && addedText ? " och " : "";
+
+      return `Bra. Jag ${removedText}${joiner}${addedText} i upplägget.`;
+    }
+  }
+
+  if (wantsLessOrAvoid && lower.includes("marklyft")) {
+    const removed = removeExercisesFromProgram(
+      (name) => exerciseKey(name).includes("marklyft"),
+      () => "Hip thrust"
+    );
+
+    return removed.length > 0
+      ? "Bra input. Jag tar bort marklyft ur upplägget och lägger in hip thrust där det passar."
+      : "Bra input. Jag sparar att marklyft inte ska prioriteras i upplägget.";
+  }
+
+  if (wantsLessOrAvoid && lower.includes("benpress")) {
+    const removed = removeExercisesFromProgram(
+      (name) => exerciseKey(name).includes("benpress"),
+      () => (userProfile?.location === "hemma" ? "Goblet squat" : "Hack squat")
+    );
+
+    return removed.length > 0
+      ? "Bra. Jag byter bort benpress och lägger in en annan benövning i upplägget."
+      : "Jag sparar det. Benpress får inte vara en viktig del av upplägget.";
+  }
+
+  if (wantsLessOrAvoid && lower.includes("latsdrag")) {
+    const removed = removeExercisesFromProgram(
+      (name) => exerciseKey(name).includes("latsdrag"),
+      () => (userProfile?.location === "hemma" ? "Bandrodd" : "Assisterade chins")
+    );
+
+    return removed.length > 0
+      ? "Okej. Jag byter bort latsdrag och behåller ryggjobbet på ett annat sätt."
+      : "Jag sparar det. Vi bygger ryggen utan att latsdrag behöver vara med.";
+  }
+
+  if (wantsLessOrAvoid && lower.includes("vadpress")) {
+    const replacement =
+      userProfile?.location === "hemma"
+        ? "Tåhävningar med hantlar"
+        : "Sittande vadpress";
+    const removed = removeExercisesFromProgram(
+      (name) => exerciseKey(name).includes("vadpress"),
+      () => replacement
+    );
+
+    return removed.length > 0
+      ? `Bra att du säger det. Jag byter bort vadpress och lägger in ${replacement.toLowerCase()} istället.`
+      : "Bra att du säger det. Jag sparar att vadpress inte ska prioriteras.";
+  }
+
+  if (wantsLessOrAvoid) {
+    const requestedExercise =
+      extractExerciseNameAfterNormalized(preference, [
+        "gillar inte",
+        "tycker inte om",
+        "vill inte köra",
+        "vill inte ha",
+        "ta bort",
+        "skippa",
+        "undvik",
+        "hatar",
+      ]) || preference;
+    const resolved = resolveExerciseName(requestedExercise);
+    const exerciseName =
+      resolved.status === "known"
+        ? resolved.name
+        : resolved.status === "suggest"
+        ? resolved.suggestion
+        : "";
+
+    if (exerciseName) {
+      const replacement = suggestReplacementFor(exerciseName);
+      const removed = removeExercisesFromProgram(
+        (name) => exerciseKey(name) === exerciseKey(exerciseName),
+        () => replacement
+      );
+
+      if (removed.length > 0) {
+        return `Bra att du säger det. Jag byter bort ${exerciseName} och lägger in ${replacement.toLowerCase()} istället.`;
+      }
+    }
+  }
+
+  if (
+    lower.includes("lägg till") ||
+    lower.includes("lägga till") ||
+    lower.includes("ta med") ||
+    lower.includes("vill ha")
+  ) {
+    if (
+      lower.includes("underkropp") ||
+      lower.includes("benpass") ||
+      lower.includes("ben")
+    ) {
+      const exercise = userProfile?.location === "hemma" ? "Utfall" : "Lårcurl";
+      const count = addProgramFocusExercise(
+        (pass) => {
+          const key = exerciseKey(pass.displayName);
+          return key.includes("underkropp") || key.includes("ben");
+        },
+        exercise
+      );
+
+      return count > 0
+        ? `Bra. Jag lägger in ${exercise.toLowerCase()} i underkroppspasset.`
+        : `Bra. Jag sparar att underkropp ska få en övning till.`;
+    }
+
+    if (lower.includes("överkropp") || lower.includes("overkropp")) {
+      const exercise = userProfile?.location === "hemma" ? "Hantelrodd" : "Sittande kabelrodd";
+      const count = addProgramFocusExercise(
+        (pass) => {
+          const key = exerciseKey(pass.displayName);
+          return key.includes("överkropp") || key.includes("overkropp");
+        },
+        exercise
+      );
+
+      return count > 0
+        ? `Bra. Jag lägger in ${exercise.toLowerCase()} i överkroppspasset.`
+        : `Bra. Jag sparar att överkropp ska få en övning till.`;
+    }
+
+    const requestedExercise = extractExerciseNameAfterNormalized(preference, [
+      "lägg till",
+      "lägga till",
+      "ta med",
+      "vill ha",
+    ]);
+    const resolved = resolveExerciseName(requestedExercise);
+
+    if (resolved.status === "known") {
+      const count = addProgramFocusExercise(
+        (pass) =>
+          exerciseKey(pass.displayName).includes("överkropp") ||
+          exerciseKey(pass.displayName).includes("helkropp"),
+        resolved.name
+      );
+
+      return count > 0
+        ? `Bra. Jag lägger in ${resolved.name} i upplägget.`
+        : `Bra. Jag sparar ${resolved.name} till upplägget.`;
+    }
+
+    if (resolved.status === "suggest") {
+      setProgramPreferenceInput(`lägg till ${resolved.suggestion}`);
+      return `Menar du ${resolved.suggestion}? Jag har fyllt i det namnet. Skicka igen om det stämmer.`;
+    }
+
+    if (resolved.status === "needsCategory") {
+      setProgramPreferenceInput(`lägg till egen ben: ${resolved.name}`);
+      return "Vad tränar den främst? Skriv till exempel egen ben:, egen rygg: eller egen armar:. Jag fyllde i ben som exempel.";
+    }
+
+    if (requestedExercise) {
+      return "Jag är osäker på vilken övning du menar. Skriv gärna det vanligaste namnet, eller börja med egen: om du vill lägga in den exakt så.";
+    }
+  }
+
+  if (wantsMore && lower.includes("bröst")) {
+    const count = addProgramFocusExercise(
+      (pass) => exerciseKey(pass.displayName).includes("överkropp"),
+      userProfile?.location === "hemma" ? "Hantelpress" : "Bröstpress"
+    );
+
+    return count > 0
+      ? "Bra. Jag ger bröst lite mer plats i överkroppspasset."
+      : "Bra. Jag sparar att bröst ska få mer fokus i upplägget.";
+  }
+
+  if (wantsMore && lower.includes("rygg")) {
+    const count = addProgramFocusExercise(
+      (pass) =>
+        exerciseKey(pass.displayName).includes("överkropp") ||
+        exerciseKey(pass.displayName).includes("helkropp"),
+      userProfile?.location === "hemma" ? "Bandrodd" : "Sittande kabelrodd"
+    );
+
+    return count > 0
+      ? "Bra. Jag lägger in lite mer ryggarbete där det passar bäst."
+      : "Bra. Jag sparar att ryggen ska få mer fokus.";
+  }
+
+  if (wantsMore && (lower.includes("ben") || lower.includes("baksida"))) {
+    const count = addProgramFocusExercise(
+      (pass) =>
+        exerciseKey(pass.displayName).includes("underkropp") ||
+        exerciseKey(pass.displayName).includes("helkropp"),
+      lower.includes("baksida") ? "Lårcurl" : "Utfall"
+    );
+
+    return count > 0
+      ? "Bra. Jag ger benen lite mer utrymme i upplägget."
+      : "Bra. Jag sparar att benen ska prioriteras mer.";
+  }
+
+  if (wantsMore && (lower.includes("axlar") || lower.includes("axel"))) {
+    const count = addProgramFocusExercise(
+      (pass) => exerciseKey(pass.displayName).includes("överkropp"),
+      "Sidolyft"
+    );
+
+    return count > 0
+      ? "Bra. Jag lägger in mer axelarbete utan att göra passet rörigt."
+      : "Bra. Jag sparar att axlar ska få mer fokus.";
+  }
+
+  if (wantsMore && (lower.includes("armar") || lower.includes("biceps") || lower.includes("triceps"))) {
+    const count = addProgramFocusExercise(
+      (pass) =>
+        exerciseKey(pass.displayName).includes("överkropp") ||
+        exerciseKey(pass.displayName).includes("helkropp"),
+      lower.includes("triceps") ? "Triceps pushdown med rep" : "Hantelcurl"
+    );
+
+    return count > 0
+      ? "Bra. Jag ger armar lite mer plats utan att passet blir rörigt."
+      : "Bra. Jag sparar att armar ska få mer fokus.";
+  }
+
+  if (wantsMore && (lower.includes("mage") || lower.includes("core") || lower.includes("bål") || lower.includes("bal"))) {
+    const count = addProgramFocusExercise(
+      (pass) =>
+        exerciseKey(pass.displayName).includes("underkropp") ||
+        exerciseKey(pass.displayName).includes("helkropp"),
+      userProfile?.location === "hemma" ? "Planka" : "Cable crunch"
+    );
+
+    return count > 0
+      ? "Bra. Jag lägger in lite mage på ett ställe där det inte stör resten."
+      : "Bra. Jag sparar att mage ska få mer plats.";
+  }
+
+  if (
+    lower.includes("kortare") ||
+    lower.includes("kort pass") ||
+    lower.includes("mindre tid") ||
+    lower.includes("ont om tid") ||
+    lower.includes("för många övningar") ||
+    lower.includes("for manga ovningar") ||
+    lower.includes("färre övningar") ||
+    lower.includes("farre ovningar") ||
+    lower.includes("för mycket övningar") ||
+    lower.includes("for mycket ovningar")
+  ) {
+    const count = shortenProgramPasses();
+
+    return count > 0
+      ? "Okej. Jag kortar ner passen lite och tar bort sånt som är minst viktigt."
+      : "Okej. Upplägget är redan ganska kompakt, men jag sparar att passen ska hållas korta.";
+  }
+
+  if (lower.includes("knä") || lower.includes("kna")) {
+    const removed = removeExercisesFromProgram(
+      (name) => {
+        const key = exerciseKey(name);
+        return key.includes("benspark") || key.includes("utfall") || key.includes("knäböj");
+      },
+      () => "Lårcurl"
+    );
+
+    return removed.length > 0
+      ? "Bra att du säger det. Jag minskar knäbelastningen och lägger in lugnare benarbete."
+      : "Bra att du säger det. Jag sparar knäet som något coachen ska ta hänsyn till.";
+  }
+
+  if (lower.includes("ländrygg") || lower.includes("ryggont")) {
+    const removed = removeExercisesFromProgram(
+      (name) => exerciseKey(name).includes("marklyft"),
+      () => "Lårcurl"
+    );
+
+    return removed.length > 0
+      ? "Bra att du säger det. Jag tar bort marklyft och gör upplägget snällare mot ländryggen."
+      : "Bra att du säger det. Jag sparar ländryggen som något coachen ska ha koll på.";
+  }
+
+  const aiReply = await requestAiProgramReply({
+    context: {
+      kind: "program_input",
+      userName: profileName,
+      userMessage: preference,
+      goalPrimary: userProfile?.goalPrimary ?? "styrka",
+      goalSecondary: userProfile?.goalSecondary,
+      daysPerWeek: userProfile?.daysPerWeek ?? workoutPlan.daysPerWeek,
+      minutesPerSession: userProfile?.minutesPerSession ?? 60,
+      location: userProfile?.location ?? "gym",
+      equipment: userProfile?.equipment ?? [],
+      limitations: userProfile?.limitations,
+      workoutPlan: {
+        title: workoutPlan.title,
+        passes: workoutPlan.passes.map((pass) => ({
+          key: pass.key,
+          displayName: pass.displayName,
+          exercises: pass.exercises.map((exercise) => exercise.name),
+        })),
+      },
+      existingPreferences: programPreferences,
+    },
+    fallbackReply:
+      'Jag är inte helt säker på vad du vill ändra. Skriv gärna lite tydligare, till exempel "ta bort marklyft", "lägg till knäböj", "färre övningar" eller "Dag 1: bänkpress, rodd".',
+  });
+
+  if (aiReply.suggestion?.actions.length) {
+    setPendingProgramSuggestion(aiReply.suggestion);
+  }
+
+  return aiReply.text;
+}
+
 function getNextSetWeight(args: {
   weight: number;
+  reps?: number;
   rir: number;
   failNote?: string;
+  setNumber?: number;
 }) {
-  const { weight, rir, failNote } = args;
+  const { weight, rir, failNote, setNumber = 1 } = args;
+  if (typeof args.reps === "number") {
+    return getNextSetPlan({
+      weight,
+      reps: args.reps,
+      rir,
+      failNote,
+      setNumber,
+    }).weight;
+  }
+
   const fail = failNote?.trim().toLowerCase() ?? "";
 
   if (fail) {
@@ -2097,18 +5133,85 @@ function isNewPR(
   return false;
 }
 
-  function addSet() {
+function getLatestLoggedSetForExercise(
+  workouts: Workout[],
+  exerciseName: string
+) {
+  const targetKey = exerciseKey(exerciseName);
+
+  return workouts
+    .flatMap((workout) =>
+      workout.exercises.flatMap((exercise) =>
+        exerciseKey(exercise.name) === targetKey
+          ? exercise.sets.map((set) => ({
+              set,
+              exerciseName: exercise.name,
+            }))
+          : []
+      )
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.set.createdAt).getTime() -
+        new Date(a.set.createdAt).getTime()
+    )[0];
+}
+
+function getBestRecordForExercise(workouts: Workout[], exerciseName: string) {
+  const targetKey = exerciseKey(exerciseName);
+
+  return workouts
+    .flatMap((workout) =>
+      workout.exercises.flatMap((exercise) =>
+        exerciseKey(exercise.name) === targetKey
+          ? exercise.sets.map((set) => ({
+              exerciseName: exercise.name,
+              weight: set.weight,
+              reps: set.reps,
+              createdAt: set.createdAt,
+            }))
+          : []
+      )
+    )
+    .sort((a, b) => {
+      if (b.weight !== a.weight) return b.weight - a.weight;
+      if (b.reps !== a.reps) return b.reps - a.reps;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    })[0];
+}
+
+function parseNumberInput(value: string) {
+  return Number(value.trim().replace(",", "."));
+}
+
+  async function addSet() {
     if (!workout) return;
 
-    const weight = Number(weightInput);
-    const reps = Number(repsInput);
+    const weight = parseNumberInput(weightInput);
+    const reps = parseNumberInput(repsInput);
     const exerciseName = currentExerciseName;
     const prKey = exerciseKey(exerciseName);
 
-    if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(reps) || reps <= 0) {
-      alert("Fyll i vikt och reps (t.ex. 80 och 5).");
-      return;
+if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(reps) || reps <= 0) {
+  setChatLog((prev) => {
+    const lastMessage = prev[prev.length - 1];
+    if (
+      lastMessage?.role === "coach" &&
+      lastMessage.text === "Jag behöver vikt och reps först."
+    ) {
+      return prev;
     }
+
+    return [
+      ...prev,
+      {
+        role: "coach",
+        text: "Jag behöver vikt och reps först.",
+      },
+    ];
+  });
+  return;
+}
 
 const set: LoggedSet = {
   weight,
@@ -2117,20 +5220,29 @@ const set: LoggedSet = {
   failNote: didFailInput ? failNoteInput.trim() || "failure" : undefined,
   createdAt: new Date().toISOString(),
 };
+const painFailure =
+  didFailInput &&
+  (failNoteInput.toLowerCase().includes("ont") ||
+    failNoteInput.toLowerCase().includes("smärta") ||
+    failNoteInput.toLowerCase().includes("känning"));
 
 
     const updated = structuredClone(workout);
     updated.exercises[exerciseIndex].sets.push(set);
     setWorkout(updated);
-   const suggestedNextWeight = getNextSetWeight({
+   const setNumber = updated.exercises[exerciseIndex].sets.length;
+   const nextSetPlan = getNextSetPlan({
   weight,
+  reps,
   rir: rirInput,
   failNote: didFailInput ? failNoteInput : "",
+  setNumber,
+  exerciseName: currentExerciseName,
 });
+   const suggestedNextWeight = nextSetPlan.weight;
 
 
     setFailNoteInput("");
-    setRirInput(2);
     setDidFailInput(false);
  // ✅ Coach-reaktion + auto-förslag för nästa set (RIR)
 const step = PROGRESSION_STEP;
@@ -2151,6 +5263,11 @@ const newLastByExercise: LastByExercise = {
     setLastByExercise(newLastByExercise);
     saveJSON("lastByExercise", newLastByExercise);
     const existingPR = personalRecords[prKey];
+    const personalRecordText = isNewPR(existingPR, { weight, reps })
+      ? existingPR
+        ? `Nytt personbästa i ${currentExerciseName}: ${weight} kg × ${reps}.`
+        : `Första noteringen i ${currentExerciseName}: ${weight} kg × ${reps}. Nu har vi en nivå att slå.`
+      : "";
     const lastCoachMessage =
   [...chatLog].reverse().find((m) => m.role === "coach")?.text || "";
 
@@ -2160,53 +5277,35 @@ const coachMessage = buildCoachMessage({
   rir: rirInput,
   failNote: failNoteInput,
   exerciseName: currentExerciseName,
-  setNumber: updated.exercises[exerciseIndex].sets.length,
+  setNumber,
   nextWeight: suggestedNextWeight,
+  nextSetPlan,
   lastCoachMessage,
   previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
   completedExercises: updated.exercises.slice(0, exerciseIndex + 1),
   goalPrimary: userProfile?.goalPrimary ?? "styrka",
+  personalRecordText,
+  warmupContext: activeWarmupContext,
+  conditioningContext: activeConditioningContext,
 });
-
-if (coachMessage) {
-  setChatLog((prev) => [
-    ...prev,
-    {
-      role: "coach",
-      text: coachMessage,
-    },
-  ]);
-}
-if (isNewPR(existingPR, { weight, reps })) {
- setChatLog((prev) => {
-  const prText = `Snyggt också — det där är ett nytt PR i ${currentExerciseName}: ${weight} kg × ${reps}.`;
-  const lastMessage = prev[prev.length - 1];
-
-  if (lastMessage?.role === "coach") {
-    if (lastMessage.text.includes(prText)) {
-      return prev;
-    }
-
-    return [
-      ...prev.slice(0, -1),
-      {
-        ...lastMessage,
-        text: `${lastMessage.text} ${prText}`,
-      },
-    ];
-  }
-
-  return [
-    ...prev,
-    {
-      role: "coach",
-      text: prText,
-    },
-  ];
+const coachSetContext = buildCoachSetContext({
+  userName: profileName,
+  goalPrimary: userProfile?.goalPrimary ?? "styrka",
+  passLabel: currentPassLabel,
+  exerciseName: currentExerciseName,
+  setNumber,
+  weight,
+  reps,
+  rir: rirInput,
+  failNote: didFailInput ? failNoteInput.trim() || "failure" : "",
+  nextWeight: suggestedNextWeight,
+  nextSetPlan,
+  previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
+  personalRecordText,
+  lastCoachMessage,
+  warmupContext: activeWarmupContext,
+  conditioningContext: activeConditioningContext,
 });
-}
-
-
 if (isNewPR(existingPR, { weight, reps })) {
   const newPR: PersonalRecord = {
     exerciseName,
@@ -2226,9 +5325,49 @@ if (isNewPR(existingPR, { weight, reps })) {
 
 }
 
+const coachReply = await requestAiCoachSetReply({
+  context: coachSetContext,
+  fallbackReply: coachMessage,
+});
+
+if (coachReply.text) {
+  setChatLog((prev) => [
+    ...prev,
+    {
+      role: "coach",
+      text: coachReply.text,
+      setNumber,
+    },
+  ]);
+}
+
+if (painFailure) {
+  savePainCoachMemory(currentExerciseName, failNoteInput);
+
+  setWeightInput("");
+  setRepsInput("");
+  setFailNoteInput("");
+  setRirInput(2);
+  setDidFailInput(false);
+  return;
+}
+
+if (nextSetPlan.strategy === "complete") {
+  setWeightInput("");
+  setRepsInput("");
+  setRirInput(2);
+  setFailNoteInput("");
+  setDidFailInput(false);
+  return;
+}
+
     // För nästa set behåll vikt, men nolla reps (valfritt)
-setRepsInput(String(reps));
+const nextSetRepInput = nextSetPlan.repsInput;
+const nextSetRirInput = nextSetPlan.rirInput;
+
+setRepsInput(String(nextSetRepInput));
 setWeightInput(String(suggestedNextWeight));
+setRirInput(nextSetRirInput);
 
   }
 
@@ -2237,8 +5376,47 @@ setWeightInput(String(suggestedNextWeight));
     const updated = structuredClone(workout);
     const sets = updated.exercises[exerciseIndex].sets;
     if (sets.length === 0) return;
+    const exerciseName = updated.exercises[exerciseIndex].name;
+    const key = exerciseKey(exerciseName);
     sets.pop();
     setWorkout(updated);
+
+    const workoutsForExercise = [updated, ...history];
+    const latest = getLatestLoggedSetForExercise(
+      workoutsForExercise,
+      exerciseName
+    );
+    const nextLastByExercise = { ...lastByExercise };
+
+    if (latest) {
+      nextLastByExercise[key] = {
+        weight: latest.set.weight,
+        reps: latest.set.reps,
+        rir: latest.set.rir ?? null,
+        failNote: latest.set.failNote ?? null,
+        updatedAt: latest.set.createdAt,
+      };
+    } else {
+      delete nextLastByExercise[key];
+    }
+
+    setLastByExercise(nextLastByExercise);
+    saveJSON("lastByExercise", nextLastByExercise);
+
+    const bestRecord = getBestRecordForExercise(
+      workoutsForExercise,
+      exerciseName
+    );
+    const nextPersonalRecords = { ...personalRecords };
+
+    if (bestRecord) {
+      nextPersonalRecords[key] = bestRecord;
+    } else {
+      delete nextPersonalRecords[key];
+    }
+
+    setPersonalRecords(nextPersonalRecords);
+    saveJSON("personalRecords", nextPersonalRecords);
   }
 
   function nextExercise() {
@@ -2275,19 +5453,28 @@ function makeCoachNotesFromWorkout(w: Workout): CoachNote[] {
     gym: w.gym,
   };
 
-  // 1) Dagsform som en generell note
   if (dayForm === "trött") {
-    notes.push({ ...base, text: "Du var trött idag → vi körde lite lättare." });
+    notes.push({ ...base, text: "Du kom in trött och höll det kontrollerat." });
   }
   if (dayForm === "stark") {
-    notes.push({ ...base, text: "Du kände dig stark idag → vi tryckte på lite." });
+    notes.push({ ...base, text: "Du kände dig stark idag." });
   }
 
-  // 2) En note per övning
+  if (
+    w.conditioningContext?.timing === "before" &&
+    w.conditioningContext.intensity === "hard"
+  ) {
+    notes.push({
+      ...base,
+      text: `Du körde ${w.conditioningContext.note} före styrkan. Det kan ha påverkat vikterna.`,
+    });
+  }
+
 for (const ex of w.exercises) {
   const totalSets = ex.sets.length;
 
   const failedSets = ex.sets.filter((s) => Boolean(s.failNote?.trim()));
+  const hardSets = ex.sets.filter((s) => s.rir === 0 || s.rir === 1);
 
   if (failedSets.length > 0) {
     const reasons = failedSets
@@ -2315,25 +5502,27 @@ for (const ex of w.exercises) {
       exerciseName: ex.name,
       text: memoryText,
     });
-  } else if (totalSets === 0) {
+  } else if (hardSets.length >= 2) {
     notes.push({
       ...base,
       exerciseName: ex.name,
-      text: `${ex.name}: inga set loggade.`,
+      text: `${ex.name}: flera tunga set senast.`,
     });
-  } else {
+  } else if (totalSets >= 3) {
+    const best = ex.sets.reduce((bestSet, set) => {
+      if (set.weight > bestSet.weight) return set;
+      if (set.weight === bestSet.weight && set.reps > bestSet.reps) return set;
+      return bestSet;
+    });
+
     notes.push({
       ...base,
       exerciseName: ex.name,
-      text: `${ex.name}: ${totalSets} set loggade.`,
+      text: `${ex.name}: bästa set senast var ${best.weight} kg × ${best.reps}.`,
     });
   }
 }
 
-
-  if (notes.length === 0) {
-    notes.push({ ...base, text: "Bra jobbat. Vi fortsätter enligt plan nästa gång." });
-  }
 
   return notes;
 }
@@ -2365,57 +5554,51 @@ function buildWorkoutReview(args: {
     positives.push(`Bästa set idag var ${summary.bestSetText}.`);
   }
 
-  if (failedSets.length === 0) {
-    positives.push("Du höll passet kontrollerat utan att köra in i stopp.");
-  } else {
+  if (failedSets.length === 0 && summary.totalSets > 0) {
+    positives.push("Du loggade passet utan set till failure.");
+  } else if (failedSets.length > 0) {
     adjustments.push(
-      `Du hade ${failedSets.length} set som gick till failure. Håll extra koll på teknik när det blir tungt.`
+      `Du hade ${failedSets.length} set som gick till failure. Nästa gång vill jag se lite mer marginal där.`
     );
   }
 
   if (hardSets.length >= 3) {
     adjustments.push(
-      "Det blev flera tunga set idag. Se till att nästa pass startar kontrollerat."
+      "Det blev flera tunga set idag. Nästa pass börjar vi med lite mer marginal."
     );
   }
 
   if (summary.totalSets === 0) {
     adjustments.push(
-      "Det blev inga loggade set idag, så nästa pass behöver vi få tydligare data."
+      "Inget att justera än. Vi börjar om lugnt nästa gång."
     );
   }
 
   const lastExercise = workout.exercises[workout.exercises.length - 1];
-  if (lastExercise && lastExercise.sets.length > 0) {
+  if (summary.totalSets > 0 && lastExercise && lastExercise.sets.length > 0) {
     nextFocus.push(
-      `Bygg vidare från ${lastExercise.name} med samma kontroll nästa gång.`
-    );
-  } else {
-    nextFocus.push(
-      "Nästa gång vill jag att du loggar första arbetssetet tidigt så vi får bättre guidning."
+      `Nästa gång tittar vi på ${lastExercise.name} igen.`
     );
   }
 
-  nextFocus.push("Fortsätt prioritera ren teknik före att jaga vikt för tidigt.");
-
   if (positives.length === 0) {
     positives.push(
-      "Bra att du tog dig igenom passet och gav oss ny data att bygga vidare på."
+      "Du dök upp. Det räknas."
     );
   }
 
   if (adjustments.length === 0) {
-    adjustments.push("Inget stort att justera just nu. Fortsätt i samma linje.");
+    adjustments.push("Inget stort att justera just nu.");
   }
 if (progression.improved.length > 0) {
   coachMemoryTakeaway.push(
-    `Du tog steg framåt i ${progression.improved.join(", ")}. Det bygger vi vidare på nästa pass.`
+    `Du tog steg framåt i ${progression.improved.join(", ")}. Det märks.`
   );
 }
 
 if (progression.worse.length > 0) {
   coachMemoryTakeaway.push(
-    `Vi tappade lite i ${progression.worse.join(", ")}. Där vill jag ha extra kontroll nästa gång.`
+    `Vi tappade lite i ${progression.worse.join(", ")}. Där vill jag ha lite mer marginal nästa gång.`
   );
 }
 
@@ -2425,13 +5608,24 @@ const exercisesWithFailure = workout.exercises
 
 if (exercisesWithFailure.length > 0) {
   coachMemoryTakeaway.push(
-    `Jag tar med mig att det tog stopp i ${exercisesWithFailure.join(", ")}. Vi justerar det smart nästa gång.`
+    `Jag minns att det tog stopp i ${exercisesWithFailure.join(", ")}.`
+  );
+}
+
+if (
+  workout.conditioningContext?.timing === "before" &&
+  workout.conditioningContext.intensity === "hard"
+) {
+  coachMemoryTakeaway.push(
+    `Du körde ${workout.conditioningContext.note} före styrkan. Det kan ha påverkat vikterna.`
   );
 }
 
 if (coachMemoryTakeaway.length === 0) {
   coachMemoryTakeaway.push(
-    "Inget stort att korrigera just nu. Vi bygger vidare i samma linje nästa gång."
+    summary.isPartial
+      ? "Jag sparar passet precis som det blev."
+      : "Inget stort att korrigera just nu."
   );
 }
 return {
@@ -2439,6 +5633,10 @@ return {
   durationMinutes: summary.durationMinutes,
   totalSets: summary.totalSets,
   exerciseCount: summary.exerciseCount,
+  completedExerciseCount: summary.completedExerciseCount,
+  isPartial: summary.isPartial,
+  totalVolumeKg: summary.totalVolumeKg,
+  totalVolumeText: summary.totalVolumeText,
   bestSetText: summary.bestSetText,
   coachSummary: summary.coachSummary,
   positives,
@@ -2453,7 +5651,18 @@ function buildWorkoutSummary(w: Workout) {
   const allSets = w.exercises.flatMap((ex) => ex.sets);
 
   const totalSets = allSets.length;
+  const totalVolumeKg = allSets.reduce((sum, set) => {
+    return sum + set.weight * set.reps;
+  }, 0);
+  const totalVolumeText =
+    totalVolumeKg >= 1000
+      ? `${Number((totalVolumeKg / 1000).toFixed(1)).toLocaleString("sv-SE")} ton`
+      : `${Math.round(totalVolumeKg).toLocaleString("sv-SE")} kg`;
   const exerciseCount = w.exercises.length;
+  const completedExerciseCount = w.exercises.filter(
+    (exercise) => exercise.sets.length > 0
+  ).length;
+  const isPartial = completedExerciseCount < exerciseCount;
 
   const startedAtMs = new Date(w.startedAt).getTime();
   const finishedAtMs = Date.now();
@@ -2475,18 +5684,27 @@ function buildWorkoutSummary(w: Workout) {
     bestSetText = `${bestSet.weight} kg × ${bestSet.reps}`;
   }
 
-  let coachSummary = "Stabilt pass. Fortsätt enligt plan nästa gång.";
-  if (dayForm === "stark") {
-    coachSummary = "Du såg stark ut idag. Bra läge att bygga vidare på nästa pass.";
+  let coachSummary = "Passet är sparat. Bra jobb.";
+
+  if (totalSets === 0) {
+    coachSummary = "Ingen fara. Vi sparar passet som det är och börjar om nästa gång.";
+  } else if (isPartial) {
+    coachSummary = `Ingen fara. Vi sparar passet som det är. ${totalSets} set räcker för idag.`;
+  } else if (dayForm === "stark") {
+    coachSummary = "Du kom in stark idag. Det där var ett bra pass.";
   } else if (dayForm === "trött") {
     coachSummary =
-      "Du tog dig igenom passet smart trots trött känsla. Bra disciplin.";
+      "Du tog dig igenom passet smart trots trött känsla. Det räknas.";
   }
 
   const summary = {
     durationMinutes,
     totalSets,
     exerciseCount,
+    completedExerciseCount,
+    isPartial,
+    totalVolumeKg,
+    totalVolumeText,
     bestSetText,
     coachSummary,
   };
@@ -2496,6 +5714,7 @@ function buildWorkoutSummary(w: Workout) {
     `Tid: ${durationMinutes} min`,
     `Övningar: ${exerciseCount}`,
     `Totala set: ${totalSets}`,
+    `Flyttad vikt: ${totalVolumeText}`,
     `Bästa set: ${bestSetText}`,
     coachSummary,
   ].join("\n");
@@ -2506,7 +5725,7 @@ function buildWorkoutSummary(w: Workout) {
   function finishWorkout() {
     if (!workout) return;
 
-    const { summary, alertText } = buildWorkoutSummary(workout);
+    const { summary } = buildWorkoutSummary(workout);
 
     const workoutWithSummary: Workout = {
   ...workout,
@@ -2542,8 +5761,10 @@ setWorkoutReview(review);
 setLatestCompletedReview(review);
 setWorkoutComplete(false);
 setWorkout(null);
+setSkippedExercise(null);
+setActiveWarmupContext(null);
+setActiveConditioningContext(null);
 setStarted(false);
-finishWorkout
   }
 
   function resetAll() {
@@ -2557,6 +5778,11 @@ finishWorkout
     localStorage.removeItem("removedExercisesByPass");
     localStorage.removeItem("exerciseOverridesByPass");
     localStorage.removeItem("personalRecords");
+    localStorage.removeItem("acceptedTrainingSafety");
+    localStorage.removeItem("approvedWorkoutPlan");
+    localStorage.removeItem("programPreferences");
+    localStorage.removeItem("customWorkoutPlan");
+    localStorage.removeItem("passDisplayNamesByPass");
 
     setLastPass(null);
     setGym("Sjöviksgymmet");
@@ -2565,57 +5791,243 @@ finishWorkout
     setCheckInInput("");
     setCheckInCoachReply("");
     setActiveCheckInSignal(null);
+    setActiveWarmupContext(null);
+    setActiveConditioningContext(null);
     setUserProfile(null);
+    setHasAcceptedTrainingSafety(false);
+    setShowProgramReview(false);
+    setProgramPreferenceInput("");
+    setProgramPreferenceReply("");
+    setProgramPreferences([]);
+    setCustomWorkoutPlan(null);
+    setPassDisplayNamesByPass({});
     setWorkout(null);
+    setSkippedExercise(null);
     setStarted(false);
     alert("Allt återställt ✅");
     setCoachMemory({ notes: [] });
   setCustomExercisesByPass({ A: [], B: [], C: [], D: [] });
-  setRemovedExercisesByPass({ A: [], B: [], C: [], D: [] }); 
+  setTodayExercisesByPass({ A: [], B: [], C: [], D: [] });
+  setRemovedExercisesByPass({ A: [], B: [], C: [], D: [] });
   setExerciseOverridesByPass({ A: {}, B: {}, C: {}, D: {} });
     setPersonalRecords({});
   }
 
+const globalAppControls = (
+  <AppControls
+    theme={appTheme}
+    onOpenSettings={() => setShowSettings(true)}
+  />
+);
+const shouldShowGlobalAppControls =
+  !showExerciseProgress &&
+  !showStatistics &&
+  !showHistory &&
+  !showPersonalRecords &&
+  !showProgramReview &&
+  !editingProfile;
+
+const settingsPanel = showSettings ? (
+  <SettingsScreen
+    theme={appTheme}
+    onThemeChange={(theme) => {
+      setAppTheme(theme);
+      saveJSON("appTheme", theme);
+    }}
+    onBack={() => setShowSettings(false)}
+    onOpenProfile={() => {
+      setShowSettings(false);
+      setEditingProfile(true);
+    }}
+    onOpenProgram={
+      userProfile
+        ? () => {
+            setShowSettings(false);
+            setShowDailyPlan(false);
+            setShowStatistics(false);
+            setShowHistory(false);
+            setShowExerciseProgress(false);
+            setShowPersonalRecords(false);
+            setShowProgramReview(true);
+          }
+        : undefined
+    }
+  />
+) : null;
+
+if (showSplash) {
+  return (
+    <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#0b1018] px-6 text-white">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.11),transparent_34%),linear-gradient(180deg,#0b1018_0%,#111a25_55%,#0b1018_100%)]" />
+
+      <div className="splash-mark flex flex-col items-center">
+        <div className="flex h-32 w-32 items-center justify-center rounded-[2.25rem] border border-blue-400/20 bg-blue-500/[0.07] shadow-[0_0_70px_rgba(59,130,246,0.10)] backdrop-blur-2xl sm:h-36 sm:w-36">
+          <Image
+            src="/logo-dark.png"
+            alt="MinCoach"
+            width={128}
+            height={128}
+            className="h-24 w-24 object-contain sm:h-28 sm:w-28"
+            priority
+          />
+        </div>
+
+        <p className="splash-word mt-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-blue-100/55">
+          MinCoach
+        </p>
+      </div>
+    </main>
+  );
+}
+
 if (!userProfile || editingProfile) {
   return (
+    <>
+    {globalAppControls}
     <SetupScreen
+      nameInput={nameInput}
+      setNameInput={setNameInput}
+      ageInput={ageInput}
+      setAgeInput={setAgeInput}
+      genderInput={genderInput ?? "vill-inte-saga"}
+      setGenderInput={setGenderInput}
+      trainingExperienceInput={trainingExperienceInput}
+      setTrainingExperienceInput={setTrainingExperienceInput}
       daysPerWeekInput={daysPerWeekInput}
       setDaysPerWeekInput={setDaysPerWeekInput}
       minutesPerSessionInput={minutesPerSessionInput}
       setMinutesPerSessionInput={setMinutesPerSessionInput}
       locationInput={locationInput}
       setLocationInput={setLocationInput}
+      equipmentInput={equipmentInput}
+      setEquipmentInput={setEquipmentInput}
       limitationsInput={limitationsInput}
       setLimitationsInput={setLimitationsInput}
       goalInput={goalInput}
       setGoalInput={setGoalInput}
+      secondaryGoalsInput={secondaryGoalsInput}
+      setSecondaryGoalsInput={setSecondaryGoalsInput}
       isEditing={editingProfile}
       onSubmit={() => {
-const profile = {
+const parsedAge = Number(ageInput);
+const profile: UserProfile = {
+  name: nameInput.trim() || "Du",
+  age: Number.isFinite(parsedAge) && parsedAge > 0 ? parsedAge : null,
+  gender: genderInput,
+  trainingExperience: trainingExperienceInput,
   goalPrimary: goalInput,
+  goalSecondary: secondaryGoalsInput.filter((goal) => goal !== goalInput),
   daysPerWeek: Number(daysPerWeekInput),
   minutesPerSession: Number(minutesPerSessionInput),
   location: locationInput,
-  equipment: [],
+  equipment: locationInput === "hemma" ? equipmentInput : [],
   limitations: limitationsInput,
 };
 
         saveJSON("userProfile", profile);
         setUserProfile(profile);
         setEditingProfile(false);
+        setShowProgramReview(true);
+        saveJSON("approvedWorkoutPlan", false);
       }}
     />
+    {settingsPanel}
+    </>
+  );
+}
+
+if (userProfile && workoutPlan && showProgramReview) {
+  return (
+    <>
+    {globalAppControls}
+    <ProgramReviewScreen
+      profile={userProfile}
+      workoutPlan={workoutPlan}
+      preferenceInput={programPreferenceInput}
+      setPreferenceInput={setProgramPreferenceInput}
+      preferenceReply={programPreferenceReply}
+      pendingProgramSuggestion={pendingProgramSuggestion}
+      onSavePreference={async () => {
+        const preference = programPreferenceInput.trim();
+        if (!preference) return;
+
+        const reply = await applyProgramPreference(preference);
+        const nextPreferences = [preference, ...programPreferences].slice(0, 12);
+        setProgramPreferences(nextPreferences);
+        saveJSON("programPreferences", nextPreferences);
+        if (!reply.startsWith("Menar du")) {
+          setProgramPreferenceInput("");
+        }
+        setProgramPreferenceReply(reply);
+      }}
+      onApproveProgramSuggestion={applyPendingProgramSuggestion}
+      onDismissProgramSuggestion={() => {
+        setPendingProgramSuggestion(null);
+        setProgramPreferenceReply("Inga problem. Jag lämnar upplägget som det är.");
+      }}
+      onRenamePass={(passKey, displayName) => {
+        const nextNames = {
+          ...passDisplayNamesByPass,
+          [passKey]: displayName.trim(),
+        };
+        setPassDisplayNamesByPass(nextNames);
+        saveJSON("passDisplayNamesByPass", nextNames);
+      }}
+      onRemoveExercise={(passKey, exerciseName) => {
+        const currentPass = workoutPlan.passes.find((pass) => pass.key === passKey);
+        const isCustomExercise = customExercisesByPass[passKey]?.some(
+          (name) => exerciseKey(name) === exerciseKey(exerciseName)
+        );
+
+        if (isCustomExercise) {
+          removeCustomExercise(passKey, exerciseName);
+          setProgramPreferenceReply(`${exerciseName} är borttagen från upplägget.`);
+          return;
+        }
+
+        if (
+          currentPass?.exercises.some(
+            (exercise) => exerciseKey(exercise.name) === exerciseKey(exerciseName)
+          )
+        ) {
+          setRemovedExercisesByPass((prev) => {
+            const next: RemovedExercisesByPass = {
+              ...prev,
+              [passKey]: mergePlan(prev[passKey] ?? [], [exerciseName]),
+            };
+
+            saveJSON("removedExercisesByPass", next);
+            return next;
+          });
+          setProgramPreferenceReply(`${exerciseName} är borttagen från upplägget.`);
+        }
+      }}
+      onApprove={() => {
+        saveJSON("approvedWorkoutPlan", true);
+        setShowProgramReview(false);
+      }}
+      onEditProfile={() => setEditingProfile(true)}
+    />
+    {settingsPanel}
+    </>
   );
 }
 
 
 return (
-  <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-black px-6 text-white">
-    {workoutComplete ? (
+  <main
+    data-theme={appTheme}
+    className="flex min-h-screen flex-col items-center justify-start gap-6 bg-[#0b1018] px-0 text-white"
+  >
+   {shouldShowGlobalAppControls ? globalAppControls : null}
+   {workoutComplete ? (
   <WorkoutCompleteScreen
+    isPartial={latestCompletedReview?.isPartial ?? false}
+    review={latestCompletedReview}
     onDone={() => {
       setWorkoutComplete(false);
       setWorkoutReview(null);
+      setShowDailyPlan(false);
     }}
   />
 ) : started && workout ? (
@@ -2633,6 +6045,9 @@ return (
         chatInput={chatInput}
         setChatInput={setChatInput}
         sendChat={sendChat}
+        workoutExerciseInput={workoutExerciseInput}
+        setWorkoutExerciseInput={setWorkoutExerciseInput}
+        addExerciseDuringWorkout={addExerciseDuringWorkout}
 addCoachMessage={(text) =>
   setChatLog((prev) => {
     const last = prev[prev.length - 1];
@@ -2665,11 +6080,16 @@ addCoachMessage={(text) =>
         setFailNoteInput={setFailNoteInput}
         addSet={addSet}
         removeLastSet={removeLastSet}
+        skipCurrentExercise={skipCurrentExercise}
+        canSkipCurrentExercise={(workout?.exercises?.[exerciseIndex]?.sets.length ?? 0) === 0}
+        skippedExerciseName={skippedExercise?.exercise.name ?? null}
+        undoSkipExercise={undoSkipExercise}
         prevExercise={prevExercise}
         nextExercise={nextExercise}
         finishWorkout={finishWorkout}
         personalRecords={personalRecords}
         progression={progression}
+        progressionPlan={progressionPlan}
       />
       
 ) : workoutReview ? (
@@ -2680,42 +6100,139 @@ addCoachMessage={(text) =>
       setWorkoutComplete(true);
     }}
   />
+) : showDailyPlan ? (
+  <StartScreen
+    nextPass={nextPass}
+    nextPassLabel={nextPassLabel}
+    now={now}
+    plan={savedPlan}
+    exerciseKey={exerciseKey}
+    swapFrom={swapFrom}
+    setSwapFrom={setSwapFrom}
+    swapToInput={swapToInput}
+    setSwapToInput={setSwapToInput}
+    setExerciseOverride={setExerciseOverride}
+    clearExerciseOverride={clearExerciseOverride}
+    customExerciseInput={customExerciseInput}
+    setCustomExerciseInput={setCustomExerciseInput}
+    addCustomExercise={addCustomExercise}
+    addTodayExercise={addTodayExercise}
+    removeTodayExercise={removeTodayExercise}
+    removeCustomExercise={removeCustomExercise}
+    removePlannedExercise={removePlannedExercise}
+    customExercisesByPass={customExercisesByPass}
+    todayExercisesByPass={todayExercisesByPass}
+    checkInInput={checkInInput}
+    setCheckInInput={setCheckInInput}
+    checkInCoachReply={checkInCoachReply}
+    setCheckInCoachReply={setCheckInCoachReply}
+    startWorkout={startWorkout}
+    hasAcceptedTrainingSafety={hasAcceptedTrainingSafety}
+    onAcceptTrainingSafety={() => {
+      setHasAcceptedTrainingSafety(true);
+      saveJSON("acceptedTrainingSafety", true);
+    }}
+    setEditingProfile={setEditingProfile}
+    name={profileName}
+  />
+) : showStatistics ? (
+  <StatisticsScreen
+    history={history}
+    onBack={() => setShowStatistics(false)}
+    onOpenExercises={(exerciseName) => {
+      setSelectedProgressExercise(exerciseName ?? null);
+      setShowStatistics(false);
+      setShowExerciseProgress(true);
+    }}
+  />
+) : showHistory ? (
+  <HistoryScreen
+    history={history}
+    onBack={() => setShowHistory(false)}
+    onOpenExercise={(exerciseName) => {
+      setSelectedProgressExercise(exerciseName);
+      setShowHistory(false);
+      setShowExerciseProgress(true);
+    }}
+  />
+) : showPersonalRecords ? (
+  <PersonalRecordsScreen
+    personalRecords={personalRecords}
+    onBack={() => setShowPersonalRecords(false)}
+    onOpenExercise={(exerciseName) => {
+      setSelectedProgressExercise(exerciseName);
+      setShowPersonalRecords(false);
+      setShowExerciseProgress(true);
+    }}
+  />
+) : showExerciseProgress ? (
+  <ExerciseProgressScreen
+    history={history}
+    initialExerciseName={selectedProgressExercise}
+    onBack={() => {
+      setSelectedProgressExercise(null);
+      setShowExerciseProgress(false);
+    }}
+  />
 ) : (
-      <StartScreen
-        lastPass={lastPass}
-        nextPass={nextPass}
-        nextPassLabel={nextPassLabel}
-        lastPassLabel={lastPassLabel}
-        now={now}
-        plan={plan}
-        exerciseKey={exerciseKey}
-        swapFrom={swapFrom}
-        setSwapFrom={setSwapFrom}
-        swapToInput={swapToInput}
-        setSwapToInput={setSwapToInput}
-        setExerciseOverride={setExerciseOverride}
-        clearExerciseOverride={clearExerciseOverride}
-        customExerciseInput={customExerciseInput}
-        setCustomExerciseInput={setCustomExerciseInput}
-        addCustomExercise={addCustomExercise}
-        removeCustomExercise={removeCustomExercise}
-        removePlannedExercise={removePlannedExercise}
-        customExercisesByPass={customExercisesByPass}
-        checkInInput={checkInInput}
-        setCheckInInput={setCheckInInput}
-        checkInCoachReply={checkInCoachReply}
-        setCheckInCoachReply={setCheckInCoachReply}
-        startWorkout={startWorkout}
-        history={history}
-        coachMemory={coachMemory}
-        latestReview={latestCompletedReview}
-        setEditingProfile={setEditingProfile}
-        formatTime={formatTime}
-        weeklyStats={weeklyStats}
-        userProfile={userProfile}
-        name="Anton"
-      />
-    )}
-  </main>
+  <LobbyScreen
+    name={profileName}
+    nextPassLabel={nextPassLabel}
+    history={history}
+    personalRecords={personalRecords}
+    weeklyStats={weeklyStats}
+    daysPerWeek={userProfile.daysPerWeek}
+    theme={appTheme}
+    onStartWorkout={() => {
+      setShowExerciseProgress(false);
+      setShowStatistics(false);
+      setShowHistory(false);
+      setShowPersonalRecords(false);
+      setShowSettings(false);
+      setSelectedProgressExercise(null);
+      setShowDailyPlan(true);
+    }}
+    onOpenStatistics={() => {
+      setShowHistory(false);
+      setShowExerciseProgress(false);
+      setShowPersonalRecords(false);
+      setShowSettings(false);
+      setShowStatistics(true);
+    }}
+    onOpenHistory={() => {
+      setShowStatistics(false);
+      setShowExerciseProgress(false);
+      setShowPersonalRecords(false);
+      setShowSettings(false);
+      setShowHistory(true);
+    }}
+    onOpenExercises={() => {
+      setShowHistory(false);
+      setShowStatistics(false);
+      setShowPersonalRecords(false);
+      setShowSettings(false);
+      setSelectedProgressExercise(null);
+      setShowExerciseProgress(true);
+    }}
+    onOpenPersonalRecords={() => {
+      setShowHistory(false);
+      setShowStatistics(false);
+      setShowExerciseProgress(false);
+      setShowSettings(false);
+      setShowPersonalRecords(true);
+    }}
+    onOpenSetup={() => {
+      setShowExerciseProgress(false);
+      setShowStatistics(false);
+      setShowHistory(false);
+      setShowPersonalRecords(false);
+      setShowSettings(false);
+      setSelectedProgressExercise(null);
+      setEditingProfile(true);
+    }}
+  />
+)}
+{settingsPanel}
+</main>
 );
 }
