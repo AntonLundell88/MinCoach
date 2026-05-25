@@ -370,7 +370,7 @@ function getLobbyIntro() {
         return "Håll den lugn före styrkan. Vill du köra hårt lägger vi den efter.";
       }
 
-      return "Jag har det med mig i passet.";
+      return "Bra. Jag räknar med det när vi startar.";
     }
 
     if (

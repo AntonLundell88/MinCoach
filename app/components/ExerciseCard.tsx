@@ -70,6 +70,16 @@ export default function ExerciseCard({
   const [showRirInfo, setShowRirInfo] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
   const exerciseInfo = getExerciseProfile(currentExerciseName);
+  const adjustReps = (delta: number) => {
+    const current = Number(repsInput);
+    const next = Number.isFinite(current)
+      ? Math.max(0, current + delta)
+      : delta > 0
+      ? 1
+      : 0;
+
+    setRepsInput(String(next));
+  };
 useEffect(() => {
   if (rirInput > 1 && didFailInput) {
     setDidFailInput(false);
@@ -211,13 +221,31 @@ useEffect(() => {
 
         <div className="space-y-1">
           <label className="text-xs text-gray-300">Reps</label>
-          <input
-            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/55 px-3 py-2 text-base font-semibold text-white outline-none focus:border-blue-300/35"
-            inputMode="numeric"
-            value={repsInput}
-            onChange={(e) => setRepsInput(e.target.value)}
-            placeholder="t.ex. 5"
-          />
+          <div className="grid grid-cols-[2.35rem_1fr_2.35rem] overflow-hidden rounded-xl border border-white/[0.09] bg-slate-950/55 focus-within:border-blue-300/35">
+            <button
+              type="button"
+              onClick={() => adjustReps(-1)}
+              className="border-r border-white/[0.08] text-lg font-semibold text-white/68 transition hover:bg-white/[0.06] hover:text-white"
+              aria-label="Minska reps"
+            >
+              −
+            </button>
+            <input
+              className="min-w-0 bg-transparent px-3 py-2 text-center text-base font-semibold text-white outline-none"
+              inputMode="numeric"
+              value={repsInput}
+              onChange={(e) => setRepsInput(e.target.value)}
+              placeholder="t.ex. 5"
+            />
+            <button
+              type="button"
+              onClick={() => adjustReps(1)}
+              className="border-l border-white/[0.08] text-lg font-semibold text-white/68 transition hover:bg-white/[0.06] hover:text-white"
+              aria-label="Öka reps"
+            >
+              +
+            </button>
+          </div>
         </div>
       </div>
 

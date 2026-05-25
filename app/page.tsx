@@ -339,19 +339,19 @@ function getWarmupCoachReply(warmup: WarmupContext) {
     return "Bra. Då tar vi första arbetssetet.";
   }
 
-  return "Jag har det med mig.";
+  return "Bra. Starta passet när du är redo.";
 }
 
 function getPainCoachReply(warmup: WarmupContext | null) {
   if (!warmup || warmup.status === "unknown") {
-    return "Avbryt den övningen. Värm upp lätt nästa gång innan första arbetssetet.";
+    return "Bra att du säger till. Vi tar ingen risk här. Lämna den övningen eller byt till något som känns helt smärtfritt.";
   }
 
   if (warmup.status === "skipped") {
-    return "Avbryt den övningen. Nästa gång vill jag att du värmer upp lätt först.";
+    return "Bra att du säger till. Vi stoppar den övningen här. Nästa gång värmer vi upp lättare innan första arbetssetet.";
   }
 
-  return "Avbryt den övningen. Du värmde upp, så vi tar ingen mer risk här.";
+  return "Bra att du säger till. Du värmde upp, så vi chansar inte vidare. Lämna den övningen eller byt till något som känns helt smärtfritt.";
 }
 
 function getPainCoachActionText(warmup: WarmupContext | null) {
@@ -458,7 +458,7 @@ function getConditioningCoachReply(
     return "Lägg den efter styrkan idag.";
   }
 
-  return "Jag har det med mig i passet.";
+  return "Bra. Jag räknar med det när vi startar.";
 }
 function loadJSON<T>(key: string, fallback: T): T {
   try {
@@ -1444,10 +1444,10 @@ function getSetTrend(args: {
         return "Nu blev det tyngre än förra setet.";
       }
 
-      return "Du matchade förra setet.";
+      return "Samma nivå som förra setet.";
     }
 
-    return "Du matchade förra setet.";
+    return "Samma nivå som förra setet.";
   }
 
   if (weight > previousSet.weight) {
@@ -1630,6 +1630,11 @@ function getNextSetPlan(args: {
   const fail = args.failNote?.trim().toLowerCase() ?? "";
   const restText = getRestTextForRir(rir);
   const techniqueCue = getExerciseCue(args.exerciseName ?? "");
+  const isIsolation =
+    techniqueCue.toLowerCase().includes("curl") ||
+    techniqueCue.toLowerCase().includes("triceps") ||
+    techniqueCue.toLowerCase().includes("sidolyft") ||
+    techniqueCue.toLowerCase().includes("kontakt");
   const range = (min: number, max: number) =>
     min === max ? `${min} reps` : `${min}–${max} reps`;
   const hasTechniqueIssue =
@@ -1731,7 +1736,9 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "reduce",
-      reason: "Nu sänker vi lite och gör nästa set kontrollerat.",
+      reason: isIsolation
+        ? "Vi sänker lite och låter nästa set handla om kontroll, inte maxreps."
+        : "Vi sänker lite och låter nästa set bli rent.",
     } satisfies NextSetPlan;
   }
 
@@ -1745,7 +1752,7 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "complete",
-      reason: "Tre arbetsset räcker här. Vi tar nästa övning.",
+      reason: "Den här övningen är klar. Vi går vidare.",
     } satisfies NextSetPlan;
   }
 
@@ -1765,8 +1772,8 @@ function getNextSetPlan(args: {
       techniqueCue,
       strategy: isBackoff ? "backoff" : "hold",
       reason: isBackoff
-        ? "Nu tar vi ett kontrollerat backoff-set."
-        : "Vi håller vikten men sänker repsmålet.",
+        ? "Nu tar vi ett lättare set med bra kvalitet."
+        : "Vi håller vikten och låter nästa set bekräfta nivån.",
     } satisfies NextSetPlan;
   }
 
@@ -1781,7 +1788,7 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "hold",
-      reason: "Bra. Samma vikt en gång till.",
+      reason: "Den nivån sitter. Vi tar samma vikt en gång till.",
     } satisfies NextSetPlan;
   }
 
@@ -2053,8 +2060,8 @@ function buildCoachMessage(args: {
   const isNewPersonalBest = personalRecordText?.startsWith("Nytt personbästa");
   const specificObservation = (() => {
     if (!hasPreviousSet) {
-      if (rir >= 3) return "Det var starkt gjort med så mycket kvar.";
-      if (rir === 2) return "Två reps kvar på första setet. Bra öppning.";
+      if (rir >= 3) return "Du hade mycket kvar. Det säger att nivån är för låg idag.";
+      if (rir === 2) return "Du öppnade kontrollerat och gav oss bra marginal.";
       if (rir === 1) return "En rep kvar på första setet.";
       return "Ingen rep kvar på första setet. Då backar vi lite.";
     }
@@ -2092,7 +2099,7 @@ function buildCoachMessage(args: {
         return "Samma reps, men med mindre kvar.";
       }
 
-      return "Du matchade förra setet.";
+      return "Du låg kvar på samma nivå som förra setet.";
     }
 
     if (hasPreviousSet && weight < previousSet.weight) {
@@ -2100,7 +2107,7 @@ function buildCoachMessage(args: {
         return "Du sänkte vikten och höll repsen.";
       }
 
-      return "Det här blev ett backoff-set efter tyngre arbete.";
+      return "Bra. Du tog ner vikten och höll kvaliteten efter det tunga jobbet.";
     }
 
     if (hasPreviousSet && reps < previousSet.reps) {
@@ -2172,10 +2179,10 @@ function buildCoachMessage(args: {
 
     if (fail || rir <= 0) {
       return coachResponse([
-        "Riktigt bra jobbat här.",
+        "Bra jobbat. Vi lämnar den här övningen här.",
         currentText,
         hasPreviousSet
-          ? "Du gjorde det viktiga här och avslutade utan att jaga fula reps. Det gillar jag."
+          ? "Du fick ut det vi behövde utan att pressa vidare i onödan."
           : "Det räcker för idag.",
         `${exerciseName} är klar för idag.`,
         "Tryck Nästa övning när du är redo.",
@@ -2183,7 +2190,7 @@ function buildCoachMessage(args: {
     }
 
     return coachResponse([
-      "Snyggt jobbat här.",
+      "Snyggt. Den här övningen är klar för idag.",
       currentText,
       nextSetPlan.reason,
       "Tryck Nästa övning när du är redo.",
@@ -2280,16 +2287,18 @@ function buildCoachMessage(args: {
 
     return coachResponse([
       setNumber === 1
-        ? "Bra första set."
+        ? rir === 2
+          ? "Bra start. Det där var en trygg öppning."
+          : "Bra öppning."
         : hasPreviousSet && reps < previousSet!.reps
         ? "Bra. Det där var precis uppgiften."
         : "Bra jobbat där.",
       currentText,
       hasPreviousSet && reps < previousSet!.reps
-        ? "Repsen sjönk, men du höll marginalen."
+        ? "Du höll kvaliteten även när repsen sjönk lite."
         : bodyObservation,
       hasPreviousSet && reps < previousSet!.reps
-        ? `Vi kör ${nextSetWeightText} en gång till.`
+        ? `${nextSetWeightText} igen. Samma fokus.`
         : nextSetPlan.reason,
       "",
       "Nästa set:",
@@ -2320,8 +2329,8 @@ function buildCoachMessage(args: {
         : setNumber === 1
         ? "Starkt första set."
         : nextSetPlan.strategy === "backoff"
-        ? "Snyggt. Bra kontroll på ett tungt set."
-        : "Bra tryck där.",
+        ? "Snyggt. Du höll ihop det efter det tunga jobbet."
+        : "Bra tryck där!",
       "",
       currentText,
       bodyObservation,
@@ -2338,10 +2347,10 @@ function buildCoachMessage(args: {
 
   if (rir === 0) {
     return coachResponse([
-      "Bra kämpat! Där var vi vid gränsen.",
+      "Bra kämpat! Där var vi nära gränsen.",
       currentText,
       hasPreviousSet
-        ? "Det där var väntat efter jobbet innan."
+        ? "Det är helt rimligt efter arbetet innan."
         : bodyObservation,
       nextSetPlan.reason,
       "",
@@ -3540,6 +3549,9 @@ async function sendChat() {
   const routedConditioningContext = buildConditioningContext(msg);
   const routedHasAnyLoggedSet =
     workout?.exercises?.some((ex) => ex.sets.length > 0) ?? false;
+  const normalizedChatMessage = normalizeIntentText(msg);
+  const lastCoachMessage =
+    [...chatLog].reverse().find((message) => message.role === "coach")?.text || "";
   const confirmsPendingSwap =
     workout &&
     swapFrom &&
@@ -3565,6 +3577,42 @@ async function sendChat() {
         plan: progressionPlan,
         exerciseName: currentExerciseName,
       })
+    );
+    return;
+  }
+
+  if (
+    workout &&
+    lastCoachMessage.toLowerCase().includes("risk") &&
+    includesAnyIntent(normalizedChatMessage, [
+      "kor en till",
+      "kör en till",
+      "en till",
+      "fortsatt",
+      "fortsätt",
+      "testar igen",
+    ])
+  ) {
+    reply(
+      "Jag vill inte att du pressar den här vidare om det gör ont. Det är inte fegt att lämna en övning. Tryck Hoppa över, så fortsätter vi med något som känns bättre."
+    );
+    return;
+  }
+
+  if (
+    workout &&
+    includesAnyIntent(normalizedChatMessage, [
+      "kandes stabilt",
+      "känns stabilt",
+      "stabilt",
+      "bra kontroll",
+      "kandes bra",
+      "kändes bra",
+      "bra kontakt",
+    ])
+  ) {
+    reply(
+      "Perfekt, det är viktig info. Om det känns stabilt håller vi planen och låter nästa set bekräfta nivån."
     );
     return;
   }
@@ -3713,8 +3761,6 @@ async function sendChat() {
     return;
   }
 
-  const lastCoachMessage =
-    [...chatLog].reverse().find((message) => message.role === "coach")?.text || "";
   const currentWorkoutExercise = workout?.exercises?.[exerciseIndex];
   const chatReply = await requestAiCoachChatReply({
     context: {
@@ -3741,7 +3787,7 @@ async function sendChat() {
       conditioningNote: activeConditioningContext?.note,
       previousCoachReply: lastCoachMessage,
     },
-    fallbackReply: "Jag har det med mig. Säg till om du vill att vi justerar något.",
+    fallbackReply: "Bra, det är viktig input. Jag svarar på det innan vi går vidare.",
   });
 
   reply(chatReply.text);
@@ -4573,6 +4619,10 @@ async function applyProgramPreference(preferenceRaw: string) {
     lower.includes("orolig") ||
     lower.includes("rädd") ||
     lower.includes("radd") ||
+    lower.includes("förklara") ||
+    lower.includes("forklara") ||
+    lower.includes("varför") ||
+    lower.includes("varfor") ||
     lower.includes("resultat") ||
     lower.includes("funkar") ||
     lower.includes("kommer funka") ||
@@ -4650,10 +4700,26 @@ async function applyProgramPreference(preferenceRaw: string) {
       lower.includes("starkare") ||
       lower.includes("bygga muskler") ||
       lower.includes("muskler");
+    const mentionsExplanation =
+      lower.includes("förklara") ||
+      lower.includes("forklara") ||
+      lower.includes("varför") ||
+      lower.includes("varfor") ||
+      lower.includes("valt upplägget") ||
+      lower.includes("valt upplagget");
+    const mentionsKnee =
+      lower.includes("knä") ||
+      lower.includes("kna") ||
+      lower.includes("knäna") ||
+      lower.includes("knana");
     const mentionsAgeOrRisk =
       lower.includes("70") ||
       lower.includes("äldre") ||
       lower.includes("aldre") ||
+      lower.includes("orolig") ||
+      lower.includes("rädd") ||
+      lower.includes("radd") ||
+      mentionsKnee ||
       lower.includes("ont") ||
       lower.includes("smärta") ||
       lower.includes("smarta") ||
@@ -4664,10 +4730,14 @@ async function applyProgramPreference(preferenceRaw: string) {
       lower.includes("säker") ||
       lower.includes("saker");
 
-    const fallbackReply = lower.includes("smalare") || lower.includes("fett") || lower.includes("gå ner") || lower.includes("ga ner")
+    const fallbackReply = mentionsKnee
+      ? "Bra att du säger det. Då ska upplägget kännas tryggt för knäna. Vi börjar med kontrollerade set, ingen maxning och övningar som går att justera direkt om något känns fel. Gör det ont går smärta före planen. Vill du kan jag göra benpassen ännu lugnare."
+      : lower.includes("smalare") || lower.includes("fett") || lower.includes("gå ner") || lower.includes("ga ner")
       ? "Ja, styrketräning passar även när målet är att bli smalare. Den hjälper kroppen behålla muskler och form medan kosten styr viktnedgången mest. Vill du kan jag göra upplägget mer fettminskningsvänligt."
       : mentionsResults
       ? "Jag fattar. Resultat kommer inte av ett perfekt pass, utan av att vi kan upprepa bra pass vecka efter vecka. Det här upplägget ger oss något att följa, höja och justera. Vill du kan jag förklara exakt hur progressionen ska ske."
+      : mentionsExplanation
+      ? "Jag valde upplägget för att ge dig tydliga pass som går att upprepa och följa. Målet är att vi ska kunna se vad som blir starkare, vad som känns bra och vad vi behöver justera. Om något känns osäkert ändrar vi hellre upplägget än chansar."
       : mentionsAgeOrRisk
       ? "Bra att du säger det. Du ska inte behöva känna dig osäker här. Vi börjar med marginal, undviker max och justerar direkt om något gör ont eller känns fel. Vill du kan jag göra upplägget lugnare."
       : "Bra fråga. Jag kan förklara varför jag valt upplägget eller justera det om något känns fel.";
@@ -5546,25 +5616,35 @@ function buildWorkoutReview(args: {
   const adjustments: string[] = [];
   const nextFocus: string[] = [];
 
-  if (summary.totalSets > 0) {
-    positives.push(`Du fick in ${summary.totalSets} set i passet.`);
-  }
-
-  if (summary.bestSetText && summary.bestSetText !== "Inget set loggat.") {
-    positives.push(`Bästa set idag var ${summary.bestSetText}.`);
-  }
-
-  if (failedSets.length === 0 && summary.totalSets > 0) {
-    positives.push("Du loggade passet utan set till failure.");
-  } else if (failedSets.length > 0) {
-    adjustments.push(
-      `Du hade ${failedSets.length} set som gick till failure. Nästa gång vill jag se lite mer marginal där.`
+  if (progression.improved.length > 0) {
+    positives.push(
+      `Du tog steg framåt i ${progression.improved.slice(0, 3).join(", ")}. Det gillar jag.`
     );
   }
 
-  if (hardSets.length >= 3) {
+  if (summary.bestSetText && summary.bestSetText !== "Inget set loggat.") {
+    positives.push(`Dagens starkaste träff var ${summary.bestSetText}.`);
+  }
+
+  if (summary.totalSets > 0 && hardSets.length >= 3) {
+    positives.push("Du var nära gränsen flera gånger och höll ihop passet. Det är starkt.");
+  } else if (summary.totalSets > 0) {
+    positives.push(`Du fick in ${summary.totalSets} set som ger oss en tydlig nivå till nästa gång.`);
+  }
+
+  if (failedSets.length === 0 && summary.totalSets > 0) {
+    positives.push("Du höll marginal hela vägen. Det ger oss bra data och bättre återhämtning.");
+  } else if (failedSets.length > 0) {
     adjustments.push(
-      "Det blev flera tunga set idag. Nästa pass börjar vi med lite mer marginal."
+      failedSets.length >= 3
+        ? "Du var vid gränsen många gånger idag. Nästa pass öppnar vi lite smartare så kvaliteten håller längre."
+        : "Du var vid gränsen i några set. Nästa gång sparar vi lite mer där."
+    );
+  }
+
+  if (hardSets.length >= 3 && failedSets.length === 0) {
+    adjustments.push(
+      "Det blev flera tunga set idag. Nästa pass öppnar vi kontrollerat och höjer om det sitter."
     );
   }
 
@@ -5575,9 +5655,11 @@ function buildWorkoutReview(args: {
   }
 
   const lastExercise = workout.exercises[workout.exercises.length - 1];
-  if (summary.totalSets > 0 && lastExercise && lastExercise.sets.length > 0) {
+  if (progression.improved.length > 0) {
+    nextFocus.push(`Nästa gång vill jag se om ${progression.improved[0]} kan hålla den här nivån igen.`);
+  } else if (summary.totalSets > 0 && lastExercise && lastExercise.sets.length > 0) {
     nextFocus.push(
-      `Nästa gång tittar vi på ${lastExercise.name} igen.`
+      `Nästa gång börjar vi med ett lugnt första set i ${lastExercise.name}.`
     );
   }
 
@@ -5608,7 +5690,7 @@ const exercisesWithFailure = workout.exercises
 
 if (exercisesWithFailure.length > 0) {
   coachMemoryTakeaway.push(
-    `Jag minns att det tog stopp i ${exercisesWithFailure.join(", ")}.`
+    `Jag minns att ${exercisesWithFailure.join(", ")} blev riktigt tungt idag.`
   );
 }
 
@@ -5625,7 +5707,7 @@ if (coachMemoryTakeaway.length === 0) {
   coachMemoryTakeaway.push(
     summary.isPartial
       ? "Jag sparar passet precis som det blev."
-      : "Inget stort att korrigera just nu."
+      : "Jag kommer ihåg dagens nivåer till nästa pass."
   );
 }
 return {
@@ -5684,12 +5766,14 @@ function buildWorkoutSummary(w: Workout) {
     bestSetText = `${bestSet.weight} kg × ${bestSet.reps}`;
   }
 
-  let coachSummary = "Passet är sparat. Bra jobb.";
+  let coachSummary = "Passet är sparat. Bra jobbat idag.";
 
   if (totalSets === 0) {
     coachSummary = "Ingen fara. Vi sparar passet som det är och börjar om nästa gång.";
   } else if (isPartial) {
     coachSummary = `Ingen fara. Vi sparar passet som det är. ${totalSets} set räcker för idag.`;
+  } else if (allSets.filter((set) => typeof set.rir === "number" && set.rir <= 1).length >= 3) {
+    coachSummary = "Det där var ett tungt pass. Bra jobbat idag.";
   } else if (dayForm === "stark") {
     coachSummary = "Du kom in stark idag. Det där var ett bra pass.";
   } else if (dayForm === "trött") {

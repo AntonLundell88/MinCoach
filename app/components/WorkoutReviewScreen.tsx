@@ -124,7 +124,7 @@ export default function WorkoutReviewScreen({ review, onClose }: Props) {
         <StatCard label="Bästa set" value={review.bestSetText} />
       </section>
 
-      <ReviewList title="Det vi vet" items={review.positives} />
+      <ReviewList title="Det jag såg" items={review.positives} />
 
       {hasProgression ? (
         <section className={cardClassName}>
@@ -148,9 +148,9 @@ export default function WorkoutReviewScreen({ review, onClose }: Props) {
         </section>
       ) : null}
 
-      <ReviewList title="Justering" items={review.adjustments} />
-      <ReviewList title="Nästa fokus" items={review.nextFocus} />
-      <ReviewList title="Coachminne" items={review.coachMemoryTakeaway} />
+      <ReviewList title="Justera nästa gång" items={review.adjustments} />
+      <ReviewList title="Nästa pass" items={review.nextFocus} />
+      <ReviewList title="Jag minns" items={review.coachMemoryTakeaway} />
 
       <button
         className="w-full rounded-2xl bg-[#2f6df6] py-4 font-semibold text-white transition hover:bg-[#4f83ff]"
