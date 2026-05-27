@@ -233,7 +233,7 @@ function getCustomExerciseCue(category: string) {
   return "Fokus: samma utförande varje gång och smärtfri rörelse.";
 }
 
-const KNOWN_EXERCISE_NAMES = [
+export const KNOWN_EXERCISE_NAMES = [
   "Assisterade chins",
   "Axelpress",
   "Bandrodd",

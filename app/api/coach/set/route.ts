@@ -92,7 +92,7 @@ export async function POST(request: Request) {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 9000);
+  const timeoutId = setTimeout(() => controller.abort(), 22000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -104,6 +104,8 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL ?? "gpt-5-mini",
         instructions: payload.system,
+        reasoning: { effort: "minimal" },
+        text: { verbosity: "low" },
         input: [
           {
             role: "user",
@@ -119,7 +121,7 @@ export async function POST(request: Request) {
             ],
           },
         ],
-        max_output_tokens: 220,
+        max_output_tokens: 1600,
       }),
       signal: controller.signal,
     });
@@ -140,6 +142,19 @@ export async function POST(request: Request) {
 
     const data = await response.json();
     const aiText = extractOutputText(data);
+    const fallbackText = sanitizeCoachReply(
+      fallbackReply,
+      fallbackReply,
+      payload.maxCharacters
+    );
+
+    if (!aiText.trim()) {
+      return NextResponse.json({
+        mode: "fallback",
+        reason: data?.status === "incomplete" ? "incomplete_empty_reply" : "empty_reply",
+        text: fallbackText,
+      });
+    }
 
     return NextResponse.json({
       mode: "ai",

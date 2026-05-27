@@ -45,11 +45,16 @@ function extractOutputText(data: unknown) {
 function fallbackResponse(
   fallbackReply: string,
   reason: string,
-  maxCharacters?: number
+  maxCharacters?: number,
+  debug?: string
 ) {
   return NextResponse.json({
     mode: "fallback",
     reason,
+    debug:
+      process.env.NODE_ENV !== "production" && debug
+        ? debug.slice(0, 700)
+        : undefined,
     text: sanitizeCoachReply(fallbackReply, fallbackReply, maxCharacters),
   });
 }
@@ -92,7 +97,7 @@ export async function POST(request: Request) {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 9000);
+  const timeoutId = setTimeout(() => controller.abort(), 22000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -104,6 +109,8 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL ?? "gpt-5-mini",
         instructions: payload.system,
+        reasoning: { effort: "minimal" },
+        text: { verbosity: "low" },
         input: [
           {
             role: "user",
@@ -119,7 +126,7 @@ export async function POST(request: Request) {
             ],
           },
         ],
-        max_output_tokens: 190,
+        max_output_tokens: 1400,
       }),
       signal: controller.signal,
     });
@@ -133,24 +140,61 @@ export async function POST(request: Request) {
 
       return fallbackResponse(
         fallbackReply,
-        "api_error",
-        payload.maxCharacters
+        `api_error_${response.status}`,
+        payload.maxCharacters,
+        errorText
       );
     }
 
     const data = await response.json();
     const aiText = extractOutputText(data);
+    const fallbackText = sanitizeCoachReply(
+      fallbackReply,
+      fallbackReply,
+      payload.maxCharacters
+    );
+
+    if (!aiText.trim()) {
+      return NextResponse.json({
+        mode: "fallback",
+        reason: data?.status === "incomplete" ? "incomplete_empty_reply" : "empty_reply",
+        text: fallbackText,
+      });
+    }
+
+    const sanitizedText = sanitizeCoachReply(
+      aiText,
+      fallbackReply,
+      payload.maxCharacters
+    );
+    const usedSanitizedFallback =
+      Boolean(aiText.trim()) && sanitizedText === fallbackText;
+
+    if (
+      process.env.NODE_ENV !== "production" &&
+      usedSanitizedFallback
+    ) {
+      console.warn("OpenAI coach chat sanitized fallback", {
+        userMessage: context.userMessage,
+        aiText: aiText.slice(0, 500),
+        fallbackReply,
+      });
+    }
 
     return NextResponse.json({
-      mode: "ai",
-      text: sanitizeCoachReply(
-        aiText,
-        fallbackReply,
-        payload.maxCharacters
-      ),
+      mode: usedSanitizedFallback ? "fallback" : "ai",
+      reason: usedSanitizedFallback ? "sanitized_reply" : undefined,
+      text: sanitizedText,
     });
-  } catch {
-    return fallbackResponse(fallbackReply, "api_error", payload.maxCharacters);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown OpenAI request error";
+    return fallbackResponse(
+      fallbackReply,
+      "api_error",
+      payload.maxCharacters,
+      message
+    );
   } finally {
     clearTimeout(timeoutId);
   }

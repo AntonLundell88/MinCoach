@@ -93,9 +93,9 @@ useEffect(() => {
 }, [didFailInput, failNoteInput, setFailNoteInput]);
   
  return (
-  <div className="space-y-2 rounded-[1.35rem] border border-white/[0.09] bg-white/[0.052] p-3 shadow-[0_14px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl">
+  <div className="space-y-3 rounded-[1.6rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
     {skippedExerciseName ? (
-      <div className="rounded-2xl border border-white/[0.09] bg-slate-950/18 px-3 py-3">
+      <div className="rounded-2xl border border-white/[0.07] bg-slate-950/14 px-3 py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/45">
@@ -120,13 +120,13 @@ useEffect(() => {
     <div>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <p className="min-w-0 truncate text-lg font-semibold tracking-tight">
+          <p className="min-w-0 truncate text-xl font-semibold tracking-tight">
             {currentExerciseName}
           </p>
           <button
             type="button"
             onClick={() => setShowExerciseInfo(true)}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
             aria-label={`Visa info om ${currentExerciseName}`}
           >
             i
@@ -135,11 +135,11 @@ useEffect(() => {
 
         <button
           type="button"
-          className="shrink-0 rounded-lg border border-white/[0.09] bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-white/72 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+          className="shrink-0 rounded-full border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
           onClick={onSkipExercise}
           disabled={!canSkipExercise}
         >
-          Hoppa över
+          Hoppa över övning
         </button>
       </div>
 
@@ -191,7 +191,7 @@ useEffect(() => {
         const prForUI = personalRecords[exerciseKey(currentExerciseName)];
 
         return (
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
             {prForUI ? (
               <div className="rounded-full border border-amber-200/18 bg-amber-200/[0.08] px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_0_18px_rgba(251,191,36,0.06)]">
                 Personbästa {prForUI.weight} × {prForUI.reps}
@@ -207,11 +207,11 @@ useEffect(() => {
       })()}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-xs text-gray-300">Vikt (kg)</label>
           <input
-            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/55 px-3 py-2 text-base font-semibold text-white outline-none focus:border-blue-300/35"
+            className="w-full rounded-2xl border border-white/[0.075] bg-slate-950/50 px-3.5 py-2.5 text-center text-lg font-semibold text-white outline-none transition focus:border-blue-300/35"
             inputMode="decimal"
             value={weightInput}
             onChange={(e) => setWeightInput(e.target.value)}
@@ -221,17 +221,17 @@ useEffect(() => {
 
         <div className="space-y-1">
           <label className="text-xs text-gray-300">Reps</label>
-          <div className="grid grid-cols-[2.35rem_1fr_2.35rem] overflow-hidden rounded-xl border border-white/[0.09] bg-slate-950/55 focus-within:border-blue-300/35">
+          <div className="grid grid-cols-[2.55rem_1fr_2.55rem] overflow-hidden rounded-2xl border border-white/[0.075] bg-slate-950/50 transition focus-within:border-blue-300/35">
             <button
               type="button"
               onClick={() => adjustReps(-1)}
-              className="border-r border-white/[0.08] text-lg font-semibold text-white/68 transition hover:bg-white/[0.06] hover:text-white"
+              className="border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
               aria-label="Minska reps"
             >
               −
             </button>
             <input
-              className="min-w-0 bg-transparent px-3 py-2 text-center text-base font-semibold text-white outline-none"
+              className="min-w-0 bg-transparent px-3 py-2.5 text-center text-lg font-semibold text-white outline-none"
               inputMode="numeric"
               value={repsInput}
               onChange={(e) => setRepsInput(e.target.value)}
@@ -240,7 +240,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => adjustReps(1)}
-              className="border-l border-white/[0.08] text-lg font-semibold text-white/68 transition hover:bg-white/[0.06] hover:text-white"
+              className="border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
               aria-label="Öka reps"
             >
               +
@@ -277,7 +277,7 @@ useEffect(() => {
   </div>
 )}
 
-<div className="mt-1.5 grid grid-cols-6 gap-1">
+<div className="mt-1.5 grid grid-cols-6 gap-1.5 rounded-2xl bg-slate-950/22 p-1">
   {[0, 1, 2, 3, 4, 5].map((value) => {
     const isActive = rirInput === value;
 
@@ -286,10 +286,10 @@ useEffect(() => {
         key={value}
         type="button"
         onClick={() => setRirInput(value)}
-        className={`rounded-lg border px-2 py-1.5 text-sm font-semibold transition ${
+        className={`rounded-xl border px-2 py-1.5 text-sm font-semibold transition ${
           isActive
-            ? "border-blue-400/25 bg-blue-500/[0.14] text-white"
-            : "border-white/[0.09] bg-slate-950/38 text-white/75 hover:bg-white/5 hover:text-white"
+            ? "border-blue-400/25 bg-blue-500/[0.16] text-white shadow-[0_0_16px_rgba(59,130,246,0.10)]"
+            : "border-transparent bg-transparent text-white/64 hover:bg-white/[0.045] hover:text-white"
         }`}
       >
         {value === 5 ? "5+" : value}
@@ -348,16 +348,16 @@ useEffect(() => {
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-0.5">
         <button
-       className="flex-1 rounded-xl border border-blue-500/20 bg-[#2f6df6] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4f83ff] active:scale-[0.98]"
+       className="flex-1 rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98]"
           onClick={addSet}
         >
           Lägg till set
         </button>
 
         <button
-          className="rounded-xl border border-white/[0.09] bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
+          className="rounded-2xl border border-white/[0.075] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/64 transition hover:bg-white/[0.07] hover:text-white"
           onClick={removeLastSet}
           title="Ta bort senaste set"
         >

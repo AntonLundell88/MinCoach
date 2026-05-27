@@ -30,6 +30,22 @@ type Props = {
   sendChat: () => void;
 };
 
+const coachInputPlaceholders = [
+  "Skriv till coachen...",
+  't.ex. "det kändes lätt"',
+  't.ex. "jag är helt slut"',
+  't.ex. "kan jag höja sen?"',
+  't.ex. "det där satt fint"',
+  't.ex. "jag känner av axeln"',
+  't.ex. "maskinen är upptagen"',
+  't.ex. "varför sänker vi?"',
+];
+
+function getRandomCoachPlaceholder(current?: string) {
+  const options = coachInputPlaceholders.filter((item) => item !== current);
+  return options[Math.floor(Math.random() * options.length)] ?? coachInputPlaceholders[0];
+}
+
 function useTypewriter(text: string, speed = 20, delay = 500) {
   const [displayed, setDisplayed] = React.useState("");
   const [isThinking, setIsThinking] = React.useState(true);
@@ -124,6 +140,9 @@ export default function CoachPanel({
   setChatInput,
   sendChat,
 }: Props) {
+    const [coachInputPlaceholder, setCoachInputPlaceholder] = React.useState(
+      () => getRandomCoachPlaceholder()
+    );
     const lastCoachIndex = chatLog.reduce(
       (latest, message, index) => (message.role === "coach" ? index : latest),
       -1
@@ -148,6 +167,17 @@ export default function CoachPanel({
 
     return () => window.cancelAnimationFrame(scrollFrame);
   }, [chatLog, coachData, typedLastCoachMessage, isThinkingLastCoach]);
+
+  useEffect(() => {
+    if (chatInput.trim()) return;
+
+    const placeholderFrame = window.setTimeout(() => {
+      setCoachInputPlaceholder((current) => getRandomCoachPlaceholder(current));
+    }, 0);
+
+    return () => window.clearTimeout(placeholderFrame);
+  }, [chatLog.length, chatInput]);
+
   return (
     <div className="space-y-4">
     
@@ -209,7 +239,7 @@ export default function CoachPanel({
             className="coach-input min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/52 px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-blue-300/35 focus:bg-slate-950/65"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Skriv till coachen..."
+            placeholder={coachInputPlaceholder}
             onKeyDown={(e) => {
               if (e.key === "Enter") sendChat();
             }}

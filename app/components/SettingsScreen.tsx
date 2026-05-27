@@ -8,6 +8,7 @@ type Props = {
   onBack: () => void;
   onOpenProfile: () => void;
   onOpenProgram?: () => void;
+  onResetAll: () => void;
 };
 
 export default function SettingsScreen({
@@ -16,6 +17,7 @@ export default function SettingsScreen({
   onBack,
   onOpenProfile,
   onOpenProgram,
+  onResetAll,
 }: Props) {
   const isLight = theme === "light";
   const cardClassName = isLight
@@ -157,6 +159,32 @@ export default function SettingsScreen({
             </button>
           </section>
         ) : null}
+
+        <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
+          <p className={labelClassName}>Beta</p>
+          <h2
+            className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}
+          >
+            Återställ appen
+          </h2>
+          <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
+            Tar bort all lokal testdata på den här enheten.
+          </p>
+          <button
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Vill du återställa all lokal data? Det går inte att ångra."
+                )
+              ) {
+                onResetAll();
+              }
+            }}
+            className={`mt-4 ${subtleButtonClassName}`}
+          >
+            Återställ
+          </button>
+        </section>
       </div>
       </aside>
     </div>

@@ -12,6 +12,9 @@ type PassType = "A" | "B" | "C" | "D";
 
 type UserProfile = {
   name: string;
+  age?: number | null;
+  gender?: "kvinna" | "man" | "annat" | "vill-inte-saga";
+  trainingExperience?: "nyborjare" | "van" | "erfaren";
   goalPrimary: Goal;
   goalSecondary?: Goal[];
   daysPerWeek: number;
@@ -24,13 +27,27 @@ type UserProfile = {
 type WorkoutPass = {
   key: PassType;
   displayName: string;
-  exercises: { name: string }[];
+  intent?: string;
+  exercises: {
+    name: string;
+    purpose?: string;
+    sets?: string;
+    reps?: string;
+    rir?: string;
+    caution?: string;
+    alternatives?: string[];
+  }[];
 };
 
 type WorkoutPlan = {
   title: string;
   goalPrimary: Goal;
   daysPerWeek: number;
+  coachSummary?: string;
+  planReason?: string;
+  structureReason?: string;
+  safetyNotes?: string[];
+  source?: "ai" | "fallback" | "manual";
   passes: WorkoutPass[];
 };
 
@@ -41,9 +58,11 @@ type Props = {
   setPreferenceInput: (value: string) => void;
   preferenceReply: string;
   pendingProgramSuggestion: CoachProgramSuggestion | null;
+  programBuildStatus: "idle" | "building" | "ready" | "fallback";
   onSavePreference: () => void;
   onApproveProgramSuggestion: () => void;
   onDismissProgramSuggestion: () => void;
+  onRebuildProgram: () => void;
   onRenamePass: (passKey: PassType, displayName: string) => void;
   onRemoveExercise: (passKey: PassType, exerciseName: string) => void;
   onApprove: () => void;
@@ -108,9 +127,11 @@ export default function ProgramReviewScreen({
   setPreferenceInput,
   preferenceReply,
   pendingProgramSuggestion,
+  programBuildStatus,
   onSavePreference,
   onApproveProgramSuggestion,
   onDismissProgramSuggestion,
+  onRebuildProgram,
   onRenamePass,
   onRemoveExercise,
   onApprove,
@@ -120,9 +141,6 @@ export default function ProgramReviewScreen({
   const [showInputHelp, setShowInputHelp] = useState(false);
   const [editingPassKey, setEditingPassKey] = useState<PassType | null>(null);
   const [passNameInput, setPassNameInput] = useState("");
-  const secondaryGoals =
-    profile.goalSecondary?.filter((goal) => goal !== profile.goalPrimary) ?? [];
-
   function startEditingPassName(pass: WorkoutPass) {
     setEditingPassKey(pass.key);
     setPassNameInput(pass.displayName);
@@ -147,32 +165,63 @@ export default function ProgramReviewScreen({
       <div className="mx-auto flex w-full max-w-[430px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
-            Coachen bygger upplägget
+            Programcoach
           </p>
 
           <h1 className="mt-3 text-[1.45rem] font-semibold leading-tight tracking-normal text-white">
-            Så här tänker jag lägga upp träningen.
+            Så här vill jag lägga upp träningen.
           </h1>
 
           <p className="mt-3 text-sm leading-6 text-white/72">
-            Målet först: {goalLabel(profile.goalPrimary)}.{" "}
-            {secondaryGoals.length > 0
-              ? `Jag tar också hänsyn till ${secondaryGoals
-                  .map(goalLabel)
-                  .join(" och ")}.`
-              : null}
+            {workoutPlan.coachSummary ||
+              `Målet först: ${goalLabel(profile.goalPrimary)}. Jag bygger ett upplägg som går att följa, mäta och justera.`}
           </p>
+
+          {programBuildStatus === "building" ? (
+            <div className="mt-4 rounded-2xl border border-blue-300/16 bg-blue-400/[0.07] p-3 text-sm font-semibold leading-6 text-blue-50/78">
+              Jag bygger upplägget med AI nu. Du ser ett enkelt säkerhetsupplägg medan jag tänker klart.
+            </div>
+          ) : null}
+
+          {programBuildStatus === "fallback" ? (
+            <div className="mt-4 rounded-2xl border border-amber-300/18 bg-amber-300/[0.07] p-3 text-sm leading-6 text-amber-50/74">
+              Jag fick inte hela AI-bygget just nu, så jag visar ett tryggt grundupplägg. Du kan trycka bygg om.
+            </div>
+          ) : null}
 
           <div className="mt-4 rounded-2xl border border-blue-300/12 bg-blue-400/[0.055] p-3.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/48">
               Varför detta upplägg
             </p>
             <p className="mt-2 text-sm leading-6 text-white/78">
-              {buildPlanReason(profile)}
+              {workoutPlan.planReason || buildPlanReason(profile)}
             </p>
             <p className="mt-2 text-sm leading-6 text-white/68">
-              {buildStructureReason(profile, workoutPlan)}
+              {workoutPlan.structureReason || buildStructureReason(profile, workoutPlan)}
             </p>
+            {workoutPlan.safetyNotes?.length ? (
+              <div className="mt-3 grid gap-1.5">
+                {workoutPlan.safetyNotes.map((note) => (
+                  <p
+                    key={note}
+                    className="rounded-xl border border-white/8 bg-slate-950/18 px-3 py-2 text-xs leading-5 text-white/62"
+                  >
+                    {note}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={onRebuildProgram}
+              disabled={programBuildStatus === "building"}
+              className="rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-xs font-semibold text-white/62 transition hover:bg-white/[0.07] hover:text-white disabled:opacity-45"
+            >
+              Bygg om med coachen
+            </button>
           </div>
         </section>
 
@@ -236,6 +285,11 @@ export default function ProgramReviewScreen({
                         <p className="mt-0.5 text-[11px] font-medium text-white/38">
                           {pass.exercises.length} övningar
                         </p>
+                        {pass.intent ? (
+                          <p className="mt-1 line-clamp-2 text-[11px] font-medium leading-4 text-white/48">
+                            {pass.intent}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   )}
@@ -265,9 +319,23 @@ export default function ProgramReviewScreen({
                   {pass.exercises.map((exercise) => (
                     <div
                       key={`${pass.key}-${exercise.name}`}
-                      className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.06] bg-white/[0.035] px-3 py-2 text-sm font-semibold text-white/74"
+                      className="flex items-start justify-between gap-2 rounded-xl border border-white/[0.06] bg-white/[0.035] px-3 py-2 text-sm font-semibold text-white/74"
                     >
-                      <span className="min-w-0 truncate">{exercise.name}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate">{exercise.name}</span>
+                        {exercise.purpose ? (
+                          <span className="mt-0.5 block text-[11px] font-medium leading-4 text-white/42">
+                            {exercise.purpose}
+                          </span>
+                        ) : null}
+                        {exercise.sets || exercise.reps || exercise.rir ? (
+                          <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-100/36">
+                            {[exercise.sets && `${exercise.sets} set`, exercise.reps && `${exercise.reps} reps`, exercise.rir && `RIR ${exercise.rir}`]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                        ) : null}
+                      </span>
                       <button
                         type="button"
                         onClick={() => onRemoveExercise(pass.key, exercise.name)}
@@ -324,14 +392,48 @@ export default function ProgramReviewScreen({
                         {info.equipment}
                       </p>
                       <p className="mt-2 text-sm leading-6 text-white/68">
-                        {info.detail}
+                        {exercise.purpose || info.detail}
                       </p>
+                      {exercise.sets || exercise.reps || exercise.rir ? (
+                        <div className="mt-3 grid grid-cols-3 gap-1.5">
+                          {exercise.sets ? (
+                            <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                                Set
+                              </p>
+                              <p className="mt-1 text-xs font-semibold text-white/72">
+                                {exercise.sets}
+                              </p>
+                            </div>
+                          ) : null}
+                          {exercise.reps ? (
+                            <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                                Reps
+                              </p>
+                              <p className="mt-1 text-xs font-semibold text-white/72">
+                                {exercise.reps}
+                              </p>
+                            </div>
+                          ) : null}
+                          {exercise.rir ? (
+                            <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                                RIR
+                              </p>
+                              <p className="mt-1 text-xs font-semibold text-white/72">
+                                {exercise.rir}
+                              </p>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                       <div className="mt-3 rounded-xl border border-white/8 bg-white/[0.035] p-2.5">
                         <p className="text-xs leading-5 text-white/64">
                           {info.techniqueCue}
                         </p>
                         <p className="mt-1 text-xs leading-5 text-white/44">
-                          {info.progressionRule}
+                          {exercise.caution || info.progressionRule}
                         </p>
                       </div>
                     </div>
@@ -366,20 +468,49 @@ export default function ProgramReviewScreen({
             </button>
           </div>
 
-          <div className="mt-3 flex gap-2">
-            <input
-              className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/45 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/45"
-              value={preferenceInput}
-              onChange={(event) => setPreferenceInput(event.target.value)}
-              placeholder='t.ex. "mer bröst", "inte marklyft"'
-            />
-            <button
-              className="rounded-xl bg-[#2f6df6] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4f83ff] disabled:opacity-45"
-              disabled={!preferenceInput.trim()}
-              onClick={onSavePreference}
-            >
-              Skicka
-            </button>
+          <div
+            className={`mt-3 rounded-2xl border p-2.5 transition ${
+              preferenceReply || pendingProgramSuggestion
+                ? "border-blue-300/18 bg-blue-400/[0.055]"
+                : "border-transparent bg-transparent p-0"
+            }`}
+          >
+            {preferenceReply || pendingProgramSuggestion ? (
+              <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/52">
+                  Skriv vidare här
+                </p>
+                <p className="text-[11px] font-medium text-white/38">
+                  Samma samtal
+                </p>
+              </div>
+            ) : null}
+
+            <div className="flex gap-2">
+              <input
+                className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/45 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/45"
+                value={preferenceInput}
+                onChange={(event) => setPreferenceInput(event.target.value)}
+                placeholder={
+                  preferenceReply || pendingProgramSuggestion
+                    ? "Svara coachen eller skriv en ny ändring..."
+                    : 't.ex. "mer bröst", "inte marklyft"'
+                }
+              />
+              <button
+                className="rounded-xl bg-[#2f6df6] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4f83ff] disabled:opacity-45"
+                disabled={!preferenceInput.trim()}
+                onClick={onSavePreference}
+              >
+                Skicka
+              </button>
+            </div>
+
+            {preferenceReply || pendingProgramSuggestion ? (
+              <p className="mt-2 px-1 text-xs leading-5 text-white/44">
+                Du kan svara på coachens fråga, ställa en följdfråga eller ändra upplägget i samma ruta.
+              </p>
+            ) : null}
           </div>
 
           {showInputHelp ? (
@@ -435,8 +566,14 @@ export default function ProgramReviewScreen({
           ) : null}
 
           {preferenceReply ? (
-            <div className="mt-3 rounded-2xl border border-white/8 bg-slate-950/22 p-3 text-sm leading-6 text-white/72">
-              {preferenceReply}
+            <div className="mt-3 rounded-2xl border border-blue-300/14 bg-slate-950/22 p-3 text-sm leading-6 text-white/72">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/48">
+                Coachens svar
+              </p>
+              <p>{preferenceReply}</p>
+              <p className="mt-2 border-t border-white/[0.06] pt-2 text-xs font-medium leading-5 text-white/42">
+                Skriv vidare i rutan ovan.
+              </p>
             </div>
           ) : null}
 

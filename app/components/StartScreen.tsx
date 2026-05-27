@@ -7,10 +7,19 @@ type PassType = "A" | "B" | "C" | "D";
 
 type CustomExercisesByPass = Record<PassType, string[]>;
 
+type PassChoice = {
+  key: PassType;
+  label: string;
+  exerciseCount: number;
+};
+
 type Props = {
   name: string;
   nextPass: PassType;
   nextPassLabel: string;
+  recommendedPass: PassType;
+  availablePasses: PassChoice[];
+  onSelectPass: (pass: PassType) => void;
   now: Date;
 
   plan: string[];
@@ -238,6 +247,9 @@ function buildIntentAwareCheckInReply(intent: CheckInIntent) {
 export default function StartScreen({
   nextPass,
   nextPassLabel,
+  recommendedPass,
+  availablePasses,
+  onSelectPass,
   now,
   plan,
   exerciseKey,
@@ -558,12 +570,57 @@ function getLobbyIntro() {
           </div>
           
           <div className="rounded-2xl border border-white/[0.09] bg-slate-950/18 p-4 backdrop-blur-sm">
-            <p className="text-2xl font-semibold text-white">
-              {cleanNextPassLabel}
-            </p>
-            <p className="mt-1 text-sm text-white/50">
-              {plan.length + todayExercises.length} övningar idag
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.14em] text-white/35">
+                  Dagens pass
+                </p>
+                <p className="mt-1 text-2xl font-semibold text-white">
+                  {cleanNextPassLabel}
+                </p>
+                <p className="mt-1 text-sm text-white/50">
+                  {plan.length + todayExercises.length} övningar idag
+                </p>
+              </div>
+
+              {nextPass === recommendedPass ? (
+                <span className="rounded-full border border-blue-300/18 bg-blue-500/[0.10] px-2.5 py-1 text-[11px] font-semibold text-blue-100/80">
+                  Coachens val
+                </span>
+              ) : (
+                <span className="rounded-full border border-white/[0.09] bg-white/[0.045] px-2.5 py-1 text-[11px] font-semibold text-white/55">
+                  Bytt idag
+                </span>
+              )}
+            </div>
+
+            {availablePasses.length > 1 ? (
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                {availablePasses.map((pass) => {
+                  const isActive = pass.key === nextPass;
+
+                  return (
+                    <button
+                      key={pass.key}
+                      type="button"
+                      onClick={() => onSelectPass(pass.key)}
+                      className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                        isActive
+                          ? "border-blue-300/28 bg-blue-500/[0.14] text-white"
+                          : "border-white/[0.08] bg-white/[0.035] text-white/58 hover:bg-white/[0.06] hover:text-white"
+                      }`}
+                    >
+                      <span className="block text-sm font-semibold">
+                        {pass.label}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-white/42">
+                        {pass.exerciseCount} övningar
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
 
           <button

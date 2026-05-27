@@ -5,6 +5,7 @@ import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
 import WorkoutHeader from "./WorkoutHeader";
 import WorkoutNavigation from "./WorkoutNavigation";
+import { getExerciseProfile } from "../lib/exercises";
 
 type WorkoutHeaderData = {
   pass: string;
@@ -97,23 +98,47 @@ function getTopSet(progression: { weight: number; reps: number }[]) {
   })[0];
 }
 function getRestTime(exerciseName: string) {
-  const lower = exerciseName.toLowerCase();
-
-  const heavyWords = [
-    "bänk",
-    "mark",
-    "knäböj",
-    "press",
-    "rodd",
-    "deadlift",
-    "squat",
-    "benpress",
-  ];
-
-  const isHeavy = heavyWords.some((word) => lower.includes(word));
-
-  if (isHeavy) return "2–3 min";
+  if (getExerciseRestKind(exerciseName) === "heavy") return "2–3 min";
   return "60–90 sek";
+}
+
+function getExerciseRestKind(exerciseName: string) {
+  const profile = getExerciseProfile(exerciseName);
+  const lower = exerciseName.toLowerCase();
+  const cue = profile.techniqueCue.toLowerCase();
+
+  if (
+    profile.category === "armar" ||
+    profile.category === "axlar" ||
+    profile.category === "mage" ||
+    lower.includes("vad") ||
+    lower.includes("benspark") ||
+    lower.includes("lårcurl") ||
+    lower.includes("larcurl") ||
+    lower.includes("curl") ||
+    lower.includes("pushdown") ||
+    lower.includes("sidolyft") ||
+    cue.includes("kontakt")
+  ) {
+    return "isolation" as const;
+  }
+
+  if (
+    lower.includes("mark") ||
+    lower.includes("knäböj") ||
+    lower.includes("knöböj") ||
+    lower.includes("squat") ||
+    lower.includes("benpress") ||
+    lower.includes("bänk") ||
+    lower.includes("bank") ||
+    lower.includes("rodd") ||
+    lower.includes("latsdrag") ||
+    lower.includes("press")
+  ) {
+    return "heavy" as const;
+  }
+
+  return "normal" as const;
 }
 
 function formatRestTimer(seconds: number) {
@@ -124,10 +149,24 @@ function formatRestTimer(seconds: number) {
 }
 
 function getRestTargetRange(exerciseName: string, rir?: number) {
+  const kind = getExerciseRestKind(exerciseName);
+
   if (typeof rir === "number") {
-    if (rir === 0) return { min: 240, max: 240, label: "4:00" };
+    if (kind === "isolation") {
+      if (rir === 0) return { min: 120, max: 120, label: "2:00" };
+      if (rir === 1) return { min: 90, max: 120, label: "1:30–2:00" };
+      return { min: 60, max: 90, label: "1:00–1:30" };
+    }
+
+    if (kind === "normal") {
+      if (rir === 0) return { min: 180, max: 180, label: "3:00" };
+      if (rir === 1) return { min: 120, max: 180, label: "2:00–3:00" };
+      return { min: 120, max: 120, label: "2:00" };
+    }
+
+    if (rir === 0) return { min: 180, max: 240, label: "3:00–4:00" };
     if (rir === 1) return { min: 180, max: 180, label: "3:00" };
-    return { min: 120, max: 120, label: "2:00" };
+    return { min: 120, max: 180, label: "2:00–3:00" };
   }
 
   const recommendation = getRestTime(exerciseName);
@@ -463,8 +502,18 @@ useEffect(() => {
         personalRecords={personalRecords}
       />
 
+      <WorkoutNavigation
+        exerciseIndex={exerciseIndex}
+        activePlan={activePlan}
+        showAddExercise={showAddExercise}
+        toggleAddExercise={() => setShowAddExercise((value) => !value)}
+        prevExercise={prevExercise}
+        nextExercise={nextExercise}
+        finishWorkout={finishWorkout}
+      />
+
       <div
-        className={`rounded-[1.2rem] border border-white/[0.09] bg-white/[0.038] p-2.5 backdrop-blur-2xl ${
+        className={`rounded-[1.15rem] border border-white/[0.06] bg-white/[0.022] px-3 py-2 backdrop-blur-2xl ${
           showRestTimer ? "hidden" : ""
         }`}
       >
@@ -474,10 +523,10 @@ useEffect(() => {
             onClick={() => setShowRestTimer((value) => !value)}
             className="min-w-0 flex-1 text-left"
           >
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/32">
               Vila
             </span>
-            <span className="mt-0.5 flex items-center gap-2 text-sm font-semibold text-white/86">
+            <span className="mt-0.5 flex items-center gap-2 text-sm font-semibold text-white/82">
               {formatRestTimer(restElapsed)}
               <span className="text-xs font-medium text-white/42">
                 coach {restTarget.label}
@@ -488,12 +537,12 @@ useEffect(() => {
           <button
             type="button"
             onClick={startRestTimer}
-            className="shrink-0 rounded-lg border border-blue-400/20 bg-blue-500/[0.08] px-2.5 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.14]"
+            className="shrink-0 rounded-xl border border-blue-400/18 bg-blue-500/[0.075] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.13]"
           >
             {restStartedAt ? "Om" : "Starta"}
           </button>
 
-          <label className="flex shrink-0 items-center gap-1 rounded-lg border border-white/[0.09] bg-white/[0.048] px-2 py-2 text-xs font-semibold text-white/58">
+          <label className="flex shrink-0 items-center gap-1 rounded-xl border border-white/[0.065] bg-white/[0.032] px-2.5 py-2 text-xs font-semibold text-white/52">
             <input
               type="checkbox"
               checked={autoStartRestTimer}
@@ -506,7 +555,7 @@ useEffect(() => {
           <button
             type="button"
             onClick={() => setShowRestTimer((value) => !value)}
-            className="shrink-0 rounded-lg border border-white/[0.09] bg-white/[0.048] px-2.5 py-2 text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+            className="shrink-0 rounded-xl border border-white/[0.065] bg-white/[0.032] px-2.5 py-2 text-xs font-semibold text-white/52 transition hover:bg-white/[0.07] hover:text-white"
           >
             {showRestTimer ? "Dölj" : "Visa"}
           </button>
@@ -516,9 +565,9 @@ useEffect(() => {
           <div
             className={`hidden mt-2 rounded-[1.1rem] border p-2.5 transition ${
               restTimerState === "over"
-                ? "animate-pulse border-red-300/35 bg-red-500/[0.08] shadow-[0_0_30px_rgba(248,113,113,0.20)]"
+                ? "border-red-300/45 bg-[#2a1417] shadow-[0_0_30px_rgba(248,113,113,0.22)]"
                 : restTimerState === "ready"
-                ? "animate-pulse border-orange-300/35 bg-orange-500/[0.08] shadow-[0_0_28px_rgba(251,146,60,0.18)]"
+                ? "border-orange-300/45 bg-[#2a1d12] shadow-[0_0_28px_rgba(251,146,60,0.22)]"
                 : "border-blue-400/15 bg-slate-950/22"
             }`}
           >
@@ -617,29 +666,11 @@ useEffect(() => {
 
       <SetList currentSets={currentSets} />
 
-      <div className="rounded-[1.2rem] border border-white/[0.09] bg-white/[0.038] p-2.5 backdrop-blur-2xl">
-        <button
-          type="button"
-          onClick={() => setShowAddExercise((value) => !value)}
-          className="flex w-full items-center justify-between gap-3 text-left"
-        >
-          <span>
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
-              Lägg till övning
-            </span>
-            <span className="mt-0.5 block text-xs leading-5 text-white/50">
-              Om gymmet eller kroppen styr om.
-            </span>
-          </span>
-          <span className="rounded-lg border border-white/[0.09] bg-white/[0.048] px-3 py-1.5 text-xs font-semibold text-white/62">
-            {showAddExercise ? "Dölj" : "+"}
-          </span>
-        </button>
-
-        {showAddExercise ? (
-          <div className="mt-2 flex gap-2">
+      {showAddExercise ? (
+        <div className="rounded-[1.15rem] border border-white/[0.06] bg-white/[0.018] px-3 py-2 backdrop-blur-2xl">
+          <div className="flex gap-2">
             <input
-              className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/42 px-3 py-2 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
+              className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/38 px-3 py-2 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
               value={workoutExerciseInput}
               onChange={(e) => setWorkoutExerciseInput(e.target.value)}
               placeholder='t.ex. "Chins"'
@@ -652,7 +683,7 @@ useEffect(() => {
             />
 
             <button
-              className="rounded-xl border border-blue-400/20 bg-blue-500/[0.10] px-4 text-sm font-semibold text-white transition hover:bg-[#4f83ff]/[0.14]"
+              className="rounded-xl border border-blue-400/18 bg-blue-500/[0.09] px-4 text-sm font-semibold text-white transition hover:bg-[#4f83ff]/[0.14]"
               onClick={() => {
                 addExerciseDuringWorkout();
                 setShowAddExercise(false);
@@ -661,28 +692,18 @@ useEffect(() => {
               Lägg till
             </button>
           </div>
-        ) : null}
-      </div>
-
-      <div className="space-y-3">
-        <WorkoutNavigation
-          exerciseIndex={exerciseIndex}
-          activePlan={activePlan}
-          prevExercise={prevExercise}
-          nextExercise={nextExercise}
-          finishWorkout={finishWorkout}
-        />
-      </div>
+        </div>
+      ) : null}
     </div>
     {shouldShowRestDock ? (
       <div className="fixed inset-x-0 bottom-3 z-40 px-3 sm:bottom-5">
         <div
           className={`mx-auto w-full max-w-[430px] rounded-[1.35rem] border p-3 shadow-[0_18px_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl transition ${
             restTimerState === "over"
-              ? "animate-pulse border-red-300/35 bg-[#2a1417]/92 shadow-[0_0_34px_rgba(248,113,113,0.22)]"
+              ? "border-red-300/45 bg-[#2a1417] shadow-[0_0_34px_rgba(248,113,113,0.28)]"
               : restTimerState === "ready"
-              ? "animate-pulse border-orange-300/35 bg-[#2a1d12]/92 shadow-[0_0_32px_rgba(251,146,60,0.20)]"
-              : "border-white/[0.11] bg-[#111a25]/94"
+              ? "border-orange-300/45 bg-[#2a1d12] shadow-[0_0_32px_rgba(251,146,60,0.26)]"
+              : "border-white/[0.11] bg-[#111a25]"
           }`}
         >
           <div className="flex items-center justify-between gap-3">

@@ -65,6 +65,29 @@ function cleanText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9åäö\s]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isVagueExerciseName(value: string) {
+  const key = normalizeText(value);
+  return (
+    !key ||
+    key.includes("narmsta liknande") ||
+    key.includes("liknande ovning") ||
+    key === "alternativ" ||
+    key === "ersattning" ||
+    key === "annan ovning" ||
+    key === "nagot annat"
+  );
+}
+
 function normalizeSuggestionAction(value: unknown): CoachProgramSuggestionAction | null {
   if (!value || typeof value !== "object") return null;
 
@@ -73,7 +96,7 @@ function normalizeSuggestionAction(value: unknown): CoachProgramSuggestionAction
 
   if (type === "add_exercise") {
     const exerciseName = cleanText(action.exerciseName);
-    if (!exerciseName) return null;
+    if (!exerciseName || isVagueExerciseName(exerciseName)) return null;
 
     return {
       type,
@@ -86,7 +109,7 @@ function normalizeSuggestionAction(value: unknown): CoachProgramSuggestionAction
 
   if (type === "remove_exercise") {
     const exerciseName = cleanText(action.exerciseName);
-    if (!exerciseName) return null;
+    if (!exerciseName || isVagueExerciseName(exerciseName)) return null;
 
     return {
       type,
@@ -98,7 +121,14 @@ function normalizeSuggestionAction(value: unknown): CoachProgramSuggestionAction
   if (type === "replace_exercise") {
     const fromExerciseName = cleanText(action.fromExerciseName);
     const toExerciseName = cleanText(action.toExerciseName);
-    if (!fromExerciseName || !toExerciseName) return null;
+    if (
+      !fromExerciseName ||
+      !toExerciseName ||
+      isVagueExerciseName(fromExerciseName) ||
+      isVagueExerciseName(toExerciseName)
+    ) {
+      return null;
+    }
 
     return {
       type,
@@ -212,7 +242,7 @@ export async function POST(request: Request) {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 9000);
+  const timeoutId = setTimeout(() => controller.abort(), 22000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -224,6 +254,8 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL ?? "gpt-5-mini",
         instructions: payload.system,
+        reasoning: { effort: "minimal" },
+        text: { verbosity: "low" },
         input: [
           {
             role: "user",
@@ -239,7 +271,7 @@ export async function POST(request: Request) {
             ],
           },
         ],
-        max_output_tokens: 320,
+        max_output_tokens: 1800,
       }),
       signal: controller.signal,
     });
@@ -260,6 +292,15 @@ export async function POST(request: Request) {
 
     const data = await response.json();
     const aiText = extractOutputText(data);
+
+    if (!aiText.trim()) {
+      return fallbackResponse(
+        fallbackReply,
+        data?.status === "incomplete" ? "incomplete_empty_reply" : "empty_reply",
+        payload.maxCharacters
+      );
+    }
+
     const parsed = parseProgramAiResponse(aiText);
 
     return NextResponse.json({
