@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { getExerciseProfile } from "../lib/exercises";
@@ -165,11 +165,11 @@ export default function ProgramReviewScreen({
       <div className="mx-auto flex w-full max-w-[430px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
-            Programcoach
+            Coachen
           </p>
 
           <h1 className="mt-3 text-[1.45rem] font-semibold leading-tight tracking-normal text-white">
-            Så här vill jag lägga upp träningen.
+            Jag har byggt ditt upplägg.
           </h1>
 
           <p className="mt-3 text-sm leading-6 text-white/72">
@@ -185,7 +185,7 @@ export default function ProgramReviewScreen({
 
           {programBuildStatus === "fallback" ? (
             <div className="mt-4 rounded-2xl border border-amber-300/18 bg-amber-300/[0.07] p-3 text-sm leading-6 text-amber-50/74">
-              Jag fick inte hela AI-bygget just nu, så jag visar ett tryggt grundupplägg. Du kan trycka bygg om.
+              AI-bygget gick inte igenom. Jag visar ett tillfälligt grundupplägg här, men bygg om med coachen innan du godkänner.
             </div>
           ) : null}
 
@@ -200,17 +200,39 @@ export default function ProgramReviewScreen({
               {workoutPlan.structureReason || buildStructureReason(profile, workoutPlan)}
             </p>
             {workoutPlan.safetyNotes?.length ? (
-              <div className="mt-3 grid gap-1.5">
+              <div className="mt-4 rounded-2xl border border-white/[0.07] bg-slate-950/18 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/38">
+                  Viktigt innan du startar
+                </p>
+                <div className="mt-2 grid gap-2">
                 {workoutPlan.safetyNotes.map((note) => (
                   <p
                     key={note}
-                    className="rounded-xl border border-white/8 bg-slate-950/18 px-3 py-2 text-xs leading-5 text-white/62"
+                    className="text-xs leading-5 text-white/62"
                   >
                     {note}
                   </p>
                 ))}
+                </div>
               </div>
             ) : null}
+          </div>
+
+          <div className="mt-3 rounded-2xl border border-white/[0.075] bg-white/[0.035] p-3.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+              Snabb ordbok
+            </p>
+            <div className="mt-2 grid gap-2.5 text-xs leading-5 text-white/64">
+              <p>
+                <span className="font-semibold text-white/82">Vikt</span> är vikten du kör med. Vid hantlar räknar vi oftast vikten per hantel.
+              </p>
+              <p>
+                <span className="font-semibold text-white/82">Reps</span> är repetitioner, alltså hur många gånger du gör rörelsen.
+              </p>
+              <p>
+                <span className="font-semibold text-white/82">RIR</span> är hur många reps du tror att du hade kvar innan det tog stopp.
+              </p>
+            </div>
           </div>
 
           <div className="mt-3 flex justify-end">
@@ -631,3 +653,4 @@ export default function ProgramReviewScreen({
     </main>
   );
 }
+

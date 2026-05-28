@@ -313,11 +313,46 @@ html[data-theme="light"],
   animation: splashWord 1.25s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes programBuildLogo {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 62px rgba(59, 130, 246, 0.12);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.025);
+    box-shadow: 0 0 92px rgba(59, 130, 246, 0.2);
+  }
+}
+
+@keyframes programBuildStep {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.program-build-logo {
+  animation: programBuildLogo 3.2s ease-in-out infinite;
+}
+
+.program-build-step {
+  animation: programBuildStep 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .splash-mark,
   .splash-word,
   .animate-message-in,
-  .fade-up {
+  .fade-up,
+  .program-build-logo,
+  .program-build-step {
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
   }

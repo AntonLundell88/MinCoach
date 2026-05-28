@@ -19,6 +19,8 @@ type CoachProgramBuildRequest = {
 };
 
 const PASS_KEYS = ["A", "B", "C", "D"] as const;
+const PROGRAM_BUILD_TIMEOUT_MS = 75000;
+const PROGRAM_BUILD_ATTEMPTS = 2;
 
 function extractOutputText(data: unknown) {
   if (!data || typeof data !== "object") return "";
@@ -154,8 +156,20 @@ function parsePlan(rawText: string, fallbackPlan: BuiltWorkoutPlan): BuiltWorkou
   if (!jsonText) return null;
 
   try {
-    const parsed = JSON.parse(jsonText) as Record<string, unknown>;
-    const rawPasses = Array.isArray(parsed.passes) ? parsed.passes : [];
+    const rawParsed = JSON.parse(jsonText) as unknown;
+    const parsed =
+      rawParsed && typeof rawParsed === "object" && !Array.isArray(rawParsed)
+        ? ((rawParsed as { plan?: unknown; workoutPlan?: unknown }).plan ??
+            (rawParsed as { workoutPlan?: unknown }).workoutPlan ??
+            rawParsed)
+        : null;
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+
+    const parsedPlan = parsed as Record<string, unknown>;
+    const rawPasses = Array.isArray(parsedPlan.passes) ? parsedPlan.passes : [];
     const passCount = Math.min(
       Math.max(1, Number(fallbackPlan.daysPerWeek) || rawPasses.length || 1),
       4
@@ -169,13 +183,13 @@ function parsePlan(rawText: string, fallbackPlan: BuiltWorkoutPlan): BuiltWorkou
 
     return {
       ...fallbackPlan,
-      title: cleanText(parsed.title) || fallbackPlan.title,
+      title: cleanText(parsedPlan.title) || fallbackPlan.title,
       coachSummary:
-        cleanText(parsed.coachSummary) || fallbackPlan.coachSummary,
-      planReason: cleanText(parsed.planReason) || fallbackPlan.planReason,
+        cleanText(parsedPlan.coachSummary) || fallbackPlan.coachSummary,
+      planReason: cleanText(parsedPlan.planReason) || fallbackPlan.planReason,
       structureReason:
-        cleanText(parsed.structureReason) || fallbackPlan.structureReason,
-      safetyNotes: cleanList(parsed.safetyNotes),
+        cleanText(parsedPlan.structureReason) || fallbackPlan.structureReason,
+      safetyNotes: cleanList(parsedPlan.safetyNotes),
       source: "ai",
       builtAt: new Date().toISOString(),
       passes,
@@ -225,68 +239,97 @@ export async function POST(request: Request) {
     return fallbackResponse(fallbackPlan, "missing_api_key");
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  let lastReason = "api_error";
 
-  try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model:
-          process.env.OPENAI_PROGRAM_MODEL ??
-          process.env.OPENAI_MODEL ??
-          "gpt-5-mini",
-        instructions: payload.system,
-        reasoning: { effort: "medium" },
-        text: { verbosity: "low" },
-        input: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: JSON.stringify({
-                  context: payload.context,
-                  instruction: payload.instruction,
-                }),
-              },
-            ],
-          },
-        ],
-        max_output_tokens: 2600,
-      }),
-      signal: controller.signal,
-    });
+  for (let attempt = 1; attempt <= PROGRAM_BUILD_ATTEMPTS; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      PROGRAM_BUILD_TIMEOUT_MS
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      console.error("OpenAI program build failed", {
-        status: response.status,
-        body: errorText.slice(0, 500),
+    try {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model:
+            process.env.OPENAI_PROGRAM_MODEL ??
+            process.env.OPENAI_MODEL ??
+            "gpt-5-mini",
+          instructions: payload.system,
+          reasoning: { effort: "medium" },
+          text: { verbosity: "low" },
+          input: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "input_text",
+                  text: JSON.stringify({
+                    context: payload.context,
+                    instruction:
+                      attempt === 1
+                        ? payload.instruction
+                        : `${payload.instruction}\n\nDet förra försöket gick inte att använda. Svara nu med ENDAST komplett, giltig JSON enligt formatet. Inga extra ord.`,
+                  }),
+                },
+              ],
+            },
+          ],
+          max_output_tokens: 5200,
+        }),
+        signal: controller.signal,
       });
 
-      return fallbackResponse(fallbackPlan, "api_error");
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        lastReason = `api_error_${response.status}`;
+        console.error("OpenAI program build failed", {
+          attempt,
+          status: response.status,
+          body: errorText.slice(0, 500),
+        });
+
+        if (response.status === 401 || response.status === 403 || response.status === 429) {
+          break;
+        }
+
+        continue;
+      }
+
+      const data = await response.json();
+      const aiText = extractOutputText(data);
+      const plan = parsePlan(aiText, fallbackPlan);
+
+      if (plan) {
+        return NextResponse.json({
+          mode: "ai",
+          plan,
+        });
+      }
+
+      lastReason = "invalid_plan";
+      console.error("OpenAI program build returned invalid plan", {
+        attempt,
+        body: aiText.slice(0, 700),
+      });
+    } catch (error) {
+      lastReason =
+        (error as { name?: string })?.name === "AbortError"
+          ? "timeout"
+          : "api_error";
+      console.error("OpenAI program build request failed", {
+        attempt,
+        reason: lastReason,
+      });
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const data = await response.json();
-    const aiText = extractOutputText(data);
-    const plan = parsePlan(aiText, fallbackPlan);
-
-    if (!plan) {
-      return fallbackResponse(fallbackPlan, "invalid_plan");
-    }
-
-    return NextResponse.json({
-      mode: "ai",
-      plan,
-    });
-  } catch {
-    return fallbackResponse(fallbackPlan, "api_error");
-  } finally {
-    clearTimeout(timeoutId);
   }
+
+  return fallbackResponse(fallbackPlan, lastReason);
 }

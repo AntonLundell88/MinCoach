@@ -13,6 +13,7 @@ import StatisticsScreen from "./components/StatisticsScreen";
 import HistoryScreen from "./components/HistoryScreen";
 import PersonalRecordsScreen from "./components/PersonalRecordsScreen";
 import ProgramReviewScreen from "./components/ProgramReviewScreen";
+import ProgramBuildLoadingScreen from "./components/ProgramBuildLoadingScreen";
 import SettingsScreen from "./components/SettingsScreen";
 import {
   requestAiCoachChatReply,
@@ -32,6 +33,8 @@ import {
 } from "./lib/exercises";
 type PassType = "A" | "B" | "C" | "D";
 type AppTheme = "dark" | "light";
+
+const PROGRAM_BUILD_MIN_MS = 4500;
 
 function AppControls({
   theme,
@@ -3066,6 +3069,8 @@ const [programPreferences, setProgramPreferences] = useState<string[]>([]);
 const [programBuildStatus, setProgramBuildStatus] = useState<
   "idle" | "building" | "ready" | "fallback"
 >("idle");
+const [programBuildScreenVisible, setProgramBuildScreenVisible] =
+  useState(false);
 const [pendingProgramSuggestion, setPendingProgramSuggestion] =
   useState<CoachProgramSuggestion | null>(null);
 const [customWorkoutPlan, setCustomWorkoutPlan] =
@@ -3263,7 +3268,9 @@ return applyWorkoutPlanEdits({
 async function buildAiWorkoutPlanForProfile(profile: UserProfile) {
   const fallbackPlan = buildProgramFallbackPlan(profile);
   const signature = getProgramProfileSignature(profile);
+  const buildStartedAt = Date.now();
 
+  setProgramBuildScreenVisible(true);
   setProgramBuildStatus("building");
   setPendingProgramSuggestion(null);
   setProgramPreferenceReply("");
@@ -3296,9 +3303,17 @@ async function buildAiWorkoutPlanForProfile(profile: UserProfile) {
     source: result.mode === "ai" ? "ai" : "fallback",
   };
 
-  setCustomWorkoutPlan(nextPlan);
-  saveJSON("customWorkoutPlan", nextPlan);
-  setProgramBuildStatus(result.mode === "ai" ? "ready" : "fallback");
+  const waitTime = Math.max(
+    0,
+    PROGRAM_BUILD_MIN_MS - (Date.now() - buildStartedAt)
+  );
+
+  window.setTimeout(() => {
+    setCustomWorkoutPlan(nextPlan);
+    saveJSON("customWorkoutPlan", nextPlan);
+    setProgramBuildStatus(result.mode === "ai" ? "ready" : "fallback");
+    setProgramBuildScreenVisible(false);
+  }, waitTime);
 }
 
 useEffect(() => {
@@ -3328,17 +3343,21 @@ useEffect(() => {
         : "idle";
     const statusFrame = window.setTimeout(() => {
       setProgramBuildStatus(nextBuildStatus);
+      setProgramBuildScreenVisible(false);
     }, 0);
 
     return () => window.clearTimeout(statusFrame);
   }
 
   let cancelled = false;
+  let finishTimer: number | null = null;
 
   async function run() {
     const fallbackPlan = buildProgramFallbackPlan(activeProfile);
     const signature = getProgramProfileSignature(activeProfile);
+    const buildStartedAt = Date.now();
 
+    setProgramBuildScreenVisible(true);
     setProgramBuildStatus("building");
 
     const result = await requestAiProgramBuild({
@@ -3372,15 +3391,26 @@ useEffect(() => {
       source: result.mode === "ai" ? "ai" : "fallback",
     };
 
-    setCustomWorkoutPlan(nextPlan);
-    saveJSON("customWorkoutPlan", nextPlan);
-    setProgramBuildStatus(result.mode === "ai" ? "ready" : "fallback");
+    const waitTime = Math.max(
+      0,
+      PROGRAM_BUILD_MIN_MS - (Date.now() - buildStartedAt)
+    );
+
+    finishTimer = window.setTimeout(() => {
+      if (cancelled) return;
+
+      setCustomWorkoutPlan(nextPlan);
+      saveJSON("customWorkoutPlan", nextPlan);
+      setProgramBuildStatus(result.mode === "ai" ? "ready" : "fallback");
+      setProgramBuildScreenVisible(false);
+    }, waitTime);
   }
 
   run();
 
   return () => {
     cancelled = true;
+    if (finishTimer) window.clearTimeout(finishTimer);
   };
 }, [userProfile, showProgramReview, customWorkoutPlan, programPreferences]);
 
@@ -5489,6 +5519,54 @@ async function applyProgramPreference(preferenceRaw: string) {
     lower.includes("ta med") ||
     lower.includes("vill ha")
   ) {
+    const requestedExercise = cleanProgramExerciseRequest(
+      extractExerciseNameAfterNormalized(preference, [
+        "lägg till",
+        "lägga till",
+        "ta med",
+        "vill ha",
+      ])
+    );
+    const requestedResolved = resolveExerciseName(requestedExercise);
+    const requestedExerciseName =
+      requestedResolved.status === "known"
+        ? requestedResolved.name
+        : requestedResolved.status === "suggest"
+        ? requestedResolved.suggestion
+        : "";
+
+    if (requestedExerciseName) {
+      const count = addProgramFocusExercise(
+        (pass) => {
+          const key = exerciseKey(pass.displayName);
+          if (lower.includes("överkropp") || lower.includes("overkropp")) {
+            return key.includes("överkropp") || key.includes("overkropp");
+          }
+          if (
+            lower.includes("underkropp") ||
+            lower.includes("benpass") ||
+            lower.includes("ben")
+          ) {
+            return key.includes("underkropp") || key.includes("ben");
+          }
+          if (lower.includes("helkropp")) {
+            return key.includes("helkropp");
+          }
+
+          return (
+            key.includes("överkropp") ||
+            key.includes("overkropp") ||
+            key.includes("helkropp")
+          );
+        },
+        requestedExerciseName
+      );
+
+      return count > 0
+        ? `Bra. Jag lägger in ${requestedExerciseName} i upplägget.`
+        : `Bra. Jag sparar att ${requestedExerciseName} ska in i upplägget.`;
+    }
+
     if (
       lower.includes("underkropp") ||
       lower.includes("benpass") ||
@@ -5523,13 +5601,13 @@ async function applyProgramPreference(preferenceRaw: string) {
         : `Bra. Jag sparar att överkropp ska få en övning till.`;
     }
 
-    const requestedExercise = extractExerciseNameAfterNormalized(preference, [
+    const requestedExerciseFallback = extractExerciseNameAfterNormalized(preference, [
       "lägg till",
       "lägga till",
       "ta med",
       "vill ha",
     ]);
-    const resolved = resolveExerciseName(requestedExercise);
+    const resolved = resolveExerciseName(requestedExerciseFallback);
 
     if (resolved.status === "known") {
       const count = addProgramFocusExercise(
@@ -5554,7 +5632,7 @@ async function applyProgramPreference(preferenceRaw: string) {
       return "Vad tränar den främst? Skriv till exempel egen ben:, egen rygg: eller egen armar:. Jag fyllde i ben som exempel.";
     }
 
-    if (requestedExercise) {
+    if (requestedExerciseFallback) {
       return "Jag är osäker på vilken övning du menar. Skriv gärna det vanligaste namnet, eller börja med egen: om du vill lägga in den exakt så.";
     }
   }
@@ -6618,6 +6696,8 @@ const profile: UserProfile = {
         saveJSON("exerciseOverridesByPass", { A: {}, B: {}, C: {}, D: {} });
         saveJSON("passDisplayNamesByPass", {});
         setEditingProfile(false);
+        setProgramBuildStatus("building");
+        setProgramBuildScreenVisible(true);
         setShowProgramReview(true);
         saveJSON("approvedWorkoutPlan", false);
       }}
@@ -6625,6 +6705,10 @@ const profile: UserProfile = {
     {settingsPanel}
     </>
   );
+}
+
+if (userProfile && showProgramReview && programBuildScreenVisible) {
+  return <ProgramBuildLoadingScreen />;
 }
 
 if (userProfile && workoutPlan && showProgramReview) {
