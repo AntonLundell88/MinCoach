@@ -20,10 +20,12 @@ import {
   requestAiCoachSetReply,
   requestAiProgramBuild,
   requestAiProgramReply,
+  requestAiWorkoutReview,
   type BuiltWorkoutPlan,
   type CoachProgramSuggestion,
   type CoachProgramSuggestionAction,
   type CoachSetContext,
+  type CoachWorkoutReviewResult,
 } from "./lib/coachAi";
 import {
   KNOWN_EXERCISE_NAMES,
@@ -184,6 +186,7 @@ type WorkoutReview = {
   totalVolumeKg: number;
   totalVolumeText: string;
   bestSetText: string;
+  coachHeadline: string;
   coachSummary: string;
   positives: string[];
   adjustments: string[];
@@ -195,6 +198,32 @@ type WorkoutReview = {
   };
     coachMemoryTakeaway: string[];
 };
+
+function getReviewCoachParts(review: WorkoutReview): CoachWorkoutReviewResult {
+  return {
+    coachHeadline: review.coachHeadline,
+    coachSummary: review.coachSummary,
+    positives: review.positives,
+    adjustments: review.adjustments,
+    nextFocus: review.nextFocus,
+    coachMemoryTakeaway: review.coachMemoryTakeaway,
+  };
+}
+
+function applyReviewCoachParts(
+  review: WorkoutReview,
+  parts: CoachWorkoutReviewResult
+): WorkoutReview {
+  return {
+    ...review,
+    coachHeadline: parts.coachHeadline,
+    coachSummary: parts.coachSummary,
+    positives: parts.positives,
+    adjustments: parts.adjustments,
+    nextFocus: parts.nextFocus,
+    coachMemoryTakeaway: parts.coachMemoryTakeaway,
+  };
+}
 
 type Workout = {
   id: string;
@@ -628,7 +657,7 @@ function buildProgressionPlan(args: {
     topWeightStableSets.length >= 2;
 
   if (shouldDeload) {
-    const deloadWeight = Math.max(0, topSet.weight - PROGRESSION_STEP);
+    const deloadWeight = getNextAvailableWeight(topSet.weight, exerciseName, "down");
     const reps = Math.max(1, Math.min(topSet.reps, targetReps));
 
     return {
@@ -643,7 +672,7 @@ function buildProgressionPlan(args: {
   }
 
   if (latestHard && latestSet.weight >= topSet.weight) {
-    const loweredWeight = Math.max(0, topSet.weight - PROGRESSION_STEP);
+    const loweredWeight = getNextAvailableWeight(topSet.weight, exerciseName, "down");
     const maxReps = Math.max(1, topSet.reps - 1);
 
     return {
@@ -658,7 +687,7 @@ function buildProgressionPlan(args: {
   }
 
   if (canIncrease) {
-    const nextWeight = topSet.weight + PROGRESSION_STEP;
+    const nextWeight = getNextAvailableWeight(topSet.weight, exerciseName, "up");
     const maxReps = Math.max(1, topSet.reps - 1);
     const minReps = Math.max(1, topSet.reps - 3);
 
@@ -1647,6 +1676,183 @@ function getAvailableProgramExercises() {
 const DEFAULT_TARGET_SETS = 3;
 const DEFAULT_TARGET_REPS = 5;
 const PROGRESSION_STEP = 2.5;
+const DUMBBELL_WEIGHT_SCALE = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30,
+  32.5, 35, 37.5, 40, 42.5, 45, 47.5, 50, 52.5, 55, 57.5, 60,
+];
+
+function isDumbbellWeightExercise(exerciseName: string) {
+  const lowerName = exerciseName.toLowerCase();
+  const equipment = getExerciseProfile(exerciseName).equipment.toLowerCase();
+
+  if (lowerName.includes("kabel") || lowerName.includes("cable")) return false;
+
+  return (
+    lowerName.includes("hantel") ||
+    lowerName.includes("sidolyft") ||
+    equipment.includes("hantel")
+  );
+}
+
+function getNextAvailableWeight(
+  weight: number,
+  exerciseName: string,
+  direction: "up" | "down"
+) {
+  if (!Number.isFinite(weight)) return weight;
+
+  if (isDumbbellWeightExercise(exerciseName)) {
+    if (direction === "up") {
+      return (
+        DUMBBELL_WEIGHT_SCALE.find((available) => available > weight + 0.001) ??
+        weight + PROGRESSION_STEP
+      );
+    }
+
+    return (
+      [...DUMBBELL_WEIGHT_SCALE]
+        .reverse()
+        .find((available) => available < weight - 0.001) ?? Math.max(0, weight - 1)
+    );
+  }
+
+  const next =
+    direction === "up" ? weight + PROGRESSION_STEP : Math.max(0, weight - PROGRESSION_STEP);
+  return Number(next.toFixed(2));
+}
+
+function roundToStep(weight: number, step: number, mode: "nearest" | "down" | "up") {
+  if (!Number.isFinite(weight)) return weight;
+  if (step <= 0) return Number(weight.toFixed(2));
+
+  const factor = weight / step;
+  const rounded =
+    mode === "down"
+      ? Math.floor(factor + 0.0001)
+      : mode === "up"
+      ? Math.ceil(factor - 0.0001)
+      : Math.round(factor);
+
+  return Number((rounded * step).toFixed(2));
+}
+
+function normalizeSuggestedWeight(
+  weight: number,
+  exerciseName: string,
+  mode: "nearest" | "down" | "up" = "nearest"
+) {
+  if (!Number.isFinite(weight)) return weight;
+  if (!isDumbbellWeightExercise(exerciseName)) {
+    return roundToStep(weight, PROGRESSION_STEP, mode);
+  }
+
+  if (mode === "down") {
+    return (
+      [...DUMBBELL_WEIGHT_SCALE]
+        .reverse()
+        .find((available) => available <= weight + 0.001) ?? DUMBBELL_WEIGHT_SCALE[0]
+    );
+  }
+
+  if (mode === "up") {
+    return (
+      DUMBBELL_WEIGHT_SCALE.find((available) => available >= weight - 0.001) ??
+      DUMBBELL_WEIGHT_SCALE[DUMBBELL_WEIGHT_SCALE.length - 1]
+    );
+  }
+
+  return DUMBBELL_WEIGHT_SCALE.reduce((closest, available) => {
+    const currentDistance = Math.abs(available - weight);
+    const closestDistance = Math.abs(closest - weight);
+    if (currentDistance < closestDistance) return available;
+    return closest;
+  }, DUMBBELL_WEIGHT_SCALE[0]);
+}
+
+function getExerciseDecisionProfile(exerciseName: string) {
+  const profile = getExerciseProfile(exerciseName);
+  const lower = exerciseName.toLowerCase();
+  const restKind = getExerciseRestKind(exerciseName);
+  const isTechnicalHinge =
+    lower.includes("rdl") ||
+    lower.includes("marklyft") ||
+    lower.includes("rumänska") ||
+    lower.includes("rumanska") ||
+    lower.includes("deadlift");
+  const isTechnicalSquat =
+    lower.includes("knäböj") ||
+    lower.includes("knöböj") ||
+    lower.includes("squat");
+
+  if (isTechnicalHinge || isTechnicalSquat) {
+    return {
+      type: "technical-heavy" as const,
+      backoffAfterFailure: 0.92,
+      backoffAfterHardSecondSet: 0.94,
+      techniqueDrop: 0.88,
+      painDrop: 0.8,
+      maxHardSets: 2,
+      riskNote:
+        "Tekniskt känslig basövning: hellre kvalitet och rygg/ledsäkerhet än fler maxreps.",
+    };
+  }
+
+  if (restKind === "heavy") {
+    return {
+      type: "heavy" as const,
+      backoffAfterFailure: 0.95,
+      backoffAfterHardSecondSet: 0.96,
+      techniqueDrop: 0.92,
+      painDrop: 0.85,
+      maxHardSets: 3,
+      riskNote: "Tung basövning: backoff ska hålla teknik och fart kvar.",
+    };
+  }
+
+  if (restKind === "isolation") {
+    return {
+      type: "isolation" as const,
+      backoffAfterFailure: 0.88,
+      backoffAfterHardSecondSet: 0.92,
+      techniqueDrop: 0.85,
+      painDrop: 0.75,
+      maxHardSets: 3,
+      riskNote: `${profile.category} / isolation: kontakt och kontroll går före last.`,
+    };
+  }
+
+  return {
+    type: "normal" as const,
+    backoffAfterFailure: 0.94,
+    backoffAfterHardSecondSet: 0.95,
+    techniqueDrop: 0.9,
+    painDrop: 0.82,
+    maxHardSets: 3,
+    riskNote: "Normal övning: justera efter marginal och kvalitet.",
+  };
+}
+
+function getBackoffWeight(args: {
+  weight: number;
+  exerciseName: string;
+  reason: "failure" | "hard-backoff" | "technique" | "pain";
+}) {
+  const profile = getExerciseDecisionProfile(args.exerciseName);
+  const multiplier =
+    args.reason === "pain"
+      ? profile.painDrop
+      : args.reason === "technique"
+      ? profile.techniqueDrop
+      : args.reason === "hard-backoff"
+      ? profile.backoffAfterHardSecondSet
+      : profile.backoffAfterFailure;
+  const percentageTarget = args.weight * multiplier;
+  const oneStepDown = getNextAvailableWeight(args.weight, args.exerciseName, "down");
+  const rawTarget = Math.min(oneStepDown, percentageTarget);
+  const roundMode = args.reason === "hard-backoff" ? "nearest" : "down";
+
+  return Math.max(0, normalizeSuggestedWeight(rawTarget, args.exerciseName, roundMode));
+}
 
 function getGoalTargets(goalPrimary: UserProfile["goalPrimary"]) {
   if (goalPrimary === "styrka") {
@@ -2002,11 +2208,23 @@ function getNextSetPlan(args: {
   failNote?: string;
   setNumber: number;
   exerciseName?: string;
+  previousSets?: { weight: number; reps: number; rir?: number }[];
 }) {
   const { weight, reps, rir, setNumber } = args;
+  const exerciseName = args.exerciseName ?? "";
+  const decisionProfile = getExerciseDecisionProfile(exerciseName);
+  const previousSet = args.previousSets?.[args.previousSets.length - 1];
+  const previousRir =
+    previousSet && typeof previousSet.rir === "number" ? previousSet.rir : null;
+  const rirDroppedHard =
+    previousSet &&
+    previousSet.weight === weight &&
+    previousSet.reps === reps &&
+    previousRir !== null &&
+    previousRir - rir >= 2;
   const fail = args.failNote?.trim().toLowerCase() ?? "";
-  const restText = getRestTextForRir(rir, args.exerciseName ?? "");
-  const techniqueCue = getExerciseCue(args.exerciseName ?? "");
+  const restText = getRestTextForRir(rir, exerciseName);
+  const techniqueCue = getExerciseCue(exerciseName);
   const isIsolation =
     techniqueCue.toLowerCase().includes("curl") ||
     techniqueCue.toLowerCase().includes("triceps") ||
@@ -2021,8 +2239,33 @@ function getNextSetPlan(args: {
     fail.includes("kontakt") ||
     fail.includes("kast") ||
     fail.includes("ostabil");
+  const hasPainIssue =
+    fail.includes("ont") ||
+    fail.includes("smärta") ||
+    fail.includes("känning") ||
+    fail.includes("skarp") ||
+    fail.includes("axel") ||
+    fail.includes("armbåge") ||
+    fail.includes("handled") ||
+    fail.includes("rygg") ||
+    fail.includes("knä");
 
   if (fail) {
+    if (hasPainIssue) {
+      return {
+        weight,
+        repsText: "gå vidare",
+        repsInput: reps,
+        rirText: "klar",
+        rirInput: 2,
+        restText,
+        techniqueCue,
+        strategy: "complete",
+        reason:
+          "Smärta går före planen. Vi lämnar övningen eller väljer en helt smärtfri variant.",
+      } satisfies NextSetPlan;
+    }
+
     if (setNumber >= 3) {
       return {
         weight,
@@ -2038,7 +2281,11 @@ function getNextSetPlan(args: {
     }
 
     if (hasTechniqueIssue) {
-      const nextWeight = Math.max(0, weight - PROGRESSION_STEP);
+      const nextWeight = getBackoffWeight({
+        weight,
+        exerciseName,
+        reason: "technique",
+      });
       const min = Math.max(1, reps - 3);
       const max = Math.max(min, reps - 1);
       return {
@@ -2070,7 +2317,11 @@ function getNextSetPlan(args: {
       } satisfies NextSetPlan;
     }
 
-    const nextWeight = Math.max(0, weight - PROGRESSION_STEP);
+    const nextWeight = getBackoffWeight({
+      weight,
+      exerciseName,
+      reason: "failure",
+    });
     const min = Math.max(1, reps - 1);
     const max = Math.max(min, reps);
     return {
@@ -2087,7 +2338,7 @@ function getNextSetPlan(args: {
   }
 
   if (rir <= 0) {
-    if (setNumber >= 3) {
+    if (setNumber >= decisionProfile.maxHardSets) {
       return {
         weight,
         repsText: "gå vidare",
@@ -2097,11 +2348,18 @@ function getNextSetPlan(args: {
         restText,
         techniqueCue,
         strategy: "complete",
-        reason: "Det räcker för den här övningen idag. Vi går vidare.",
+        reason:
+          decisionProfile.type === "technical-heavy"
+            ? "Det räcker för den här övningen idag. Vi skyddar tekniken och går vidare."
+            : "Det räcker för den här övningen idag. Vi går vidare.",
       } satisfies NextSetPlan;
     }
 
-    const nextWeight = Math.max(0, weight - PROGRESSION_STEP);
+    const nextWeight = getBackoffWeight({
+      weight,
+      exerciseName,
+      reason: "failure",
+    });
     const min = Math.max(1, reps - 1);
     const max = Math.max(min, reps);
     return {
@@ -2113,9 +2371,35 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "reduce",
-      reason: isIsolation
-        ? "Vi sänker lite och låter nästa set handla om kontroll, inte maxreps."
-        : "Vi sänker lite och låter nästa set bli rent.",
+      reason:
+        decisionProfile.type === "technical-heavy"
+          ? "Där var gränsen. Nu gör vi en tydlig backoff så tekniken håller."
+          : isIsolation
+          ? "Vi sänker lite och låter nästa set handla om kontroll, inte maxreps."
+          : "Vi sänker och låter nästa set bli rent.",
+    } satisfies NextSetPlan;
+  }
+
+  if (rirDroppedHard) {
+    const nextWeight = getBackoffWeight({
+      weight,
+      exerciseName,
+      reason: "hard-backoff",
+    });
+    const min = Math.max(1, reps - 2);
+    const max = Math.max(min, reps);
+
+    return {
+      weight: nextWeight,
+      repsText: range(min, max),
+      repsInput: min,
+      rirText: "RIR 1–2",
+      rirInput: 2,
+      restText,
+      techniqueCue,
+      strategy: "backoff",
+      reason:
+        "Samma vikt och reps kostade mer nu. Vi backar lite så nästa set håller kvalitet.",
     } satisfies NextSetPlan;
   }
 
@@ -2135,7 +2419,13 @@ function getNextSetPlan(args: {
 
   if (rir === 1) {
     const isBackoff = setNumber >= 2;
-    const nextWeight = isBackoff ? Math.max(0, weight - PROGRESSION_STEP) : weight;
+    const nextWeight = isBackoff
+      ? getBackoffWeight({
+          weight,
+          exerciseName,
+          reason: "hard-backoff",
+        })
+      : normalizeSuggestedWeight(weight, exerciseName);
     const min = Math.max(1, reps - 2);
     const max = Math.max(min, isBackoff ? reps : reps - 1);
 
@@ -2157,7 +2447,7 @@ function getNextSetPlan(args: {
   if (rir === 2) {
     const min = Math.max(1, reps - 1);
     return {
-      weight,
+      weight: normalizeSuggestedWeight(weight, exerciseName),
       repsText: range(min, reps),
       repsInput: min,
       rirText: "RIR 1–2",
@@ -2169,7 +2459,7 @@ function getNextSetPlan(args: {
     } satisfies NextSetPlan;
   }
 
-  const nextWeight = weight + PROGRESSION_STEP;
+  const nextWeight = getNextAvailableWeight(weight, exerciseName, "up");
   const min = Math.max(1, reps - 2);
   return {
     weight: nextWeight,
@@ -2223,9 +2513,11 @@ function buildCoachSetContext(args: {
   conditioningContext: ConditioningContext | null;
 }): CoachSetContext {
   const previousSet = args.previousSets[args.previousSets.length - 1];
+  const decisionProfile = getExerciseDecisionProfile(args.exerciseName);
   const signals: string[] = [];
 
   if (args.personalRecordText) signals.push(args.personalRecordText);
+  signals.push(decisionProfile.riskNote);
 
   if (previousSet && args.weight === previousSet.weight && args.reps > previousSet.reps) {
     signals.push(`Reps upp på samma vikt: +${args.reps - previousSet.reps}.`);
@@ -2239,6 +2531,18 @@ function buildCoachSetContext(args: {
     args.rir > previousSet.rir
   ) {
     signals.push("Samma reps som förra setet, men mer kvar i tanken.");
+  }
+
+  if (
+    previousSet &&
+    typeof previousSet.rir === "number" &&
+    args.weight === previousSet.weight &&
+    args.reps === previousSet.reps &&
+    previousSet.rir - args.rir >= 2
+  ) {
+    signals.push(
+      "Samma vikt och reps kostade tydligt mer RIR nu. Tolka som högre faktisk ansträngning och använd backoff vid behov."
+    );
   }
 
   if (previousSet && args.weight > previousSet.weight) {
@@ -2259,6 +2563,13 @@ function buildCoachSetContext(args: {
   }
 
   if (args.failNote) signals.push(`Failure-orsak: ${args.failNote}.`);
+  if (args.nextSetPlan.strategy === "backoff" || args.nextSetPlan.strategy === "reduce") {
+    signals.push(
+      `Nästa vikt är ett coachbeslut enligt autoreglering, inte ett fast viktsteg: ${formatCoachWeight(
+        args.nextWeight
+      )} kg.`
+    );
+  }
   const exerciseCategory = getExerciseProfile(args.exerciseName).category;
 
   return {
@@ -3003,7 +3314,12 @@ const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
 const [chatInput, setChatInput] = useState("");
 const [chatLog, setChatLog] = useState<
-  { role: "you" | "coach"; text: string; setNumber?: number }[]
+  {
+    role: "you" | "coach";
+    text: string;
+    setNumber?: number;
+    aiStatus?: "fallback";
+  }[]
 >([]);
 const [nameInput, setNameInput] = useState("");
 const [ageInput, setAgeInput] = useState("");
@@ -4099,12 +4415,18 @@ async function sendChat() {
   setChatLog((prev) => [...prev, { role: "you", text: msg }]);
   setChatInput("");
 
-  const reply = (text: string) => {
+  const reply = (text: string, aiStatus?: "fallback") => {
     setChatLog((prev) => {
       const last = prev[prev.length - 1];
       if (last?.role === "coach" && last.text === text) return prev;
-      return [...prev, { role: "coach", text }];
+      return [...prev, { role: "coach", text, aiStatus }];
     });
+  };
+  const replyFromAi = (response: {
+    mode?: "ai" | "fallback";
+    text: string;
+  }) => {
+    reply(response.text, response.mode === "ai" ? undefined : "fallback");
   };
 
   const routedIntent = parseWorkoutChatIntent({
@@ -4153,6 +4475,43 @@ async function sendChat() {
           rir: set.rir,
           failNote: set.failNote,
         })),
+        currentCoachDecision:
+          currentWorkoutExercise && currentWorkoutExercise.sets.length > 0
+            ? (() => {
+                const latestSet =
+                  currentWorkoutExercise.sets[
+                    currentWorkoutExercise.sets.length - 1
+                  ];
+                const decision = getNextSetPlan({
+                  weight: latestSet.weight,
+                  reps: latestSet.reps,
+                  rir: latestSet.rir ?? 2,
+                  failNote: latestSet.failNote,
+                  setNumber: currentWorkoutExercise.sets.length,
+                  exerciseName: currentExerciseName,
+                  previousSets: currentWorkoutExercise.sets.slice(0, -1),
+                });
+
+                return {
+                  strategy: decision.strategy,
+                  reason: decision.reason,
+                  nextWeight:
+                    decision.strategy === "complete"
+                      ? undefined
+                      : `${formatWeightInput(decision.weight)} kg`,
+                  targetReps:
+                    decision.strategy === "complete"
+                      ? undefined
+                      : decision.repsText,
+                  targetRir:
+                    decision.strategy === "complete"
+                      ? undefined
+                      : decision.rirText,
+                  restText: decision.restText,
+                  techniqueCue: decision.techniqueCue,
+                };
+              })()
+            : undefined,
         activePlan,
         warmupNote:
           overrides?.warmupContext?.note ?? activeWarmupContext?.note,
@@ -4194,13 +4553,13 @@ async function sendChat() {
 
   if (workout && isProgressionQuestion(msg)) {
     const chatReply = await askAiCoach(aiUnavailableReply);
-    reply(chatReply.text);
+    replyFromAi(chatReply);
     return;
   }
 
   if (workout && isExerciseSafetyQuestion(msg)) {
     const chatReply = await askAiCoach(buildExerciseSafetyReply(currentExerciseName));
-    reply(chatReply.text);
+    replyFromAi(chatReply);
     return;
   }
 
@@ -4246,7 +4605,7 @@ async function sendChat() {
         : getPainCoachReply(nextWarmupContext),
       { warmupContext: nextWarmupContext }
     );
-    reply(chatReply.text);
+    replyFromAi(chatReply);
     return;
   }
 
@@ -4313,7 +4672,7 @@ async function sendChat() {
     const chatReply = await askAiCoach(aiUnavailableReply, {
       conditioningContext: routedConditioningContext,
     });
-    reply(chatReply.text);
+    replyFromAi(chatReply);
     return;
   }
 
@@ -4325,7 +4684,7 @@ async function sendChat() {
     const chatReply = await askAiCoach(aiUnavailableReply, {
       warmupContext: routedWarmupContext,
     });
-    reply(chatReply.text);
+    replyFromAi(chatReply);
     return;
   }
 
@@ -4338,7 +4697,7 @@ async function sendChat() {
       const chatReply = await askAiCoach(aiUnavailableReply, {
         dayForm: "trött",
       });
-      reply(chatReply.text);
+      replyFromAi(chatReply);
       return;
     }
 
@@ -4351,7 +4710,7 @@ async function sendChat() {
       const chatReply = await askAiCoach(aiUnavailableReply, {
         dayForm: "normal",
       });
-      reply(chatReply.text);
+      replyFromAi(chatReply);
       return;
     }
 
@@ -4362,7 +4721,7 @@ async function sendChat() {
     const chatReply = await askAiCoach(aiUnavailableReply, {
       dayForm: "trött",
     });
-    reply(chatReply.text);
+    replyFromAi(chatReply);
     return;
   }
 
@@ -4371,13 +4730,13 @@ async function sendChat() {
     const chatReply = await askAiCoach(aiUnavailableReply, {
       dayForm: "stark",
     });
-    reply(chatReply.text);
+    replyFromAi(chatReply);
     return;
   }
 
   const chatReply = await askAiCoach(aiUnavailableReply);
 
-  reply(chatReply.text);
+  replyFromAi(chatReply);
   return;
 }
 
@@ -5811,6 +6170,7 @@ function getNextSetWeight(args: {
   rir: number;
   failNote?: string;
   setNumber?: number;
+  exerciseName?: string;
 }) {
   const { weight, rir, failNote, setNumber = 1 } = args;
   if (typeof args.reps === "number") {
@@ -5820,6 +6180,7 @@ function getNextSetWeight(args: {
       rir,
       failNote,
       setNumber,
+      exerciseName: args.exerciseName,
     }).weight;
   }
 
@@ -5831,11 +6192,11 @@ function getNextSetWeight(args: {
     }
 
     if (fail.includes("teknik") || fail.includes("formen")) {
-      return Math.max(0, weight - PROGRESSION_STEP);
+      return getBackoffWeight({ weight, exerciseName: args.exerciseName ?? "", reason: "technique" });
     }
 
     if (fail.includes("ont") || fail.includes("smärta")) {
-      return Math.max(0, weight - PROGRESSION_STEP * 2);
+      return getBackoffWeight({ weight, exerciseName: args.exerciseName ?? "", reason: "pain" });
     }
 
     if (
@@ -5843,15 +6204,15 @@ function getNextSetWeight(args: {
       fail.includes("muskel") ||
       fail.includes("slut")
     ) {
-      return Math.max(0, weight - PROGRESSION_STEP);
+      return getBackoffWeight({ weight, exerciseName: args.exerciseName ?? "", reason: "failure" });
     }
 
-    return Math.max(0, weight - PROGRESSION_STEP);
+    return getBackoffWeight({ weight, exerciseName: args.exerciseName ?? "", reason: "failure" });
   }
 
-  if (rir === 0) return Math.max(0, weight - PROGRESSION_STEP);
+  if (rir === 0) return getBackoffWeight({ weight, exerciseName: args.exerciseName ?? "", reason: "failure" });
   if (rir === 1 || rir === 2) return weight;
-  return weight + PROGRESSION_STEP;
+  return getNextAvailableWeight(weight, args.exerciseName ?? "", "up");
 }
 
 function isNewPR(
@@ -5981,6 +6342,7 @@ const painFailure =
   failNote: didFailInput ? failNoteInput : "",
   setNumber,
   exerciseName: currentExerciseName,
+  previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
 });
    const suggestedNextWeight = nextSetPlan.weight;
 
@@ -6080,6 +6442,7 @@ if (coachReply.text) {
       role: "coach",
       text: coachReply.text,
       setNumber,
+      aiStatus: coachReply.mode === "ai" ? undefined : "fallback",
     },
   ]);
 }
@@ -6288,36 +6651,54 @@ function buildWorkoutReview(args: {
   const positives: string[] = [];
   const adjustments: string[] = [];
   const nextFocus: string[] = [];
+  const improvedText = progression.improved.slice(0, 2).join(", ");
+  const hardSetCount = hardSets.length;
+  const failedSetCount = failedSets.length;
+  let coachHeadline = "Bra pass. Det här är sparat.";
+
+  if (summary.totalSets === 0) {
+    coachHeadline = "Ingen stress. Vi börjar rent nästa gång.";
+  } else if (summary.isPartial) {
+    coachHeadline = "Bra att du sparade där du var.";
+  } else if (progression.improved.length >= 2) {
+    coachHeadline = `Det här var en stark dag. ${improvedText} gick framåt 🔥`;
+  } else if (progression.improved.length === 1) {
+    coachHeadline = `${progression.improved[0]} tog ett tydligt steg idag 🔥`;
+  } else if (hardSetCount >= 3 && failedSetCount === 0) {
+    coachHeadline = "Tungt jobb, men du höll kontrollen hela vägen.";
+  } else if (hardSetCount >= 3) {
+    coachHeadline = "Du gjorde jobbet även när det blev tungt.";
+  }
 
   if (progression.improved.length > 0) {
     positives.push(
-      `Du tog steg framåt i ${progression.improved.slice(0, 3).join(", ")}. Det gillar jag.`
+      `Du tog steg framåt i ${progression.improved.slice(0, 3).join(", ")}. Det är precis så här vi vill att det ska röra sig.`
     );
   }
 
   if (summary.bestSetText && summary.bestSetText !== "Inget set loggat.") {
-    positives.push(`Dagens starkaste träff var ${summary.bestSetText}.`);
+    positives.push(`Starkaste träffen idag: ${summary.bestSetText}. Den sticker ut.`);
   }
 
   if (summary.totalSets > 0 && hardSets.length >= 3) {
-    positives.push("Du var nära gränsen flera gånger och höll ihop passet. Det är starkt.");
+    positives.push("Du jobbade nära gränsen flera gånger och höll ihop passet. Starkt gjort.");
   } else if (summary.totalSets > 0) {
-    positives.push(`Du fick in ${summary.totalSets} set som ger oss en tydlig nivå till nästa gång.`);
+    positives.push(`Du fick in ${summary.totalSets} set. Det ger bra nivåer att styra nästa pass från.`);
   }
 
   if (failedSets.length === 0 && summary.totalSets > 0) {
-    positives.push("Du höll marginal hela vägen. Det ger oss bra data och bättre återhämtning.");
+    positives.push("Du höll marginal hela vägen. Det är snyggt, särskilt när målet är att kunna komma tillbaka stark nästa gång.");
   } else if (failedSets.length > 0) {
     adjustments.push(
       failedSets.length >= 3
-        ? "Du var vid gränsen många gånger idag. Nästa pass öppnar vi lite smartare så kvaliteten håller längre."
-        : "Du var vid gränsen i några set. Nästa gång sparar vi lite mer där."
+        ? "Du var vid gränsen många gånger idag. Nästa pass sparar vi lite mer tidigt, så kvaliteten håller längre."
+        : "Du var vid gränsen i några set. Nästa gång håller vi lite mer kontroll där."
     );
   }
 
   if (hardSets.length >= 3 && failedSets.length === 0) {
     adjustments.push(
-      "Det blev flera tunga set idag. Nästa pass öppnar vi kontrollerat och höjer om det sitter."
+      "Det blev flera tunga set idag. Nästa pass öppnar vi kontrollerat och höjer om det känns rätt."
     );
   }
 
@@ -6329,31 +6710,31 @@ function buildWorkoutReview(args: {
 
   const lastExercise = workout.exercises[workout.exercises.length - 1];
   if (progression.improved.length > 0) {
-    nextFocus.push(`Nästa gång vill jag se om ${progression.improved[0]} kan hålla den här nivån igen.`);
+    nextFocus.push(`Nästa gång testar vi om ${progression.improved[0]} håller den här nivån igen.`);
   } else if (summary.totalSets > 0 && lastExercise && lastExercise.sets.length > 0) {
     nextFocus.push(
-      `Nästa gång börjar vi med ett lugnt första set i ${lastExercise.name}.`
+      `Nästa gång börjar vi rent i ${lastExercise.name} och låter första setet sätta nivån.`
     );
   }
 
   if (positives.length === 0) {
     positives.push(
-      "Du dök upp. Det räknas."
+      "Du dök upp och passet är sparat. Det räknas."
     );
   }
 
   if (adjustments.length === 0) {
-    adjustments.push("Inget stort att justera just nu.");
+    adjustments.push("Inget stort att ändra just nu. Nästa pass bygger vi från dagens nivåer.");
   }
 if (progression.improved.length > 0) {
   coachMemoryTakeaway.push(
-    `Du tog steg framåt i ${progression.improved.join(", ")}. Det märks.`
+    `Jag sparar att ${progression.improved.join(", ")} gick framåt idag.`
   );
 }
 
 if (progression.worse.length > 0) {
   coachMemoryTakeaway.push(
-    `Vi tappade lite i ${progression.worse.join(", ")}. Där vill jag ha lite mer marginal nästa gång.`
+    `Jag sparar att ${progression.worse.join(", ")} tappade lite. Där öppnar vi smartare nästa gång.`
   );
 }
 
@@ -6363,7 +6744,7 @@ const exercisesWithFailure = workout.exercises
 
 if (exercisesWithFailure.length > 0) {
   coachMemoryTakeaway.push(
-    `Jag minns att ${exercisesWithFailure.join(", ")} blev riktigt tungt idag.`
+    `Jag sparar att ${exercisesWithFailure.join(", ")} blev riktigt tungt idag.`
   );
 }
 
@@ -6380,7 +6761,7 @@ if (coachMemoryTakeaway.length === 0) {
   coachMemoryTakeaway.push(
     summary.isPartial
       ? "Jag sparar passet precis som det blev."
-      : "Jag kommer ihåg dagens nivåer till nästa pass."
+      : "Jag sparar dagens nivåer till nästa pass."
   );
 }
 return {
@@ -6393,6 +6774,7 @@ return {
   totalVolumeKg: summary.totalVolumeKg,
   totalVolumeText: summary.totalVolumeText,
   bestSetText: summary.bestSetText,
+  coachHeadline,
   coachSummary: summary.coachSummary,
   positives,
   adjustments,
@@ -6442,16 +6824,16 @@ function buildWorkoutSummary(w: Workout) {
   let coachSummary = "Passet är sparat. Bra jobbat idag.";
 
   if (totalSets === 0) {
-    coachSummary = "Ingen fara. Vi sparar passet som det är och börjar om nästa gång.";
+    coachSummary = "Passet sparat. Nästa pass tar vi från början.";
   } else if (isPartial) {
-    coachSummary = `Ingen fara. Vi sparar passet som det är. ${totalSets} set räcker för idag.`;
+    coachSummary = `Passet sparat. ${totalSets} set är gjort, och vi fortsätter klokt nästa gång.`;
   } else if (allSets.filter((set) => typeof set.rir === "number" && set.rir <= 1).length >= 3) {
-    coachSummary = "Det där var ett tungt pass. Bra jobbat idag.";
+    coachSummary = "Det där var ett tungt pass. Du jobbade nära gränsen och fick jobbet gjort.";
   } else if (dayForm === "stark") {
-    coachSummary = "Du kom in stark idag. Det där var ett bra pass.";
+    coachSummary = "Du kom in stark idag och använde det bra. Det där var ett bra pass.";
   } else if (dayForm === "trött") {
     coachSummary =
-      "Du tog dig igenom passet smart trots trött känsla. Det räknas.";
+      "Du tog dig igenom passet smart trots trött känsla. Det är ett bra kvitto.";
   }
 
   const summary = {
@@ -6516,6 +6898,44 @@ const review = buildWorkoutReview({
 
 setWorkoutReview(review);
 setLatestCompletedReview(review);
+void requestAiWorkoutReview({
+  context: {
+    kind: "workout_review",
+    userName: profileName,
+    passLabel: workoutWithSummary.displayName,
+    summary: {
+      durationMinutes: summary.durationMinutes,
+      totalSets: summary.totalSets,
+      completedExerciseCount: summary.completedExerciseCount,
+      exerciseCount: summary.exerciseCount,
+      totalVolumeText: summary.totalVolumeText,
+      bestSetText: summary.bestSetText,
+      isPartial: summary.isPartial,
+    },
+    progression: progressionComparison,
+    exercises: workoutWithSummary.exercises.map((exercise) => ({
+      name: exercise.name,
+      sets: exercise.sets.map((set) => ({
+        weight: set.weight,
+        reps: set.reps,
+        rir: set.rir,
+        failNote: set.failNote,
+      })),
+    })),
+    warmupNote: workoutWithSummary.warmupContext?.note,
+    conditioningNote: workoutWithSummary.conditioningContext?.note,
+  },
+  fallbackReview: getReviewCoachParts(review),
+}).then((response) => {
+  if (response.mode !== "ai") return;
+
+  setWorkoutReview((current) =>
+    current ? applyReviewCoachParts(current, response.review) : current
+  );
+  setLatestCompletedReview((current) =>
+    current ? applyReviewCoachParts(current, response.review) : current
+  );
+});
 setWorkoutComplete(false);
 setWorkout(null);
 setSkippedExercise(null);

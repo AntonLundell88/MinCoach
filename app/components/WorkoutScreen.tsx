@@ -38,7 +38,12 @@ type Props = {
   dayForm: "trött" | "normal" | "stark" | null;
   setDayForm: (v: "trött" | "normal" | "stark") => void;
   formatTime: (d: Date) => string;
-  chatLog: { role: "you" | "coach"; text: string; setNumber?: number }[];
+  chatLog: {
+    role: "you" | "coach";
+    text: string;
+    setNumber?: number;
+    aiStatus?: "fallback";
+  }[];
   chatInput: string;
   setChatInput: (v: string) => void;
   addCoachMessage: (text: string) => void;

@@ -19,8 +19,72 @@ type CoachProgramBuildRequest = {
 };
 
 const PASS_KEYS = ["A", "B", "C", "D"] as const;
-const PROGRAM_BUILD_TIMEOUT_MS = 75000;
-const PROGRAM_BUILD_ATTEMPTS = 2;
+const PROGRAM_BUILD_TIMEOUT_MS = 90000;
+const PROGRAM_BUILD_ATTEMPTS = 1;
+
+const PROGRAM_PLAN_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    title: { type: "string" },
+    coachSummary: { type: "string" },
+    planReason: { type: "string" },
+    structureReason: { type: "string" },
+    safetyNotes: {
+      type: "array",
+      items: { type: "string" },
+    },
+    passes: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          key: { type: "string", enum: ["A", "B", "C", "D"] },
+          displayName: { type: "string" },
+          intent: { type: "string" },
+          exercises: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                name: { type: "string" },
+                purpose: { type: "string" },
+                sets: { type: "string" },
+                reps: { type: "string" },
+                rir: { type: "string" },
+                caution: { type: "string" },
+                alternatives: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+              },
+              required: [
+                "name",
+                "purpose",
+                "sets",
+                "reps",
+                "rir",
+                "caution",
+                "alternatives",
+              ],
+            },
+          },
+        },
+        required: ["key", "displayName", "intent", "exercises"],
+      },
+    },
+  },
+  required: [
+    "title",
+    "coachSummary",
+    "planReason",
+    "structureReason",
+    "safetyNotes",
+    "passes",
+  ],
+};
 
 function extractOutputText(data: unknown) {
   if (!data || typeof data !== "object") return "";
@@ -34,6 +98,13 @@ function extractOutputText(data: unknown) {
     return response.output_text;
   }
 
+  if (Array.isArray(response.output_text)) {
+    return response.output_text
+      .map((item) => (typeof item === "string" ? item : ""))
+      .filter(Boolean)
+      .join("\n");
+  }
+
   if (!Array.isArray(response.output)) return "";
 
   return response.output
@@ -44,9 +115,16 @@ function extractOutputText(data: unknown) {
     })
     .map((part) => {
       if (!part || typeof part !== "object") return "";
-      const maybeText = part as { text?: unknown; content?: unknown };
+      const maybeText = part as {
+        text?: unknown;
+        content?: unknown;
+        parsed?: unknown;
+      };
       if (typeof maybeText.text === "string") return maybeText.text;
       if (typeof maybeText.content === "string") return maybeText.content;
+      if (maybeText.parsed && typeof maybeText.parsed === "object") {
+        return JSON.stringify(maybeText.parsed);
+      }
       return "";
     })
     .filter(Boolean)
@@ -262,7 +340,15 @@ export async function POST(request: Request) {
             "gpt-5-mini",
           instructions: payload.system,
           reasoning: { effort: "medium" },
-          text: { verbosity: "low" },
+          text: {
+            verbosity: "low",
+            format: {
+              type: "json_schema",
+              name: "mincoach_workout_plan",
+              schema: PROGRAM_PLAN_JSON_SCHEMA,
+              strict: true,
+            },
+          },
           input: [
             {
               role: "user",
@@ -280,7 +366,7 @@ export async function POST(request: Request) {
               ],
             },
           ],
-          max_output_tokens: 5200,
+          max_output_tokens: 8000,
         }),
         signal: controller.signal,
       });

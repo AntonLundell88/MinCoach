@@ -1,6 +1,7 @@
 import {
   containsForbiddenCoachPhrase,
   MINCOACH_AI_SYSTEM_RULES,
+  PROGRAM_DESIGN_PROTOCOL,
 } from "./coachRules";
 
 export type CoachReplyMode = "fallback" | "ai-ready";
@@ -57,6 +58,15 @@ export type CoachChatContext = {
     rir?: number;
     failNote?: string;
   }>;
+  currentCoachDecision?: {
+    strategy: "press" | "hold" | "backoff" | "reduce" | "complete";
+    reason: string;
+    nextWeight?: string;
+    targetReps?: string;
+    targetRir?: string;
+    restText?: string;
+    techniqueCue?: string;
+  };
   activePlan?: string[];
   warmupNote?: string;
   conditioningNote?: string;
@@ -109,6 +119,46 @@ export type CoachProgramBuildContext = {
     caution: string;
   }>;
   existingPreferences: string[];
+};
+
+export type CoachWorkoutReviewContext = {
+  kind: "workout_review";
+  userName?: string;
+  passLabel: string;
+  summary: {
+    durationMinutes: number;
+    totalSets: number;
+    completedExerciseCount: number;
+    exerciseCount: number;
+    totalVolumeText: string;
+    bestSetText: string;
+    isPartial: boolean;
+  };
+  progression: {
+    improved: string[];
+    same: string[];
+    worse: string[];
+  };
+  exercises: Array<{
+    name: string;
+    sets: Array<{
+      weight: number;
+      reps: number;
+      rir?: number;
+      failNote?: string;
+    }>;
+  }>;
+  warmupNote?: string;
+  conditioningNote?: string;
+};
+
+export type CoachWorkoutReviewResult = {
+  coachHeadline: string;
+  coachSummary: string;
+  positives: string[];
+  adjustments: string[];
+  nextFocus: string[];
+  coachMemoryTakeaway: string[];
 };
 
 export type BuiltProgramExercise = {
@@ -175,7 +225,12 @@ export type CoachProgramSuggestion = {
 
 export type CoachPromptPayload = {
   system: string;
-  context: CoachSetContext | CoachChatContext | CoachProgramContext | CoachProgramBuildContext;
+  context:
+    | CoachSetContext
+    | CoachChatContext
+    | CoachProgramContext
+    | CoachProgramBuildContext
+    | CoachWorkoutReviewContext;
   instruction: string;
   maxCharacters: number;
 };
@@ -217,7 +272,7 @@ export function buildCoachPromptPayload(
     system: MINCOACH_AI_SYSTEM_RULES,
     context,
     instruction:
-      `${NAME_USAGE_RULE}\n\nSkriv coachens setrespons med naturligt språk. Appen har redan räknat ut beslutet; din uppgift är att göra beslutet mänskligt, motiverande och begripligt. Använd bara fakta i context. Behåll ALLTID hårddata tydligt separerad från känslotexten. Skriv inte som ett enda långt stycke.\n\nFormatkrav:\n1. Första raden: varm kort reaktion.\n2. Nästa rad: exakt utfört set i formatet "vikt × reps · RIR X".\n3. 1-2 korta tolkningsrader: vad betyder setet?\n4. Om nextTarget.strategy inte är "complete": skriv rubriken "Nästa set:" och sedan exakt dessa rader: vikt, repsmål, RIR-mål, Fokus: teknikcue, Vila restText.\n5. Om strategy är "complete": säg att övningen är klar och vad användaren ska göra nu.\n\nExempel:\nOj. Snygg öppning 🔥\n40 × 9 · RIR 2\nDu öppnade kontrollerat och hade marginal kvar.\nDen nivån sitter, så vi håller vikten och sänker repsmålet lite.\n\nNästa set:\n40 kg\nsikta på 8-9 reps\nRIR 1-2.\nFokus: stabil handled, kontrollerad sänkning, inga studs.\nVila 2-3 minuter.\n\nDet får aldrig kännas som en loggbok. En loggbok säger vad som hände. MinCoach ska visa: jag såg vad du gjorde, jag fattar vad det betyder, nu vet du nästa steg. Våga värme och stolthet, men tappa aldrig datan. Stolthet ska kännas indirekt. Skriv aldrig att användaren ska göra coachen stolt eller göra dig stolt. Säg inte bara siffrorna igen. Tolka setet: marginal, kontroll, progression, trötthet, smärta, uppgift träffad eller varför nästa set ändras. Vid personbästa, tydlig progression, tungt genomfört set eller bra beslut: använd utropstecken och gärna 1-2 emojis från paletten ✅ ✔️ 💪 🔥 💡 🚀 ➡️ 📈 🎯. Använd aldrig skratt-emojis eller gula ansikten. Vid vanliga set: ge också en liten klapp på axeln, inte bara data. Om setet var lättare än planerat eller RIR är högt: reagera varmt och säg riktningen, inte tre varianter av samma observation. Om användaren når failure: gör inte användaren liten. Om användaren träffar ett lägre repsmål du nyss gav: säg att uppgiften satt, inte att något blev sämre. Om previousCoachReply finns: låt svaret kännas som nästa reaktion, inte samma svar igen. Undvik mallkänsla, men behåll formatet. Läs passLabel, exerciseName och exerciseCategory noga: kalla aldrig rodd, latsdrag, RDL, benövningar eller armar för press/pass med press. Avsluta alltid med tydlig riktning.`,
+      `${NAME_USAGE_RULE}\n\nSkriv coachens setrespons med naturligt språk. Appen har räknat fram ett coachbeslut enligt forskningsbaserad autoreglering; din uppgift är att göra beslutet mänskligt, motiverande och begripligt. Använd bara fakta i context. Behåll ALLTID hårddata tydligt separerad från känslotexten. Skriv inte som ett enda långt stycke.\n\nFormatkrav:\n1. Första raden: varm kort reaktion.\n2. Nästa rad: exakt utfört set i formatet "vikt × reps · RIR X".\n3. 1-2 korta tolkningsrader: vad betyder setet?\n4. Om nextTarget.strategy inte är "complete": skriv rubriken "Nästa set:" och sedan exakt dessa rader: vikt, repsmål, RIR-mål, Fokus: teknikcue, Vila restText.\n5. Om strategy är "complete": säg att övningen är klar och vad användaren ska göra nu.\n\nExempel:\nOj. Snygg öppning 🔥\n40 × 9 · RIR 2\nDu öppnade kontrollerat och hade marginal kvar.\nDen nivån sitter, så vi håller vikten och sänker repsmålet lite.\n\nNästa set:\n40 kg\nsikta på 8-9 reps\nRIR 1-2.\nFokus: stabil handled, kontrollerad sänkning, inga studs.\nVila 2-3 minuter.\n\nDet får aldrig kännas som en loggbok. En loggbok säger vad som hände. MinCoach ska visa: jag såg vad du gjorde, jag fattar vad det betyder, nu vet du nästa steg. Våga värme och stolthet, men tappa aldrig datan. Stolthet ska kännas indirekt. Skriv aldrig att användaren ska göra coachen stolt eller göra dig stolt. Säg inte bara siffrorna igen. Tolka setet: marginal, kontroll, progression, trötthet, smärta, uppgift träffad eller varför nästa set ändras. Förklara nästa vikt som en coach: vid RDL, knäböj, marklyft och andra tekniskt känsliga lyft kan backoff behöva vara tydligare än ett viktsteg efter RIR 0 eller teknikrisk. Vid isolation ska vikten hellre följa praktiska små steg och kontakten styra. Vid personbästa, tydlig progression, tungt genomfört set eller bra beslut: använd utropstecken och gärna 1-2 emojis från paletten ✅ ✔️ 💪 🔥 💡 🚀 ➡️ 📈 🎯. Använd aldrig skratt-emojis eller gula ansikten. Vid vanliga set: ge också en liten klapp på axeln, inte bara data. Om setet var lättare än planerat eller RIR är högt: reagera varmt och säg riktningen, inte tre varianter av samma observation. Om användaren når failure: gör inte användaren liten. Om användaren träffar ett lägre repsmål du nyss gav: säg att uppgiften satt, inte att något blev sämre. Om previousCoachReply finns: låt svaret kännas som nästa reaktion, inte samma svar igen. Undvik mallkänsla, men behåll formatet. Läs passLabel, exerciseName och exerciseCategory noga: kalla aldrig rodd, latsdrag, RDL, benövningar eller armar för press/pass med press. Avsluta alltid med tydlig riktning.`,
     maxCharacters: MAX_COACH_REPLY_CHARACTERS,
   };
 }
@@ -241,7 +296,7 @@ export function buildCoachProgramPromptPayload(
     'Svara på användarens input om träningsupplägget. Returnera JSON, inte markdown. Format: {"text":"kort coachsvar","suggestion":null eller {"summary":"kort sammanfattning","actions":[...]}}. Tillåtna actions: add_exercise {type, exerciseName, passKey?, passName?, reason?}, remove_exercise {type, exerciseName, reason?}, replace_exercise {type, fromExerciseName, toExerciseName, reason?}, rename_pass {type, passKey, displayName, reason?}. Föreslå bara actions när användaren tydligt vill ändra upplägget. VIKTIGT: om användaren skriver "ta bort", "skippa", "vill inte köra", "gillar inte" eller "undvik" en övning ska du bara föreslå remove_exercise. Ersätt aldrig automatiskt med en annan övning. Föreslå replace_exercise bara när användaren uttryckligen skriver "byt mot", "ersätt med", "lägg in X istället" eller ber om ett alternativ. Föreslå aldrig vaga övningsnamn som "närmsta liknande övning", "liknande övning", "alternativ" eller "annan övning". Om övningen är oklar: suggestion ska vara null och du frågar vilken övning användaren menar. Påstå aldrig att ändringen redan är gjord; skriv att du föreslår den och att användaren kan godkänna. Om användaren ställer en fråga, uttrycker oro eller vill förstå upplägget: suggestion ska vara null. Svara tryggt, enkelt och coachigt utan att ändra schemat. Vid ålder, rädsla, farligt, skada, smärta eller osäkerhet: var extra försiktig, säg att smärta/obehag går före planen och att upplägget kan göras lugnare. Ge inte medicinska garantier. Vid frågor om fettminskning: förklara kort att styrketräning hjälper formen, musklerna och kroppen under viktnedgång, men att kosten också spelar stor roll. Om du behöver mer information, suggestion ska vara null och du frågar en enda kort följdfråga. Skriv som en coach, inte som support. Avsluta gärna med tydlig riktning, t.ex. "Vill du kan jag göra upplägget lugnare."';
 
   return {
-    system: MINCOACH_AI_SYSTEM_RULES,
+    system: `${MINCOACH_AI_SYSTEM_RULES}\n\n${PROGRAM_DESIGN_PROTOCOL}`,
     context,
     instruction,
     maxCharacters: MAX_CHAT_REPLY_CHARACTERS,
@@ -254,11 +309,45 @@ export function buildCoachProgramBuildPromptPayload(
   const instruction =
     'Du är MinCoach programcoach. Bygg ett komplett träningsupplägg från användarens mål, tid, träningsvana, utrustning och begränsningar. Returnera ENDAST giltig JSON, inte markdown, inte kodblock, inte förklaring runt JSON. Format: {"title":"kort titel","coachSummary":"varm kort coachförklaring","planReason":"varför detta passar målet","structureReason":"varför passen är uppdelade så här","safetyNotes":["kort notis"],"passes":[{"key":"A","displayName":"Passnamn","intent":"vad passet ska göra","exercises":[{"name":"övningsnamn","purpose":"varför den finns med","sets":"2-4","reps":"6-12","rir":"1-3","caution":"kort vid behov","alternatives":["namn"]}]}]}. Alla fält ska vara strängar eller listor enligt formatet. Antal pass ska matcha daysPerWeek, max 4. Varje pass ska ha 4-7 övningar. Använd främst övningar från availableExercises och svenska tydliga namn. Välj inte övningar som kräver utrustning användaren saknar. Om location är hemma: håll dig till equipment. Om användaren har begränsningar, bygg runt dem och skriv safetyNotes. Detta kräver faktisk coachkompetens: välj övningar, volym och struktur som passar målet. För styrka: färre tydliga basövningar, mer vila och mätbar progression. För muskler: jämn volym, kontrollerade basövningar plus isolationsarbete. För fettförlust: håll passet enkelt, repeterbart och effektivt utan att låtsas att styrketräning ensam styr vikten. Undvik att trycka in för mycket. Hellre färre bra övningar än ett stökigt pass. Skriv som en trygg coach som förklarar enkelt. Påstå inte medicinska garantier. Om något är osäkert, välj lugnare variant och säg varför.';
 
+  const programInstruction = `${instruction}
+
+Programprotokoll:
+${PROGRAM_DESIGN_PROTOCOL}
+
+Måste väga in varje gång:
+- age: påverkar startnivå, övningsval, säkerhetsmarginal, uppvärmning och återhämtning.
+- gender: använd utan stereotyper. Låt inte kön minska ambitionsnivån. Använd främst mål, vana och begränsningar.
+- trainingExperience: styr komplexitet, volym, RIR och progressionsaggressivitet.
+- goalPrimary och goalSecondary: primärmål styr strukturen, sekundärmål justerar detaljerna.
+- daysPerWeek och minutesPerSession: styr split, antal övningar och total volym.
+- location och equipment: välj bara övningar som användaren faktiskt kan göra.
+- limitations: ska väga tungt. Bygg runt smärta, skador och oro.
+- existingPreferences: respektera användarens önskemål om de inte krockar med säkerhet eller upplägg.
+
+Hårda krav:
+- SafetyNotes ska vara specifika för användaren och upplägget, inte random tekniska notiser.
+- Sets/reps/RIR ska passa övning, mål, ålder, träningsvana och begränsningar.
+- Varje övning ska ha ett tydligt syfte. Lägg inte in övningar bara för att fylla passet.
+- CoachSummary, planReason och structureReason ska kännas som att coachen faktiskt har tänkt.
+- Om något är osäkert: välj tryggare variant och säg varför.`;
+
+  return {
+    system: `${MINCOACH_AI_SYSTEM_RULES}\n\n${PROGRAM_DESIGN_PROTOCOL}`,
+    context,
+    instruction: programInstruction,
+    maxCharacters: 3200,
+  };
+}
+
+export function buildCoachWorkoutReviewPromptPayload(
+  context: CoachWorkoutReviewContext
+): CoachPromptPayload {
   return {
     system: MINCOACH_AI_SYSTEM_RULES,
     context,
-    instruction,
-    maxCharacters: 2400,
+    instruction:
+      `${NAME_USAGE_RULE}\n\nSkriv en varm passgenomgång för MinCoach. Returnera ENDAST giltig JSON, inte markdown. Format: {"coachHeadline":"kort emotionell rad","coachSummary":"2-3 korta meningar","positives":["1-3 korta punkter"],"adjustments":["0-2 korta punkter"],"nextFocus":["1-2 korta punkter"],"coachMemoryTakeaway":["1-2 korta punkter"]}.\n\nDet här är avslutet efter passet. Användaren ska känna: coachen såg mig, coachen fattar vad passet betydde, och jag vill komma tillbaka. Behåll datan korrekt. Hitta verkliga saker i context: bästa set, progression, tunga set, failure, genomförda övningar, uppvärmning/kondition om det påverkar. Var inte en loggbok. Skriv inte generiskt. Skriv aldrig "gör coachen stolt" eller "gör mig stolt". Använd namn högst undantagsvis. Använd gärna 0-2 emojis från paletten ✅ ✔️ 💪 🔥 💡 🚀 ➡️ 📈 🎯 om det finns riktig prestation. Vid smärta/failure: var trygg och skyddande, aldrig skuldbeläggande. Om passet är delvis sparat: bekräfta lugnt och utan skuld. Håll allt kort och lättläst.`,
+    maxCharacters: 1400,
   };
 }
 
@@ -498,6 +587,54 @@ export async function requestAiProgramBuild(args: {
       mode: "fallback" as const,
       reason: "network_error",
       plan: fallbackPlan,
+    };
+  }
+}
+
+export async function requestAiWorkoutReview(args: {
+  context: CoachWorkoutReviewContext;
+  fallbackReview: CoachWorkoutReviewResult;
+  signal?: AbortSignal;
+}) {
+  const { context, fallbackReview, signal } = args;
+
+  try {
+    const response = await fetch("/api/coach/review", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        context,
+        fallbackReview,
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      return {
+        mode: "fallback" as const,
+        reason: "request_failed",
+        review: fallbackReview,
+      };
+    }
+
+    const data = (await response.json()) as {
+      mode?: "ai" | "fallback";
+      reason?: string;
+      review?: CoachWorkoutReviewResult | null;
+    };
+
+    return {
+      mode: data.mode ?? "fallback",
+      reason: data.reason,
+      review: data.review ?? fallbackReview,
+    };
+  } catch {
+    return {
+      mode: "fallback" as const,
+      reason: "network_error",
+      review: fallbackReview,
     };
   }
 }

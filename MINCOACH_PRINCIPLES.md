@@ -377,3 +377,41 @@ AI should not:
 User-visible coach text is product-critical.
 
 Major coach voice changes should be reviewed with Anton before being treated as final.
+
+## Program Design
+
+The program builder must feel like a real coach, not a form that fills itself.
+
+It should use a separate program-design protocol based on established resistance-training principles:
+
+- progressive overload
+- enough weekly volume for the goal
+- recovery between sessions
+- exercise order
+- user age
+- gender without stereotypes
+- training experience
+- available time
+- location and equipment
+- limitations, pain, injuries, and uncertainty
+
+Age and gender matter, but they must never become lazy assumptions.
+
+Older users should not be treated as fragile by default, but the starting point should be more conservative when training history, pain, or confidence is unclear.
+
+Women and men can train by the same core principles. The coach should not make the plan less serious because of gender. Goals, experience, equipment, recovery, and limitations should matter more.
+
+The program builder should choose fewer good exercises over many mediocre ones.
+
+Every exercise needs a reason.
+
+If an exercise does not support the user's goal, fit the equipment, fit the time, or respect the user's limitations, it should not be there.
+
+The coach should explain the structure in simple language:
+
+- why this split fits
+- why these exercises are here
+- why the volume is reasonable
+- how the plan can be adjusted
+
+Program building can take longer than set feedback. It is worth spending more AI time here because the structure affects weeks or months of training.

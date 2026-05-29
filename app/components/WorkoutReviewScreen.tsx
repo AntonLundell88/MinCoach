@@ -10,6 +10,7 @@ type WorkoutReviewData = {
   totalVolumeKg: number;
   totalVolumeText: string;
   bestSetText: string;
+  coachHeadline: string;
   coachSummary: string;
   positives: string[];
   adjustments: string[];
@@ -52,14 +53,22 @@ function StatCard({
 function ReviewList({
   title,
   items,
+  accent = false,
 }: {
   title: string;
   items: string[];
+  accent?: boolean;
 }) {
   if (items.length === 0) return null;
 
   return (
-    <section className={cardClassName}>
+    <section
+      className={
+        accent
+          ? "rounded-[1.6rem] border border-blue-300/18 bg-blue-500/[0.055] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-2xl"
+          : cardClassName
+      }
+    >
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
         {title}
       </p>
@@ -81,7 +90,9 @@ export default function WorkoutReviewScreen({ review, onClose }: Props) {
     review.progression.worse.length > 0;
 
   const reviewTitle = review.isPartial
-    ? "Passet är sparat där du var."
+    ? "Passet är sparat."
+    : review.totalSets >= 10
+    ? "Starkt jobb idag."
     : "Bra jobbat idag.";
 
   return (
@@ -107,7 +118,10 @@ export default function WorkoutReviewScreen({ review, onClose }: Props) {
           <h1 className="text-3xl font-semibold leading-tight tracking-normal text-white">
             {reviewTitle}
           </h1>
-          <p className="max-w-lg text-base leading-7 text-white/84">
+          <p className="max-w-lg text-lg font-semibold leading-7 text-white">
+            {review.coachHeadline}
+          </p>
+          <p className="max-w-lg text-base leading-7 text-white/76">
             {review.coachSummary}
           </p>
         </div>
@@ -124,12 +138,12 @@ export default function WorkoutReviewScreen({ review, onClose }: Props) {
         <StatCard label="Bästa set" value={review.bestSetText} />
       </section>
 
-      <ReviewList title="Det jag såg" items={review.positives} />
+      <ReviewList title="Det coachen såg" items={review.positives} accent />
 
       {hasProgression ? (
         <section className={cardClassName}>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
-            Progression
+            Så rörde det sig
           </p>
 
           <div className="mt-3 space-y-3 text-sm leading-6 text-white/84">
@@ -148,9 +162,9 @@ export default function WorkoutReviewScreen({ review, onClose }: Props) {
         </section>
       ) : null}
 
-      <ReviewList title="Justera nästa gång" items={review.adjustments} />
+      <ReviewList title="Nästa justering" items={review.adjustments} />
       <ReviewList title="Nästa pass" items={review.nextFocus} />
-      <ReviewList title="Jag minns" items={review.coachMemoryTakeaway} />
+      <ReviewList title="Coachminne" items={review.coachMemoryTakeaway} />
 
       <button
         className="w-full rounded-2xl bg-[#2f6df6] py-4 font-semibold text-white transition hover:bg-[#4f83ff]"

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 type AppTheme = "dark" | "light";
 
 type Props = {
@@ -19,6 +21,9 @@ export default function SettingsScreen({
   onOpenProgram,
   onResetAll,
 }: Props) {
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackCopied, setFeedbackCopied] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(false);
   const isLight = theme === "light";
   const cardClassName = isLight
     ? "border border-[#d8cfc0]/80 bg-white/68 shadow-[0_16px_46px_rgba(91,72,48,0.10)] backdrop-blur-xl"
@@ -42,6 +47,50 @@ export default function SettingsScreen({
   const panelClassName = isLight
     ? "border-[#d8cfc0]/85 bg-[#f8f4ec]/92 text-[#172033] shadow-[0_24px_80px_rgba(91,72,48,0.18)]"
     : "border-white/[0.09] bg-[#101824]/92 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]";
+  const feedbackFieldClassName = isLight
+    ? "border-[#d8cfc0]/85 bg-white/58 text-[#172033] placeholder:text-[#8a93a2]"
+    : "border-white/[0.09] bg-slate-950/30 text-white placeholder:text-white/30";
+  const primaryButtonClassName =
+    "rounded-xl bg-[#2f6df6] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_26px_rgba(47,109,246,0.24)] transition hover:bg-[#4f83ff] disabled:cursor-not-allowed disabled:opacity-45";
+
+  const buildFeedbackBody = () => {
+    const text = feedbackText.trim();
+    if (!text) return "";
+
+    return [
+      "MinCoach beta-feedback",
+      `Tid: ${new Date().toLocaleString("sv-SE")}`,
+      typeof window !== "undefined" ? `Sida: ${window.location.href}` : "",
+      "",
+      text,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  };
+
+  const copyFeedback = async () => {
+    const body = buildFeedbackBody();
+    if (!body) return;
+
+    try {
+      await navigator.clipboard.writeText(body);
+      setFeedbackError(false);
+      setFeedbackCopied(true);
+      window.setTimeout(() => setFeedbackCopied(false), 2200);
+    } catch {
+      setFeedbackError(true);
+      setFeedbackCopied(false);
+    }
+  };
+
+  const sendFeedbackEmail = () => {
+    const body = buildFeedbackBody();
+    if (!body) return;
+
+    const subject = encodeURIComponent("MinCoach beta-feedback");
+    const encodedBody = encodeURIComponent(body);
+    window.location.href = `mailto:anton@matkoma.com?subject=${subject}&body=${encodedBody}`;
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center px-3 py-3 sm:items-center sm:justify-end sm:px-5 sm:py-5">
@@ -162,6 +211,49 @@ export default function SettingsScreen({
 
         <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
           <p className={labelClassName}>Beta</p>
+          <h2
+            className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}
+          >
+            Beta-feedback
+          </h2>
+          <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
+            Skriv vad som hände. Appen öppnar ett mail med texten ifylld.
+          </p>
+          <textarea
+            value={feedbackText}
+            onChange={(event) => setFeedbackText(event.target.value)}
+            rows={4}
+            className={`mt-4 w-full resize-none rounded-2xl border px-4 py-3 text-sm leading-6 outline-none transition focus:border-blue-300/60 ${feedbackFieldClassName}`}
+            placeholder={'t.ex. "Coachen missförstod mig efter set 2"'}
+          />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              onClick={sendFeedbackEmail}
+              disabled={!feedbackText.trim()}
+              className={primaryButtonClassName}
+            >
+              Skicka mail
+            </button>
+            <button
+              onClick={copyFeedback}
+              disabled={!feedbackText.trim()}
+              className={subtleButtonClassName}
+            >
+              {feedbackCopied ? "Kopierat" : "Kopiera"}
+            </button>
+          </div>
+          <p className={`mt-2 text-xs leading-5 ${bodyClassName}`}>
+            Bifoga gärna screenshot manuellt i mailet om något såg konstigt ut.
+          </p>
+          {feedbackError ? (
+            <p className="mt-2 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-100/80">
+              Webbläsaren kunde inte dela eller kopiera just nu. Markera texten i rutan och kopiera manuellt.
+            </p>
+          ) : null}
+        </section>
+
+        <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
+          <p className={labelClassName}>Testdata</p>
           <h2
             className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}
           >

@@ -22,6 +22,8 @@ const BUILD_STEPS = [
 
 export default function ProgramBuildLoadingScreen() {
   const [activeStep, setActiveStep] = useState(0);
+  const [showReassurance, setShowReassurance] = useState(false);
+  const [showStillWorking, setShowStillWorking] = useState(false);
   const isFinalStep = activeStep >= BUILD_STEPS.length - 1;
 
   useEffect(() => {
@@ -35,6 +37,26 @@ export default function ProgramBuildLoadingScreen() {
 
     return () => window.clearTimeout(timer);
   }, [activeStep, isFinalStep]);
+
+  useEffect(() => {
+    if (!isFinalStep) {
+      setShowReassurance(false);
+      setShowStillWorking(false);
+      return undefined;
+    }
+
+    const reassuranceTimer = window.setTimeout(() => {
+      setShowReassurance(true);
+    }, 1500);
+    const stillWorkingTimer = window.setTimeout(() => {
+      setShowStillWorking(true);
+    }, 7000);
+
+    return () => {
+      window.clearTimeout(reassuranceTimer);
+      window.clearTimeout(stillWorkingTimer);
+    };
+  }, [isFinalStep]);
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b1018] px-6 py-10 text-white">
@@ -59,7 +81,7 @@ export default function ProgramBuildLoadingScreen() {
           Coachen bygger ditt upplägg
         </h1>
 
-        <div className="mt-9 min-h-[42px]">
+        <div className="mt-9 min-h-[92px]">
           <p
             key={activeStep}
             className={`text-lg font-semibold text-blue-100 ${
@@ -67,6 +89,24 @@ export default function ProgramBuildLoadingScreen() {
             }`}
           >
             {isFinalStep ? "Sätter ihop passet" : BUILD_STEPS[activeStep]}
+          </p>
+          <p
+            className={`mt-3 text-sm font-medium text-blue-100/55 transition-all duration-700 ${
+              showReassurance
+                ? "translate-y-0 opacity-100"
+                : "translate-y-1 opacity-0"
+            }`}
+          >
+            Jag är strax klar.
+          </p>
+          <p
+            className={`mt-2 text-xs font-medium text-blue-100/38 transition-all duration-700 ${
+              showStillWorking
+                ? "translate-y-0 opacity-100"
+                : "translate-y-1 opacity-0"
+            }`}
+          >
+            Nej, appen har inte hängt sig.
           </p>
         </div>
 

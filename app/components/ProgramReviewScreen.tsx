@@ -169,11 +169,15 @@ export default function ProgramReviewScreen({
           </p>
 
           <h1 className="mt-3 text-[1.45rem] font-semibold leading-tight tracking-normal text-white">
-            Jag har byggt ditt upplägg.
+            {programBuildStatus === "fallback"
+              ? "AI-bygget behöver köras om."
+              : "Jag har byggt ditt upplägg."}
           </h1>
 
           <p className="mt-3 text-sm leading-6 text-white/72">
-            {workoutPlan.coachSummary ||
+            {programBuildStatus === "fallback"
+              ? "Jag vill inte ge dig ett standardpass här. Tryck bygg om, så låter vi coachen göra upplägget ordentligt."
+              : workoutPlan.coachSummary ||
               `Målet först: ${goalLabel(profile.goalPrimary)}. Jag bygger ett upplägg som går att följa, mäta och justera.`}
           </p>
 
@@ -185,7 +189,7 @@ export default function ProgramReviewScreen({
 
           {programBuildStatus === "fallback" ? (
             <div className="mt-4 rounded-2xl border border-amber-300/18 bg-amber-300/[0.07] p-3 text-sm leading-6 text-amber-50/74">
-              AI-bygget gick inte igenom. Jag visar ett tillfälligt grundupplägg här, men bygg om med coachen innan du godkänner.
+              AI-bygget gick inte igenom. Det här upplägget är bara ett tillfälligt säkerhetsläge och ska inte godkännas som ditt program.
             </div>
           ) : null}
 
@@ -240,7 +244,11 @@ export default function ProgramReviewScreen({
               type="button"
               onClick={onRebuildProgram}
               disabled={programBuildStatus === "building"}
-              className="rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-xs font-semibold text-white/62 transition hover:bg-white/[0.07] hover:text-white disabled:opacity-45"
+              className={`rounded-xl px-3 py-2 text-xs font-semibold transition disabled:opacity-45 ${
+                programBuildStatus === "fallback"
+                  ? "bg-[#2f6df6] text-white shadow-[0_0_22px_rgba(37,99,235,0.2)] hover:bg-[#4f83ff]"
+                  : "border border-white/[0.09] bg-white/[0.048] text-white/62 hover:bg-white/[0.07] hover:text-white"
+              }`}
             >
               Bygg om med coachen
             </button>
@@ -636,10 +644,13 @@ export default function ProgramReviewScreen({
 
           <div className="mt-4 grid gap-2">
             <button
-              className="w-full rounded-2xl bg-[#2f6df6] py-3.5 text-sm font-semibold text-white shadow-[0_0_26px_rgba(37,99,235,0.24)] transition hover:bg-[#4f83ff]"
+              className="w-full rounded-2xl bg-[#2f6df6] py-3.5 text-sm font-semibold text-white shadow-[0_0_26px_rgba(37,99,235,0.24)] transition hover:bg-[#4f83ff] disabled:bg-white/[0.07] disabled:text-white/32 disabled:shadow-none"
               onClick={onApprove}
+              disabled={programBuildStatus === "fallback"}
             >
-              Godkänn upplägget
+              {programBuildStatus === "fallback"
+                ? "Bygg med AI först"
+                : "Godkänn upplägget"}
             </button>
             <button
               className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.048] py-3 text-sm font-medium text-white/62 transition hover:bg-white/[0.07] hover:text-white"
