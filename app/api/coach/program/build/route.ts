@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkAiRateLimit } from "../../../../lib/aiRateLimit";
 import {
-  buildCoachProgramBuildPromptPayload,
   type BuiltProgramExercise,
   type BuiltProgramPass,
   type BuiltWorkoutPlan,
@@ -19,8 +18,38 @@ type CoachProgramBuildRequest = {
 };
 
 const PASS_KEYS = ["A", "B", "C", "D"] as const;
-const PROGRAM_BUILD_TIMEOUT_MS = 90000;
+const PROGRAM_BUILD_TIMEOUT_MS = 24000;
 const PROGRAM_BUILD_ATTEMPTS = 1;
+
+const PROGRAM_BUILD_SYSTEM_PROMPT = `
+Du är MinCoach programcoach. Bygg träningsprogram som en erfaren coach.
+Viktigast: användarens mål, ålder, kön, träningsvana, passlängd, antal dagar, plats, utrustning och begränsningar ska påverka upplägget.
+Principer:
+- Muskelbygge: jämn veckovolym, tydliga basövningar, kompletterande isolering, ofta 6-15 reps.
+- Styrka: färre huvudövningar, mätbar progression, lägre till medelhöga reps och längre vila.
+- Fettminskning: enkelt, repeterbart upplägg som bevarar/bygger muskler. Påstå inte att styrketräning ensam styr vikten.
+- Nybörjare/äldre/oskra användare: färre övningar, stabila varianter, RIR 2-3 och trygg start.
+- Vana/erfarna: mer specifik struktur och RIR 1-3 där det passar.
+- Begränsningar väger tungt. Bygg runt smärta, tidigare skador och oro. Ge inga medicinska garantier.
+- Vid armbåge/handled/axel: välj smärtfritt grepp, stabila varianter och undvik onödig stress från curls, pushdowns och pressar.
+- Varje övning ska ha ett tydligt syfte. Hellre 4-6 bra övningar än ett stökigt pass.
+Returnera endast giltig JSON enligt schemat.
+`.trim();
+
+function compactProgramBuildContext(context: CoachProgramBuildContext) {
+  return {
+    kind: context.kind,
+    userName: context.userName,
+    profile: context.profile,
+    existingPreferences: context.existingPreferences.slice(0, 10),
+    availableExercises: context.availableExercises.slice(0, 80).map((exercise) => ({
+      name: exercise.name,
+      category: exercise.category,
+      equipment: exercise.equipment,
+      caution: exercise.caution,
+    })),
+  };
+}
 
 const PROGRAM_PLAN_JSON_SCHEMA = {
   type: "object",
@@ -304,7 +333,7 @@ export async function POST(request: Request) {
     return fallbackResponse(fallbackPlan, "invalid_context");
   }
 
-  const payload = buildCoachProgramBuildPromptPayload(context);
+  const compactContext = compactProgramBuildContext(context);
   const rateLimit = checkAiRateLimit(request, "program");
 
   if (!rateLimit.allowed) {
@@ -336,10 +365,9 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           model:
             process.env.OPENAI_PROGRAM_MODEL ??
-            process.env.OPENAI_MODEL ??
-            "gpt-5-mini",
-          instructions: payload.system,
-          reasoning: { effort: "medium" },
+            "gpt-5-nano",
+          instructions: PROGRAM_BUILD_SYSTEM_PROMPT,
+          reasoning: { effort: "minimal" },
           text: {
             verbosity: "low",
             format: {
@@ -356,17 +384,17 @@ export async function POST(request: Request) {
                 {
                   type: "input_text",
                   text: JSON.stringify({
-                    context: payload.context,
+                    context: compactContext,
                     instruction:
                       attempt === 1
-                        ? payload.instruction
-                        : `${payload.instruction}\n\nDet förra försöket gick inte att använda. Svara nu med ENDAST komplett, giltig JSON enligt formatet. Inga extra ord.`,
+                        ? "Bygg ett komplett första program. Antal pass ska matcha daysPerWeek, max 4. Varje pass ska ha 4-6 övningar. Använd främst övningar från availableExercises. Skriv kort men specifikt: coachSummary, planReason, structureReason och safetyNotes ska visa att du har vägt in profilen. Om limitation finns ska den synas i övningsval, caution och safetyNotes."
+                        : "Svara med komplett giltig JSON enligt schemat.",
                   }),
                 },
               ],
             },
           ],
-          max_output_tokens: 8000,
+          max_output_tokens: 4200,
         }),
         signal: controller.signal,
       });
