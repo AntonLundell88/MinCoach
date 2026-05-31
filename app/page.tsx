@@ -523,6 +523,10 @@ function saveJSON(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value));
   scheduleBetaSync({ changedKey: key });
 }
+function saveRawValue(key: string, value: string) {
+  localStorage.setItem(key, value);
+  scheduleBetaSync({ changedKey: key });
+}
 function exerciseKey(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
   }
@@ -6450,6 +6454,12 @@ if (coachReply.text) {
   ]);
 }
 
+void syncBetaSnapshotNow({
+  reason: "set-logged",
+  exerciseName: currentExerciseName,
+  setNumber,
+});
+
 if (painFailure) {
   savePainCoachMemory(currentExerciseName, failNoteInput);
 
@@ -6890,8 +6900,9 @@ saveJSON("coachMemory", nextMemory);
 
 
 
-    localStorage.setItem("lastPass", workout.pass);
+    saveRawValue("lastPass", workout.pass);
     setLastPass(workout.pass);
+    void syncBetaSnapshotNow({ reason: "workout-finished" });
 
 const review = buildWorkoutReview({
   workout: workoutWithSummary,
@@ -7208,6 +7219,7 @@ if (userProfile && workoutPlan && showProgramReview) {
       }}
       onApprove={() => {
         saveJSON("approvedWorkoutPlan", true);
+        void syncBetaSnapshotNow({ reason: "program-approved" });
         setShowProgramReview(false);
       }}
       onEditProfile={() => setEditingProfile(true)}

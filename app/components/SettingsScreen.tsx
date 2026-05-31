@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { syncBetaSnapshotNow } from "../lib/betaSync";
 
 type AppTheme = "dark" | "light";
 
@@ -24,6 +25,8 @@ export default function SettingsScreen({
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackCopied, setFeedbackCopied] = useState(false);
   const [feedbackError, setFeedbackError] = useState(false);
+  const [syncStatusText, setSyncStatusText] = useState("");
+  const [isTestingSync, setIsTestingSync] = useState(false);
   const isLight = theme === "light";
   const cardClassName = isLight
     ? "border border-[#d8cfc0]/80 bg-white/68 shadow-[0_16px_46px_rgba(91,72,48,0.10)] backdrop-blur-xl"
@@ -90,6 +93,33 @@ export default function SettingsScreen({
     const subject = encodeURIComponent("MinCoach beta-feedback");
     const encodedBody = encodeURIComponent(body);
     window.location.href = `mailto:anton@matkoma.com?subject=${subject}&body=${encodedBody}`;
+  };
+
+  const testBetaSync = async () => {
+    setIsTestingSync(true);
+    setSyncStatusText("");
+
+    const status = await syncBetaSnapshotNow({ reason: "manual-settings-test" });
+    setIsTestingSync(false);
+
+    if (!status) {
+      setSyncStatusText("Kunde inte testa just nu.");
+      return;
+    }
+
+    if (status.ok && status.result && typeof status.result === "object") {
+      const mode = "mode" in status.result ? String(status.result.mode) : "";
+      setSyncStatusText(
+        mode === "saved"
+          ? "Databasen svarar. Synken fungerar."
+          : `Synken svarade: ${mode || "ok"}`
+      );
+      return;
+    }
+
+    setSyncStatusText(
+      `Synken fick fel: ${"httpStatus" in status ? status.httpStatus : "okänt"}`
+    );
   };
 
   return (
@@ -248,6 +278,30 @@ export default function SettingsScreen({
           {feedbackError ? (
             <p className="mt-2 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-100/80">
               Webbläsaren kunde inte dela eller kopiera just nu. Markera texten i rutan och kopiera manuellt.
+            </p>
+          ) : null}
+        </section>
+
+        <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
+          <p className={labelClassName}>Databas</p>
+          <h2
+            className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}
+          >
+            Synk
+          </h2>
+          <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
+            Tillfällig betakoll så vi ser att data når databasen.
+          </p>
+          <button
+            onClick={testBetaSync}
+            disabled={isTestingSync}
+            className={`mt-4 ${subtleButtonClassName}`}
+          >
+            {isTestingSync ? "Testar..." : "Testa databas"}
+          </button>
+          {syncStatusText ? (
+            <p className={`mt-3 text-xs leading-5 ${bodyClassName}`}>
+              {syncStatusText}
             </p>
           ) : null}
         </section>
