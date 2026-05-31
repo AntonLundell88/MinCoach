@@ -15,6 +15,7 @@ import PersonalRecordsScreen from "./components/PersonalRecordsScreen";
 import ProgramReviewScreen from "./components/ProgramReviewScreen";
 import ProgramBuildLoadingScreen from "./components/ProgramBuildLoadingScreen";
 import SettingsScreen from "./components/SettingsScreen";
+import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
 import {
   requestAiCoachChatReply,
   requestAiCoachSetReply,
@@ -520,6 +521,7 @@ function loadJSON<T>(key: string, fallback: T): T {
 }
 function saveJSON(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value));
+  scheduleBetaSync({ changedKey: key });
 }
 function exerciseKey(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
@@ -3432,6 +3434,7 @@ const [activeConditioningContext, setActiveConditioningContext] =
     if (new URLSearchParams(window.location.search).get("reset") === "1") {
       localStorage.clear();
       sessionStorage.clear();
+      void syncBetaSnapshotNow({ reason: "url-reset" });
       window.history.replaceState(null, "", window.location.pathname);
       window.location.reload();
       return;
@@ -6989,6 +6992,7 @@ setStarted(false);
   setRemovedExercisesByPass({ A: [], B: [], C: [], D: [] });
   setExerciseOverridesByPass({ A: {}, B: {}, C: {}, D: {} });
     setPersonalRecords({});
+    void syncBetaSnapshotNow({ reason: "settings-reset" });
   }
 
 const globalAppControls = (
