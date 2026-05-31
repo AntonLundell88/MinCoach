@@ -4,6 +4,12 @@ type SnapshotPayload = {
   appVersion?: string;
 };
 
+type FeedbackPayload = {
+  deviceId: string;
+  message: string;
+  metadata?: Record<string, unknown>;
+};
+
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -71,6 +77,44 @@ export async function upsertBetaDeviceSnapshot({
     const errorText = await response.text();
     throw new Error(
       `Supabase beta sync failed: ${response.status} ${errorText.slice(0, 240)}`
+    );
+  }
+
+  return { mode: "saved" as const };
+}
+
+export async function insertBetaFeedback({
+  deviceId,
+  message,
+  metadata = {},
+}: FeedbackPayload) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+
+  if (!url || !serviceRoleKey) {
+    return { mode: "disabled" as const };
+  }
+
+  const response = await fetch(`${url}/rest/v1/beta_feedback`, {
+    method: "POST",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify([
+      {
+        device_id: deviceId,
+        message,
+        metadata,
+      },
+    ]),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Supabase beta feedback failed: ${response.status} ${errorText.slice(0, 240)}`
     );
   }
 

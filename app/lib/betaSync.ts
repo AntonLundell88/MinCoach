@@ -32,7 +32,7 @@ function parseStoredValue(raw: string | null) {
   }
 }
 
-function getOrCreateBetaDeviceId() {
+export function getOrCreateBetaDeviceId() {
   const existing = window.localStorage.getItem(BETA_DEVICE_ID_KEY);
   if (existing) return existing;
 

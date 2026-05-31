@@ -24,4 +24,6 @@ Keep `SUPABASE_SERVICE_ROLE_KEY` secret. It must only be used on the server.
 
 The browser saves normally to `localStorage`. After important saves, the app sends a delayed snapshot to `/api/beta-sync`. That API route stores the snapshot in `beta_device_snapshots`.
 
+Beta feedback is sent from Settings to `/api/beta-feedback` and stored in `beta_feedback`.
+
 If Supabase is missing or temporarily fails, the workout flow continues.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { sendBetaFeedback } from "../lib/betaFeedback";
 import { syncBetaSnapshotNow } from "../lib/betaSync";
 
 type AppTheme = "dark" | "light";
@@ -25,6 +26,8 @@ export default function SettingsScreen({
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackCopied, setFeedbackCopied] = useState(false);
   const [feedbackError, setFeedbackError] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [syncStatusText, setSyncStatusText] = useState("");
   const [isTestingSync, setIsTestingSync] = useState(false);
   const isLight = theme === "light";
@@ -86,13 +89,33 @@ export default function SettingsScreen({
     }
   };
 
-  const sendFeedbackEmail = () => {
+  const submitFeedback = async () => {
     const body = buildFeedbackBody();
     if (!body) return;
 
-    const subject = encodeURIComponent("MinCoach beta-feedback");
-    const encodedBody = encodeURIComponent(body);
-    window.location.href = `mailto:anton@matkoma.com?subject=${subject}&body=${encodedBody}`;
+    setIsSendingFeedback(true);
+    setFeedbackError(false);
+    setFeedbackSent(false);
+
+    try {
+      const result = await sendBetaFeedback(feedbackText.trim(), {
+        type: "settings-feedback",
+        theme,
+      });
+
+      if (result?.mode === "disabled") {
+        setFeedbackError(true);
+        return;
+      }
+
+      setFeedbackText("");
+      setFeedbackSent(true);
+      window.setTimeout(() => setFeedbackSent(false), 2600);
+    } catch {
+      setFeedbackError(true);
+    } finally {
+      setIsSendingFeedback(false);
+    }
   };
 
   const testBetaSync = async () => {
@@ -247,7 +270,7 @@ export default function SettingsScreen({
             Beta-feedback
           </h2>
           <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
-            Skriv vad som hände. Appen öppnar ett mail med texten ifylld.
+            Skriv vad som hände. Feedbacken sparas direkt till beta-listan.
           </p>
           <textarea
             value={feedbackText}
@@ -258,11 +281,11 @@ export default function SettingsScreen({
           />
           <div className="mt-3 grid grid-cols-2 gap-2">
             <button
-              onClick={sendFeedbackEmail}
-              disabled={!feedbackText.trim()}
+              onClick={submitFeedback}
+              disabled={!feedbackText.trim() || isSendingFeedback}
               className={primaryButtonClassName}
             >
-              Skicka mail
+              {isSendingFeedback ? "Skickar..." : feedbackSent ? "Skickat" : "Skicka"}
             </button>
             <button
               onClick={copyFeedback}
@@ -273,11 +296,16 @@ export default function SettingsScreen({
             </button>
           </div>
           <p className={`mt-2 text-xs leading-5 ${bodyClassName}`}>
-            Bifoga gärna screenshot manuellt i mailet om något såg konstigt ut.
+            Vill du visa en bild kan du skicka screenshot separat till Anton.
           </p>
+          {feedbackSent ? (
+            <p className="mt-2 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs leading-5 text-emerald-100/85">
+              Feedbacken är skickad.
+            </p>
+          ) : null}
           {feedbackError ? (
             <p className="mt-2 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-100/80">
-              Webbläsaren kunde inte dela eller kopiera just nu. Markera texten i rutan och kopiera manuellt.
+              Kunde inte skicka just nu. Kopiera texten och skicka den till Anton.
             </p>
           ) : null}
         </section>
