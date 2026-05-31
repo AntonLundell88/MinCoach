@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  getSupabaseHealth,
   isSupabaseConfigured,
   upsertBetaDeviceSnapshot,
 } from "@/app/lib/supabaseRest";
@@ -8,6 +9,14 @@ export const dynamic = "force-dynamic";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    route: "beta-sync",
+    supabase: getSupabaseHealth(),
+  });
 }
 
 export async function POST(request: Request) {
@@ -49,6 +58,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, mode: result.mode });
   } catch (error) {
     console.error("Beta sync failed", error);
-    return NextResponse.json({ ok: false, mode: "error" }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        mode: "error",
+        message: error instanceof Error ? error.message : "Unknown beta sync error",
+      },
+      { status: 500 }
+    );
   }
 }

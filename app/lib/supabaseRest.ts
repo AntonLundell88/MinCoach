@@ -11,9 +11,26 @@ function getSupabaseConfig() {
   return { url, serviceRoleKey };
 }
 
-export function isSupabaseConfigured() {
+export function getSupabaseHealth() {
   const { url, serviceRoleKey } = getSupabaseConfig();
-  return Boolean(url && serviceRoleKey);
+  let host: string | null = null;
+
+  try {
+    host = url ? new URL(url).host : null;
+  } catch {
+    host = "invalid-url";
+  }
+
+  return {
+    configured: Boolean(url && serviceRoleKey),
+    hasUrl: Boolean(url),
+    hasServiceRoleKey: Boolean(serviceRoleKey),
+    host,
+  };
+}
+
+export function isSupabaseConfigured() {
+  return getSupabaseHealth().configured;
 }
 
 export async function upsertBetaDeviceSnapshot({

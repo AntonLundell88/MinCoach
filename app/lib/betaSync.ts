@@ -64,7 +64,7 @@ export async function syncBetaSnapshotNow(extra?: Record<string, unknown>) {
   if (typeof window === "undefined") return;
 
   try {
-    await fetch("/api/beta-sync", {
+    const response = await fetch("/api/beta-sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -74,7 +74,26 @@ export async function syncBetaSnapshotNow(extra?: Record<string, unknown>) {
       }),
       keepalive: true,
     });
+
+    const result = (await response.json().catch(() => null)) as unknown;
+    window.localStorage.setItem(
+      "mincoachBetaSyncStatus",
+      JSON.stringify({
+        at: new Date().toISOString(),
+        httpStatus: response.status,
+        ok: response.ok,
+        result,
+      })
+    );
   } catch {
+    window.localStorage.setItem(
+      "mincoachBetaSyncStatus",
+      JSON.stringify({
+        at: new Date().toISOString(),
+        ok: false,
+        result: "network-error",
+      })
+    );
     // Beta sync must never interrupt the workout flow.
   }
 }
