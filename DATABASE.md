@@ -26,4 +26,6 @@ The browser saves normally to `localStorage`. After important saves, the app sen
 
 Beta feedback is sent from Settings to `/api/beta-feedback` and stored in `beta_feedback`.
 
+Completed workouts are also sent to `/api/beta-workout`. That route writes one row to `workouts` and one row per logged set to `workout_sets`. The local beta device id is stored inside `workouts.summary.betaDeviceId` until real user accounts are added.
+
 If Supabase is missing or temporarily fails, the workout flow continues.

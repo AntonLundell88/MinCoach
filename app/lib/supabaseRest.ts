@@ -10,6 +10,35 @@ type FeedbackPayload = {
   metadata?: Record<string, unknown>;
 };
 
+type StructuredWorkoutSet = {
+  exerciseName: string;
+  exerciseKey: string;
+  setIndex: number;
+  weight: number;
+  reps: number;
+  rir?: number | null;
+  failNote?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+};
+
+type StructuredWorkoutPayload = {
+  deviceId: string;
+  workout: {
+    id: string;
+    passKey?: string | null;
+    passName?: string | null;
+    status?: string;
+    startedAt?: string | null;
+    completedAt?: string | null;
+    warmupNote?: string | null;
+    conditioningNote?: string | null;
+    review?: Record<string, unknown>;
+    summary?: Record<string, unknown>;
+    sets: StructuredWorkoutSet[];
+  };
+};
+
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -119,4 +148,103 @@ export async function insertBetaFeedback({
   }
 
   return { mode: "saved" as const };
+}
+
+async function postSupabaseRows<T>(
+  path: string,
+  rows: Record<string, unknown>[],
+  options?: { prefer?: string; expectJson?: boolean }
+) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+
+  if (!url || !serviceRoleKey) {
+    return { mode: "disabled" as const, data: null as T | null };
+  }
+
+  const response = await fetch(`${url}/rest/v1/${path}`, {
+    method: "POST",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+      Prefer: options?.prefer ?? "return=minimal",
+    },
+    body: JSON.stringify(rows),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Supabase insert failed for ${path}: ${response.status} ${errorText.slice(
+        0,
+        240
+      )}`
+    );
+  }
+
+  const data = options?.expectJson
+    ? ((await response.json().catch(() => null)) as T | null)
+    : null;
+
+  return { mode: "saved" as const, data };
+}
+
+export async function insertStructuredWorkout({
+  deviceId,
+  workout,
+}: StructuredWorkoutPayload) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+
+  if (!url || !serviceRoleKey) {
+    return { mode: "disabled" as const };
+  }
+
+  const completedAt = workout.completedAt ?? new Date().toISOString();
+  const workoutResult = await postSupabaseRows<Array<{ id: string }>>(
+    "workouts",
+    [
+      {
+        pass_key: workout.passKey ?? null,
+        pass_name: workout.passName ?? null,
+        status: workout.status ?? "completed",
+        started_at: workout.startedAt ?? null,
+        completed_at: completedAt,
+        warmup_note: workout.warmupNote ?? null,
+        conditioning_note: workout.conditioningNote ?? null,
+        review: workout.review ?? {},
+        summary: {
+          ...(workout.summary ?? {}),
+          betaDeviceId: deviceId,
+          localWorkoutId: workout.id,
+        },
+      },
+    ],
+    { prefer: "return=representation", expectJson: true }
+  );
+
+  const workoutId = workoutResult.data?.[0]?.id;
+
+  if (!workoutId) {
+    throw new Error("Supabase workout insert did not return an id.");
+  }
+
+  if (workout.sets.length > 0) {
+    await postSupabaseRows(
+      "workout_sets",
+      workout.sets.map((set) => ({
+        workout_id: workoutId,
+        exercise_name: set.exerciseName,
+        exercise_key: set.exerciseKey,
+        set_index: set.setIndex,
+        weight: set.weight,
+        reps: set.reps,
+        rir: set.rir ?? null,
+        fail_note: set.failNote ?? null,
+        notes: set.notes ?? null,
+        created_at: set.createdAt ?? completedAt,
+      }))
+    );
+  }
+
+  return { mode: "saved" as const, workoutId };
 }

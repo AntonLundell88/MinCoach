@@ -16,6 +16,7 @@ import ProgramReviewScreen from "./components/ProgramReviewScreen";
 import ProgramBuildLoadingScreen from "./components/ProgramBuildLoadingScreen";
 import SettingsScreen from "./components/SettingsScreen";
 import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
+import { syncStructuredBetaWorkout } from "./lib/betaWorkoutSync";
 import {
   requestAiCoachChatReply,
   requestAiCoachSetReply,
@@ -6912,6 +6913,30 @@ const review = buildWorkoutReview({
 
 setWorkoutReview(review);
 setLatestCompletedReview(review);
+void syncStructuredBetaWorkout({
+  id: workoutWithSummary.id,
+  passKey: workoutWithSummary.pass,
+  passName: workoutWithSummary.displayName,
+  status: summary.isPartial ? "partial" : "completed",
+  startedAt: workoutWithSummary.startedAt,
+  completedAt: new Date().toISOString(),
+  warmupNote: workoutWithSummary.warmupContext?.note ?? null,
+  conditioningNote: workoutWithSummary.conditioningContext?.note ?? null,
+  summary: summary as unknown as Record<string, unknown>,
+  review: review as unknown as Record<string, unknown>,
+  sets: workoutWithSummary.exercises.flatMap((exercise) =>
+    exercise.sets.map((set, setIndex) => ({
+      exerciseName: exercise.name,
+      exerciseKey: normalizeExerciseSearchText(exercise.name),
+      setIndex: setIndex + 1,
+      weight: set.weight,
+      reps: set.reps,
+      rir: set.rir ?? null,
+      failNote: set.failNote ?? null,
+      createdAt: set.createdAt,
+    }))
+  ),
+});
 void requestAiWorkoutReview({
   context: {
     kind: "workout_review",
