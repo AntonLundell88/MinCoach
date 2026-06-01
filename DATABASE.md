@@ -28,4 +28,6 @@ Beta feedback is sent from Settings to `/api/beta-feedback` and stored in `beta_
 
 Completed workouts are also sent to `/api/beta-workout`. That route writes one row to `workouts` and one row per logged set to `workout_sets`. The local beta device id is stored inside `workouts.summary.betaDeviceId` until real user accounts are added.
 
+New personal records and coach memory notes are sent to `/api/beta-memory`. During beta they are connected to the local beta device id. When real accounts are added, those rows can be migrated to authenticated users.
+
 If Supabase is missing or temporarily fails, the workout flow continues.

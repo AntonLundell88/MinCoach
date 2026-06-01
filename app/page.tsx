@@ -16,6 +16,7 @@ import ProgramReviewScreen from "./components/ProgramReviewScreen";
 import ProgramBuildLoadingScreen from "./components/ProgramBuildLoadingScreen";
 import SettingsScreen from "./components/SettingsScreen";
 import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
+import { syncBetaCoachMemory, syncBetaPersonalRecord } from "./lib/betaMemorySync";
 import { syncStructuredBetaWorkout } from "./lib/betaWorkoutSync";
 import {
   requestAiCoachChatReply,
@@ -5070,6 +5071,7 @@ function savePainCoachMemory(exerciseName: string, note: string) {
 
   setCoachMemory(nextMemory);
   saveJSON("coachMemory", nextMemory);
+  void syncBetaCoachMemory(nextMemory.notes);
 }
 
 
@@ -6434,6 +6436,14 @@ if (isNewPR(existingPR, { weight, reps })) {
 
   setPersonalRecords(newPRs);
   saveJSON("personalRecords", newPRs);
+  void syncBetaPersonalRecord({
+    exerciseKey: prKey,
+    exerciseName,
+    weight,
+    reps,
+    rir: typeof rirInput === "number" ? rirInput : null,
+    achievedAt: newPR.createdAt,
+  });
 
 
 }
@@ -6898,6 +6908,7 @@ const newNotes: CoachNote[] = [...freshNotes, ...coachMemory.notes].slice(0, 50)
 const nextMemory: CoachMemory = { notes: newNotes };
 setCoachMemory(nextMemory);
 saveJSON("coachMemory", nextMemory);
+void syncBetaCoachMemory(nextMemory.notes);
 
 
 

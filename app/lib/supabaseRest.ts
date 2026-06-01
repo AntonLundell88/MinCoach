@@ -39,6 +39,29 @@ type StructuredWorkoutPayload = {
   };
 };
 
+type PersonalRecordPayload = {
+  deviceId: string;
+  record: {
+    exerciseKey: string;
+    exerciseName: string;
+    weight: number;
+    reps: number;
+    rir?: number | null;
+    achievedAt?: string;
+  };
+};
+
+type CoachMemoryPayload = {
+  deviceId: string;
+  notes: Array<{
+    createdAt: string;
+    pass?: string;
+    gym?: string;
+    exerciseName?: string;
+    text: string;
+  }>;
+};
+
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -247,4 +270,116 @@ export async function insertStructuredWorkout({
   }
 
   return { mode: "saved" as const, workoutId };
+}
+
+export async function upsertPersonalRecord({
+  deviceId,
+  record,
+}: PersonalRecordPayload) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+
+  if (!url || !serviceRoleKey) {
+    return { mode: "disabled" as const };
+  }
+
+  const response = await fetch(
+    `${url}/rest/v1/personal_records?on_conflict=device_id,exercise_key`,
+    {
+      method: "POST",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify([
+        {
+          device_id: deviceId,
+          exercise_key: record.exerciseKey,
+          exercise_name: record.exerciseName,
+          weight: record.weight,
+          reps: record.reps,
+          rir: record.rir ?? null,
+          achieved_at: record.achievedAt ?? new Date().toISOString(),
+        },
+      ]),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Supabase personal record sync failed: ${response.status} ${errorText.slice(
+        0,
+        240
+      )}`
+    );
+  }
+
+  return { mode: "saved" as const };
+}
+
+export async function replaceCoachMemories({
+  deviceId,
+  notes,
+}: CoachMemoryPayload) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+
+  if (!url || !serviceRoleKey) {
+    return { mode: "disabled" as const };
+  }
+
+  const deleteResponse = await fetch(
+    `${url}/rest/v1/coach_memories?device_id=eq.${encodeURIComponent(deviceId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        Prefer: "return=minimal",
+      },
+    }
+  );
+
+  if (!deleteResponse.ok) {
+    const errorText = await deleteResponse.text();
+    throw new Error(
+      `Supabase coach memory cleanup failed: ${deleteResponse.status} ${errorText.slice(
+        0,
+        240
+      )}`
+    );
+  }
+
+  if (notes.length === 0) {
+    return { mode: "saved" as const };
+  }
+
+  await postSupabaseRows(
+    "coach_memories",
+    notes.slice(0, 50).map((note) => ({
+      device_id: deviceId,
+      memory_type: note.exerciseName ? "exercise_note" : "workout_note",
+      exercise_key: note.exerciseName
+        ? note.exerciseName
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+        : null,
+      content: {
+        text: note.text,
+        pass: note.pass ?? null,
+        gym: note.gym ?? null,
+        exerciseName: note.exerciseName ?? null,
+        createdAt: note.createdAt,
+      },
+      importance: note.exerciseName ? 2 : 1,
+      created_at: note.createdAt,
+      updated_at: new Date().toISOString(),
+    }))
+  );
+
+  return { mode: "saved" as const };
 }
