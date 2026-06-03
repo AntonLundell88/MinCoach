@@ -23,6 +23,8 @@ type Workout = {
     sets: {
       weight: number;
       reps: number;
+      durationSeconds?: number;
+      metricType?: "reps" | "time";
     }[];
   }[];
   summary?: WorkoutSummary;
@@ -32,6 +34,8 @@ type PersonalRecord = {
   exerciseName: string;
   weight: number;
   reps: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
   createdAt: string;
 };
 
@@ -75,6 +79,16 @@ function formatMinutes(minutes: number) {
   return rest > 0 ? `${hours} h ${rest} min` : `${hours} h`;
 }
 
+function formatRecord(record: PersonalRecord) {
+  if (record.metricType === "time" || typeof record.durationSeconds === "number") {
+    const seconds = Math.max(0, Math.round(record.durationSeconds ?? 0));
+    const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+    return record.weight > 0 ? `${time} + ${record.weight} kg` : time;
+  }
+
+  return `${record.weight} × ${record.reps}`;
+}
+
 export default function LobbyScreen({
   name,
   nextPassLabel,
@@ -92,28 +106,28 @@ export default function LobbyScreen({
 }: Props) {
   const isLight = theme === "light";
   const pageClassName = isLight
-    ? "relative min-h-screen w-full px-4 py-4 text-[#172033] sm:px-6 lg:px-8"
-    : "relative min-h-screen w-full px-4 py-4 text-white sm:px-6 lg:px-8";
+    ? "relative min-h-screen w-full px-0 py-0 text-[#2d251c] sm:px-6 sm:py-4 lg:px-8"
+    : "relative min-h-screen w-full px-0 py-0 text-white sm:px-6 sm:py-4 lg:px-8";
   const backgroundClassName = isLight
     ? "pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_top_left,rgba(47,109,246,0.13),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(125,96,64,0.08),transparent_26%),linear-gradient(180deg,#f3eee4_0%,#f8f4ec_48%,#efe7da_100%)]"
     : "pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(37,99,235,0.06),transparent_28%),linear-gradient(180deg,#0b1018_0%,#111a25_45%,#0b1018_100%)]";
   const cardClassName = isLight
-    ? "border border-[#d8cfc0]/80 bg-white/68 shadow-[0_16px_46px_rgba(91,72,48,0.10)] backdrop-blur-xl"
-    : "border border-white/[0.09] bg-white/[0.052] shadow-[0_14px_40px_rgba(0,0,0,0.14)] backdrop-blur-xl";
+    ? "border border-[#7a6548]/15 bg-white/56 shadow-[0_18px_46px_rgba(91,72,48,0.07)] backdrop-blur-xl"
+    : "border border-white/[0.045] bg-white/[0.045] shadow-[0_14px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl";
   const smallCardClassName = isLight
-    ? "border border-[#d8cfc0]/75 bg-white/62 backdrop-blur-xl"
-    : "border border-white/[0.09] bg-white/[0.048] backdrop-blur-xl";
+    ? "border border-[#7a6548]/14 bg-white/50 backdrop-blur-xl"
+    : "border border-white/[0.045] bg-white/[0.036] backdrop-blur-xl";
   const labelClassName = isLight
-    ? "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#667085]"
+    ? "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a7661]"
     : "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35";
-  const titleClassName = isLight ? "text-[#172033]" : "text-white";
-  const bodyClassName = isLight ? "text-[#4d5a6b]" : "text-white/58";
+  const titleClassName = isLight ? "text-[#2d251c]" : "text-white";
+  const bodyClassName = isLight ? "text-[#665b4f]" : "text-white/58";
   const buttonSubtleClassName = isLight
-    ? "rounded-xl border border-[#d8cfc0]/80 bg-white/58 px-3 py-2 text-xs font-medium text-[#5b6678] transition hover:border-blue-300/45 hover:bg-white/82 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/45"
-    : "rounded-xl border border-white/[0.09] bg-white/[0.042] px-3 py-2 text-xs font-medium text-white/55 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.06] hover:text-white/78 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/35";
+    ? "rounded-xl border border-[#7a6548]/15 bg-white/48 px-3 py-2 text-xs font-medium text-[#665b4f] transition hover:border-blue-300/35 hover:bg-white/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/45"
+    : "rounded-xl border border-white/[0.045] bg-white/[0.036] px-3 py-2 text-xs font-medium text-white/55 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.06] hover:text-white/78 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/35";
   const overviewButtonClassName = isLight
-    ? "rounded-xl border border-[#d8cfc0]/70 bg-white/58 px-3 py-2.5 text-left text-sm text-[#364152] transition hover:bg-white/82"
-    : "rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2.5 text-left text-sm text-white/78 transition hover:border-white/16 hover:bg-white/[0.06]";
+    ? "rounded-xl border border-[#7a6548]/14 bg-white/48 px-3 py-2.5 text-left text-sm text-[#2d251c] transition hover:bg-white/70"
+    : "rounded-xl border border-white/[0.045] bg-white/[0.036] px-3 py-2.5 text-left text-sm text-white/78 transition hover:border-white/10 hover:bg-white/[0.05]";
   const passPillClassName = isLight
     ? "rounded-xl border border-blue-200/70 bg-blue-50/80 px-3 py-1.5 text-xs font-medium text-blue-700"
     : "rounded-xl border border-blue-400/20 bg-blue-500/[0.07] px-3 py-1.5 text-xs font-medium text-blue-100";
@@ -250,7 +264,7 @@ export default function LobbyScreen({
 
             <p
               className={`mt-3 max-w-2xl text-sm leading-6 sm:text-[15px] ${
-                isLight ? "text-[#4d5a6b]" : "text-white/72"
+                isLight ? "text-[#665b4f]" : "text-white/72"
               }`}
             >
               {coachReflection}
@@ -265,7 +279,7 @@ export default function LobbyScreen({
               <p
                 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}
               >
-                {latestPR ? `${latestPR.weight} × ${latestPR.reps}` : "-"}
+                {latestPR ? formatRecord(latestPR) : "-"}
               </p>
               <p className={`mt-1 text-sm ${bodyClassName}`}>
                 {latestPR ? latestPR.exerciseName : "Inget PR än"}

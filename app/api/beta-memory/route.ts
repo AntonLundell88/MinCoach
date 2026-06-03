@@ -53,6 +53,11 @@ export async function POST(request: Request) {
           exerciseName: record.exerciseName,
           weight: record.weight,
           reps: record.reps,
+          durationSeconds:
+            typeof record.durationSeconds === "number"
+              ? record.durationSeconds
+              : null,
+          metricType: record.metricType === "time" ? "time" : "reps",
           rir: typeof record.rir === "number" ? record.rir : null,
           achievedAt:
             typeof record.achievedAt === "string" ? record.achievedAt : undefined,

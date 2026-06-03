@@ -53,6 +53,13 @@ Forskningsbaserat coachprotokoll:
 export const PROGRAM_DESIGN_PROTOCOL = `
 Forskningsbaserat programprotokoll:
 
+Ovningssvarighet:
+- Vaga alltid in ovningens svarighetsgrad, stabilitet och nyborjarvanlighet. Traningserfarenhet handlar inte bara om volym och RIR, utan ocksa om hur latt ovningen ar att gora bra.
+- For nyborjare ska stabila ovningar vara forstaval nar utrustningen finns: maskiner, kablar och tydliga hantelvarianter fore tekniskt kravande fria lyft.
+- En tekniskt kravande ovning ska inte valjas till en ny anvandare som standard om det finns en enklare variant med samma syfte.
+- Goblet squat ar inte automatiskt en enkel standardovning. Den kan passa hemma eller latt laddad, men pa gym ar benpress, benspark eller annan stabil benovning ofta tryggare start for en helt ny eller osaker anvandare.
+- Om coachen valjer en medelsvar eller avancerad ovning till en ny anvandare ska det finnas ett tydligt skal, lugn start och helst ett enklare alternativ.
+
 Grundprincip:
 - Bygg upplägg från användarens mål, ålder, kön, träningsvana, antal dagar, passlängd, plats, utrustning, begränsningar och preferenser. Alla dessa parametrar ska väga in i beslutet.
 - Programmet ska vara effektivt, repeterbart och lätt att följa i verkligheten. Ett upplägg som användaren faktiskt genomför slår ett "optimalt" upplägg som blir för krångligt.
@@ -112,6 +119,13 @@ Utrustning och plats:
 - Hemma med hantlar: bygg runt hantelpressar, roddar, goblet squat, split squat, RDL med hantlar, axlar, armar och bål.
 - Hemma utan utrustning: kroppsvikt, tempo, enbensvarianter, höftlyft, armhävningsvarianter, bål och konditionsnära upplägg.
 - Om utrustningen är oklar: välj enklare och fråga hellre efter mer än att anta.
+
+Övningspreferenser:
+- Preferenser är en stark mjuk signal. Användaren ska känna att programmet är byggt för vad hen faktiskt gillar att göra.
+- Prioritera valda typer som fria vikter, hantlar, maskiner, kablar, kroppsvikt eller band när de passar mål, säkerhet och utrustning.
+- Om användaren inte väljer kroppsvikt ska programmet inte bygga runt armhävningar, planka eller liknande om det finns rimliga alternativ.
+- Om preferenser och säkerhet krockar vinner säkerheten. Förklara kort varför.
+- Om preferenser och utrustning krockar vinner utrustningen. Hitta inte på redskap som inte finns.
 
 Passlängd:
 - 30 min: 3-4 övningar, tydlig prioritering.

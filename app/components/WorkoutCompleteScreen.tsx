@@ -29,7 +29,7 @@ function StatCard({
   value: string | number;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.09] bg-slate-950/20 p-4">
+    <div className="rounded-2xl border border-white/[0.045] bg-slate-950/14 p-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
         {label}
       </p>
@@ -48,8 +48,8 @@ export default function WorkoutCompleteScreen({
   const improved = review?.progression.improved ?? [];
 
   return (
-    <div className="w-full max-w-xl space-y-4 text-white">
-      <section className="overflow-hidden rounded-[2rem] border border-white/[0.09] bg-white/[0.05] p-6 shadow-[0_16px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
+    <div className="w-full max-w-none space-y-3 text-white sm:max-w-xl sm:space-y-4">
+      <section className="overflow-hidden rounded-[1.5rem] border border-white/[0.045] bg-white/[0.04] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.025)] backdrop-blur-xl sm:rounded-[2rem] sm:p-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-100/45">
           Pass klart
         </p>
@@ -80,7 +80,7 @@ export default function WorkoutCompleteScreen({
       ) : null}
 
       {improved.length > 0 ? (
-        <section className="rounded-[1.6rem] border border-white/[0.09] bg-slate-950/18 p-4 backdrop-blur-xl">
+        <section className="rounded-[1.6rem] border border-white/[0.045] bg-slate-950/14 p-4 backdrop-blur-xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
             Ökade idag
           </p>

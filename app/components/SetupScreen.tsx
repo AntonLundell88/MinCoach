@@ -25,6 +25,8 @@ type Props = {
   setLocationInput: (v: Location) => void;
   equipmentInput: string[];
   setEquipmentInput: (v: string[]) => void;
+  exercisePreferencesInput: string[];
+  setExercisePreferencesInput: (v: string[]) => void;
   limitationsInput: string;
   setLimitationsInput: (v: string) => void;
   goalInput: Goal;
@@ -36,7 +38,7 @@ type Props = {
 };
 
 const fieldClassName =
-  "w-full rounded-2xl border border-white/[0.09] bg-slate-950/45 px-3.5 py-3 text-[15px] text-white outline-none transition focus:border-blue-300/35 focus:bg-slate-950/60 focus:ring-2 focus:ring-blue-500/20";
+  "w-full rounded-2xl border border-white/[0.045] bg-slate-950/35 px-3.5 py-3 text-[15px] text-white outline-none transition focus:border-blue-300/35 focus:bg-slate-950/50 focus:ring-2 focus:ring-blue-500/20";
 
 const labelClassName = "block text-[13px] font-medium text-white/76";
 
@@ -53,6 +55,39 @@ const equipmentOptions = [
   { value: "bands", label: "Band", helper: "drag" },
   { value: "kettlebell", label: "Kettlebell", helper: "sving" },
   { value: "barbell", label: "Skivstång", helper: "baslyft" },
+];
+
+const exercisePreferenceOptions = [
+  {
+    value: "free_weights",
+    label: "Fria vikter",
+    helper: "skivstång",
+  },
+  {
+    value: "dumbbells",
+    label: "Hantlar",
+    helper: "enkelt att justera",
+  },
+  {
+    value: "machines",
+    label: "Maskiner",
+    helper: "stabilt",
+  },
+  {
+    value: "cables",
+    label: "Kablar",
+    helper: "bra kontakt",
+  },
+  {
+    value: "bodyweight",
+    label: "Kroppsvikt",
+    helper: "utan redskap",
+  },
+  {
+    value: "bands",
+    label: "Band",
+    helper: "lätt och flexibelt",
+  },
 ];
 
 const experienceOptions: {
@@ -89,6 +124,8 @@ export default function SetupScreen({
   setLocationInput,
   equipmentInput,
   setEquipmentInput,
+  exercisePreferencesInput,
+  setExercisePreferencesInput,
   limitationsInput,
   setLimitationsInput,
   goalInput,
@@ -115,6 +152,14 @@ export default function SetupScreen({
     setEquipmentInput(next.length > 0 ? next : ["none"]);
   }
 
+  function toggleExercisePreference(value: string) {
+    setExercisePreferencesInput(
+      exercisePreferencesInput.includes(value)
+        ? exercisePreferencesInput.filter((item) => item !== value)
+        : [...exercisePreferencesInput, value]
+    );
+  }
+
   function toggleSecondaryGoal(value: Goal) {
     if (value === goalInput) return;
 
@@ -126,11 +171,11 @@ export default function SetupScreen({
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-start overflow-y-auto bg-[#080d14] px-4 py-4 text-white sm:justify-center sm:px-6">
+    <main className="flex min-h-screen flex-col items-stretch justify-start overflow-y-auto bg-[#080d14] px-0 py-0 text-white sm:items-center sm:justify-center sm:px-6 sm:py-4">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.10),transparent_34%),linear-gradient(180deg,#080d14_0%,#0d1420_48%,#080d14_100%)]" />
 
-      <div className="w-full max-w-md space-y-3">
-        <div className="flex items-center justify-center">
+      <div className="w-full max-w-none space-y-0 sm:max-w-md sm:space-y-3">
+        <div className="flex items-center justify-center py-3 sm:py-0">
           <Image
             src="/logo-dark.png"
             alt="MinCoach"
@@ -141,7 +186,7 @@ export default function SetupScreen({
           />
         </div>
 
-        <section className="rounded-[1.6rem] border border-white/[0.09] bg-white/[0.05] p-4 shadow-[0_18px_54px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl animate-[fadeUp_.45s_ease-out]">
+        <section className="rounded-none border-0 bg-white/[0.045] p-4 shadow-[0_18px_54px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.025)] backdrop-blur-xl animate-[fadeUp_.45s_ease-out] sm:rounded-[1.6rem] sm:border sm:border-white/[0.045]">
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-400/18 bg-blue-500/[0.075] text-sm font-semibold text-blue-100 shadow-[0_0_18px_rgba(59,130,246,0.10)]">
@@ -172,7 +217,7 @@ export default function SetupScreen({
                 onSubmit();
               }}
             >
-              <div className="rounded-2xl border border-white/[0.09] bg-slate-950/22 p-3.5">
+              <div className="rounded-2xl border border-white/[0.045] bg-slate-950/16 p-3.5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
                   Du
                 </p>
@@ -355,6 +400,40 @@ export default function SetupScreen({
                   </div>
                 </div>
               ) : null}
+
+              <div className={labelClassName}>
+                <p>Vilka övningstyper gillar du?</p>
+                <p className="mt-1 text-[12px] leading-4 text-white/44">
+                  Valfritt. Coachen prioriterar detta när upplägget byggs.
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {exercisePreferenceOptions.map((preference) => {
+                    const active = exercisePreferencesInput.includes(
+                      preference.value
+                    );
+
+                    return (
+                      <button
+                        key={preference.value}
+                        type="button"
+                        onClick={() => toggleExercisePreference(preference.value)}
+                        className={`min-h-[58px] rounded-2xl border px-3 py-2 text-left transition ${
+                          active
+                            ? "border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
+                            : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
+                        }`}
+                      >
+                        <span className="block text-[13px] font-semibold text-white">
+                          {preference.label}
+                        </span>
+                        <span className="mt-1 block text-[11px] text-white/42">
+                          {preference.helper}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               <div className={labelClassName}>
                 <p>Viktigast just nu</p>

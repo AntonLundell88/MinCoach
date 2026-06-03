@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 type LoggedSet = {
   weight: number;
   reps: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
   rir?: number;
   failNote?: string;
   createdAt: string;
@@ -55,11 +57,25 @@ function formatTime(value: string) {
   }).format(new Date(value));
 }
 
+function formatDuration(seconds = 0) {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  return `${Math.floor(safeSeconds / 60)}:${String(safeSeconds % 60).padStart(2, "0")}`;
+}
+
 function getSetLabel(set: LoggedSet) {
+  if (set.metricType === "time" || typeof set.durationSeconds === "number") {
+    const base = formatDuration(set.durationSeconds ?? 0);
+    return set.weight > 0 ? `${base} + ${set.weight} kg` : base;
+  }
+
   return `${set.weight} × ${set.reps}`;
 }
 
 function getSetScore(set: LoggedSet) {
+  if (set.metricType === "time" || typeof set.durationSeconds === "number") {
+    return (set.durationSeconds ?? 0) + set.weight * 0.1;
+  }
+
   return set.weight * set.reps;
 }
 

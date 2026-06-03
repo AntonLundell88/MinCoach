@@ -70,6 +70,9 @@ export async function POST(request: Request) {
           setIndex: typeof set.setIndex === "number" ? set.setIndex : 0,
           weight: typeof set.weight === "number" ? set.weight : 0,
           reps: typeof set.reps === "number" ? set.reps : 0,
+          durationSeconds:
+            typeof set.durationSeconds === "number" ? set.durationSeconds : null,
+          metricType: set.metricType === "time" ? "time" : "reps",
           rir: typeof set.rir === "number" ? set.rir : null,
           failNote: typeof set.failNote === "string" ? set.failNote : null,
           notes: typeof set.notes === "string" ? set.notes : null,

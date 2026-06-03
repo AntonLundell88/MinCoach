@@ -29,7 +29,7 @@ type Props = {
 };
 
 const cardClassName =
-  "rounded-[1.6rem] border border-white/[0.09] bg-white/[0.042] p-4 backdrop-blur-2xl";
+  "rounded-[1.6rem] border border-white/[0.045] bg-white/[0.036] p-4 backdrop-blur-2xl";
 
 function StatCard({
   label,
@@ -96,8 +96,8 @@ export default function WorkoutReviewScreen({ review, onClose }: Props) {
     : "Bra jobbat idag.";
 
   return (
-    <div className="w-full max-w-xl space-y-4 text-white">
-      <section className="rounded-[2rem] border border-white/[0.09] bg-white/[0.05] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl sm:p-6">
+    <div className="w-full max-w-none space-y-3 text-white sm:max-w-xl sm:space-y-4">
+      <section className="rounded-[1.5rem] border border-white/[0.045] bg-white/[0.042] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:rounded-[2rem] sm:p-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full border border-blue-400/20 bg-blue-500/[0.07] text-sm font-semibold text-blue-200 shadow-[0_0_18px_rgba(59,130,246,0.11)]">
             C

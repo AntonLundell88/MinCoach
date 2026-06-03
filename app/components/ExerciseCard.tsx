@@ -1,22 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getExerciseProfile } from "../lib/exercises";
-
-type LastByExercise = Record<
-  string,
-  {
-    weight: number;
-    reps: number;
-    rir: number | null;
-    failNote: string | null;
-    updatedAt: string;
-  }
->;
+import { getExerciseProfile, isBodyweightExercise, isTimedExercise } from "../lib/exercises";
 
 type PersonalRecord = {
   exerciseName: string;
   weight: number;
   reps: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
   createdAt: string;
 };
 
@@ -24,12 +15,13 @@ type PersonalRecords = Record<string, PersonalRecord>;
 
 type Props = {
   currentExerciseName: string;
-  lastByExercise: LastByExercise;
   exerciseKey: (name: string) => string;
   weightInput: string;
   setWeightInput: (v: string) => void;
   repsInput: string;
   setRepsInput: (v: string) => void;
+  durationSecondsInput: number;
+  setDurationSecondsInput: (v: number) => void;
   rirInput: number;
   setRirInput: React.Dispatch<React.SetStateAction<number>>;
   didFailInput: boolean;
@@ -47,12 +39,13 @@ type Props = {
 
 export default function ExerciseCard({
   currentExerciseName,
-  lastByExercise,
   exerciseKey,
   weightInput,
   setWeightInput,
   repsInput,
   setRepsInput,
+  durationSecondsInput,
+  setDurationSecondsInput,
   rirInput,
   setRirInput,
   didFailInput,
@@ -69,7 +62,14 @@ export default function ExerciseCard({
 }: Props) {
   const [showRirInfo, setShowRirInfo] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
+  const [useAddedWeight, setUseAddedWeight] = useState(false);
+  const [isDurationRunning, setIsDurationRunning] = useState(false);
   const exerciseInfo = getExerciseProfile(currentExerciseName);
+  const isBodyweight = isBodyweightExercise(currentExerciseName);
+  const isTimed = isTimedExercise(currentExerciseName);
+  const hasAddedWeight =
+    Number(weightInput.trim().replace(",", ".")) > 0 && isBodyweight;
+  const showWeightInput = !isBodyweight || useAddedWeight || hasAddedWeight;
   const adjustReps = (delta: number) => {
     const current = Number(repsInput);
     const next = Number.isFinite(current)
@@ -79,6 +79,25 @@ export default function ExerciseCard({
       : 0;
 
     setRepsInput(String(next));
+  };
+  const adjustDuration = (delta: number) => {
+    setDurationSecondsInput(Math.max(0, durationSecondsInput + delta));
+  };
+  const formatDuration = (seconds: number) => {
+    const safeSeconds = Math.max(0, Math.round(seconds));
+    const minutes = Math.floor(safeSeconds / 60);
+    const restSeconds = safeSeconds % 60;
+    return `${minutes}:${restSeconds.toString().padStart(2, "0")}`;
+  };
+  const formatRecord = (record: PersonalRecord) => {
+    if (record.metricType === "time" || isTimed) {
+      const time = formatDuration(record.durationSeconds ?? 0);
+      return record.weight > 0 ? `${time} + ${record.weight} kg` : time;
+    }
+
+    return isBodyweight && record.weight <= 0
+      ? `${record.reps} reps`
+      : `${record.weight} x ${record.reps}`;
   };
 useEffect(() => {
   if (rirInput > 1 && didFailInput) {
@@ -91,9 +110,26 @@ useEffect(() => {
     setFailNoteInput("");
   }
 }, [didFailInput, failNoteInput, setFailNoteInput]);
+// Reset exercise-specific UI when the user moves to another exercise.
+/* eslint-disable react-hooks/set-state-in-effect */
+useEffect(() => {
+  setUseAddedWeight(false);
+  setIsDurationRunning(false);
+  setDurationSecondsInput(0);
+}, [currentExerciseName, setDurationSecondsInput]);
+/* eslint-enable react-hooks/set-state-in-effect */
+useEffect(() => {
+  if (!isTimed || !isDurationRunning) return;
+
+  const interval = window.setInterval(() => {
+    setDurationSecondsInput(durationSecondsInput + 1);
+  }, 1000);
+
+  return () => window.clearInterval(interval);
+}, [durationSecondsInput, isDurationRunning, isTimed, setDurationSecondsInput]);
   
  return (
-  <div className="space-y-3 rounded-[1.6rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
+  <div className="exercise-card-shell space-y-3 rounded-[1.6rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
     {skippedExerciseName ? (
       <div className="rounded-2xl border border-white/[0.07] bg-slate-950/14 px-3 py-3">
         <div className="flex items-center justify-between gap-3">
@@ -187,14 +223,13 @@ useEffect(() => {
       ) : null}
 
       {(() => {
-        const lastForUI = lastByExercise[exerciseKey(currentExerciseName)];
         const prForUI = personalRecords[exerciseKey(currentExerciseName)];
 
         return (
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
             {prForUI ? (
               <div className="rounded-full border border-amber-200/18 bg-amber-200/[0.08] px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_0_18px_rgba(251,191,36,0.06)]">
-                Personbästa {prForUI.weight} × {prForUI.reps}
+                Personbästa {formatRecord(prForUI)}
               </div>
             ) : (
               <div className="rounded-full border border-white/[0.09] bg-white/[0.042] px-2.5 py-1 text-[11px] text-white/38">
@@ -209,17 +244,89 @@ useEffect(() => {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-xs text-gray-300">Vikt (kg)</label>
-          <input
-            className="w-full rounded-2xl border border-white/[0.075] bg-slate-950/50 px-3.5 py-2.5 text-center text-lg font-semibold text-white outline-none transition focus:border-blue-300/35"
-            inputMode="decimal"
-            value={weightInput}
-            onChange={(e) => setWeightInput(e.target.value)}
-            placeholder="t.ex. 80"
-          />
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-xs text-gray-300">
+              {isBodyweight ? "Belastning" : "Vikt (kg)"}
+            </label>
+            {isBodyweight ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !useAddedWeight;
+                  setUseAddedWeight(next);
+                  if (!next) setWeightInput("");
+                }}
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold transition ${
+                  showWeightInput
+                    ? "border-blue-300/24 bg-blue-500/[0.14] text-blue-50"
+                    : "border-white/[0.075] bg-white/[0.035] text-white/46 hover:bg-white/[0.06] hover:text-white/72"
+                }`}
+              >
+                + extra vikt
+              </button>
+            ) : null}
+          </div>
+
+          {showWeightInput ? (
+            <input
+              className="w-full rounded-2xl border border-white/[0.075] bg-slate-950/50 px-3.5 py-2.5 text-center text-lg font-semibold text-white outline-none transition focus:border-blue-300/35"
+              inputMode="decimal"
+              value={weightInput}
+              onChange={(e) => setWeightInput(e.target.value)}
+              placeholder={isBodyweight ? "t.ex. 5" : "t.ex. 80"}
+            />
+          ) : (
+            <div className="flex h-[47px] items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.026] px-3.5 text-sm font-semibold text-white/50">
+              Kroppsvikt
+            </div>
+          )}
         </div>
 
         <div className="space-y-1">
+          {isTimed ? (
+            <div className="space-y-1">
+              <label className="text-xs text-gray-300">Tid</label>
+              <div className="rounded-2xl border border-blue-300/15 bg-slate-950/50 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-2xl font-semibold tracking-[-0.03em] text-white">
+                    {formatDuration(durationSecondsInput)}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsDurationRunning((value) => !value)}
+                      className="rounded-xl border border-blue-300/20 bg-blue-500/[0.12] px-3 py-1.5 text-xs font-semibold text-blue-50 transition hover:bg-blue-500/[0.18]"
+                    >
+                      {isDurationRunning ? "Stoppa" : "Starta"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsDurationRunning(false);
+                        setDurationSecondsInput(0);
+                      }}
+                      className="rounded-xl border border-white/[0.07] bg-white/[0.035] px-2.5 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+                    >
+                      Noll
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-4 gap-1.5">
+                  {[15, 30, 45, 60].map((seconds) => (
+                    <button
+                      key={seconds}
+                      type="button"
+                      onClick={() => adjustDuration(seconds)}
+                      className="rounded-xl border border-white/[0.06] bg-white/[0.035] py-1.5 text-xs font-semibold text-white/62 transition hover:bg-white/[0.07] hover:text-white"
+                    >
+                      +{seconds}s
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
           <label className="text-xs text-gray-300">Reps</label>
           <div className="grid grid-cols-[2.55rem_1fr_2.55rem] overflow-hidden rounded-2xl border border-white/[0.075] bg-slate-950/50 transition focus-within:border-blue-300/35">
             <button
@@ -246,13 +353,27 @@ useEffect(() => {
               +
             </button>
           </div>
+          </>
+          )}
         </div>
       </div>
+
+      {isTimed ? (
+        <p className="-mt-1 text-xs leading-5 text-white/42">
+          Logga tid och marginal. Slå på extra vikt om du använder viktväst, kedja
+          eller platta.
+        </p>
+      ) : isBodyweight ? (
+        <p className="-mt-1 text-xs leading-5 text-white/42">
+          Logga reps och RIR. Slå på extra vikt om du använder kedja, platta
+          eller hantel.
+        </p>
+      ) : null}
 
       <div className="space-y-1">
         <div className="flex items-center gap-2">
   <label className="text-xs text-gray-300">
-    RIR (reps kvar i tanken)
+    {isTimed ? "Marginal till stopp" : "RIR (reps kvar i tanken)"}
   </label>
 
   <button
@@ -266,14 +387,29 @@ useEffect(() => {
 
 {showRirInfo && (
   <div className="text-xs text-gray-300 bg-slate-950/48 border border-zinc-700 rounded-xl p-3 mt-2">
-    Hur många reps du hade kvar innan det tog stopp.
-    <br />
-    <br />
-    0 = du nådde max  
-    <br />
-    1 = du hade klarat 1 rep till  
-    <br />
-    2 = du hade klarat 2 reps till
+    {isTimed ? (
+      <>
+        Hur nära du var att tappa positionen eller behöva släppa.
+        <br />
+        <br />
+        0 = max, formen höll precis
+        <br />
+        1 = nära stopp
+        <br />
+        2 = tungt men kontrollerat
+      </>
+    ) : (
+      <>
+        Hur många reps du hade kvar innan det tog stopp.
+        <br />
+        <br />
+        0 = du nådde max
+        <br />
+        1 = du hade klarat 1 rep till
+        <br />
+        2 = du hade klarat 2 reps till
+      </>
+    )}
   </div>
 )}
 
@@ -306,7 +442,7 @@ useEffect(() => {
       onChange={(e) => setDidFailInput(e.target.checked)}
       className="h-4 w-4 rounded border border-white/20 bg-slate-950/38"
     />
-    <span>Setet gick till failure</span>
+    <span>{isTimed ? "Jag nådde stoppet" : "Setet gick till failure"}</span>
   </label>
 ) : null}
 {didFailInput ? (

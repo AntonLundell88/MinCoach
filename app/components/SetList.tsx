@@ -6,12 +6,31 @@ type LoggedSet = {
   createdAt: string;
   weight: number;
   reps: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
   rir?: number;
 };
 
 type Props = {
   currentSets: LoggedSet[];
 };
+
+function formatDuration(seconds = 0) {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const rest = safeSeconds % 60;
+
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function getSetLabel(set: LoggedSet) {
+  if (set.metricType === "time" || typeof set.durationSeconds === "number") {
+    const base = formatDuration(set.durationSeconds ?? 0);
+    return set.weight > 0 ? `${base} + ${set.weight} kg` : base;
+  }
+
+  return `${set.weight} x ${set.reps}`;
+}
 
 export default function SetList({ currentSets }: Props) {
   const setListContainerRef = useRef<HTMLDivElement | null>(null);
@@ -42,7 +61,7 @@ export default function SetList({ currentSets }: Props) {
             className="flex items-center justify-between rounded-xl border border-white/[0.045] bg-slate-950/24 px-2.5 py-1.5"
           >
             <span className="text-sm font-semibold text-white/90">
-              {index + 1}. {set.weight} x {set.reps}
+              {index + 1}. {getSetLabel(set)}
             </span>
 
             <span className="text-[11px] text-gray-400">

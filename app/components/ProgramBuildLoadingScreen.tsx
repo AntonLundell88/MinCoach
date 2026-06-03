@@ -38,6 +38,7 @@ export default function ProgramBuildLoadingScreen() {
     return () => window.clearTimeout(timer);
   }, [activeStep, isFinalStep]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!isFinalStep) {
       setShowReassurance(false);
@@ -57,6 +58,7 @@ export default function ProgramBuildLoadingScreen() {
       window.clearTimeout(stillWorkingTimer);
     };
   }, [isFinalStep]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b1018] px-6 py-10 text-white">

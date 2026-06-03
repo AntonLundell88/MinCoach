@@ -8,6 +8,8 @@ type BetaWorkoutSet = {
   setIndex: number;
   weight: number;
   reps: number;
+  durationSeconds?: number | null;
+  metricType?: "reps" | "time";
   rir?: number | null;
   failNote?: string | null;
   notes?: string | null;

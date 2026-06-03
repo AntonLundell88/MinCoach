@@ -7,6 +7,8 @@ type BetaPersonalRecord = {
   exerciseName: string;
   weight: number;
   reps: number;
+  durationSeconds?: number | null;
+  metricType?: "reps" | "time";
   rir?: number | null;
   achievedAt?: string;
 };

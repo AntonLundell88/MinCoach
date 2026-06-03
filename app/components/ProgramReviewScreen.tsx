@@ -120,6 +120,18 @@ function actionLabel(action: CoachProgramSuggestionAction) {
   return `Döp pass ${action.passKey} till ${action.displayName}`;
 }
 
+function compactListText(items: string[]) {
+  return items.filter(Boolean).join(", ");
+}
+
+function splitIntoShortPoints(text: string) {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
 export default function ProgramReviewScreen({
   profile,
   workoutPlan,
@@ -160,6 +172,22 @@ export default function ProgramReviewScreen({
     setPassNameInput("");
   }
 
+  const totalExercises = workoutPlan.passes.reduce(
+    (sum, pass) => sum + pass.exercises.length,
+    0
+  );
+  const profileLimitations = profile.limitations.trim();
+  const safetyContext = compactListText([
+    profileLimitations ? `Tar hänsyn till: ${profileLimitations}` : "",
+    ...(workoutPlan.safetyNotes ?? []).slice(0, 2),
+  ]);
+  const planPoints = splitIntoShortPoints(
+    workoutPlan.planReason || buildPlanReason(profile)
+  );
+  const structurePoints = splitIntoShortPoints(
+    workoutPlan.structureReason || buildStructureReason(profile, workoutPlan)
+  );
+
   return (
     <main className="min-h-screen bg-[#0b1018] px-4 pb-5 pt-16 text-white">
       <div className="mx-auto flex w-full max-w-[430px] flex-col gap-4">
@@ -181,6 +209,77 @@ export default function ProgramReviewScreen({
               `Målet först: ${goalLabel(profile.goalPrimary)}. Jag bygger ett upplägg som går att följa, mäta och justera.`}
           </p>
 
+          <div className="mt-4 rounded-2xl border border-blue-300/12 bg-blue-400/[0.055] p-3.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/48">
+              Det viktigaste
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-xl border border-white/[0.065] bg-slate-950/18 px-3 py-2.5">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/36">
+                  Mål
+                </p>
+                <p className="mt-1 text-sm font-semibold capitalize text-white">
+                  {goalLabel(profile.goalPrimary)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/[0.065] bg-slate-950/18 px-3 py-2.5">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/36">
+                  Vecka
+                </p>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {profile.daysPerWeek} pass
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/[0.065] bg-slate-950/18 px-3 py-2.5">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/36">
+                  Passlängd
+                </p>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {profile.minutesPerSession} min
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/[0.065] bg-slate-950/18 px-3 py-2.5">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/36">
+                  Övningar
+                </p>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {totalExercises} totalt
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.035] px-3 py-2.5">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/36">
+                Plats
+              </p>
+              <p className="mt-1 truncate text-sm font-semibold text-white">
+                {profile.location === "gym" ? "Gym" : "Hemma"}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.035] px-3 py-2.5">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/36">
+                Nivå
+              </p>
+              <p className="mt-1 truncate text-sm font-semibold text-white">
+                {profile.trainingExperience === "erfaren"
+                  ? "Erfaren"
+                  : profile.trainingExperience === "van"
+                    ? "Van"
+                    : "Ny"}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.035] px-3 py-2.5">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/36">
+                Profil
+              </p>
+              <p className="mt-1 truncate text-sm font-semibold text-white">
+                {profile.age ? `${profile.age} år` : "Klar"}
+              </p>
+            </div>
+          </div>
+
           {programBuildStatus === "building" ? (
             <div className="mt-4 rounded-2xl border border-blue-300/16 bg-blue-400/[0.07] p-3 text-sm font-semibold leading-6 text-blue-50/78">
               Jag bygger upplägget med AI nu. Du ser ett enkelt säkerhetsupplägg medan jag tänker klart.
@@ -193,49 +292,64 @@ export default function ProgramReviewScreen({
             </div>
           ) : null}
 
-          <div className="mt-4 rounded-2xl border border-blue-300/12 bg-blue-400/[0.055] p-3.5">
+          <div className="mt-4 rounded-2xl border border-white/[0.085] bg-white/[0.04] p-3.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/48">
               Varför detta upplägg
             </p>
-            <p className="mt-2 text-sm leading-6 text-white/78">
-              {workoutPlan.planReason || buildPlanReason(profile)}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-white/68">
-              {workoutPlan.structureReason || buildStructureReason(profile, workoutPlan)}
-            </p>
-            {workoutPlan.safetyNotes?.length ? (
-              <div className="mt-4 rounded-2xl border border-white/[0.07] bg-slate-950/18 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/38">
-                  Viktigt innan du startar
-                </p>
-                <div className="mt-2 grid gap-2">
-                {workoutPlan.safetyNotes.map((note) => (
-                  <p
-                    key={note}
-                    className="text-xs leading-5 text-white/62"
-                  >
-                    {note}
-                  </p>
-                ))}
+            <div className="mt-3 grid gap-2">
+              {[...planPoints, ...structurePoints].slice(0, 4).map((point) => (
+                <div
+                  key={point}
+                  className="flex gap-2 rounded-xl border border-white/[0.055] bg-slate-950/16 px-3 py-2.5"
+                >
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-300/80" />
+                  <p className="text-sm leading-5 text-white/72">{point}</p>
                 </div>
-              </div>
-            ) : null}
+              ))}
+            </div>
           </div>
 
-          <div className="mt-3 rounded-2xl border border-white/[0.075] bg-white/[0.035] p-3.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
-              Snabb ordbok
+          <div className="mt-3 rounded-2xl border border-emerald-300/12 bg-emerald-300/[0.045] p-3.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-100/50">
+              Coachens ramar
             </p>
-            <div className="mt-2 grid gap-2.5 text-xs leading-5 text-white/64">
+            <div className="mt-2 grid gap-2 text-xs leading-5 text-white/67">
               <p>
-                <span className="font-semibold text-white/82">Vikt</span> är vikten du kör med. Vid hantlar räknar vi oftast vikten per hantel.
+                Första veckan ska kännas kontrollerad. Vi vill hitta rätt nivå, inte bevisa allt direkt.
               </p>
               <p>
-                <span className="font-semibold text-white/82">Reps</span> är repetitioner, alltså hur många gånger du gör rörelsen.
+                Skarp, ökande eller konstig smärta gäller hela kroppen. Då stoppar vi, byter övning eller sänker.
               </p>
               <p>
-                <span className="font-semibold text-white/82">RIR</span> är hur många reps du tror att du hade kvar innan det tog stopp.
+                Första setet i varje övning visar dagsformen. Coachen justerar efter det du loggar.
               </p>
+              {safetyContext ? (
+                <p className="rounded-xl border border-white/[0.06] bg-slate-950/18 px-3 py-2 text-white/58">
+                  {safetyContext}
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-2xl border border-blue-300/16 bg-blue-400/[0.07] p-3.5 shadow-[0_14px_45px_rgba(47,109,246,0.08)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+              Detta behöver du kunna
+            </p>
+            <div className="mt-3 grid gap-2">
+              {[
+                ["Vikt", "Vikten du kör med. Vid hantlar räknar vi oftast per hantel."],
+                ["Reps", "Repetitioner. Hur många gånger du gör rörelsen."],
+                ["RIR", "Reps kvar i tanken. 2 betyder att du tror att två reps fanns kvar."],
+                ["Tid", "På planka och liknande loggar vi sekunder. Då betyder marginal hur nära du var att släppa."],
+              ].map(([label, text]) => (
+                <div
+                  key={label}
+                  className="grid grid-cols-[3.2rem_1fr] items-start gap-2 rounded-xl border border-white/[0.065] bg-slate-950/18 px-3 py-2"
+                >
+                  <p className="text-sm font-semibold text-white">{label}</p>
+                  <p className="text-xs leading-5 text-white/64">{text}</p>
+                </div>
+              ))}
             </div>
           </div>
 

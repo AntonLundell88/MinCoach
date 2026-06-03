@@ -7,6 +7,7 @@ import {
   type CoachProgramBuildContext,
 } from "../../../../lib/coachAi";
 import {
+  getExerciseProgramMeta,
   getExerciseProfile,
   normalizeExerciseSearchText,
   resolveExerciseName,
@@ -22,6 +23,13 @@ const PROGRAM_BUILD_TIMEOUT_MS = 24000;
 const PROGRAM_BUILD_ATTEMPTS = 1;
 
 const PROGRAM_BUILD_SYSTEM_PROMPT = `
+Programbyggets Ã¶vningssvÃ¥righet:
+- AnvÃ¤nd availableExercises.difficulty, beginnerFit och stability aktivt.
+- FÃ¶r trainingExperience "nyborjare": prioritera beginnerFit "bra", difficulty "enkel" eller "medel" och stability "hog" eller "medel".
+- VÃ¤lj inte beginnerFit "undvik_som_standard" till en ny anvÃ¤ndare om det finns bra alternativ.
+- Om du vÃ¤ljer en medel/avancerad Ã¶vning fÃ¶r en ny anvÃ¤ndare ska den ha tydligt syfte, lugn start och ett enklare alternativ.
+- Goblet squat Ã¤r inte automatiskt en enkel standardÃ¶vning. Den kan passa hemma/lÃ¤tt laddad, men pÃ¥ gym Ã¤r benpress, benspark eller annan stabil variant ofta tryggare fÃ¶r en helt ny eller osÃ¤ker anvÃ¤ndare.
+
 Du är MinCoach programcoach. Bygg träningsprogram som en erfaren coach.
 Viktigast: användarens mål, ålder, kön, träningsvana, passlängd, antal dagar, plats, utrustning och begränsningar ska påverka upplägget.
 Principer:
@@ -42,12 +50,20 @@ function compactProgramBuildContext(context: CoachProgramBuildContext) {
     userName: context.userName,
     profile: context.profile,
     existingPreferences: context.existingPreferences.slice(0, 10),
-    availableExercises: context.availableExercises.slice(0, 80).map((exercise) => ({
-      name: exercise.name,
-      category: exercise.category,
-      equipment: exercise.equipment,
-      caution: exercise.caution,
-    })),
+    availableExercises: context.availableExercises.slice(0, 80).map((exercise) => {
+      const programMeta = getExerciseProgramMeta(exercise.name);
+
+      return {
+        name: exercise.name,
+        category: exercise.category,
+        equipment: exercise.equipment,
+        caution: exercise.caution,
+        difficulty: programMeta.difficulty,
+        beginnerFit: programMeta.beginnerFit,
+        stability: programMeta.stability,
+        beginnerNote: programMeta.beginnerNote,
+      };
+    }),
   };
 }
 

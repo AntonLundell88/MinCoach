@@ -23,6 +23,13 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100svh;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 html[data-theme="light"],
@@ -31,7 +38,7 @@ html[data-theme="light"],
     radial-gradient(circle at top left, rgba(47, 109, 246, 0.13), transparent 30%),
     radial-gradient(circle at 80% 0%, rgba(125, 96, 64, 0.08), transparent 26%),
     linear-gradient(180deg, #f3eee4 0%, #f8f4ec 48%, #efe7da 100%) !important;
-  color: #172033 !important;
+  color: #2d251c !important;
 }
 
 [data-theme="light"] body {
@@ -39,7 +46,7 @@ html[data-theme="light"],
     radial-gradient(circle at top left, rgba(47, 109, 246, 0.13), transparent 30%),
     radial-gradient(circle at 80% 0%, rgba(125, 96, 64, 0.08), transparent 26%),
     linear-gradient(180deg, #f3eee4 0%, #f8f4ec 48%, #efe7da 100%) !important;
-  color: #172033 !important;
+  color: #2d251c !important;
 }
 
 [data-theme="light"] [class*="fixed"][class*="inset-0"][class*="-z-10"],
@@ -61,7 +68,7 @@ html[data-theme="light"],
 }
 
 [data-theme="light"] [class*="text-white"] {
-  color: #172033 !important;
+  color: #2d251c !important;
 }
 
 [data-theme="light"] [class*="text-white/"],
@@ -69,7 +76,7 @@ html[data-theme="light"],
 [data-theme="light"] [class*="text-gray-"],
 [data-theme="light"] [class*="text-zinc-"],
 [data-theme="light"] [class*="text-slate-"] {
-  color: #4d5a6b !important;
+  color: #665b4f !important;
 }
 
 [data-theme="light"] [class*="text-blue-100"],
@@ -109,16 +116,16 @@ html[data-theme="light"],
 }
 
 [data-theme="light"] [class*="border-white"] {
-  border-color: rgba(216, 207, 192, 0.78) !important;
+  border-color: rgba(122, 101, 72, 0.16) !important;
 }
 
 [data-theme="light"] [class*="bg-white/"],
 [data-theme="light"] [class*="bg-white["] {
-  background-color: rgba(255, 255, 255, 0.64) !important;
+  background-color: rgba(255, 255, 255, 0.54) !important;
 }
 
 [data-theme="light"] [class*="bg-slate-950"] {
-  background-color: rgba(255, 255, 255, 0.42) !important;
+  background-color: rgba(255, 255, 255, 0.38) !important;
 }
 
 [data-theme="light"] [class*="bg-slate-900"],
@@ -143,41 +150,41 @@ html[data-theme="light"],
 
 [data-theme="light"] input,
 [data-theme="light"] textarea {
-  color: #172033 !important;
+  color: #2d251c !important;
 }
 
 [data-theme="light"] input::placeholder,
 [data-theme="light"] textarea::placeholder {
-  color: rgba(77, 90, 107, 0.55) !important;
+  color: rgba(102, 91, 79, 0.52) !important;
 }
 
 [data-theme="light"] .coach-panel-shell {
-  background: rgba(255, 255, 255, 0.72) !important;
-  border-color: rgba(216, 207, 192, 0.86) !important;
-  box-shadow: 0 16px 46px rgba(91, 72, 48, 0.1) !important;
+  background: rgba(255, 255, 255, 0.56) !important;
+  border-color: rgba(122, 101, 72, 0.14) !important;
+  box-shadow: 0 18px 44px rgba(91, 72, 48, 0.08) !important;
 }
 
 [data-theme="light"] .coach-message {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 247, 240, 0.86)) !important;
-  border-color: rgba(216, 207, 192, 0.92) !important;
-  color: #172033 !important;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(250, 247, 240, 0.58)) !important;
+  border-color: rgba(122, 101, 72, 0.13) !important;
+  color: #2d251c !important;
   box-shadow: 0 10px 26px rgba(91, 72, 48, 0.08) !important;
 }
 
 [data-theme="light"] .user-message,
 [data-theme="light"] .coach-empty-message {
-  background: rgba(239, 244, 255, 0.78) !important;
-  border-color: rgba(191, 219, 254, 0.85) !important;
-  color: #172033 !important;
+  background: rgba(239, 244, 255, 0.54) !important;
+  border-color: rgba(47, 109, 246, 0.14) !important;
+  color: #2d251c !important;
 }
 
 [data-theme="light"] .coach-message-label {
-  color: rgba(77, 90, 107, 0.58) !important;
+  color: rgba(102, 91, 79, 0.56) !important;
 }
 
 [data-theme="light"] .coach-message p {
-  color: #172033 !important;
+  color: #2d251c !important;
 }
 
 [data-theme="light"] .coach-message p[class*="text-blue"] {
@@ -192,12 +199,12 @@ html[data-theme="light"],
 }
 
 [data-theme="light"] .user-message-text {
-  color: #172033 !important;
+  color: #2d251c !important;
 }
 
 [data-theme="light"] .coach-input {
-  background: rgba(255, 255, 255, 0.72) !important;
-  border-color: rgba(216, 207, 192, 0.92) !important;
+  background: rgba(255, 255, 255, 0.58) !important;
+  border-color: rgba(122, 101, 72, 0.16) !important;
 }
 
 [data-theme="light"] .settings-backdrop {
@@ -213,6 +220,223 @@ html[data-theme="light"],
   background: rgba(2, 6, 24, 0.58) !important;
   -webkit-backdrop-filter: blur(16px) saturate(1.08) !important;
   backdrop-filter: blur(16px) saturate(1.08) !important;
+}
+
+/* MinCoach theme polish: calmer surfaces, fewer hard edges, better light mode. */
+[data-theme="dark"] {
+  --mc-panel: rgba(255, 255, 255, 0.048);
+  --mc-panel-soft: rgba(255, 255, 255, 0.024);
+  --mc-border: rgba(255, 255, 255, 0.042);
+  --mc-muted: rgba(255, 255, 255, 0.54);
+}
+
+[data-theme="light"] {
+  --mc-panel: rgba(255, 255, 255, 0.58);
+  --mc-panel-strong: rgba(255, 255, 255, 0.74);
+  --mc-panel-soft: rgba(248, 244, 236, 0.58);
+  --mc-border: rgba(122, 101, 72, 0.16);
+  --mc-text: #2d251c;
+  --mc-muted: #665b4f;
+  --mc-soft-blue: rgba(47, 109, 246, 0.085);
+}
+
+[data-theme="dark"] [class*="border-white"],
+[data-theme="dark"] [class*="border-zinc"],
+[data-theme="dark"] [class*="border-slate"] {
+  border-color: var(--mc-border) !important;
+}
+
+[data-theme="dark"] [class*="bg-white/"],
+[data-theme="dark"] [class*="bg-white["],
+[data-theme="dark"] [class*="bg-slate-950"],
+[data-theme="dark"] [class*="bg-slate-900"] {
+  background-color: var(--mc-panel-soft) !important;
+}
+
+[data-theme="dark"] .workout-status-panel,
+[data-theme="dark"] .exercise-card-shell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.018)) !important;
+  border-color: var(--mc-border) !important;
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.022) !important;
+}
+
+[data-theme="dark"] .workout-next-card {
+  background: rgba(47, 109, 246, 0.072) !important;
+  border-color: rgba(96, 165, 250, 0.16) !important;
+}
+
+[data-theme="dark"] .workout-rest-card {
+  background: rgba(3, 7, 18, 0.24) !important;
+  border-color: rgba(255, 255, 255, 0.066) !important;
+}
+
+[data-theme="light"] [class*="rounded-"][class*="border"] {
+  border-color: var(--mc-border) !important;
+}
+
+[data-theme="light"] [class*="bg-white/"],
+[data-theme="light"] [class*="bg-white["],
+[data-theme="light"] [class*="bg-slate-950"],
+[data-theme="light"] [class*="bg-slate-900"],
+[data-theme="light"] [class*="bg-[#101824]"],
+[data-theme="light"] [class*="bg-[#111a25]"],
+[data-theme="light"] [class*="bg-[#131c27]"] {
+  background-color: var(--mc-panel) !important;
+}
+
+[data-theme="light"] [class*="bg-[#2a1417]"] {
+  background-color: rgba(255, 238, 238, 0.88) !important;
+}
+
+[data-theme="light"] [class*="bg-[#2a1d12]"] {
+  background-color: rgba(255, 246, 229, 0.9) !important;
+}
+
+[data-theme="light"] [class*="bg-blue-500"],
+[data-theme="light"] [class*="bg-blue-600"],
+[data-theme="light"] [class*="bg-[#2f6df6]"] {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .workout-status-panel,
+[data-theme="light"] .exercise-card-shell,
+[data-theme="light"] .coach-panel-shell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(250, 247, 240, 0.56)) !important;
+  border-color: var(--mc-border) !important;
+  box-shadow:
+    0 22px 58px rgba(91, 72, 48, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48) !important;
+}
+
+[data-theme="light"] .workout-next-card {
+  background:
+    linear-gradient(180deg, rgba(47, 109, 246, 0.09), rgba(47, 109, 246, 0.055)) !important;
+  border-color: rgba(47, 109, 246, 0.18) !important;
+}
+
+[data-theme="light"] .workout-rest-card {
+  background: rgba(255, 255, 255, 0.48) !important;
+  border-color: var(--mc-border) !important;
+}
+
+[data-theme="light"] .workout-status-panel [class*="text-white"],
+[data-theme="light"] .exercise-card-shell [class*="text-white"] {
+  color: var(--mc-text) !important;
+}
+
+[data-theme="light"] .workout-status-panel [class*="text-white/"],
+[data-theme="light"] .exercise-card-shell [class*="text-white/"],
+[data-theme="light"] .workout-status-panel [class*="text-gray-"],
+[data-theme="light"] .exercise-card-shell [class*="text-gray-"] {
+  color: var(--mc-muted) !important;
+}
+
+[data-theme="light"] .workout-status-panel [class*="text-blue"],
+[data-theme="light"] .exercise-card-shell [class*="text-blue"] {
+  color: #2563eb !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background-color: rgba(255, 255, 255, 0.66) !important;
+  border-color: rgba(122, 101, 72, 0.18) !important;
+  color: var(--mc-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+
+@media (max-width: 640px) {
+  main[data-theme],
+  main[data-theme] > div:not([class*="fixed"]) {
+    width: 100% !important;
+  }
+
+  main[data-theme] [class*="max-w-md"],
+  main[data-theme] [class*="max-w-lg"],
+  main[data-theme] [class*="max-w-xl"] {
+    max-width: none !important;
+  }
+
+  main[data-theme] {
+    gap: 0.75rem !important;
+  }
+}
+
+/* Final surface pass: keep the UI calm by muting old utility borders app-wide. */
+[data-theme="dark"] [class*="border-white"],
+[data-theme="dark"] [class*="border-slate"],
+[data-theme="dark"] [class*="border-zinc"] {
+  border-color: rgba(255, 255, 255, 0.045) !important;
+}
+
+[data-theme="dark"] [class*="bg-white/"] {
+  background-color: rgba(255, 255, 255, 0.036) !important;
+}
+
+[data-theme="dark"] [class*="bg-slate-950"] {
+  background-color: rgba(7, 13, 22, 0.28) !important;
+}
+
+[data-theme="light"] [class*="text-[#172033]"],
+[data-theme="light"] [class*="text-[#364152]"],
+[data-theme="light"] [class*="text-[#5b6678]"] {
+  color: #2d251c !important;
+}
+
+[data-theme="light"] [class*="text-[#4d5a6b]"],
+[data-theme="light"] [class*="text-[#667085]"] {
+  color: #665b4f !important;
+}
+
+[data-theme="light"] [class*="border-[#d8cfc0]"],
+[data-theme="light"] [class*="border-white"],
+[data-theme="light"] [class*="border-slate"],
+[data-theme="light"] [class*="border-zinc"] {
+  border-color: rgba(122, 101, 72, 0.14) !important;
+}
+
+[data-theme="light"] [class*="bg-white/"],
+[data-theme="light"] [class*="bg-white["] {
+  background-color: rgba(255, 255, 255, 0.52) !important;
+}
+
+[data-theme="light"] [class*="bg-slate-950"],
+[data-theme="light"] [class*="bg-slate-900"] {
+  background-color: rgba(255, 255, 255, 0.36) !important;
+}
+
+[data-theme="light"] [class*="shadow-[0_14px"],
+[data-theme="light"] [class*="shadow-[0_16px"],
+[data-theme="light"] [class*="shadow-[0_18px"],
+[data-theme="light"] [class*="shadow-[0_20px"] {
+  box-shadow: 0 18px 46px rgba(91, 72, 48, 0.07) !important;
+}
+
+@media (max-width: 640px) {
+  main[data-theme] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  main[data-theme] > div:not([class*="fixed"]) {
+    border-radius: 0 !important;
+  }
+}
+
+[data-theme="light"] button:not([class*="bg-blue"]):not([class*="bg-[#2f6df6]"]) {
+  color: var(--mc-muted);
+}
+
+[data-theme="light"] button:disabled {
+  opacity: 0.46;
+}
+
+[data-theme="light"] .program-build-logo {
+  box-shadow: 0 24px 80px rgba(47, 109, 246, 0.14) !important;
 }
 
 @keyframes logoFloat {

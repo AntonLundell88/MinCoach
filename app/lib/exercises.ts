@@ -26,6 +26,13 @@ export type ExerciseProfile = ExerciseInfo & {
   isCustom: boolean;
 };
 
+export type ExerciseProgramMeta = {
+  difficulty: "enkel" | "medel" | "avancerad";
+  beginnerFit: "bra" | "okej" | "undvik_som_standard";
+  stability: "hog" | "medel" | "lag";
+  beginnerNote: string;
+};
+
 export function normalizeExerciseSearchText(text: string) {
   return text
     .trim()
@@ -35,6 +42,111 @@ export function normalizeExerciseSearchText(text: string) {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+export function getExerciseProgramMeta(name: string): ExerciseProgramMeta {
+  const key = normalizeExerciseSearchText(name);
+
+  const stableMachine = [
+    "brostpress",
+    "chest press",
+    "benpress",
+    "benspark",
+    "larcurl",
+    "leg curl",
+    "latsdrag",
+    "sittande kabelrodd",
+    "cable row",
+    "cable crunch",
+    "vadpress",
+  ];
+
+  if (stableMachine.some((item) => key.includes(item))) {
+    return {
+      difficulty: "enkel",
+      beginnerFit: "bra",
+      stability: "hog",
+      beginnerNote:
+        "Stabil och tydlig variant. Bra förstaval för nybörjare när utrustningen finns.",
+    };
+  }
+
+  if (key.includes("goblet")) {
+    return {
+      difficulty: "medel",
+      beginnerFit: "okej",
+      stability: "medel",
+      beginnerNote:
+        "Kan fungera lätt laddad, särskilt hemma, men kräver knäböjsmönster. På gym är benpress eller benspark ofta tryggare start för en helt ny eller osäker användare.",
+    };
+  }
+
+  const technicallyDemanding = [
+    "knaboj",
+    "knoboj",
+    "squat",
+    "marklyft",
+    "rdl",
+    "rumanska",
+    "skivstangsrodd",
+    "barbell row",
+    "utfall",
+    "dips",
+    "chins",
+  ];
+
+  if (technicallyDemanding.some((item) => key.includes(item))) {
+    return {
+      difficulty: "avancerad",
+      beginnerFit: "undvik_som_standard",
+      stability: "lag",
+      beginnerNote:
+        "Mer tekniskt krävande. För nybörjare ska den bara väljas om det finns ett tydligt skäl, lugn start och gärna enklare alternativ.",
+    };
+  }
+
+  const moderateFreeWeight = [
+    "hantelpress",
+    "hantelrodd",
+    "axelpress",
+    "hip thrust",
+    "sidolyft",
+    "curl",
+    "pushdown",
+    "triceps",
+    "planka",
+    "jagarstol",
+    "hangande benlyft",
+    "situps",
+  ];
+
+  if (moderateFreeWeight.some((item) => key.includes(item))) {
+    return {
+      difficulty: "medel",
+      beginnerFit: "okej",
+      stability: "medel",
+      beginnerNote:
+        "Fungerar för många nya användare om lasten är lugn och instruktionen är tydlig, men ska inte ersätta stabilare val utan anledning.",
+    };
+  }
+
+  if (key.includes("armhavning") || key.includes("bodyweight")) {
+    return {
+      difficulty: "medel",
+      beginnerFit: "okej",
+      stability: "medel",
+      beginnerNote:
+        "Kroppsvikt kan vara bra, men ska inte väljas som standard om användaren inte gillar kroppsviktsövningar eller har bättre redskap.",
+    };
+  }
+
+  return {
+    difficulty: "medel",
+    beginnerFit: "okej",
+    stability: "medel",
+    beginnerNote:
+      "Neutral övning. Om användaren är ny ska coachen hellre välja stabilare alternativ om sådana finns.",
+  };
 }
 
 export function getExerciseProfile(name: string): ExerciseProfile {
@@ -199,7 +311,26 @@ export function getExerciseProfile(name: string): ExerciseProfile {
     };
   }
 
-  if (key.includes("situps") || key.includes("crunch") || key.includes("planka")) {
+  if (isTimedExercise(name)) {
+    return {
+      ...info,
+      category: "mage",
+      techniqueCue: "Fokus: stabil position, jämn andning och ingen svankkollaps.",
+      progressionRule:
+        "Progression sker främst med längre tid i samma form. Extra vikt läggs på först när tiden sitter kontrollerat.",
+      caution: "Avbryt om ländrygg, höft eller axlar tar över på fel sätt.",
+      isCustom: false,
+    };
+  }
+
+  if (
+    key.includes("situps") ||
+    key.includes("crunch") ||
+    key.includes("planka") ||
+    key.includes("benlyft") ||
+    key.includes("hangande benlyft") ||
+    key.includes("hängande benlyft")
+  ) {
     return {
       ...info,
       category: "mage",
@@ -221,6 +352,38 @@ export function getExerciseProfile(name: string): ExerciseProfile {
       "Om användaren har hittat på varianten själv: fråga vad den tränar och vad som kan kännas fel.",
     isCustom: false,
   };
+}
+
+export function isBodyweightExercise(name: string) {
+  const key = normalizeExerciseSearchText(name);
+
+  return [
+    "armhavningar",
+    "assisterade chins",
+    "chins",
+    "dips",
+    "hangande benlyft",
+    "hoftlyft",
+    "jagarstol",
+    "planka",
+    "ryggresningar",
+    "situps",
+    "wall sit",
+  ].some((bodyweightKey) => key.includes(bodyweightKey));
+}
+
+export function isTimedExercise(name: string) {
+  const key = normalizeExerciseSearchText(name);
+
+  return [
+    "dead hang",
+    "hang",
+    "jagarstol",
+    "planka",
+    "sidoplanka",
+    "wall sit",
+    "wallsit",
+  ].some((timedKey) => key.includes(timedKey));
 }
 
 function getCustomExerciseCue(category: string) {
@@ -252,7 +415,9 @@ export const KNOWN_EXERCISE_NAMES = [
   "Hammercurl",
   "Hantelpress",
   "Hantelrodd",
+  "Hängande benlyft",
   "Hip thrust",
+  "Jägarstol",
   "Knäböj",
   "Latsdrag",
   "Lutande hantelpress",
@@ -320,8 +485,16 @@ const EXERCISE_ALIASES: Record<string, string> = {
   hantelpress: "Hantelpress",
   hantelrodd: "Hantelrodd",
   "hantel rodd": "Hantelrodd",
+  "hangande benlyft": "Hängande benlyft",
+  "hängande benlyft": "Hängande benlyft",
+  "hanging leg raise": "Hängande benlyft",
+  "hanging leg raises": "Hängande benlyft",
   "hip thrust": "Hip thrust",
   hipthrust: "Hip thrust",
+  jagarstol: "Jägarstol",
+  "jägarstol": "Jägarstol",
+  "wall sit": "Jägarstol",
+  wallsit: "Jägarstol",
   knaboj: "Knäböj",
   knoboj: "Knäböj",
   "knäböj": "Knäböj",

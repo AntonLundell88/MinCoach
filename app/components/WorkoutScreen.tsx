@@ -3,18 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import ExerciseCard from "./ExerciseCard";
 import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
-import WorkoutHeader from "./WorkoutHeader";
 import WorkoutNavigation from "./WorkoutNavigation";
-import { getExerciseProfile } from "../lib/exercises";
-
-type WorkoutHeaderData = {
-  pass: string;
-  gym: string;
-  startedAt: string;
-} | null;
+import { getExerciseProfile, isTimedExercise } from "../lib/exercises";
 
 type Props = {
-  workout: WorkoutHeaderData;
   progression: { weight: number; reps: number; rir?: number | null; failNote?: string | null }[];
   progressionPlan: {
     weight: string;
@@ -37,7 +29,6 @@ type Props = {
   } | null;
   dayForm: "trött" | "normal" | "stark" | null;
   setDayForm: (v: "trött" | "normal" | "stark") => void;
-  formatTime: (d: Date) => string;
   chatLog: {
     role: "you" | "coach";
     text: string;
@@ -57,6 +48,8 @@ type Props = {
     {
       weight: number;
       reps: number;
+      durationSeconds?: number;
+      metricType?: "reps" | "time";
       rir: number | null;
       failNote: string | null;
       updatedAt: string;
@@ -67,6 +60,8 @@ type Props = {
   setWeightInput: (v: string) => void;
   repsInput: string;
   setRepsInput: (v: string) => void;
+  durationSecondsInput: number;
+  setDurationSecondsInput: (v: number) => void;
   rirInput: number;
   setRirInput: React.Dispatch<React.SetStateAction<number>>;
   didFailInput: boolean;
@@ -79,7 +74,14 @@ type Props = {
   canSkipCurrentExercise: boolean;
   skippedExerciseName: string | null;
   undoSkipExercise: () => void;
-  currentSets: { createdAt: string; weight: number; reps: number; rir?: number }[];
+  currentSets: {
+    createdAt: string;
+    weight: number;
+    reps: number;
+    durationSeconds?: number;
+    metricType?: "reps" | "time";
+    rir?: number;
+  }[];
   prevExercise: () => void;
   nextExercise: () => void;
   finishWorkout: () => void;
@@ -89,6 +91,8 @@ type Props = {
       exerciseName: string;
       weight: number;
       reps: number;
+      durationSeconds?: number;
+      metricType?: "reps" | "time";
       createdAt: string;
     }
   >;
@@ -150,6 +154,15 @@ function formatRestTimer(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
 
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function formatDurationLabel(seconds: number) {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const rest = safeSeconds % 60;
+
+  if (minutes === 0) return `${rest} sek`;
   return `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
@@ -270,6 +283,27 @@ function buildExerciseIntroCoachText(args: {
   const key = exerciseKey(exerciseName);
   const last = lastByExercise[key];
   const pr = personalRecords[key];
+  const isTimed = isTimedExercise(exerciseName);
+  if (isTimed) {
+    const bestTime = pr?.durationSeconds ?? last?.durationSeconds ?? 0;
+    const targetSeconds = bestTime > 0
+      ? Math.max(15, Math.round(bestTime * 0.9))
+      : 30;
+    const bestLine = bestTime > 0
+      ? `Ditt bästa här är ${formatDurationLabel(bestTime)}.`
+      : "Det här är första gången vi kör den tillsammans.";
+
+    return `Då tar vi ${exerciseName}.
+
+${bestLine}
+Starta klockan och håll positionen så länge formen är bra.
+
+Sikta på:
+${formatDurationLabel(targetSeconds)}
+RIR 2
+
+Vila 60–90 sek.`;
+  }
   const topSet = pr
     ? { weight: pr.weight, reps: pr.reps }
     : getTopSet(progression);
@@ -335,7 +369,6 @@ Vila ${rest}.`;
 }
 export default function WorkoutScreen({
   personalRecords,
-  workout,
   exerciseIndex,
   activePlan,
   passLabel,
@@ -349,7 +382,6 @@ export default function WorkoutScreen({
   workoutExerciseInput,
   setWorkoutExerciseInput,
   addExerciseDuringWorkout,
-  formatTime,
   currentExerciseName,
   lastByExercise,
   exerciseKey,
@@ -357,6 +389,8 @@ export default function WorkoutScreen({
   setWeightInput,
   repsInput,
   setRepsInput,
+  durationSecondsInput,
+  setDurationSecondsInput,
   rirInput,
   setRirInput,
   didFailInput,
@@ -403,6 +437,17 @@ export default function WorkoutScreen({
     ? "ready"
     : "resting";
   const shouldShowRestDock = showRestTimer;
+  const isLastExercise = exerciseIndex === activePlan.length - 1;
+  const currentMetricLabel = isTimedExercise(currentExerciseName)
+    ? progressionPlan.repsText || "tid"
+    : progressionPlan.repsText;
+  const nextWeightLabel = progressionPlan.weight
+    ? `${progressionPlan.weight} kg`
+    : "";
+  const hasNextPrescription =
+    Boolean(nextWeightLabel) ||
+    Boolean(currentMetricLabel) ||
+    Boolean(progressionPlan.rirText);
 
   useEffect(() => {
     if (currentSets.length > previousSetCountRef.current) {
@@ -446,8 +491,7 @@ export default function WorkoutScreen({
     setManualRestTarget(null);
   }
   
-// eslint-disable-next-line react-hooks/exhaustive-deps
-// eslint-disable-next-line react-hooks/set-state-in-effect
+/* eslint-disable react-hooks/exhaustive-deps */
 useEffect(() => {
   if (!currentExerciseName) return;
 
@@ -462,10 +506,11 @@ useEffect(() => {
     })
   );
 }, [exerciseIndex]);
+/* eslint-enable react-hooks/exhaustive-deps */
 
   return (
     <>
-    <div className={`w-full max-w-xl space-y-2.5 sm:space-y-3 ${shouldShowRestDock ? "pb-44" : ""}`}>
+    <div className={`w-full max-w-none space-y-2.5 sm:max-w-xl sm:space-y-3 ${shouldShowRestDock ? "pb-44" : ""}`}>
 <CoachPanel
   coachData={coachData}
   dayForm={dayForm}
@@ -476,22 +521,80 @@ useEffect(() => {
   sendChat={sendChat}
 />
 
-      <WorkoutHeader
-        workout={workout}
-        exerciseIndex={exerciseIndex}
-        activePlan={activePlan}
-        passLabel={passLabel}
-        formatTime={formatTime}
-      />
+      <section className="workout-status-panel rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-3.5 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
+              Nu
+            </p>
+            <h2 className="mt-1 truncate text-xl font-semibold tracking-tight text-white">
+              {currentExerciseName}
+            </h2>
+            <p className="mt-1 text-xs font-medium text-white/42">
+              {passLabel} · {exerciseIndex + 1} av {activePlan.length}
+            </p>
+          </div>
+
+          <div
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+              isLastExercise
+                ? "border-emerald-300/22 bg-emerald-400/[0.10] text-emerald-50"
+                : "border-blue-300/18 bg-blue-500/[0.10] text-blue-50"
+            }`}
+          >
+            {isLastExercise ? "Sista" : "Pågår"}
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+          <div className="workout-next-card rounded-2xl border border-blue-300/12 bg-blue-500/[0.055] px-3 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/55">
+              Nästa set
+            </p>
+            {hasNextPrescription ? (
+              <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                {nextWeightLabel && (
+                  <span className="text-lg font-semibold leading-none text-white">
+                    {nextWeightLabel}
+                  </span>
+                )}
+                {currentMetricLabel && (
+                  <span className="text-sm font-semibold leading-none text-white/86">
+                    {currentMetricLabel}
+                  </span>
+                )}
+                {progressionPlan.rirText && (
+                  <span className="text-sm font-semibold leading-none text-white/86">
+                    {progressionPlan.rirText}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="mt-1 text-sm font-semibold leading-5 text-white">
+                Logga första setet
+              </p>
+            )}
+          </div>
+          <div className="workout-rest-card min-w-[5.8rem] rounded-2xl border border-white/[0.06] bg-slate-950/18 px-3 py-2.5 text-right">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/34">
+              Vila
+            </p>
+            <p className="mt-1 text-sm font-semibold text-white">
+              {restTarget.label}
+            </p>
+          </div>
+        </div>
+      </section>
 
       <ExerciseCard
         currentExerciseName={currentExerciseName}
-        lastByExercise={lastByExercise}
         exerciseKey={exerciseKey}
         weightInput={weightInput}
         setWeightInput={setWeightInput}
         repsInput={repsInput}
         setRepsInput={setRepsInput}
+        durationSecondsInput={durationSecondsInput}
+        setDurationSecondsInput={setDurationSecondsInput}
         rirInput={rirInput}
         setRirInput={setRirInput}
         didFailInput={didFailInput}

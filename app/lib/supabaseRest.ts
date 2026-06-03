@@ -16,6 +16,8 @@ type StructuredWorkoutSet = {
   setIndex: number;
   weight: number;
   reps: number;
+  durationSeconds?: number | null;
+  metricType?: "reps" | "time";
   rir?: number | null;
   failNote?: string | null;
   notes?: string | null;
@@ -46,6 +48,8 @@ type PersonalRecordPayload = {
     exerciseName: string;
     weight: number;
     reps: number;
+    durationSeconds?: number | null;
+    metricType?: "reps" | "time";
     rir?: number | null;
     achievedAt?: string;
   };
@@ -261,6 +265,8 @@ export async function insertStructuredWorkout({
         set_index: set.setIndex,
         weight: set.weight,
         reps: set.reps,
+        duration_seconds: set.durationSeconds ?? null,
+        metric_type: set.metricType ?? (set.durationSeconds ? "time" : "reps"),
         rir: set.rir ?? null,
         fail_note: set.failNote ?? null,
         notes: set.notes ?? null,
@@ -299,6 +305,9 @@ export async function upsertPersonalRecord({
           exercise_name: record.exerciseName,
           weight: record.weight,
           reps: record.reps,
+          duration_seconds: record.durationSeconds ?? null,
+          metric_type:
+            record.metricType ?? (record.durationSeconds ? "time" : "reps"),
           rir: record.rir ?? null,
           achieved_at: record.achievedAt ?? new Date().toISOString(),
         },

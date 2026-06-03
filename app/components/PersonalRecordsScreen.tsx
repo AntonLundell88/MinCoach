@@ -4,6 +4,8 @@ type PersonalRecord = {
   exerciseName: string;
   weight: number;
   reps: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
   createdAt: string;
 };
 
@@ -32,6 +34,12 @@ function daysSince(value: string) {
 }
 
 function getRecordLabel(record: PersonalRecord) {
+  if (record.metricType === "time" || typeof record.durationSeconds === "number") {
+    const seconds = Math.max(0, Math.round(record.durationSeconds ?? 0));
+    const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+    return record.weight > 0 ? `${time} + ${record.weight} kg` : time;
+  }
+
   return `${record.weight} × ${record.reps}`;
 }
 
