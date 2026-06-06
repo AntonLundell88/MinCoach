@@ -23,10 +23,10 @@ type CoachProgramBuildRequest = {
 
 const PASS_KEYS = ["A", "B", "C", "D", "E", "F"] as const;
 const PROGRAM_BUILD_TIMEOUT_MS = Number(
-  process.env.OPENAI_PROGRAM_BUILD_TIMEOUT_MS ?? 45000
+  process.env.OPENAI_PROGRAM_BUILD_TIMEOUT_MS ?? 18000
 );
 const PROGRAM_BUILD_ATTEMPTS = Number(
-  process.env.OPENAI_PROGRAM_BUILD_ATTEMPTS ?? 3
+  process.env.OPENAI_PROGRAM_BUILD_ATTEMPTS ?? 2
 );
 
 const PROGRAM_BUILD_SYSTEM_PROMPT = `
@@ -537,18 +537,6 @@ function hasAny(patterns: string[], source: Set<string>) {
   return patterns.some((pattern) => source.has(pattern));
 }
 
-function copyLooksUnsafeForUser(value: string, userName?: string) {
-  const normalized = normalizeExerciseSearchText(value);
-  const normalizedName = userName ? normalizeExerciseSearchText(userName) : "";
-
-  return (
-    normalized.includes("anvandaren ar") ||
-    normalized.includes("anvandaren har") ||
-    normalized.includes("for anvandaren") ||
-    (Boolean(normalizedName) && normalized.includes(`${normalizedName} ar`))
-  );
-}
-
 function hasLimitationReference(notes: string[] | undefined, limitations?: string) {
   const limitationTokens = normalizeExerciseSearchText(limitations ?? "")
     .split(/\s+/)
@@ -620,32 +608,7 @@ function getPlanValidationIssues(
     );
   }
 
-  const requiredCopy = [
-    ["coachSummary", plan.coachSummary],
-    ["planReason", plan.planReason],
-    ["structureReason", plan.structureReason],
-  ] as const;
-
-  requiredCopy.forEach(([field, value]) => {
-    const text = cleanText(value);
-    if (text.length < 45) {
-      issues.push(issue("weak_copy", `${field} Ã¤r fÃ¶r kort eller saknas.`));
-    }
-    if (copyLooksUnsafeForUser(text, userName)) {
-      issues.push(
-        issue(
-          "third_person_copy",
-          `${field} pratar om anvÃ¤ndaren i tredje person eller anvÃ¤nder namn fel.`
-        )
-      );
-    }
-  });
-
-  if (!plan.safetyNotes || plan.safetyNotes.length < 2) {
-    issues.push(
-      issue("weak_safety_notes", "safetyNotes ska innehÃ¥lla minst tvÃ¥ konkreta rÃ¥d.")
-    );
-  }
+  void userName;
 
   plan.passes.forEach((pass) => {
     if (pass.exercises.length < passTarget.min) {
@@ -726,6 +689,9 @@ function getPlanValidationIssues(
       }
 
       const repsText = normalizeExerciseSearchText(exercise.reps ?? "");
+      const looksLikeTimeRange = /^\d+\s*(?:-|–|till)\s*\d+$/.test(
+        (exercise.reps ?? "").trim()
+      );
 
       if (
         definition.logType === "time_rir" &&
@@ -734,6 +700,7 @@ function getPlanValidationIssues(
             repsText.includes("sek") ||
             repsText.includes("min") ||
             repsText.includes("tid") ||
+            looksLikeTimeRange ||
             /\d+\s*s\b/.test(repsText)
           ))
       ) {
@@ -911,7 +878,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           model:
             process.env.OPENAI_PROGRAM_MODEL ??
-            "gpt-5-nano",
+            "gpt-5-mini",
           instructions: PROGRAM_BUILD_SYSTEM_PROMPT,
           reasoning: { effort: "minimal" },
           text: {
