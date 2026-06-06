@@ -1,5 +1,7 @@
 "use client";
 
+import { flushBetaSyncQueue, postBetaJsonWithQueue } from "./betaSyncQueue";
+
 const BETA_DEVICE_ID_KEY = "mincoachBetaDeviceId";
 const BETA_SYNC_KEYS = [
   "userProfile",
@@ -60,29 +62,83 @@ function buildSnapshot(extra?: Record<string, unknown>) {
   };
 }
 
-export async function syncBetaSnapshotNow(extra?: Record<string, unknown>) {
+function restoreStoredValue(key: string, value: unknown) {
+  if (value === null || typeof value === "undefined") {
+    window.localStorage.removeItem(key);
+    return;
+  }
+
+  window.localStorage.setItem(
+    key,
+    typeof value === "string" ? value : JSON.stringify(value)
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+export async function restoreBetaSnapshotFromServer() {
   if (typeof window === "undefined") return undefined;
 
   try {
-    const response = await fetch("/api/beta-sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        deviceId: getOrCreateBetaDeviceId(),
-        appVersion: "beta-localstorage-v1",
-        snapshot: buildSnapshot(extra),
-      }),
-      keepalive: true,
-    });
-
+    const deviceId = getOrCreateBetaDeviceId();
+    const response = await fetch(
+      `/api/beta-sync?deviceId=${encodeURIComponent(deviceId)}`
+    );
     const result = (await response.json().catch(() => null)) as unknown;
+
+    if (!response.ok || !isRecord(result)) {
+      const status = {
+        at: new Date().toISOString(),
+        ok: false,
+        httpStatus: response.status,
+        result,
+      };
+      window.localStorage.setItem(
+        "mincoachBetaRestoreStatus",
+        JSON.stringify(status)
+      );
+      return status;
+    }
+
+    if (result.mode !== "found" || !isRecord(result.snapshot)) {
+      const status = {
+        at: new Date().toISOString(),
+        ok: true,
+        mode: String(result.mode ?? "empty"),
+        restoredKeys: [] as string[],
+      };
+      window.localStorage.setItem(
+        "mincoachBetaRestoreStatus",
+        JSON.stringify(status)
+      );
+      return status;
+    }
+
+    const snapshot = result.snapshot;
+    const data = isRecord(snapshot.data) ? snapshot.data : snapshot;
+    const restoredKeys: string[] = [];
+
+    for (const key of BETA_SYNC_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        restoreStoredValue(key, data[key]);
+        restoredKeys.push(key);
+      }
+    }
+
     const status = {
       at: new Date().toISOString(),
-      httpStatus: response.status,
-      ok: response.ok,
-      result,
+      ok: true,
+      mode: "restored",
+      restoredKeys,
+      lastSeenAt:
+        typeof result.lastSeenAt === "string" ? result.lastSeenAt : null,
     };
-    window.localStorage.setItem("mincoachBetaSyncStatus", JSON.stringify(status));
+    window.localStorage.setItem(
+      "mincoachBetaRestoreStatus",
+      JSON.stringify(status)
+    );
     return status;
   } catch {
     const status = {
@@ -90,10 +146,28 @@ export async function syncBetaSnapshotNow(extra?: Record<string, unknown>) {
       ok: false,
       result: "network-error",
     };
-    window.localStorage.setItem("mincoachBetaSyncStatus", JSON.stringify(status));
-    // Beta sync must never interrupt the workout flow.
+    window.localStorage.setItem(
+      "mincoachBetaRestoreStatus",
+      JSON.stringify(status)
+    );
     return status;
   }
+}
+
+export async function syncBetaSnapshotNow(extra?: Record<string, unknown>) {
+  if (typeof window === "undefined") return undefined;
+
+  // Beta sync must never interrupt the workout flow.
+  return postBetaJsonWithQueue({
+    endpoint: "/api/beta-sync",
+    storageKey: "mincoachBetaSyncStatus",
+    label: "Appdata",
+    body: {
+      deviceId: getOrCreateBetaDeviceId(),
+      appVersion: "beta-localstorage-v1",
+      snapshot: buildSnapshot(extra),
+    },
+  });
 }
 
 export function scheduleBetaSync(extra?: Record<string, unknown>) {
@@ -105,6 +179,6 @@ export function scheduleBetaSync(extra?: Record<string, unknown>) {
 
   syncTimer = window.setTimeout(() => {
     syncTimer = null;
-    void syncBetaSnapshotNow(extra);
+    void syncBetaSnapshotNow(extra).then(() => flushBetaSyncQueue());
   }, 1200);
 }

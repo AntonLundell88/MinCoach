@@ -439,6 +439,157 @@ html[data-theme="light"],
   box-shadow: 0 24px 80px rgba(47, 109, 246, 0.14) !important;
 }
 
+/* Light theme direction: warm premium neutral, with blue only as a clear action accent. */
+[data-theme="light"] {
+  --mc-bg: #f4f1ea;
+  --mc-bg-deep: #ece6dc;
+  --mc-surface: rgba(251, 250, 246, 0.78);
+  --mc-surface-strong: rgba(255, 254, 250, 0.9);
+  --mc-surface-soft: rgba(241, 238, 231, 0.64);
+  --mc-border: rgba(43, 42, 39, 0.105);
+  --mc-border-blue: rgba(37, 99, 235, 0.22);
+  --mc-text: #2b2a27;
+  --mc-muted: #6f6a61;
+  --mc-faint: #9a948a;
+  --mc-blue: #2563eb;
+  --mc-blue-soft: rgba(219, 234, 254, 0.82);
+  --mc-shadow: 0 18px 52px rgba(60, 52, 40, 0.075);
+}
+
+html[data-theme="light"],
+[data-theme="light"],
+[data-theme="light"] body,
+[data-theme="light"] [class*="fixed"][class*="inset-0"][class*="-z-10"],
+[data-theme="light"] [class*="fixed"][class*="inset-0"][class*="z-0"],
+[data-theme="light"] main[class*="bg-[#0b1018]"],
+[data-theme="light"] main[class*="bg-[#080d14]"],
+[data-theme="light"] section[class*="bg-[#0b1018]"],
+[data-theme="light"] div[class*="bg-[#0b1018]"] {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(37, 99, 235, 0.08), transparent 28%),
+    linear-gradient(180deg, #f7f4ee 0%, var(--mc-bg) 46%, var(--mc-bg-deep) 100%) !important;
+  color: var(--mc-text) !important;
+}
+
+[data-theme="light"] [class*="text-white"],
+[data-theme="light"] [class*="text-[#172033]"],
+[data-theme="light"] [class*="text-[#364152]"],
+[data-theme="light"] [class*="text-[#5b6678]"] {
+  color: var(--mc-text) !important;
+}
+
+[data-theme="light"] [class*="text-white/"],
+[data-theme="light"] [class*="text-gray-"],
+[data-theme="light"] [class*="text-zinc-"],
+[data-theme="light"] [class*="text-slate-"],
+[data-theme="light"] [class*="text-[#4d5a6b]"],
+[data-theme="light"] [class*="text-[#667085]"] {
+  color: var(--mc-muted) !important;
+}
+
+[data-theme="light"] [class*="text-blue-100"],
+[data-theme="light"] [class*="text-blue-200"],
+[data-theme="light"] [class*="text-blue-300"],
+[data-theme="light"] [class*="text-blue-400"],
+[data-theme="light"] [class*="text-blue-500"],
+[data-theme="light"] [class*="text-blue-600"],
+[data-theme="light"] [class*="text-blue-700"] {
+  color: var(--mc-blue) !important;
+}
+
+[data-theme="light"] [class*="border-white"],
+[data-theme="light"] [class*="border-slate"],
+[data-theme="light"] [class*="border-zinc"],
+[data-theme="light"] [class*="border-[#d8cfc0]"],
+[data-theme="light"] [class*="rounded-"][class*="border"] {
+  border-color: var(--mc-border) !important;
+}
+
+[data-theme="light"] [class*="bg-white/"],
+[data-theme="light"] [class*="bg-white["],
+[data-theme="light"] [class*="bg-slate-950"],
+[data-theme="light"] [class*="bg-slate-900"],
+[data-theme="light"] [class*="bg-[#101824]"],
+[data-theme="light"] [class*="bg-[#111a25]"],
+[data-theme="light"] [class*="bg-[#131c27]"] {
+  background-color: var(--mc-surface) !important;
+}
+
+[data-theme="light"] .coach-panel-shell,
+[data-theme="light"] .coach-message,
+[data-theme="light"] .workout-status-panel,
+[data-theme="light"] .exercise-card-shell {
+  background: linear-gradient(180deg, var(--mc-surface-strong), var(--mc-surface)) !important;
+  border-color: var(--mc-border) !important;
+  box-shadow: var(--mc-shadow) !important;
+}
+
+[data-theme="light"] .user-message,
+[data-theme="light"] .coach-empty-message,
+[data-theme="light"] .workout-next-card {
+  background: var(--mc-blue-soft) !important;
+  border-color: var(--mc-border-blue) !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background-color: rgba(255, 254, 250, 0.78) !important;
+  border-color: var(--mc-border) !important;
+  color: var(--mc-text) !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: var(--mc-faint) !important;
+}
+
+[data-theme="light"] button:not([class*="bg-blue"]):not([class*="bg-[#2f6df6]"]) {
+  color: var(--mc-muted) !important;
+}
+
+[data-theme="light"] [class*="bg-blue-500"],
+[data-theme="light"] [class*="bg-blue-600"],
+[data-theme="light"] [class*="bg-[#2f6df6]"] {
+  background-color: var(--mc-blue) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22) !important;
+}
+
+[data-theme="light"] .program-build-logo {
+  background: rgba(255, 254, 250, 0.82) !important;
+  border-color: rgba(37, 99, 235, 0.16) !important;
+  box-shadow: 0 22px 70px rgba(60, 52, 40, 0.10) !important;
+}
+
+[data-theme="light"] img[alt="MinCoach"] {
+  filter:
+    brightness(0.86)
+    contrast(1.18)
+    saturate(1.02)
+    drop-shadow(0 1px 1px rgba(43, 42, 39, 0.34))
+    drop-shadow(0 0 14px rgba(37, 99, 235, 0.14)) !important;
+}
+
+.exercise-muscle-map,
+[data-theme="light"] .exercise-muscle-map {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(96, 165, 250, 0.09), transparent 38%),
+    linear-gradient(180deg, #111a25 0%, #0b1018 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 16px 36px rgba(2, 6, 24, 0.16) !important;
+}
+
+[data-theme="light"] .exercise-muscle-map [class*="text-white"] {
+  color: rgba(255, 255, 255, 0.44) !important;
+}
+
+[data-theme="light"] .exercise-muscle-map .body-chart-svg {
+  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.34)) !important;
+}
+
 @keyframes logoFloat {
   0% {
     transform: translateY(0px);

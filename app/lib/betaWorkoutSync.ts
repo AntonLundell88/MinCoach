@@ -1,6 +1,7 @@
 "use client";
 
 import { getOrCreateBetaDeviceId } from "./betaSync";
+import { postBetaJsonWithQueue } from "./betaSyncQueue";
 
 type BetaWorkoutSet = {
   exerciseName: string;
@@ -33,33 +34,13 @@ type BetaWorkout = {
 export async function syncStructuredBetaWorkout(workout: BetaWorkout) {
   if (typeof window === "undefined") return undefined;
 
-  try {
-    const response = await fetch("/api/beta-workout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        deviceId: getOrCreateBetaDeviceId(),
-        workout,
-      }),
-      keepalive: true,
-    });
-
-    const result = (await response.json().catch(() => null)) as unknown;
-    const status = {
-      at: new Date().toISOString(),
-      httpStatus: response.status,
-      ok: response.ok,
-      result,
-    };
-    window.localStorage.setItem("mincoachBetaWorkoutSyncStatus", JSON.stringify(status));
-    return status;
-  } catch {
-    const status = {
-      at: new Date().toISOString(),
-      ok: false,
-      result: "network-error",
-    };
-    window.localStorage.setItem("mincoachBetaWorkoutSyncStatus", JSON.stringify(status));
-    return status;
-  }
+  return postBetaJsonWithQueue({
+    endpoint: "/api/beta-workout",
+    storageKey: "mincoachBetaWorkoutSyncStatus",
+    label: "Pass",
+    body: {
+      deviceId: getOrCreateBetaDeviceId(),
+      workout,
+    },
+  });
 }

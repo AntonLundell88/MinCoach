@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef } from "react";
+import { SendGlyph } from "./IconGlyphs";
 
 type DayForm = "trött" | "normal" | "stark" | null;
 
@@ -251,10 +252,11 @@ export default function CoachPanel({
             }}
           />
           <button
-            className="rounded-xl border border-blue-500/20 bg-blue-600 px-3.5 text-sm font-semibold text-white transition hover:bg-blue-500"
+            className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-600 text-white transition hover:bg-blue-500"
             onClick={sendChat}
+            aria-label="Skicka"
           >
-            Skicka
+            <SendGlyph className="h-[18px] w-[18px]" />
           </button>
         </div>
       </div>

@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { ProfileGlyph, SettingsGlyph } from "./IconGlyphs";
 
-type PassType = "A" | "B" | "C" | "D";
+type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 type AppTheme = "dark" | "light";
 
 type WorkoutSummary = {
@@ -56,6 +57,7 @@ type Props = {
   onOpenExercises: () => void;
   onOpenPersonalRecords: () => void;
   onOpenSetup: () => void;
+  onOpenSettings: () => void;
   theme: AppTheme;
 };
 
@@ -102,6 +104,7 @@ export default function LobbyScreen({
   onOpenExercises,
   onOpenPersonalRecords,
   onOpenSetup,
+  onOpenSettings,
   theme,
 }: Props) {
   const isLight = theme === "light";
@@ -123,8 +126,8 @@ export default function LobbyScreen({
   const titleClassName = isLight ? "text-[#2d251c]" : "text-white";
   const bodyClassName = isLight ? "text-[#665b4f]" : "text-white/58";
   const buttonSubtleClassName = isLight
-    ? "rounded-xl border border-[#7a6548]/15 bg-white/48 px-3 py-2 text-xs font-medium text-[#665b4f] transition hover:border-blue-300/35 hover:bg-white/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/45"
-    : "rounded-xl border border-white/[0.045] bg-white/[0.036] px-3 py-2 text-xs font-medium text-white/55 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.06] hover:text-white/78 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/35";
+    ? "inline-flex items-center gap-2 rounded-full bg-white/58 px-3 py-2 text-xs font-semibold text-[#665b4f] shadow-[inset_0_0_0_1px_rgba(122,101,72,0.12)] transition hover:bg-white/78 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/45"
+    : "inline-flex items-center gap-2 rounded-full bg-white/[0.038] px-3 py-2 text-xs font-semibold text-white/62 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.045)] transition hover:bg-[#4f83ff]/[0.07] hover:text-white/82 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/35";
   const overviewButtonClassName = isLight
     ? "rounded-xl border border-[#7a6548]/14 bg-white/48 px-3 py-2.5 text-left text-sm text-[#2d251c] transition hover:bg-white/70"
     : "rounded-xl border border-white/[0.045] bg-white/[0.036] px-3 py-2.5 text-left text-sm text-white/78 transition hover:border-white/10 hover:bg-white/[0.05]";
@@ -243,9 +246,39 @@ export default function LobbyScreen({
             </div>
           </div>
 
-          <button onClick={onOpenSetup} className={buttonSubtleClassName}>
-            Profil
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={onOpenSetup}
+              className={buttonSubtleClassName}
+              aria-label="Profil"
+            >
+              <ProfileGlyph
+                className={`h-4 w-4 ${
+                  isLight
+                    ? "drop-shadow-[0_0_9px_rgba(47,109,246,0.18)]"
+                    : "drop-shadow-[0_0_10px_rgba(47,109,246,0.38)]"
+                }`}
+              />
+              <span>Profil</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className={`${buttonSubtleClassName} h-10 w-10 justify-center px-0`}
+              aria-label="Inställningar"
+              title="Inställningar"
+            >
+              <SettingsGlyph
+                className={`h-[18px] w-[18px] ${
+                  isLight
+                    ? "drop-shadow-[0_0_9px_rgba(47,109,246,0.18)]"
+                    : "drop-shadow-[0_0_10px_rgba(47,109,246,0.38)]"
+                }`}
+              />
+            </button>
+          </div>
         </header>
 
         <section className="grid gap-4 lg:grid-cols-[1.55fr_0.9fr]">

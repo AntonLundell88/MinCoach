@@ -74,7 +74,7 @@ export default function WorkoutCompleteScreen({
             label="Övningar"
             value={`${review.completedExerciseCount} / ${review.exerciseCount}`}
           />
-          <StatCard label="Flyttat" value={review.totalVolumeText} />
+          <StatCard label="Lyft totalt" value={review.totalVolumeText} />
           <StatCard label="Bästa set" value={review.bestSetText} />
         </section>
       ) : null}

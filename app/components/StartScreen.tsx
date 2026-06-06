@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { getExerciseInfo } from "../lib/exercises";
+import { CloseGlyph, SendGlyph } from "./IconGlyphs";
 
-type PassType = "A" | "B" | "C" | "D";
+type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 
 type CustomExercisesByPass = Record<PassType, string[]>;
 
@@ -513,13 +514,14 @@ function getLobbyIntro() {
               />
 
               <button
-                className="rounded-xl border border-blue-500/20 bg-[#2f6df6] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4f83ff]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/20 bg-[#2f6df6] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4f83ff]"
                 onClick={() => {
                   if (!checkInInput.trim()) return;
                   setLocalCheckInSubmittedText(checkInInput);
                   setCheckInCoachReply(buildCheckInCoachReply(checkInInput));
                 }}
               >
+                <SendGlyph className="h-4 w-4" />
                 Skicka
               </button>
             </div>
@@ -884,11 +886,11 @@ function getLobbyIntro() {
 
               <button
                 type="button"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-lg leading-none text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
                 onClick={() => setExerciseInfoName(null)}
                 aria-label="Stäng"
               >
-                ×
+                <CloseGlyph className="h-4 w-4" />
               </button>
             </div>
 

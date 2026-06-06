@@ -414,4 +414,18 @@ The coach should explain the structure in simple language:
 - why the volume is reasonable
 - how the plan can be adjusted
 
+Program-builder copy must be plain, understandable Swedish.
+
+Avoid unclear slang or AI-ish gym phrasing such as:
+
+- "kötta"
+- "köttade"
+- "köttigt"
+- "mangla"
+- "brutal"
+
+Do not invent anatomy words or compressed phrases. Write "vid handledsbesvär" or "om handlederna känns ömma", not unclear words like "handledermär".
+
+Pass names should be clean and readable. Do not put volume labels in parentheses inside the pass name. Write "Pass B - Ben och bål" and explain volume or focus in the subtitle or reasoning text.
+
 Program building can take longer than set feedback. It is worth spending more AI time here because the structure affects weeks or months of training.

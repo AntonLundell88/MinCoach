@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  getBetaDeviceSnapshot,
   getSupabaseHealth,
   isSupabaseConfigured,
   upsertBetaDeviceSnapshot,
@@ -11,7 +12,36 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const deviceId = searchParams.get("deviceId");
+
+  if (deviceId) {
+    if (deviceId.length < 12 || deviceId.length > 120) {
+      return NextResponse.json({ ok: false, error: "Invalid device" }, { status: 400 });
+    }
+
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json({ ok: true, mode: "disabled" });
+    }
+
+    try {
+      const result = await getBetaDeviceSnapshot(deviceId);
+      return NextResponse.json({ ok: true, ...result });
+    } catch (error) {
+      console.error("Beta restore failed", error);
+      return NextResponse.json(
+        {
+          ok: false,
+          mode: "error",
+          message:
+            error instanceof Error ? error.message : "Unknown beta restore error",
+        },
+        { status: 500 }
+      );
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     route: "beta-sync",

@@ -1,6 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getExerciseProfile, isBodyweightExercise, isTimedExercise } from "../lib/exercises";
+import { CloseGlyph, PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
+import {
+  getExerciseProfile,
+  getExerciseUserInfo,
+  isBodyweightExercise,
+  isTimedExercise,
+} from "../lib/exercises";
 
 type PersonalRecord = {
   exerciseName: string;
@@ -65,6 +71,7 @@ export default function ExerciseCard({
   const [useAddedWeight, setUseAddedWeight] = useState(false);
   const [isDurationRunning, setIsDurationRunning] = useState(false);
   const exerciseInfo = getExerciseProfile(currentExerciseName);
+  const exerciseUserInfo = getExerciseUserInfo(currentExerciseName);
   const isBodyweight = isBodyweightExercise(currentExerciseName);
   const isTimed = isTimedExercise(currentExerciseName);
   const hasAddedWeight =
@@ -194,11 +201,11 @@ useEffect(() => {
 
               <button
                 type="button"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-lg leading-none text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
                 onClick={() => setShowExerciseInfo(false)}
                 aria-label="Stäng"
               >
-                ×
+                <CloseGlyph className="h-4 w-4" />
               </button>
             </div>
 
@@ -207,15 +214,26 @@ useEffect(() => {
                 {exerciseInfo.equipment}
               </p>
               <p className="mt-2 text-sm leading-6 text-white/72">
-                {exerciseInfo.detail}
+                {exerciseUserInfo.whyChosen || exerciseInfo.detail}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-white/52">
+                Tränar: {exerciseUserInfo.trains}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-white/44">
+                {exerciseUserInfo.logTypeText}
               </p>
               <div className="mt-3 rounded-xl border border-white/8 bg-white/[0.035] p-2.5">
                 <p className="text-xs leading-5 text-white/66">
                   {exerciseInfo.techniqueCue}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-white/44">
-                  {exerciseInfo.progressionRule}
+                  {exerciseUserInfo.keepInMind || exerciseInfo.progressionRule}
                 </p>
+                {exerciseUserInfo.easierAlternative ? (
+                  <p className="mt-1 text-xs leading-5 text-white/44">
+                    Lättare variant: {exerciseUserInfo.easierAlternative}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -295,8 +313,9 @@ useEffect(() => {
                     <button
                       type="button"
                       onClick={() => setIsDurationRunning((value) => !value)}
-                      className="rounded-xl border border-blue-300/20 bg-blue-500/[0.12] px-3 py-1.5 text-xs font-semibold text-blue-50 transition hover:bg-blue-500/[0.18]"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-blue-300/20 bg-blue-500/[0.12] px-3 py-1.5 text-xs font-semibold text-blue-50 transition hover:bg-blue-500/[0.18]"
                     >
+                      {isDurationRunning ? <PauseGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
                       {isDurationRunning ? "Stoppa" : "Starta"}
                     </button>
                     <button
@@ -305,9 +324,10 @@ useEffect(() => {
                         setIsDurationRunning(false);
                         setDurationSecondsInput(0);
                       }}
-                      className="rounded-xl border border-white/[0.07] bg-white/[0.035] px-2.5 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.035] px-2.5 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
                     >
-                      Noll
+                      <RotateGlyph className="h-3.5 w-3.5" />
+                      Nollställ
                     </button>
                   </div>
                 </div>
@@ -497,7 +517,7 @@ useEffect(() => {
           onClick={removeLastSet}
           title="Ta bort senaste set"
         >
-          Ångra
+          Ångra set
         </button>
       </div>
     </div>

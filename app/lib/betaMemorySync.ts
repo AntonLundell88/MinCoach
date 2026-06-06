@@ -1,6 +1,7 @@
 "use client";
 
 import { getOrCreateBetaDeviceId } from "./betaSync";
+import { postBetaJsonWithQueue } from "./betaSyncQueue";
 
 type BetaPersonalRecord = {
   exerciseKey: string;
@@ -21,38 +22,22 @@ type BetaCoachNote = {
   text: string;
 };
 
-async function postBetaMemory(body: Record<string, unknown>, storageKey: string) {
+async function postBetaMemory(
+  body: Record<string, unknown>,
+  storageKey: string,
+  label: string
+) {
   if (typeof window === "undefined") return undefined;
 
-  try {
-    const response = await fetch("/api/beta-memory", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        deviceId: getOrCreateBetaDeviceId(),
-        ...body,
-      }),
-      keepalive: true,
-    });
-
-    const result = (await response.json().catch(() => null)) as unknown;
-    const status = {
-      at: new Date().toISOString(),
-      httpStatus: response.status,
-      ok: response.ok,
-      result,
-    };
-    window.localStorage.setItem(storageKey, JSON.stringify(status));
-    return status;
-  } catch {
-    const status = {
-      at: new Date().toISOString(),
-      ok: false,
-      result: "network-error",
-    };
-    window.localStorage.setItem(storageKey, JSON.stringify(status));
-    return status;
-  }
+  return postBetaJsonWithQueue({
+    endpoint: "/api/beta-memory",
+    storageKey,
+    label,
+    body: {
+      deviceId: getOrCreateBetaDeviceId(),
+      ...body,
+    },
+  });
 }
 
 export function syncBetaPersonalRecord(record: BetaPersonalRecord) {
@@ -61,7 +46,8 @@ export function syncBetaPersonalRecord(record: BetaPersonalRecord) {
       kind: "personal-record",
       record,
     },
-    "mincoachBetaPersonalRecordSyncStatus"
+    "mincoachBetaPersonalRecordSyncStatus",
+    "Personbästan"
   );
 }
 
@@ -71,6 +57,7 @@ export function syncBetaCoachMemory(notes: BetaCoachNote[]) {
       kind: "coach-memory",
       notes,
     },
-    "mincoachBetaCoachMemorySyncStatus"
+    "mincoachBetaCoachMemorySyncStatus",
+    "Coachminne"
   );
 }

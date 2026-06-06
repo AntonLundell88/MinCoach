@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CheckGlyph } from "./IconGlyphs";
 
 type Props = {
   exerciseIndex: number;
@@ -38,14 +39,21 @@ export default function WorkoutNavigation({
         </button>
 
         <button
-          className={`rounded-2xl px-4 py-2.5 text-sm font-semibold shadow-[0_8px_22px_rgba(37,99,235,0.10)] transition active:scale-[0.985] ${
+          className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold shadow-[0_8px_22px_rgba(37,99,235,0.10)] transition active:scale-[0.985] ${
             isLastExercise
               ? "border border-emerald-300/24 bg-emerald-400/[0.15] text-emerald-50 hover:bg-emerald-400/[0.20]"
               : "border border-blue-300/20 bg-blue-500/[0.14] text-blue-50 hover:bg-blue-500/[0.20]"
           }`}
           onClick={isLastExercise ? finishWorkout : nextExercise}
         >
-          {isLastExercise ? "Avsluta passet" : "Nästa övning"}
+          {isLastExercise ? (
+            <>
+              <CheckGlyph className="h-4 w-4" />
+              <span>Passet är klart</span>
+            </>
+          ) : (
+            "Nästa övning"
+          )}
         </button>
 
         <button
@@ -54,7 +62,7 @@ export default function WorkoutNavigation({
           className="rounded-2xl border border-white/[0.075] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
           aria-label="Visa fler val"
         >
-          Mer
+          Fler val
         </button>
       </div>
 

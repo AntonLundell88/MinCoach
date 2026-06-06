@@ -4,6 +4,8 @@ import ExerciseCard from "./ExerciseCard";
 import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
 import WorkoutNavigation from "./WorkoutNavigation";
+import ToggleSwitch from "./ToggleSwitch";
+import { CloseGlyph, PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import { getExerciseProfile, isTimedExercise } from "../lib/exercises";
 
 type Props = {
@@ -645,20 +647,20 @@ useEffect(() => {
           <button
             type="button"
             onClick={startRestTimer}
-            className="shrink-0 rounded-xl border border-blue-400/18 bg-blue-500/[0.075] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.13]"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-blue-400/18 bg-blue-500/[0.075] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.13]"
           >
+            {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
             {restStartedAt ? "Om" : "Starta"}
           </button>
 
-          <label className="flex shrink-0 items-center gap-1 rounded-xl border border-white/[0.065] bg-white/[0.032] px-2.5 py-2 text-xs font-semibold text-white/52">
-            <input
-              type="checkbox"
+          <div className="flex shrink-0 items-center gap-2 rounded-xl border border-white/[0.055] bg-white/[0.026] px-2.5 py-1.5 text-xs font-semibold text-white/50 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025)]">
+            <span>Auto-vila</span>
+            <ToggleSwitch
               checked={autoStartRestTimer}
-              onChange={(event) => setAutoStartRestTimer(event.target.checked)}
-              className="h-3 w-3 rounded border-white/20 bg-slate-950/38"
+              onChange={setAutoStartRestTimer}
+              size="sm"
             />
-            Auto
-          </label>
+          </div>
 
           <button
             type="button"
@@ -733,16 +735,18 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={startRestTimer}
-                className="rounded-lg border border-blue-400/20 bg-blue-500/[0.10] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.16]"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/20 bg-blue-500/[0.10] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.16]"
               >
+                {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
                 {restStartedAt ? "Starta om" : "Starta"}
               </button>
 
               <button
                 type="button"
                 onClick={resetRestTimer}
-                className="rounded-lg border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-xs font-semibold text-white/72 transition hover:bg-white/[0.08] hover:text-white"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-xs font-semibold text-white/72 transition hover:bg-white/[0.08] hover:text-white"
               >
+                {restStartedAt ? <PauseGlyph className="h-3.5 w-3.5" /> : <RotateGlyph className="h-3.5 w-3.5" />}
                 {restStartedAt ? "Stoppa" : "Nollställ"}
               </button>
             </div>
@@ -855,15 +859,17 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={startRestTimer}
-                className="rounded-xl border border-blue-400/20 bg-blue-500/[0.14] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.18]"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-blue-400/20 bg-blue-500/[0.14] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.18]"
               >
+                {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
                 {restStartedAt ? "Om" : "Starta"}
               </button>
               <button
                 type="button"
                 onClick={resetRestTimer}
-                className="rounded-xl border border-white/[0.09] bg-white/[0.06] px-3 py-2 text-xs font-semibold text-white/72 transition hover:bg-white/[0.09] hover:text-white"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.09] bg-white/[0.06] px-3 py-2 text-xs font-semibold text-white/72 transition hover:bg-white/[0.09] hover:text-white"
               >
+                {restStartedAt ? <PauseGlyph className="h-3.5 w-3.5" /> : <RotateGlyph className="h-3.5 w-3.5" />}
                 {restStartedAt ? "Stoppa" : "Nollställ"}
               </button>
               <button
@@ -872,7 +878,7 @@ useEffect(() => {
                 className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.06] text-sm font-semibold text-white/52 transition hover:bg-white/[0.09] hover:text-white"
                 aria-label="Dölj vilotimer"
               >
-                ×
+                <CloseGlyph className="h-4 w-4" />
               </button>
             </div>
           </div>

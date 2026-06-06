@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -15,8 +15,13 @@ import PersonalRecordsScreen from "./components/PersonalRecordsScreen";
 import ProgramReviewScreen from "./components/ProgramReviewScreen";
 import ProgramBuildLoadingScreen from "./components/ProgramBuildLoadingScreen";
 import SettingsScreen from "./components/SettingsScreen";
+import { SettingsGlyph } from "./components/IconGlyphs";
 import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
 import { syncBetaCoachMemory, syncBetaPersonalRecord } from "./lib/betaMemorySync";
+import {
+  syncStructuredBetaProfile,
+  syncStructuredBetaProgram,
+} from "./lib/betaProfileSync";
 import { syncStructuredBetaWorkout } from "./lib/betaWorkoutSync";
 import {
   requestAiCoachChatReply,
@@ -25,23 +30,74 @@ import {
   requestAiProgramReply,
   requestAiWorkoutReview,
   type BuiltWorkoutPlan,
+  type CoachExerciseLibraryInfo,
   type CoachProgramSuggestion,
   type CoachProgramSuggestionAction,
   type CoachSetContext,
   type CoachWorkoutReviewResult,
 } from "./lib/coachAi";
 import {
-  KNOWN_EXERCISE_NAMES,
   getExerciseProfile,
+  getExerciseUserInfo,
+  getProgramExercisePool,
   isBodyweightExercise,
   isTimedExercise,
   normalizeExerciseSearchText,
   resolveExerciseName,
 } from "./lib/exercises";
-type PassType = "A" | "B" | "C" | "D";
+type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
+type ProgramStartMode = "coach" | "manual";
 type AppTheme = "dark" | "light";
 
 const PROGRAM_BUILD_MIN_MS = 4500;
+const ALL_PASS_KEYS: PassType[] = ["A", "B", "C", "D", "E", "F", "G"];
+const COACH_PROGRAM_MAX_DAYS = 6;
+const MANUAL_PROGRAM_MAX_DAYS = 7;
+
+function getPassKeys(daysPerWeek: number, maxDays = COACH_PROGRAM_MAX_DAYS) {
+  const count = Math.min(Math.max(1, Math.round(daysPerWeek) || 1), maxDays);
+  return ALL_PASS_KEYS.slice(0, count);
+}
+
+function cleanPassDisplayLabel(value: string) {
+  return value
+    .replace(/\bRyggraden\b/g, "Ryggen")
+    .replace(/\bryggraden\b/g, "ryggen")
+    .replace(/\bRyggrad\b/g, "Rygg")
+    .replace(/\bryggrad\b/g, "rygg")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function createEmptyPassStringMap(): Record<PassType, string[]> {
+  return ALL_PASS_KEYS.reduce(
+    (map, key) => ({ ...map, [key]: [] }),
+    {} as Record<PassType, string[]>
+  );
+}
+
+function createEmptyPassOverrideMap(): Record<PassType, Record<string, string>> {
+  return ALL_PASS_KEYS.reduce(
+    (map, key) => ({ ...map, [key]: {} }),
+    {} as Record<PassType, Record<string, string>>
+  );
+}
+
+function copyPassStringMap(map: Partial<Record<PassType, string[]>>) {
+  return ALL_PASS_KEYS.reduce(
+    (next, key) => ({ ...next, [key]: [...(map[key] ?? [])] }),
+    {} as Record<PassType, string[]>
+  );
+}
+
+function copyPassOverrideMap(
+  map: Partial<Record<PassType, Record<string, string>>>
+) {
+  return ALL_PASS_KEYS.reduce(
+    (next, key) => ({ ...next, [key]: { ...(map[key] ?? {}) } }),
+    {} as Record<PassType, Record<string, string>>
+  );
+}
 
 function AppControls({
   theme,
@@ -52,17 +108,25 @@ function AppControls({
 }) {
   const isLight = theme === "light";
   const buttonClassName = isLight
-    ? "rounded-full border border-[#d8cfc0]/85 bg-white/86 px-3.5 py-2 text-[11px] font-semibold text-[#445064] shadow-[0_14px_34px_rgba(91,72,48,0.14)] backdrop-blur-2xl transition hover:bg-white"
-    : "rounded-full border border-white/[0.09] bg-[#101824]/72 px-3.5 py-2 text-[11px] font-semibold text-white/68 shadow-[0_14px_34px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition hover:border-blue-400/16 hover:bg-[#131c27]/86 hover:text-white/84";
+    ? "flex h-11 w-11 items-center justify-center rounded-full bg-white/76 text-[#4a3f34] shadow-[0_16px_38px_rgba(91,72,48,0.14),inset_0_0_0_1px_rgba(122,101,72,0.12)] backdrop-blur-2xl transition hover:bg-white"
+    : "flex h-11 w-11 items-center justify-center rounded-full bg-[#101824]/76 text-white/86 shadow-[0_16px_38px_rgba(0,0,0,0.30),inset_0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-2xl transition hover:bg-[#131c27]/92 hover:text-white";
 
   return (
-    <div className="fixed right-5 top-5 z-40 flex items-center gap-1.5 sm:right-7 sm:top-6">
+    <div className="fixed right-3 top-3 z-40 flex items-center gap-1.5 sm:right-6 sm:top-5">
       <button
         type="button"
         onClick={onOpenSettings}
         className={buttonClassName}
+        aria-label="Inställningar"
+        title="Inställningar"
       >
-        Inställningar
+        <SettingsGlyph
+          className={`h-5 w-5 ${
+            isLight
+              ? "drop-shadow-[0_0_10px_rgba(47,109,246,0.22)]"
+              : "drop-shadow-[0_0_12px_rgba(47,109,246,0.46)]"
+          }`}
+        />
       </button>
     </div>
   );
@@ -116,6 +180,7 @@ type PersonalRecord = {
   createdAt: string;
 };
 type PlannedExercise = {
+  exerciseKey?: string;
   name: string;
   purpose?: string;
   sets?: string;
@@ -272,27 +337,10 @@ function getNextPass(
   lastPass: PassType | null,
   daysPerWeek: number
 ): PassType {
-  if (daysPerWeek <= 2) {
-    return lastPass === "A" ? "B" : "A";
-  }
+  const passKeys = getPassKeys(daysPerWeek);
+  const currentIndex = lastPass ? passKeys.indexOf(lastPass) : -1;
 
-  if (daysPerWeek === 3) {
-    if (lastPass === "A") return "B";
-    if (lastPass === "B") return "C";
-    return "A";
-  }
-
-  if (daysPerWeek === 4) {
-    if (lastPass === "A") return "B";
-    if (lastPass === "B") return "C";
-    if (lastPass === "C") return "D";
-    return "A";
-  }
-
-  if (lastPass === "A") return "B";
-  if (lastPass === "B") return "C";
-  if (lastPass === "C") return "D";
-  return "A";
+  return passKeys[(currentIndex + 1) % passKeys.length] ?? "A";
 }
 
 function getWorkoutIntro(dayForm: DayForm | null) {
@@ -1175,6 +1223,9 @@ const PASS_TEMPLATES: Record<PassType, string[]> = {
   B: ["Rumänska marklyft", "Benpress", "Benspark"],
   C: ["Lutande hantelpress", "Latsdrag", "Cable cross"],
   D: ["Benpress", "Utfall", "Vadpress"],
+  E: ["Bröstpress", "Maskinrodd", "Sidolyft"],
+  F: ["Benpress", "Lårcurl", "Machine crunch"],
+  G: ["Planka", "Höftlyft", "Upphöjda armhävningar"],
 };
 function hasHomeEquipment(profile: UserProfile, equipment: string) {
   return profile.equipment?.includes(equipment) ?? false;
@@ -1558,12 +1609,7 @@ function buildDefaultWorkoutPlan(args: {
   removedExercisesByPass,
 } = args;
 
- const passKeys: PassType[] =
-  profile.daysPerWeek <= 2
-    ? ["A", "B"]
-    : profile.daysPerWeek === 3
-    ? ["A", "B", "C"]
-    : ["A", "B", "C", "D"];
+ const passKeys = getPassKeys(profile.daysPerWeek);
 
 const passes = passKeys.map((passKey) =>
   buildPassDefinition({
@@ -1624,10 +1670,13 @@ function applyWorkoutPlanEdits(args: {
               (removedName) => exerciseKey(removedName) === exerciseKey(exercise.name)
             )
         )
-        .map((exercise) => ({
-          ...exercise,
-          name: overrides[exerciseKey(exercise.name)] ?? exercise.name,
-        }));
+        .map((exercise) => {
+          const overrideName = overrides[exerciseKey(exercise.name)];
+
+          return overrideName
+            ? { ...exercise, exerciseKey: undefined, name: overrideName }
+            : exercise;
+        });
 
       const seen = new Set<string>();
       const exercises = [
@@ -1670,17 +1719,17 @@ function parseManualWorkoutPlan(
   profile: UserProfile
 ): StoredWorkoutPlan | null {
   const text = rawText.trim();
-  const markerRegex = /(dag|pass)\s*([1-4a-d])\s*:?\s*/gi;
+  const markerRegex = /(dag|pass)\s*([1-7a-g])\s*:?\s*/gi;
   const matches = [...text.matchAll(markerRegex)];
 
   if (matches.length === 0) return null;
 
-  const passes = matches.slice(0, 4).map((match, index) => {
+  const passes = matches.slice(0, MANUAL_PROGRAM_MAX_DAYS).map((match, index) => {
     const start = (match.index ?? 0) + match[0].length;
     const nextMatch = matches[index + 1];
     const end = nextMatch?.index ?? text.length;
     const content = text.slice(start, end);
-    const key = ["A", "B", "C", "D"][index] as PassType;
+    const key = ALL_PASS_KEYS[index] as PassType;
     const label = match[2].toUpperCase();
     const displayName = /^\d+$/.test(label) ? `Dag ${label}` : `Pass ${label}`;
     const exercises = content
@@ -1719,6 +1768,36 @@ function parseManualWorkoutPlan(
   };
 }
 
+function buildEmptyManualWorkoutPlan(profile: UserProfile): StoredWorkoutPlan {
+  const passes = getPassKeys(profile.daysPerWeek, MANUAL_PROGRAM_MAX_DAYS).map(
+    (key, index) => ({
+      key,
+      displayName: `Pass ${index + 1}`,
+      intent: "Du bygger detta pass själv. Coachen kan granska och hjälpa till när övningarna är på plats.",
+      exercises: [],
+    })
+  );
+
+  return {
+    title: "Eget upplägg",
+    goalPrimary: profile.goalPrimary,
+    daysPerWeek: passes.length,
+    coachSummary:
+      "Du startar med tomma pass. Lägg in övningar själv, så hjälper coachen dig att hålla upplägget rimligt.",
+    planReason:
+      "Här styr du övningsvalen. Coachen finns kvar som kvalitetskontroll.",
+    structureReason:
+      "Passen är tomma tills du lägger in övningar. Det här är rätt start om du redan vet hur du vill träna.",
+    safetyNotes: profile.limitations?.trim()
+      ? [`Jag tar hänsyn till: ${profile.limitations.trim()}.`]
+      : [],
+    source: "manual",
+    builtAt: new Date().toISOString(),
+    profileSignature: getProgramProfileSignature(profile),
+    passes,
+  };
+}
+
 function getProgramProfileSignature(profile: UserProfile) {
   return JSON.stringify({
     age: profile.age ?? null,
@@ -1739,27 +1818,79 @@ function buildProgramFallbackPlan(profile: UserProfile): BuiltWorkoutPlan {
   return {
     ...buildDefaultWorkoutPlan({
       profile,
-      customExercisesByPass: { A: [], B: [], C: [], D: [] },
-      exerciseOverridesByPass: { A: {}, B: {}, C: {}, D: {} },
-      removedExercisesByPass: { A: [], B: [], C: [], D: [] },
+      customExercisesByPass: createEmptyPassStringMap(),
+      exerciseOverridesByPass: createEmptyPassOverrideMap(),
+      removedExercisesByPass: createEmptyPassStringMap(),
     }),
     profileSignature: getProgramProfileSignature(profile),
   };
 }
 
-function getAvailableProgramExercises() {
-  return KNOWN_EXERCISE_NAMES.map((name) => {
-    const profile = getExerciseProfile(name);
+function getAvailableProgramExercises(profile: UserProfile) {
+  return getProgramExercisePool({
+    location: profile.location,
+    equipment: profile.location === "hemma" ? profile.equipment : [],
+    exercisePreferences: profile.exercisePreferences ?? [],
+    trainingExperience: profile.trainingExperience,
+  }).map((exercise) => {
+    const profile = getExerciseProfile(exercise.name);
 
     return {
-      name,
+      exerciseKey: exercise.exerciseKey,
+      name: exercise.name,
       category: profile.category,
       equipment: profile.equipment,
+      environment: exercise.environment,
+      equipmentTags: exercise.equipmentTags,
+      primaryMuscle: exercise.primaryMuscle,
+      secondaryMuscles: exercise.secondaryMuscles,
+      exerciseType: exercise.exerciseType,
+      movementPattern: exercise.movementPattern,
+      logType: exercise.logType,
+      difficulty: exercise.difficulty,
+      beginnerFit: exercise.beginnerFit,
+      stability: exercise.stability,
+      beginnerNote: exercise.beginnerNote,
+      substitutions: exercise.substitutions,
+      coachReason: exercise.coachReason,
       techniqueCue: profile.techniqueCue,
       progressionRule: profile.progressionRule,
       caution: profile.caution,
     };
   });
+}
+
+function buildExerciseLibraryInfo(
+  exerciseName: string
+): CoachExerciseLibraryInfo {
+  const info = getExerciseUserInfo(exerciseName);
+
+  return {
+    exerciseKey: info.exerciseKey || undefined,
+    name: info.name,
+    trains: info.trains,
+    equipment: info.equipment,
+    whyChosen: info.whyChosen,
+    logTypeText: info.logTypeText,
+    keepInMind: info.keepInMind,
+    easierAlternative: info.easierAlternative || undefined,
+    techniqueCue: info.techniqueCue,
+    progressionRule: info.progressionRule,
+  };
+}
+
+function buildExerciseLibraryInfoList(exerciseNames: string[]) {
+  const seen = new Set<string>();
+
+  return exerciseNames
+    .map(buildExerciseLibraryInfo)
+    .filter((info) => {
+      const key = info.exerciseKey || exerciseKey(info.name);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 24);
 }
 
 const DEFAULT_TARGET_SETS = 3;
@@ -3656,39 +3787,21 @@ const [goalInput, setGoalInput] = useState<
 const [secondaryGoalsInput, setSecondaryGoalsInput] = useState<
   ("muskel" | "styrka" | "fett")[]
 >([]);
+const [programStartModeInput, setProgramStartModeInput] =
+  useState<ProgramStartMode>("coach");
 
 const [editingProfile, setEditingProfile] = useState(false);
 
 const profileName = userProfile?.name?.trim() || "du";
 
 const [customExercisesByPass, setCustomExercisesByPass] =
-  useState<CustomExercisesByPass>({
-    A: [],
-    B: [],
-    C: [],
-    D: [],
-  });
+  useState<CustomExercisesByPass>(createEmptyPassStringMap());
 const [todayExercisesByPass, setTodayExercisesByPass] =
-  useState<CustomExercisesByPass>({
-    A: [],
-    B: [],
-    C: [],
-    D: [],
-  });
+  useState<CustomExercisesByPass>(createEmptyPassStringMap());
 const [removedExercisesByPass, setRemovedExercisesByPass] =
-  useState<RemovedExercisesByPass>({
-    A: [],
-    B: [],
-    C: [],
-    D: [],
-  });
+  useState<RemovedExercisesByPass>(createEmptyPassStringMap());
 const [exerciseOverridesByPass, setExerciseOverridesByPass] =
-  useState<ExerciseOverridesByPass>({
-    A: {},
-    B: {},
-    C: {},
-    D: {},
-  });
+  useState<ExerciseOverridesByPass>(createEmptyPassOverrideMap());
 const [swapFrom, setSwapFrom] = useState<string | null>(null);
 const [swapToInput, setSwapToInput] = useState("");
 
@@ -3758,12 +3871,7 @@ const [activeConditioningContext, setActiveConditioningContext] =
 
     const savedLastPass = localStorage.getItem("lastPass") as PassType | null;
     const savedGym = localStorage.getItem("lastGym");
-if (
-  savedLastPass === "A" ||
-  savedLastPass === "B" ||
-  savedLastPass === "C" ||
-  savedLastPass === "D"
-) {
+if (savedLastPass && ALL_PASS_KEYS.includes(savedLastPass)) {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   setLastPass(savedLastPass);
 }
@@ -3791,21 +3899,17 @@ if (savedProfile) {
   }
 }
 setCustomExercisesByPass(
-  loadJSON<CustomExercisesByPass>("customExercisesByPass", {
-    A: [],
-    B: [],
-    C: [],
-    D: [],
-  })
+  {
+    ...createEmptyPassStringMap(),
+    ...loadJSON<Partial<CustomExercisesByPass>>("customExercisesByPass", {}),
+  }
 );
 
 setExerciseOverridesByPass(
-  loadJSON<ExerciseOverridesByPass>("exerciseOverridesByPass", {
-    A: {},
-    B: {},
-    C: {},
-    D: {},
-  })
+  {
+    ...createEmptyPassOverrideMap(),
+    ...loadJSON<Partial<ExerciseOverridesByPass>>("exerciseOverridesByPass", {}),
+  }
 );
 
 
@@ -3880,9 +3984,9 @@ const basePlan =
   customWorkoutPlan ??
   buildDefaultWorkoutPlan({
     profile: userProfile,
-    customExercisesByPass: { A: [], B: [], C: [], D: [] },
-    exerciseOverridesByPass: { A: {}, B: {}, C: {}, D: {} },
-    removedExercisesByPass: { A: [], B: [], C: [], D: [] },
+    customExercisesByPass: createEmptyPassStringMap(),
+    exerciseOverridesByPass: createEmptyPassOverrideMap(),
+    removedExercisesByPass: createEmptyPassStringMap(),
   });
 
 return applyWorkoutPlanEdits({
@@ -3928,7 +4032,7 @@ async function buildAiWorkoutPlanForProfile(profile: UserProfile) {
         exercisePreferences: profile.exercisePreferences ?? [],
         limitations: profile.limitations,
       },
-      availableExercises: getAvailableProgramExercises(),
+      availableExercises: getAvailableProgramExercises(profile),
       existingPreferences: programPreferences,
     },
     fallbackPlan,
@@ -4015,7 +4119,7 @@ useEffect(() => {
           exercisePreferences: activeProfile.exercisePreferences ?? [],
           limitations: activeProfile.limitations,
         },
-        availableExercises: getAvailableProgramExercises(),
+        availableExercises: getAvailableProgramExercises(activeProfile),
         existingPreferences: programPreferences,
       },
       fallbackPlan,
@@ -4059,7 +4163,7 @@ const availablePassChoices = useMemo(
   () =>
     workoutPlan?.passes.map((pass: WorkoutPass) => ({
       key: pass.key,
-      label: pass.displayName ?? `Pass ${pass.key}`,
+      label: cleanPassDisplayLabel(pass.displayName ?? `Pass ${pass.key}`),
       exerciseCount: pass.exercises.length,
     })) ?? [],
   [workoutPlan]
@@ -4076,17 +4180,21 @@ const plan: string[] = mergePlan(savedPlan, todayExercisesByPass[nextPass] ?? []
 
 const activePlan = workout ? workout.exercises.map((e) => e.name) : plan;
 
-const currentPassLabel =
-  workout?.displayName ?? nextPlannedPass?.displayName ?? "";
+const currentPassLabel = cleanPassDisplayLabel(
+  workout?.displayName ?? nextPlannedPass?.displayName ?? ""
+);
 
-const nextPassLabel = nextPlannedPass?.displayName ?? `Pass ${nextPass}`;
+const nextPassLabel = cleanPassDisplayLabel(
+  nextPlannedPass?.displayName ?? `Pass ${nextPass}`
+);
 
-const lastPassLabel =
+const lastPassLabel = cleanPassDisplayLabel(
   userProfile && lastPass
     ? getDefaultPassDisplayName(userProfile, lastPass)
     : lastPass
     ? `Pass ${lastPass}`
-    : "";
+    : ""
+);
 
 const currentExerciseName = activePlan[exerciseIndex] ?? "";
 
@@ -4425,7 +4533,9 @@ const w: Workout = {
   startedAt: startedAt.toISOString(),
   gym,
   pass: nextPass,
-  displayName: nextPlannedPass?.displayName ?? `Pass ${nextPass}`,
+  displayName: cleanPassDisplayLabel(
+    nextPlannedPass?.displayName ?? `Pass ${nextPass}`
+  ),
   planTitle: workoutPlan?.title,
   exercises: plan.map((name: string) => ({ name, sets: [] })),
   warmupContext,
@@ -4801,11 +4911,16 @@ async function sendChat() {
         currentExerciseCategory: currentExerciseName
           ? getExerciseProfile(currentExerciseName).category
           : undefined,
+        currentExerciseInfo: currentExerciseName
+          ? buildExerciseLibraryInfo(currentExerciseName)
+          : undefined,
         exerciseIndex: workout ? exerciseIndex + 1 : undefined,
         exerciseCount: workout?.exercises.length,
         currentSets: currentWorkoutExercise?.sets.map((set) => ({
           weight: set.weight,
           reps: set.reps,
+          durationSeconds: set.durationSeconds,
+          metricType: set.metricType,
           rir: set.rir,
           failNote: set.failNote,
         })),
@@ -4847,6 +4962,7 @@ async function sendChat() {
               })()
             : undefined,
         activePlan,
+        activePlanExerciseInfo: buildExerciseLibraryInfoList(activePlan),
         warmupNote:
           overrides?.warmupContext?.note ?? activeWarmupContext?.note,
         conditioningNote:
@@ -5772,27 +5888,12 @@ function resolveProgramSuggestionPass(
 function applyPendingProgramSuggestion() {
   if (!pendingProgramSuggestion || !workoutPlan) return;
 
-  const nextCustom: CustomExercisesByPass = {
-    ...customExercisesByPass,
-    A: [...(customExercisesByPass.A ?? [])],
-    B: [...(customExercisesByPass.B ?? [])],
-    C: [...(customExercisesByPass.C ?? [])],
-    D: [...(customExercisesByPass.D ?? [])],
-  };
-  const nextRemoved: RemovedExercisesByPass = {
-    ...removedExercisesByPass,
-    A: [...(removedExercisesByPass.A ?? [])],
-    B: [...(removedExercisesByPass.B ?? [])],
-    C: [...(removedExercisesByPass.C ?? [])],
-    D: [...(removedExercisesByPass.D ?? [])],
-  };
-  const nextOverrides: ExerciseOverridesByPass = {
-    ...exerciseOverridesByPass,
-    A: { ...(exerciseOverridesByPass.A ?? {}) },
-    B: { ...(exerciseOverridesByPass.B ?? {}) },
-    C: { ...(exerciseOverridesByPass.C ?? {}) },
-    D: { ...(exerciseOverridesByPass.D ?? {}) },
-  };
+  const nextCustom: CustomExercisesByPass =
+    copyPassStringMap(customExercisesByPass);
+  const nextRemoved: RemovedExercisesByPass =
+    copyPassStringMap(removedExercisesByPass);
+  const nextOverrides: ExerciseOverridesByPass =
+    copyPassOverrideMap(exerciseOverridesByPass);
   const nextNames: PassDisplayNamesByPass = { ...passDisplayNamesByPass };
   let changedCount = 0;
 
@@ -5880,7 +5981,7 @@ async function applyProgramPreference(preferenceRaw: string) {
 
   if (
     userProfile &&
-    (/\b(dag|pass)\s*[1-4a-d]\s*:?\s*/i.test(preference) ||
+    (/\b(dag|pass)\s*[1-7a-g]\s*:?\s*/i.test(preference) ||
       lower.includes("eget upplägg") ||
       lower.includes("eget schema"))
   ) {
@@ -5892,12 +5993,12 @@ async function applyProgramPreference(preferenceRaw: string) {
 
     setCustomWorkoutPlan(manualPlan);
     saveJSON("customWorkoutPlan", manualPlan);
-    setRemovedExercisesByPass({ A: [], B: [], C: [], D: [] });
-    setExerciseOverridesByPass({ A: {}, B: {}, C: {}, D: {} });
-    setCustomExercisesByPass({ A: [], B: [], C: [], D: [] });
-    saveJSON("removedExercisesByPass", { A: [], B: [], C: [], D: [] });
-    saveJSON("exerciseOverridesByPass", { A: {}, B: {}, C: {}, D: {} });
-    saveJSON("customExercisesByPass", { A: [], B: [], C: [], D: [] });
+    setRemovedExercisesByPass(createEmptyPassStringMap());
+    setExerciseOverridesByPass(createEmptyPassOverrideMap());
+    setCustomExercisesByPass(createEmptyPassStringMap());
+    saveJSON("removedExercisesByPass", createEmptyPassStringMap());
+    saveJSON("exerciseOverridesByPass", createEmptyPassOverrideMap());
+    saveJSON("customExercisesByPass", createEmptyPassStringMap());
 
     const exerciseCount = manualPlan.passes.reduce(
       (sum, pass) => sum + pass.exercises.length,
@@ -6078,6 +6179,11 @@ async function applyProgramPreference(preferenceRaw: string) {
             exercises: pass.exercises.map((exercise) => exercise.name),
           })),
         },
+        exerciseLibrary: buildExerciseLibraryInfoList(
+          workoutPlan.passes.flatMap((pass) =>
+            pass.exercises.map((exercise) => exercise.name)
+          )
+        ),
         existingPreferences: programPreferences,
       },
       fallbackReply,
@@ -6476,6 +6582,11 @@ async function applyProgramPreference(preferenceRaw: string) {
           exercises: pass.exercises.map((exercise) => exercise.name),
         })),
       },
+      exerciseLibrary: buildExerciseLibraryInfoList(
+        workoutPlan.passes.flatMap((pass) =>
+          pass.exercises.map((exercise) => exercise.name)
+        )
+      ),
       existingPreferences: programPreferences,
     },
     fallbackReply:
@@ -7377,6 +7488,8 @@ void syncStructuredBetaWorkout({
       setIndex: setIndex + 1,
       weight: set.weight,
       reps: set.reps,
+      durationSeconds: set.durationSeconds ?? null,
+      metricType: set.metricType ?? (set.durationSeconds ? "time" : "reps"),
       rir: set.rir ?? null,
       failNote: set.failNote ?? null,
       createdAt: set.createdAt,
@@ -7469,10 +7582,10 @@ setStarted(false);
     setStarted(false);
     alert("Allt återställt ✅");
     setCoachMemory({ notes: [] });
-  setCustomExercisesByPass({ A: [], B: [], C: [], D: [] });
-  setTodayExercisesByPass({ A: [], B: [], C: [], D: [] });
-  setRemovedExercisesByPass({ A: [], B: [], C: [], D: [] });
-  setExerciseOverridesByPass({ A: {}, B: {}, C: {}, D: {} });
+  setCustomExercisesByPass(createEmptyPassStringMap());
+  setTodayExercisesByPass(createEmptyPassStringMap());
+  setRemovedExercisesByPass(createEmptyPassStringMap());
+  setExerciseOverridesByPass(createEmptyPassOverrideMap());
     setPersonalRecords({});
     void syncBetaSnapshotNow({ reason: "settings-reset" });
   }
@@ -7489,7 +7602,8 @@ const shouldShowGlobalAppControls =
   !showHistory &&
   !showPersonalRecords &&
   !showProgramReview &&
-  !editingProfile;
+  !editingProfile &&
+  (showDailyPlan || started || workoutComplete);
 
 const settingsPanel = showSettings ? (
   <SettingsScreen
@@ -7574,9 +7688,20 @@ if (!userProfile || editingProfile) {
       setGoalInput={setGoalInput}
       secondaryGoalsInput={secondaryGoalsInput}
       setSecondaryGoalsInput={setSecondaryGoalsInput}
+      programStartModeInput={programStartModeInput}
+      setProgramStartModeInput={setProgramStartModeInput}
       isEditing={editingProfile}
       onSubmit={() => {
 const parsedAge = Number(ageInput);
+const requestedDays = Number(daysPerWeekInput);
+const maxDays =
+  programStartModeInput !== "coach"
+    ? MANUAL_PROGRAM_MAX_DAYS
+    : COACH_PROGRAM_MAX_DAYS;
+const daysPerWeek = Math.min(
+  Math.max(1, Number.isFinite(requestedDays) ? requestedDays : 3),
+  maxDays
+);
 const profile: UserProfile = {
   name: nameInput.trim() || "Du",
   age: Number.isFinite(parsedAge) && parsedAge > 0 ? parsedAge : null,
@@ -7584,7 +7709,7 @@ const profile: UserProfile = {
   trainingExperience: trainingExperienceInput,
   goalPrimary: goalInput,
   goalSecondary: secondaryGoalsInput.filter((goal) => goal !== goalInput),
-  daysPerWeek: Number(daysPerWeekInput),
+  daysPerWeek,
   minutesPerSession: Number(minutesPerSessionInput),
   location: locationInput,
   equipment: locationInput === "hemma" ? equipmentInput : [],
@@ -7593,20 +7718,29 @@ const profile: UserProfile = {
 };
 
         saveJSON("userProfile", profile);
+        void syncStructuredBetaProfile(profile as unknown as Record<string, unknown>);
         setUserProfile(profile);
-        setCustomWorkoutPlan(null);
-        setCustomExercisesByPass({ A: [], B: [], C: [], D: [] });
-        setRemovedExercisesByPass({ A: [], B: [], C: [], D: [] });
-        setExerciseOverridesByPass({ A: {}, B: {}, C: {}, D: {} });
+        const nextCustomPlan =
+          programStartModeInput === "manual"
+            ? buildEmptyManualWorkoutPlan(profile)
+            : null;
+        setCustomWorkoutPlan(nextCustomPlan);
+        setCustomExercisesByPass(createEmptyPassStringMap());
+        setRemovedExercisesByPass(createEmptyPassStringMap());
+        setExerciseOverridesByPass(createEmptyPassOverrideMap());
         setPassDisplayNamesByPass({});
-        localStorage.removeItem("customWorkoutPlan");
-        saveJSON("customExercisesByPass", { A: [], B: [], C: [], D: [] });
-        saveJSON("removedExercisesByPass", { A: [], B: [], C: [], D: [] });
-        saveJSON("exerciseOverridesByPass", { A: {}, B: {}, C: {}, D: {} });
+        if (nextCustomPlan) {
+          saveJSON("customWorkoutPlan", nextCustomPlan);
+        } else {
+          localStorage.removeItem("customWorkoutPlan");
+        }
+        saveJSON("customExercisesByPass", createEmptyPassStringMap());
+        saveJSON("removedExercisesByPass", createEmptyPassStringMap());
+        saveJSON("exerciseOverridesByPass", createEmptyPassOverrideMap());
         saveJSON("passDisplayNamesByPass", {});
         setEditingProfile(false);
-        setProgramBuildStatus("building");
-        setProgramBuildScreenVisible(true);
+        setProgramBuildStatus(nextCustomPlan ? "idle" : "building");
+        setProgramBuildScreenVisible(!nextCustomPlan);
         setShowProgramReview(true);
         saveJSON("approvedWorkoutPlan", false);
       }}
@@ -7662,6 +7796,58 @@ if (userProfile && workoutPlan && showProgramReview) {
         setPassDisplayNamesByPass(nextNames);
         saveJSON("passDisplayNamesByPass", nextNames);
       }}
+      onAddExercise={(passKey, exerciseNameRaw) => {
+        const resolved = resolveExerciseName(exerciseNameRaw);
+
+        if (resolved.status === "empty") {
+          return { clearInput: false, nextInput: exerciseNameRaw };
+        }
+
+        if (resolved.status === "suggest") {
+          return {
+            clearInput: false,
+            nextInput: resolved.suggestion,
+            suggestion: resolved.suggestion,
+            tone: "suggestion",
+            message: `Menar du ${resolved.suggestion}?`,
+          };
+        }
+
+        if (resolved.status === "needsCategory") {
+          return {
+            clearInput: false,
+            nextInput: resolved.name,
+            tone: "question",
+            message: "Vad tränar den främst? Välj en egen-kategori nedan.",
+          };
+        }
+
+        if (resolved.status === "unknown") {
+          return {
+            clearInput: false,
+            nextInput: exerciseNameRaw,
+            tone: "question",
+            message:
+              "Jag hittar ingen säker matchning. Välj egen-kategori nedan om du vill lägga in den exakt.",
+          };
+        }
+
+        const name = resolved.name;
+        setCustomExercisesByPass((prev) => {
+          const next: CustomExercisesByPass = {
+            ...prev,
+            [passKey]: mergePlan(prev[passKey] ?? [], [name]),
+          };
+
+          saveJSON("customExercisesByPass", next);
+          return next;
+        });
+        return {
+          clearInput: true,
+          tone: "success",
+          message: `${name} är tillagd i Pass ${passKey}.`,
+        };
+      }}
       onRemoveExercise={(passKey, exerciseName) => {
         const currentPass = workoutPlan.passes.find((pass) => pass.key === passKey);
         const isCustomExercise = customExercisesByPass[passKey]?.some(
@@ -7694,6 +7880,11 @@ if (userProfile && workoutPlan && showProgramReview) {
       onApprove={() => {
         saveJSON("approvedWorkoutPlan", true);
         void syncBetaSnapshotNow({ reason: "program-approved" });
+        void syncStructuredBetaProgram({
+          profile: userProfile as unknown as Record<string, unknown>,
+          plan: workoutPlan as unknown as Record<string, unknown>,
+          source: workoutPlan.source ?? "ai",
+        });
         setShowProgramReview(false);
       }}
       onEditProfile={() => setEditingProfile(true)}
@@ -7926,6 +8117,7 @@ addCoachMessage={(text) =>
       setSelectedProgressExercise(null);
       setEditingProfile(true);
     }}
+    onOpenSettings={() => setShowSettings(true)}
   />
 )}
 {settingsPanel}

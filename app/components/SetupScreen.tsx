@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import ToggleSwitch from "./ToggleSwitch";
 
 type Goal = "muskel" | "styrka" | "fett";
 type Location = "gym" | "hemma";
 type Gender = "kvinna" | "man" | "annat" | "vill-inte-saga";
 type TrainingExperience = "nyborjare" | "van" | "erfaren";
+type ProgramStartMode = "coach" | "manual";
 
 type Props = {
   nameInput: string;
@@ -33,6 +35,8 @@ type Props = {
   setGoalInput: (v: Goal) => void;
   secondaryGoalsInput: Goal[];
   setSecondaryGoalsInput: (v: Goal[]) => void;
+  programStartModeInput: ProgramStartMode;
+  setProgramStartModeInput: (v: ProgramStartMode) => void;
   isEditing: boolean;
   onSubmit: () => void;
 };
@@ -51,10 +55,14 @@ const goalOptions: { value: Goal; label: string; helper: string }[] = [
 const equipmentOptions = [
   { value: "none", label: "Ingen", helper: "kroppsvikt" },
   { value: "dumbbells", label: "Hantlar", helper: "vikt" },
+  { value: "adjustable_dumbbells", label: "Justerbara hantlar", helper: "mer vikt" },
   { value: "bench", label: "Bänk", helper: "press" },
   { value: "bands", label: "Band", helper: "drag" },
   { value: "kettlebell", label: "Kettlebell", helper: "sving" },
   { value: "barbell", label: "Skivstång", helper: "baslyft" },
+  { value: "pullup_bar", label: "Pull-up bar", helper: "häng" },
+  { value: "cables", label: "Kabel hemma", helper: "drag" },
+  { value: "machines", label: "Maskin hemma", helper: "stabilt" },
 ];
 
 const exercisePreferenceOptions = [
@@ -107,6 +115,14 @@ const genderOptions: { value: Gender; label: string }[] = [
   { value: "vill-inte-saga", label: "Hoppa över" },
 ];
 
+const programStartOptions: {
+  value: "coach" | "manual";
+  label: string;
+}[] = [
+  { value: "coach", label: "Coachen bygger" },
+  { value: "manual", label: "Jag styr själv" },
+];
+
 export default function SetupScreen({
   nameInput,
   setNameInput,
@@ -132,6 +148,8 @@ export default function SetupScreen({
   setGoalInput,
   secondaryGoalsInput,
   setSecondaryGoalsInput,
+  programStartModeInput,
+  setProgramStartModeInput,
   isEditing,
   onSubmit,
 }: Props) {
@@ -274,7 +292,7 @@ export default function SetupScreen({
                           key={experience.value}
                           type="button"
                           onClick={() => setTrainingExperienceInput(experience.value)}
-                          className={`min-h-[58px] rounded-2xl border px-2 py-2 text-left transition ${
+                          className={`min-h-12 rounded-2xl border px-2 py-2 text-center transition ${
                             trainingExperienceInput === experience.value
                               ? "border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
                               : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
@@ -282,9 +300,6 @@ export default function SetupScreen({
                         >
                           <span className="block text-[13px] font-semibold text-white">
                             {experience.label}
-                          </span>
-                          <span className="mt-1 block text-[11px] text-white/42">
-                            {experience.helper}
                           </span>
                         </button>
                       ))}
@@ -299,6 +314,47 @@ export default function SetupScreen({
                 </p>
 
                 <div className="mt-3 space-y-3.5">
+              <div className={labelClassName}>
+                <p>Hur vill du bygga schemat?</p>
+                <div className="mt-1.5 grid grid-cols-2 rounded-2xl border border-white/[0.07] bg-slate-950/36 p-1">
+                  {programStartOptions.map((option) => {
+                    const active =
+                      option.value === "coach"
+                        ? programStartModeInput === "coach"
+                        : programStartModeInput !== "coach";
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setProgramStartModeInput(option.value);
+                          if (
+                            option.value === "coach" &&
+                            Number(daysPerWeekInput) > 6
+                          ) {
+                            setDaysPerWeekInput("6");
+                          }
+                        }}
+                        className={`min-h-11 rounded-xl px-3 text-center text-[13px] font-semibold transition ${
+                          active
+                            ? "bg-blue-600 text-white shadow-[0_0_18px_rgba(37,99,235,0.22)]"
+                            : "text-white/48 hover:bg-white/[0.04] hover:text-white/70"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {programStartModeInput !== "coach" ? (
+                  <p className="mt-2 text-[12px] leading-4 text-white/48">
+                    Du bygger schemat i nästa steg. Här väljer du bara ramarna.
+                  </p>
+                ) : null}
+              </div>
+
               <label className={labelClassName}>
                 Dagar per vecka
                 <div className="relative mt-1.5">
@@ -313,6 +369,9 @@ export default function SetupScreen({
                     <option value="4">4 dagar</option>
                     <option value="5">5 dagar</option>
                     <option value="6">6 dagar</option>
+                    {programStartModeInput !== "coach" ? (
+                      <option value="7">7 dagar</option>
+                    ) : null}
                   </select>
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-white/42">
                     ▼
@@ -341,6 +400,8 @@ export default function SetupScreen({
                 </div>
               </label>
 
+              {programStartModeInput === "coach" ? (
+                <>
               <div className={labelClassName}>
                 <p>Plats</p>
                 <div className="mt-1.5 grid grid-cols-2 gap-2">
@@ -382,7 +443,7 @@ export default function SetupScreen({
                           key={equipment.value}
                           type="button"
                           onClick={() => toggleEquipment(equipment.value)}
-                          className={`min-h-[58px] rounded-2xl border px-3 py-2 text-left transition ${
+                          className={`min-h-12 rounded-2xl border px-3 py-2 text-center transition ${
                             active
                               ? "border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
                               : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
@@ -390,9 +451,6 @@ export default function SetupScreen({
                         >
                           <span className="block text-[13px] font-semibold text-white">
                             {equipment.label}
-                          </span>
-                          <span className="mt-1 block text-[11px] text-white/42">
-                            {equipment.helper}
                           </span>
                         </button>
                       );
@@ -417,7 +475,7 @@ export default function SetupScreen({
                         key={preference.value}
                         type="button"
                         onClick={() => toggleExercisePreference(preference.value)}
-                        className={`min-h-[58px] rounded-2xl border px-3 py-2 text-left transition ${
+                        className={`min-h-12 rounded-2xl border px-3 py-2 text-center transition ${
                           active
                             ? "border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
                             : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
@@ -426,14 +484,13 @@ export default function SetupScreen({
                         <span className="block text-[13px] font-semibold text-white">
                           {preference.label}
                         </span>
-                        <span className="mt-1 block text-[11px] text-white/42">
-                          {preference.helper}
-                        </span>
                       </button>
                     );
                   })}
                 </div>
               </div>
+                </>
+              ) : null}
 
               <div className={labelClassName}>
                 <p>Viktigast just nu</p>
@@ -448,7 +505,7 @@ export default function SetupScreen({
                           secondaryGoalsInput.filter((item) => item !== goal.value)
                         );
                       }}
-                      className={`min-h-[64px] rounded-2xl border px-2 py-2 text-left transition ${
+                      className={`min-h-12 rounded-2xl border px-2 py-2 text-center transition ${
                         goalInput === goal.value
                           ? "border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
                           : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
@@ -456,9 +513,6 @@ export default function SetupScreen({
                     >
                       <span className="block text-[13px] font-semibold text-white">
                         {goal.label}
-                      </span>
-                      <span className="mt-1 block text-[11px] text-white/42">
-                        {goal.helper}
                       </span>
                     </button>
                   ))}
@@ -481,7 +535,7 @@ export default function SetupScreen({
                         type="button"
                         disabled={isPrimary}
                         onClick={() => toggleSecondaryGoal(goal.value)}
-                        className={`min-h-[54px] rounded-2xl border px-2 py-2 text-left transition ${
+                        className={`min-h-11 rounded-2xl border px-2 py-2 text-center transition ${
                           active
                             ? "border-blue-300/35 bg-blue-500/[0.12] text-white"
                             : isPrimary
@@ -491,9 +545,6 @@ export default function SetupScreen({
                       >
                         <span className="block text-[12px] font-semibold">
                           {goal.label}
-                        </span>
-                        <span className="mt-1 block text-[10px] text-white/38">
-                          {isPrimary ? "primärt" : goal.helper}
                         </span>
                       </button>
                     );
@@ -525,15 +576,14 @@ export default function SetupScreen({
                     testversionen sparas din data lokalt på enheten.
                   </p>
 
-                  <span className="mt-3 flex items-center gap-3 text-white/82">
-                    <input
-                      type="checkbox"
-                      checked={acceptedAiNotice}
-                      onChange={(e) => setAcceptedAiNotice(e.target.checked)}
-                      className="h-4 w-4 rounded border border-white/20 bg-slate-950/38"
-                    />
-                    Jag förstår
-                  </span>
+                  <ToggleSwitch
+                    checked={acceptedAiNotice}
+                    onChange={setAcceptedAiNotice}
+                    label="Jag förstår"
+                    description="Coachen guidar, men kroppen bestämmer."
+                    size="sm"
+                    className="mt-3 rounded-2xl bg-white/[0.035] px-3 py-2.5"
+                  />
                 </label>
               ) : null}
 

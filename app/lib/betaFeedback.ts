@@ -1,6 +1,7 @@
 "use client";
 
 import { getOrCreateBetaDeviceId } from "./betaSync";
+import { postBetaJsonWithQueue } from "./betaSyncQueue";
 
 export async function sendBetaFeedback(
   message: string,
@@ -8,10 +9,12 @@ export async function sendBetaFeedback(
 ) {
   if (typeof window === "undefined") return undefined;
 
-  const response = await fetch("/api/beta-feedback", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const result = await postBetaJsonWithQueue({
+    endpoint: "/api/beta-feedback",
+    storageKey: "mincoachBetaFeedbackSyncStatus",
+    label: "Feedback",
+    unique: true,
+    body: {
       deviceId: getOrCreateBetaDeviceId(),
       message,
       metadata: {
@@ -20,16 +23,11 @@ export async function sendBetaFeedback(
         userAgent: window.navigator.userAgent,
         sentAt: new Date().toISOString(),
       },
-    }),
-    keepalive: true,
+    },
   });
 
-  const result = (await response.json().catch(() => null)) as
-    | { ok?: boolean; mode?: string; message?: string }
-    | null;
-
-  if (!response.ok || result?.ok === false) {
-    throw new Error(result?.message || "Feedback kunde inte skickas.");
+  if (!result?.ok && !result?.queued) {
+    throw new Error("Feedback kunde inte skickas.");
   }
 
   return result;

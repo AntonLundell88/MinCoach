@@ -1,3 +1,5 @@
+import { createHash } from "crypto";
+
 type SnapshotPayload = {
   deviceId: string;
   snapshot: Record<string, unknown>;
@@ -41,6 +43,18 @@ type StructuredWorkoutPayload = {
   };
 };
 
+type ProfilePayload = {
+  deviceId: string;
+  profile: Record<string, unknown>;
+};
+
+type ProgramPayload = {
+  deviceId: string;
+  profile: Record<string, unknown>;
+  plan: Record<string, unknown>;
+  source?: string;
+};
+
 type PersonalRecordPayload = {
   deviceId: string;
   record: {
@@ -54,6 +68,23 @@ type PersonalRecordPayload = {
     achievedAt?: string;
   };
 };
+
+export function getBetaUserUuid(deviceId: string) {
+  const hex = createHash("sha256")
+    .update(`mincoach-beta-user:${deviceId}`)
+    .digest("hex");
+  const variant = ((parseInt(hex.slice(16, 18), 16) & 0x3f) | 0x80)
+    .toString(16)
+    .padStart(2, "0");
+
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    `4${hex.slice(13, 16)}`,
+    `${variant}${hex.slice(18, 20)}`,
+    hex.slice(20, 32),
+  ].join("-");
+}
 
 type CoachMemoryPayload = {
   deviceId: string;
@@ -139,6 +170,53 @@ export async function upsertBetaDeviceSnapshot({
   return { mode: "saved" as const };
 }
 
+export async function getBetaDeviceSnapshot(deviceId: string) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+
+  if (!url || !serviceRoleKey) {
+    return { mode: "disabled" as const, snapshot: null };
+  }
+
+  const response = await fetch(
+    `${url}/rest/v1/beta_device_snapshots?device_id=eq.${encodeURIComponent(
+      deviceId
+    )}&select=snapshot,app_version,last_seen_at&limit=1`,
+    {
+      method: "GET",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Supabase beta restore failed: ${response.status} ${errorText.slice(0, 240)}`
+    );
+  }
+
+  const rows = (await response.json().catch(() => [])) as Array<{
+    snapshot?: Record<string, unknown> | null;
+    app_version?: string | null;
+    last_seen_at?: string | null;
+  }>;
+  const row = rows[0];
+
+  if (!row?.snapshot) {
+    return { mode: "empty" as const, snapshot: null };
+  }
+
+  return {
+    mode: "found" as const,
+    snapshot: row.snapshot,
+    appVersion: row.app_version ?? null,
+    lastSeenAt: row.last_seen_at ?? null,
+  };
+}
+
 export async function insertBetaFeedback({
   deviceId,
   message,
@@ -216,6 +294,179 @@ async function postSupabaseRows<T>(
   return { mode: "saved" as const, data };
 }
 
+async function patchSupabaseRows(path: string, body: Record<string, unknown>) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+
+  if (!url || !serviceRoleKey) {
+    return { mode: "disabled" as const };
+  }
+
+  const response = await fetch(`${url}/rest/v1/${path}`, {
+    method: "PATCH",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Supabase update failed for ${path}: ${response.status} ${errorText.slice(
+        0,
+        240
+      )}`
+    );
+  }
+
+  return { mode: "saved" as const };
+}
+
+async function deleteSupabaseRows(path: string) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+
+  if (!url || !serviceRoleKey) {
+    return { mode: "disabled" as const };
+  }
+
+  const response = await fetch(`${url}/rest/v1/${path}`, {
+    method: "DELETE",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Supabase delete failed for ${path}: ${response.status} ${errorText.slice(
+        0,
+        240
+      )}`
+    );
+  }
+
+  return { mode: "saved" as const };
+}
+
+function numberOrNull(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function stringOrNull(value: unknown) {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function arrayOrEmpty(value: unknown) {
+  return Array.isArray(value) ? value : [];
+}
+
+export async function upsertStructuredProfile({
+  deviceId,
+  profile,
+}: ProfilePayload) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+
+  if (!url || !serviceRoleKey) {
+    return { mode: "disabled" as const };
+  }
+
+  const now = new Date().toISOString();
+  const userId = getBetaUserUuid(deviceId);
+
+  const response = await fetch(
+    `${url}/rest/v1/profiles?on_conflict=user_id`,
+    {
+      method: "POST",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify([
+        {
+          user_id: userId,
+          display_name: stringOrNull(profile.name),
+          age: numberOrNull(profile.age),
+          gender: stringOrNull(profile.gender),
+          training_experience: stringOrNull(profile.trainingExperience),
+          goal_primary: stringOrNull(profile.goalPrimary),
+          goal_secondary: arrayOrEmpty(profile.goalSecondary),
+          days_per_week: numberOrNull(profile.daysPerWeek),
+          minutes_per_session: numberOrNull(profile.minutesPerSession),
+          training_location: stringOrNull(profile.location),
+          equipment: arrayOrEmpty(profile.equipment),
+          exercise_preferences: arrayOrEmpty(profile.exercisePreferences),
+          limitations: stringOrNull(profile.limitations),
+          updated_at: now,
+        },
+      ]),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Supabase profile sync failed: ${response.status} ${errorText.slice(
+        0,
+        240
+      )}`
+    );
+  }
+
+  return { mode: "saved" as const, userId };
+}
+
+export async function insertStructuredProgram({
+  deviceId,
+  profile,
+  plan,
+  source = "ai",
+}: ProgramPayload) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+
+  if (!url || !serviceRoleKey) {
+    return { mode: "disabled" as const };
+  }
+
+  const userId = getBetaUserUuid(deviceId);
+
+  await patchSupabaseRows(
+    `workout_programs?user_id=eq.${encodeURIComponent(
+      userId
+    )}&is_active=eq.true`,
+    { is_active: false, updated_at: new Date().toISOString() }
+  );
+
+  const result = await postSupabaseRows<Array<{ id: string }>>(
+    "workout_programs",
+    [
+      {
+        user_id: userId,
+        source,
+        profile_snapshot: profile,
+        plan,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      },
+    ],
+    { prefer: "return=representation", expectJson: true }
+  );
+
+  return {
+    mode: result.mode,
+    userId,
+    programId: result.data?.[0]?.id ?? null,
+  };
+}
+
 export async function insertStructuredWorkout({
   deviceId,
   workout,
@@ -227,12 +478,15 @@ export async function insertStructuredWorkout({
   }
 
   const completedAt = workout.completedAt ?? new Date().toISOString();
+  const userId = getBetaUserUuid(deviceId);
   const workoutResult = await postSupabaseRows<Array<{ id: string }>>(
-    "workouts",
+    "workouts?on_conflict=user_id,local_workout_id",
     [
       {
+        local_workout_id: workout.id,
         pass_key: workout.passKey ?? null,
         pass_name: workout.passName ?? null,
+        user_id: userId,
         status: workout.status ?? "completed",
         started_at: workout.startedAt ?? null,
         completed_at: completedAt,
@@ -246,7 +500,7 @@ export async function insertStructuredWorkout({
         },
       },
     ],
-    { prefer: "return=representation", expectJson: true }
+    { prefer: "resolution=merge-duplicates,return=representation", expectJson: true }
   );
 
   const workoutId = workoutResult.data?.[0]?.id;
@@ -256,6 +510,10 @@ export async function insertStructuredWorkout({
   }
 
   if (workout.sets.length > 0) {
+    await deleteSupabaseRows(
+      `workout_sets?workout_id=eq.${encodeURIComponent(workoutId)}`
+    );
+
     await postSupabaseRows(
       "workout_sets",
       workout.sets.map((set) => ({
