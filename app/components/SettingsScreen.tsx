@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import ToggleSwitch from "./ToggleSwitch";
 import { CloseGlyph, SendGlyph } from "./IconGlyphs";
 import { sendBetaFeedback } from "../lib/betaFeedback";
@@ -10,6 +11,20 @@ import {
   getBetaSyncQueueSummary,
   type BetaSyncQueueSummary,
 } from "../lib/betaSyncQueue";
+import {
+  readAccountSyncStatus,
+  restoreAccountDataToLocalDevice,
+  saveLocalBetaDataToAccount,
+} from "../lib/accountDataSync";
+import {
+  getLegalDocument,
+  LEGAL_DOCUMENTS,
+  type LegalDocumentId,
+} from "../lib/legalDocuments";
+import {
+  createSupabaseBrowserClient,
+  isSupabaseBrowserConfigured,
+} from "../lib/supabase/client";
 
 type AppTheme = "dark" | "light";
 
@@ -93,8 +108,26 @@ export default function SettingsScreen({
     pending: 0,
   });
   const [showAdvancedBeta, setShowAdvancedBeta] = useState(false);
+  const [openLegalDocumentId, setOpenLegalDocumentId] =
+    useState<LegalDocumentId | null>(null);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authSession, setAuthSession] = useState<Session | null>(null);
+  const [authMessage, setAuthMessage] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [isAuthBusy, setIsAuthBusy] = useState(false);
+  const [accountSyncMessage, setAccountSyncMessage] = useState("");
+  const [accountSyncError, setAccountSyncError] = useState("");
+  const [isAccountSyncBusy, setIsAccountSyncBusy] = useState(false);
+  const [accountSyncStatus, setAccountSyncStatus] = useState(
+    readAccountSyncStatus
+  );
 
   const isLight = theme === "light";
+  const authConfigured = isSupabaseBrowserConfigured();
+  const supabase = useMemo(
+    () => (authConfigured ? createSupabaseBrowserClient() : null),
+    [authConfigured]
+  );
   const cardClassName = isLight
     ? "bg-white/58 shadow-[0_18px_48px_rgba(91,72,48,0.08)] backdrop-blur-xl"
     : "bg-white/[0.045] shadow-[0_16px_44px_rgba(0,0,0,0.14)] backdrop-blur-xl";
@@ -117,6 +150,9 @@ export default function SettingsScreen({
     : "bg-slate-950/26 text-white placeholder:text-white/30 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]";
   const primaryButtonClassName =
     "rounded-xl bg-[#2f6df6] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_26px_rgba(47,109,246,0.24)] transition hover:bg-[#4f83ff] disabled:cursor-not-allowed disabled:opacity-45";
+  const openLegalDocument = openLegalDocumentId
+    ? getLegalDocument(openLegalDocumentId)
+    : null;
 
   const refreshSyncStatuses = () => {
     setSyncStatuses(
@@ -130,8 +166,35 @@ export default function SettingsScreen({
 
   useEffect(() => {
     refreshSyncStatuses();
+    setAccountSyncStatus(readAccountSyncStatus());
     void flushBetaSyncQueue().then(refreshSyncStatuses);
   }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    let isMounted = true;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (isMounted) {
+        setAuthSession(data.session);
+      }
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthSession(session);
+      if (session) {
+        setAuthMessage("");
+        setAuthError("");
+        setAccountSyncStatus(readAccountSyncStatus());
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   const latestSavedAt = useMemo(() => {
     const dates = syncStatuses
@@ -186,6 +249,125 @@ export default function SettingsScreen({
       setFeedbackError(true);
       setFeedbackCopied(false);
     }
+  };
+
+  const sendLoginLink = async () => {
+    const email = authEmail.trim().toLowerCase();
+
+    if (!email || !supabase) return;
+
+    setIsAuthBusy(true);
+    setAuthMessage("");
+    setAuthError("");
+
+    const redirectTo =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/auth/callback?next=/`
+        : undefined;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    });
+
+    setIsAuthBusy(false);
+
+    if (error) {
+      setAuthError(
+        `Kunde inte skicka länken just nu. Supabase säger: ${error.message}`
+      );
+      return;
+    }
+
+    setAuthMessage("Länken är skickad. Öppna mejlet på samma enhet för att logga in.");
+  };
+
+  const signOut = async () => {
+    if (!supabase) return;
+
+    setIsAuthBusy(true);
+    setAuthMessage("");
+    setAuthError("");
+
+    const { error } = await supabase.auth.signOut();
+    setIsAuthBusy(false);
+
+    if (error) {
+      setAuthError("Kunde inte logga ut just nu.");
+      return;
+    }
+
+    setAuthSession(null);
+    setAuthEmail("");
+    setAuthMessage("Du är utloggad.");
+  };
+
+  const saveAccountData = async () => {
+    if (!supabase || !authSession?.user) return;
+
+    setIsAccountSyncBusy(true);
+    setAccountSyncMessage("");
+    setAccountSyncError("");
+
+    const status = await saveLocalBetaDataToAccount({
+      supabase,
+      user: authSession.user,
+      appTheme: theme,
+    });
+
+    setIsAccountSyncBusy(false);
+    setAccountSyncStatus(status);
+
+    if (status.ok) {
+      setAccountSyncMessage("Din data från den här enheten är sparad till kontot.");
+      return;
+    }
+
+    setAccountSyncError(
+      status.message
+        ? `Kunde inte spara till kontot: ${status.message}`
+        : "Kunde inte spara till kontot just nu."
+    );
+  };
+
+  const restoreAccountData = async () => {
+    if (!supabase || !authSession?.user) return;
+
+    const confirmed = window.confirm(
+      "Vill du hämta konto-data till den här enheten? Det ersätter lokal beta-data i appen."
+    );
+    if (!confirmed) return;
+
+    setIsAccountSyncBusy(true);
+    setAccountSyncMessage("");
+    setAccountSyncError("");
+
+    const status = await restoreAccountDataToLocalDevice({
+      supabase,
+      user: authSession.user,
+    });
+
+    setIsAccountSyncBusy(false);
+    setAccountSyncStatus(status);
+
+    if (status.ok && status.mode === "restored") {
+      setAccountSyncMessage("Konto-data hämtad. Appen laddas om.");
+      window.setTimeout(() => window.location.reload(), 900);
+      return;
+    }
+
+    if (status.ok && status.mode === "empty") {
+      setAccountSyncMessage("Det finns ingen konto-data att hämta än.");
+      return;
+    }
+
+    setAccountSyncError(
+      status.message
+        ? `Kunde inte hämta konto-data: ${status.message}`
+        : "Kunde inte hämta konto-data just nu."
+    );
   };
 
   const submitFeedback = async () => {
@@ -340,23 +522,118 @@ export default function SettingsScreen({
 
           <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
             <p className={labelClassName}>Konto</p>
-            <div className={`mt-4 ${accountListClassName}`}>
-              <div className="flex items-center justify-between gap-4 px-4 py-3">
-                <div>
-                  <p className={`text-sm font-semibold ${titleClassName}`}>E-post</p>
-                  <p className={`mt-0.5 text-xs ${bodyClassName}`}>Läggs till när konton kopplas på.</p>
-                </div>
-                <button className={subtleButtonClassName} disabled>Snart</button>
-              </div>
+            <h2 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
+              {authSession ? "Inloggad" : "Logga in"}
+            </h2>
+            <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
+              {authSession
+                ? "Kontot är kopplat. Spara beta-datan till kontot när du vill kunna hämta den på en annan enhet."
+                : "Skicka en säker länk till din e-post. Inget lösenord behövs."}
+            </p>
 
-              <div className="flex items-center justify-between gap-4 px-4 py-3">
-                <div>
-                  <p className={`text-sm font-semibold ${titleClassName}`}>Lösenord</p>
-                  <p className={`mt-0.5 text-xs ${bodyClassName}`}>Kommer med inloggning.</p>
-                </div>
-                <button className={subtleButtonClassName} disabled>Snart</button>
+            {!authConfigured ? (
+              <div className={`mt-4 rounded-2xl p-4 ${isLight ? "bg-white/34" : "bg-black/12"}`}>
+                <p className={`text-sm font-semibold ${titleClassName}`}>Supabase Auth saknar nycklar</p>
+                <p className={`mt-1 text-xs leading-5 ${bodyClassName}`}>
+                  Lägg in de publika Supabase-värdena i miljövariablerna innan inloggning kan testas.
+                </p>
               </div>
-            </div>
+            ) : authSession ? (
+              <div className={`mt-4 ${accountListClassName}`}>
+                <div className="flex items-center justify-between gap-4 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className={`text-sm font-semibold ${titleClassName}`}>E-post</p>
+                    <p className={`mt-0.5 truncate text-xs ${bodyClassName}`}>
+                      {authSession.user.email ?? "Inloggad användare"}
+                    </p>
+                  </div>
+                  <button onClick={signOut} disabled={isAuthBusy} className={subtleButtonClassName}>
+                    {isAuthBusy ? "Vänta..." : "Logga ut"}
+                  </button>
+                </div>
+                <div className={`border-t px-4 py-3 ${isLight ? "border-[#7a6548]/10" : "border-white/[0.045]"}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className={`text-sm font-semibold ${titleClassName}`}>Konto-data</p>
+                      <p className={`mt-0.5 text-xs leading-5 ${bodyClassName}`}>
+                        {accountSyncStatus?.ok && accountSyncStatus.mode === "saved"
+                          ? `Senast sparad ${formatStatusTime(accountSyncStatus.at)}.`
+                          : "Inte sparad till kontot än."}
+                      </p>
+                    </div>
+                    <span
+                      className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                        accountSyncStatus?.ok
+                          ? "bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,0.35)]"
+                          : isLight
+                          ? "bg-[#b8a895]"
+                          : "bg-white/24"
+                      }`}
+                    />
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={saveAccountData}
+                      disabled={isAccountSyncBusy}
+                      className={`${primaryButtonClassName} px-3 py-2.5 text-xs`}
+                    >
+                      {isAccountSyncBusy ? "Vänta..." : "Spara till konto"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={restoreAccountData}
+                      disabled={isAccountSyncBusy}
+                      className={subtleButtonClassName}
+                    >
+                      Hämta konto-data
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-3">
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={authEmail}
+                  onChange={(event) => setAuthEmail(event.target.value)}
+                  className={`h-12 w-full rounded-2xl px-4 text-sm outline-none transition focus:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.55)] ${feedbackFieldClassName}`}
+                  placeholder="din@email.se"
+                />
+                <button
+                  type="button"
+                  onClick={sendLoginLink}
+                  disabled={!authEmail.trim() || isAuthBusy}
+                  className={`${primaryButtonClassName} w-full`}
+                >
+                  {isAuthBusy ? "Skickar..." : "Skicka inloggningslänk"}
+                </button>
+              </div>
+            )}
+
+            {authMessage ? (
+              <p className="mt-3 rounded-xl bg-emerald-300/10 px-3 py-2 text-xs leading-5 text-emerald-100/85">
+                {authMessage}
+              </p>
+            ) : null}
+            {authError ? (
+              <p className="mt-3 rounded-xl bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-100/80">
+                {authError}
+              </p>
+            ) : null}
+            {accountSyncMessage ? (
+              <p className="mt-3 rounded-xl bg-emerald-300/10 px-3 py-2 text-xs leading-5 text-emerald-100/85">
+                {accountSyncMessage}
+              </p>
+            ) : null}
+            {accountSyncError ? (
+              <p className="mt-3 rounded-xl bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-100/80">
+                {accountSyncError}
+              </p>
+            ) : null}
           </section>
 
           <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
@@ -386,6 +663,34 @@ export default function SettingsScreen({
               </button>
             </section>
           ) : null}
+
+          <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
+            <p className={labelClassName}>Juridiskt</p>
+            <h2 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
+              Villkor och säkerhet
+            </h2>
+            <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
+              Beta-underlag för villkor, integritet och träningssäkerhet. Ska juristgranskas innan publik lansering.
+            </p>
+            <div className={`mt-4 ${accountListClassName}`}>
+              {LEGAL_DOCUMENTS.map((document) => (
+                <button
+                  key={document.id}
+                  type="button"
+                  onClick={() => setOpenLegalDocumentId(document.id)}
+                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-white/[0.04]"
+                >
+                  <div>
+                    <p className={`text-sm font-semibold ${titleClassName}`}>{document.label}</p>
+                    <p className={`mt-0.5 text-xs ${bodyClassName}`}>
+                      Uppdaterad {document.updatedAt}
+                    </p>
+                  </div>
+                  <span className={`text-lg leading-none ${bodyClassName}`}>›</span>
+                </button>
+              ))}
+            </div>
+          </section>
 
           <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
             <p className={labelClassName}>Beta</p>
@@ -559,6 +864,69 @@ export default function SettingsScreen({
           </p>
         </div>
       </aside>
+
+      {openLegalDocument ? (
+        <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/42 px-0 py-0 backdrop-blur-[10px] sm:items-center sm:px-4 sm:py-4">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label={openLegalDocument.title}
+            className={`max-h-[100svh] min-h-[100svh] w-full overflow-y-auto rounded-none p-4 sm:max-h-[calc(100svh-2rem)] sm:min-h-0 sm:max-w-lg sm:rounded-[1.75rem] sm:p-5 ${panelClassName}`}
+          >
+            <header className="sticky top-0 z-10 -mx-4 -mt-4 flex items-start justify-between gap-3 px-4 pb-3 pt-4 backdrop-blur-2xl sm:-mx-5 sm:-mt-5 sm:px-5 sm:pt-5">
+              <div>
+                <p className={labelClassName}>MinCoach</p>
+                <h2 className={`mt-1 text-2xl font-semibold tracking-[-0.04em] ${titleClassName}`}>
+                  {openLegalDocument.title}
+                </h2>
+                <p className={`mt-1 text-xs leading-5 ${bodyClassName}`}>
+                  Uppdaterad {openLegalDocument.updatedAt}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenLegalDocumentId(null)}
+                className={`${subtleButtonClassName} flex h-9 w-9 items-center justify-center rounded-full px-0 py-0`}
+                aria-label="Stäng"
+              >
+                <CloseGlyph className="h-4 w-4" />
+              </button>
+            </header>
+
+            <div className={`mt-4 rounded-[1.25rem] p-4 ${isLight ? "bg-white/34" : "bg-black/12"}`}>
+              <p className={`text-sm leading-6 ${bodyClassName}`}>
+                {openLegalDocument.intro}
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              {openLegalDocument.sections.map((section) => (
+                <section
+                  key={section.title}
+                  className={`rounded-[1.25rem] p-4 ${isLight ? "bg-white/30" : "bg-white/[0.035]"}`}
+                >
+                  <h3 className={`text-base font-semibold ${titleClassName}`}>{section.title}</h3>
+                  <div className="mt-2 grid gap-2">
+                    {section.body.map((paragraph) => (
+                      <p key={paragraph} className={`text-sm leading-6 ${bodyClassName}`}>
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpenLegalDocumentId(null)}
+              className={`mt-4 w-full ${subtleButtonClassName}`}
+            >
+              Stäng
+            </button>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

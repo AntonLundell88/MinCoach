@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { BodyChart, ViewSide, type BodyState } from "body-muscles";
 import {
   getExerciseProfile,
@@ -104,7 +105,7 @@ type Props = {
   preferenceReply: string;
   pendingProgramSuggestion: CoachProgramSuggestion | null;
   programBuildStatus: "idle" | "building" | "ready" | "fallback";
-  onSavePreference: () => void;
+  onSavePreference: () => void | Promise<void>;
   onApproveProgramSuggestion: () => void;
   onDismissProgramSuggestion: () => void;
   onRebuildProgram: () => void;
@@ -636,6 +637,8 @@ export default function ProgramReviewScreen({
     useState<(typeof LIBRARY_CATEGORIES)[number]>("alla");
   const [showInputHelp, setShowInputHelp] = useState(false);
   const [showCoachDetails, setShowCoachDetails] = useState(false);
+  const [showTermsHelp, setShowTermsHelp] = useState(false);
+  const [isPreferenceSubmitting, setIsPreferenceSubmitting] = useState(false);
   const [editingPassKey, setEditingPassKey] = useState<PassType | null>(null);
   const [passNameInput, setPassNameInput] = useState("");
   const [activePassKey, setActivePassKey] = useState<PassType>(
@@ -656,6 +659,17 @@ export default function ProgramReviewScreen({
   const [hasRunManualReview, setHasRunManualReview] = useState(false);
   const [isManualReviewing, setIsManualReviewing] = useState(false);
   const [manualReviewSummary, setManualReviewSummary] = useState("");
+  async function submitPreference() {
+    if (!preferenceInput.trim() || isPreferenceSubmitting) return;
+
+    setIsPreferenceSubmitting(true);
+    try {
+      await onSavePreference();
+    } finally {
+      setIsPreferenceSubmitting(false);
+    }
+  }
+
   function startEditingPassName(pass: WorkoutPass) {
     setEditingPassKey(pass.key);
     setPassNameInput(cleanPassNameForDisplay(pass.displayName));
@@ -880,8 +894,86 @@ export default function ProgramReviewScreen({
       normalizeExerciseSearchText(exercise.name)
     ) ?? []
   );
+  const termsHelpOverlay =
+    showTermsHelp && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[9999] bg-black/12 px-4 pt-24 backdrop-blur-[1px]"
+            onClick={() => setShowTermsHelp(false)}
+          >
+            <div
+              role="dialog"
+              aria-label="Begrepp under passet"
+              className="program-terms-help mx-auto w-full max-w-[21rem] rounded-2xl bg-[#0d1724] p-3.5 shadow-[0_28px_80px_rgba(0,0,0,0.46),inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
+                    Snabbguide
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-white/58">
+                    Begreppen coachen använder när du loggar ett set.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTermsHelp(false)}
+                  aria-label="Stäng begreppsförklaring"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-sm leading-none text-white/54 transition hover:bg-white/[0.10] hover:text-white"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="mt-3 grid gap-2.5">
+                {[
+                  {
+                    label: "Vikt",
+                    text: "Belastningen du använder.",
+                    example: "Exempel: 20 kg per hantel.",
+                  },
+                  {
+                    label: "Reps",
+                    text: "Hur många repetitioner du gör.",
+                    example: "Exempel: 10 reps.",
+                  },
+                  {
+                    label: "RIR",
+                    text: "Hur många repetitioner du tror att du hade kvar med bra teknik.",
+                    example:
+                      "RIR 2 betyder att du gjorde setet men tror att du kunde klarat 2 till.",
+                  },
+                  {
+                    label: "Tid",
+                    text: "Används för tidsövningar i stället för reps.",
+                    example: "Exempel: planka 30 sek.",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-xl bg-white/[0.045] px-3 py-2.5"
+                  >
+                    <p className="text-sm font-semibold leading-4 text-white">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-white/62">
+                      {item.text}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-4 text-white/42">
+                      {item.example}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
+    <>
+    {termsHelpOverlay}
     <main className="min-h-screen bg-[#0b1018] px-4 pb-5 pt-16 text-white">
       <div className="mx-auto flex w-full max-w-[430px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
@@ -989,27 +1081,110 @@ export default function ProgramReviewScreen({
           ) : null}
 
           {!isManualBuilder ? (
-          <div className="mt-3 rounded-2xl bg-slate-950/14 px-3 py-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.045)]">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
+          <div className="program-terms-panel relative mt-3 rounded-2xl bg-[#101b28] px-3.5 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
               Begrepp under passet
-            </p>
-            <p className="mt-1 text-xs leading-5 text-white/48">
-              Ord coachen använder när du loggar seten.
-            </p>
-            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+                </p>
+                <p className="mt-1 text-xs leading-5 text-white/58">
+                  Ord coachen använder när du loggar seten.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTermsHelp((current) => !current)}
+                aria-expanded={showTermsHelp}
+                aria-label="Visa förklaring av begreppen"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/13 text-sm font-semibold leading-none text-blue-100/86 shadow-[0_10px_24px_rgba(37,99,235,0.16),inset_0_0_0_1px_rgba(96,165,250,0.20)] transition hover:bg-blue-500/18 hover:text-white"
+              >
+                i
+              </button>
+            </div>
+            {false ? (
+              <div
+                role="dialog"
+                aria-label="Begrepp under passet"
+                className="program-terms-help fixed left-1/2 top-[7.25rem] z-[999] w-[min(21rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl bg-[#0d1724] p-3.5 shadow-[0_28px_80px_rgba(0,0,0,0.46),inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
+                      Snabbguide
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-white/58">
+                      Begreppen coachen använder när du loggar ett set.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowTermsHelp(false)}
+                    aria-label="Stäng begreppsförklaring"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-sm leading-none text-white/54 transition hover:bg-white/[0.10] hover:text-white"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-2.5">
+                  {[
+                    {
+                      label: "Vikt",
+                      text: "Belastningen du använder.",
+                      example: "Exempel: 20 kg per hantel.",
+                    },
+                    {
+                      label: "Reps",
+                      text: "Hur många repetitioner du gör.",
+                      example: "Exempel: 10 reps.",
+                    },
+                    {
+                      label: "RIR",
+                      text: "Hur många repetitioner du tror att du hade kvar med bra teknik.",
+                      example: "RIR 2 betyder att du gjorde setet men tror att du kunde klarat 2 till.",
+                    },
+                    {
+                      label: "Tid",
+                      text: "Används för tidsövningar i stället för reps.",
+                      example: "Exempel: planka 30 sek.",
+                    },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-xl bg-white/[0.045] px-3 py-2.5">
+                      <p className="text-sm font-semibold leading-4 text-white">{item.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-white/62">{item.text}</p>
+                      <p className="mt-1 text-[11px] leading-4 text-white/42">{item.example}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <div className="mt-3 grid grid-cols-2 gap-2">
               {[
-                ["Vikt", "belastning"],
-                ["Reps", "antal lyft"],
-                ["RIR", "reps kvar"],
-                ["Tid", "sekunder"],
-              ].map(([label, text]) => (
-                <div key={label} className="flex items-baseline justify-between gap-2 border-t border-white/[0.055] pt-1.5">
-                  <p className="text-xs font-semibold text-white">{label}</p>
-                  <p className="text-[11px] leading-4 text-white/44">{text}</p>
+                { label: "Vikt", text: "Belastningen du kör med." },
+                { label: "Reps", text: "Hur många lyft du gör." },
+                { label: "RIR", text: "Reps du hade kvar." },
+                { label: "Tid", text: "Sekunder i tidsövningar." },
+              ].map(({ label, text }) => (
+                <div
+                  key={label}
+                  className="rounded-xl bg-white/[0.045] px-3 py-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)]"
+                >
+                  <p className="text-sm font-semibold leading-4 text-white">{label}</p>
+                  <p className="mt-1 text-[11px] leading-4 text-white/54">{text}</p>
                 </div>
               ))}
             </div>
           </div>
+          ) : null}
+
+          {!isManualBuilder && programBuildStatus !== "fallback" ? (
+            <div className="program-coach-nudge mt-3 rounded-2xl px-3.5 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
+                Behöver något justeras?
+              </p>
+              <p className="mt-1 text-sm leading-5 text-white/66">
+                Prata med coachen längst ner. Du får se förslaget innan upplägget ändras.
+              </p>
+            </div>
           ) : null}
 
           {!isManualBuilder && programBuildStatus === "fallback" ? (
@@ -1901,22 +2076,22 @@ export default function ProgramReviewScreen({
         ) : null}
 
         {!isManualBuilder && !isFallbackProgramBuildStatus(programBuildStatus) ? (
-        <section className={`rounded-[1.5rem] border border-white/[0.09] backdrop-blur-xl ${
+        <section className={`program-coach-dialog rounded-[1.5rem] border border-white/[0.09] backdrop-blur-xl ${
           isManualBuilder ? "bg-white/[0.028] p-3" : "bg-white/[0.048] p-3.5"
         }`}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
-                {isManualBuilder ? "Fråga coachen" : "Din input"}
+                {isManualBuilder ? "Fråga coachen" : "Prata med coachen"}
               </p>
               <p className={`${isManualBuilder ? "mt-1 text-xs" : "mt-2 text-sm"} leading-6 text-white/72`}>
                 {isManualBuilder
                   ? "Behöver du hjälp att välja, byta eller förstå en övning?"
-                  : "Säg till om något ska ändras, om du har frågor eller om något känns fel."}
+                  : "Fråga, säg om något känns fel eller be mig justera upplägget."}
               </p>
               {!isManualBuilder ? (
                 <p className="mt-1 text-xs leading-5 text-white/46">
-                  Skriv t.ex. &quot;mer bröst&quot;, &quot;inte marklyft&quot; eller &quot;jag har ont i knät&quot;.
+                  Du godkänner alltid ändringar innan de läggs in.
                 </p>
               ) : hasCoachReviewSuggestions ? (
                 <p className="text-center text-xs font-medium leading-5 text-blue-100/54">
@@ -1944,7 +2119,7 @@ export default function ProgramReviewScreen({
           </div>
 
           <div
-            className={`mt-3 rounded-2xl border p-2.5 transition ${
+            className={`program-coach-input-panel mt-3 rounded-2xl border p-2.5 transition ${
               preferenceReply || pendingProgramSuggestion
                 ? "border-blue-300/18 bg-blue-400/[0.055]"
                 : "border-transparent bg-transparent p-0"
@@ -1966,25 +2141,39 @@ export default function ProgramReviewScreen({
                 className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/45 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/45"
                 value={preferenceInput}
                 onChange={(event) => setPreferenceInput(event.target.value)}
+                disabled={isPreferenceSubmitting}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    submitPreference();
+                  }
+                }}
                 placeholder={
                   preferenceReply || pendingProgramSuggestion
                     ? "Svara coachen eller skriv en ny ändring..."
-                    : 't.ex. "mer bröst", "inte marklyft"'
+                    : 't.ex. "ont i bröstet", "mer rygg", "byt marklyft"'
                 }
               />
               <button
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2f6df6] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4f83ff] disabled:opacity-45"
-                disabled={!preferenceInput.trim()}
-                onClick={onSavePreference}
+                disabled={!preferenceInput.trim() || isPreferenceSubmitting}
+                onClick={submitPreference}
               >
                 <SendGlyph className="h-4 w-4" />
-                Skicka
+                {isPreferenceSubmitting ? "Skickar" : "Skicka"}
               </button>
             </div>
 
+            {isPreferenceSubmitting ? (
+              <div className="mt-2 flex items-center gap-2 px-1 text-xs font-medium leading-5 text-blue-100/58">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-[#2f6df6] shadow-[0_0_14px_rgba(47,109,246,0.65)]" />
+                Coachen skriver...
+              </div>
+            ) : null}
+
             {preferenceReply || pendingProgramSuggestion ? (
               <p className="mt-2 px-1 text-xs leading-5 text-white/44">
-                Du kan svara på coachens fråga, ställa en följdfråga eller ändra upplägget i samma ruta.
+                Om coachen föreslår en ändring godkänner du den med knappen nedan.
               </p>
             ) : null}
           </div>
@@ -2044,7 +2233,7 @@ export default function ProgramReviewScreen({
           {preferenceReply ? (
             <div className="mt-3 rounded-2xl border border-blue-300/14 bg-slate-950/22 p-3 text-sm leading-6 text-white/72">
               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/48">
-                Coachens svar
+                {pendingProgramSuggestion ? "Coachens kommentar" : "Coachens svar"}
               </p>
               <p>{cleanProgramCopy(preferenceReply)}</p>
               <p className="mt-2 border-t border-white/[0.06] pt-2 text-xs font-medium leading-5 text-white/42">
@@ -2054,9 +2243,9 @@ export default function ProgramReviewScreen({
           ) : null}
 
           {pendingProgramSuggestion ? (
-            <div className="mt-3 rounded-2xl border border-blue-300/18 bg-blue-400/[0.07] p-3.5">
+            <div className="program-coach-suggestion-card mt-3 rounded-2xl p-3.5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/52">
-                Förslag
+                Coachens förslag
               </p>
               <p className="mt-2 text-sm leading-6 text-white/78">
                 {cleanProgramCopy(pendingProgramSuggestion.summary)}
@@ -2068,6 +2257,11 @@ export default function ProgramReviewScreen({
                     className="rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm font-semibold text-white/76"
                   >
                     {actionLabel(action)}
+                    {action.reason ? (
+                      <p className="mt-1 text-xs font-medium leading-5 text-white/48">
+                        {cleanProgramCopy(action.reason)}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -2076,13 +2270,13 @@ export default function ProgramReviewScreen({
                   className="rounded-xl bg-[#2f6df6] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4f83ff]"
                   onClick={onApproveProgramSuggestion}
                 >
-                  Godkänn ändring
+                  Gör ändringen
                 </button>
                 <button
                   className="rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2.5 text-sm font-semibold text-white/62 transition hover:bg-white/[0.07] hover:text-white"
                   onClick={onDismissProgramSuggestion}
                 >
-                  Avbryt
+                  Behåll som det är
                 </button>
               </div>
             </div>
@@ -2165,6 +2359,7 @@ export default function ProgramReviewScreen({
         ) : null}
       </div>
     </main>
+    </>
   );
 }
 

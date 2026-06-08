@@ -10,6 +10,8 @@
     "check:exercise-pools": "node scripts/check-exercise-pools.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.107.0",
     "body-muscles": "^1.0.0",
     "next": "16.1.6",
     "react": "19.2.3",

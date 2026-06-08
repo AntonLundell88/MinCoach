@@ -4,21 +4,25 @@ MinCoach still uses `localStorage` as the primary beta storage. The database lay
 
 - beta devices can sync a snapshot in the background
 - the app keeps working if Supabase is not configured
-- future real account tables are prepared but not wired to login yet
+- Supabase Auth login is wired, but account data import is intentionally separate
 
 ## Setup
 
 1. Create a Supabase project.
 2. Open the SQL editor in Supabase.
 3. Run `supabase/migrations/0001_mincoach_beta.sql`.
-4. Add these environment variables in Netlify:
+4. Run the remaining migrations listed below.
+5. Add these environment variables in Netlify:
 
 ```bash
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
 Keep `SUPABASE_SERVICE_ROLE_KEY` secret. It must only be used on the server.
+The `NEXT_PUBLIC_` values are safe to use in the browser.
 
 ## Current Beta Flow
 
@@ -52,5 +56,48 @@ If the initial migration has already been run, also run:
 - `supabase/migrations/0006_beta_profile_program_permissions.sql`
 - `supabase/migrations/0007_workout_local_ids.sql`
 - `supabase/migrations/0008_personal_records_device_conflict.sql`
+- `supabase/migrations/0009_auth_rls_foundation.sql`
 
 If Supabase is missing or temporarily fails, the workout flow continues.
+
+## Auth / Account Direction
+
+Real user accounts should use Supabase Auth. The authenticated user id from
+`auth.users.id` should become the real owner id for user data.
+
+Do not treat the current beta `deviceId` as the real account identity. It is only
+a beta backup identity for one browser/device.
+
+`0009_auth_rls_foundation.sql` prepares the existing tables for authenticated
+access:
+
+- enables RLS on user-owned tables
+- adds authenticated policies based on `user_id = auth.uid()`
+- adds `legal_acceptances`
+- adds `user_settings`
+- adds `account_imports` for first-login migration tracking
+
+The migration intentionally does **not** add foreign keys from existing `user_id`
+columns to `auth.users`. Existing beta rows use generated UUIDs that may not
+exist in `auth.users`, so a foreign key would break current beta data.
+
+The beta API routes still use the server-only service role key and continue to
+work after RLS. The service role must never be exposed to the browser.
+
+Recommended login implementation order:
+
+1. Done: install Supabase client packages:
+   - `@supabase/supabase-js`
+   - `@supabase/ssr`
+2. Done: add public browser/server auth env values:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+3. Done: add a small auth client layer and session state.
+4. Done: add magic link login in Settings.
+5. Next: on first login, detect local beta data and ask before importing it.
+6. Sync profile, active program and legal acceptance first.
+7. Sync workouts, sets and personal records after the account base is stable.
+8. Keep coach memories last and conservative.
+
+Do not build Stripe, full offline PWA caching, or cross-device merge logic before
+auth and account sync are stable.

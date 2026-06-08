@@ -3,7 +3,7 @@
 import { flushBetaSyncQueue, postBetaJsonWithQueue } from "./betaSyncQueue";
 
 const BETA_DEVICE_ID_KEY = "mincoachBetaDeviceId";
-const BETA_SYNC_KEYS = [
+export const BETA_SYNC_KEYS = [
   "userProfile",
   "customWorkoutPlan",
   "workoutHistory",
@@ -62,7 +62,7 @@ function buildSnapshot(extra?: Record<string, unknown>) {
   };
 }
 
-function restoreStoredValue(key: string, value: unknown) {
+export function restoreStoredValue(key: string, value: unknown) {
   if (value === null || typeof value === "undefined") {
     window.localStorage.removeItem(key);
     return;
@@ -74,8 +74,26 @@ function restoreStoredValue(key: string, value: unknown) {
   );
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+export function buildBetaLocalSnapshot(extra?: Record<string, unknown>) {
+  return buildSnapshot(extra);
+}
+
+export function restoreBetaSnapshotData(snapshot: Record<string, unknown>) {
+  const data = isRecord(snapshot.data) ? snapshot.data : snapshot;
+  const restoredKeys: string[] = [];
+
+  for (const key of BETA_SYNC_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      restoreStoredValue(key, data[key]);
+      restoredKeys.push(key);
+    }
+  }
+
+  return restoredKeys;
 }
 
 export async function restoreBetaSnapshotFromServer() {
@@ -117,15 +135,7 @@ export async function restoreBetaSnapshotFromServer() {
     }
 
     const snapshot = result.snapshot;
-    const data = isRecord(snapshot.data) ? snapshot.data : snapshot;
-    const restoredKeys: string[] = [];
-
-    for (const key of BETA_SYNC_KEYS) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        restoreStoredValue(key, data[key]);
-        restoredKeys.push(key);
-      }
-    }
+    const restoredKeys = restoreBetaSnapshotData(snapshot);
 
     const status = {
       at: new Date().toISOString(),

@@ -37,6 +37,7 @@ import {
   type CoachWorkoutReviewResult,
 } from "./lib/coachAi";
 import {
+  getExerciseDefinition,
   getExerciseProfile,
   getExerciseUserInfo,
   getProgramExercisePool,
@@ -5831,16 +5832,6 @@ function cleanProgramExerciseRequest(value: string) {
     .trim();
 }
 
-function swapProgramExercise(fromName: string, toName: string) {
-  const matchingPasses = getProgramPassesWithExercise(fromName);
-
-  for (const pass of matchingPasses) {
-    setExerciseOverride(pass.key, fromName, toName);
-  }
-
-  return matchingPasses.length;
-}
-
 function resolveProgramSuggestionPass(
   action: CoachProgramSuggestionAction
 ): PassType | null {
@@ -5972,11 +5963,284 @@ function applyPendingProgramSuggestion() {
   );
 }
 
+function getProgramExerciseNamesMatching(matcher: (exerciseName: string) => boolean) {
+  if (!workoutPlan) return [];
+
+  return Array.from(
+    new Set(
+      workoutPlan.passes
+        .flatMap((pass) => pass.exercises.map((exercise) => exercise.name))
+        .filter((name) => matcher(name))
+    )
+  );
+}
+
+function queueProgramSuggestion(
+  summary: string,
+  actions: CoachProgramSuggestionAction[],
+  reply = ""
+) {
+  if (actions.length === 0) return "";
+
+  setPendingProgramSuggestion({ summary, actions });
+  return reply;
+}
+
+function queueRemoveProgramSuggestion(
+  matcher: (exerciseName: string) => boolean,
+  summary: string,
+  emptyReply: string
+) {
+  const exerciseNames = getProgramExerciseNamesMatching(matcher);
+
+  if (exerciseNames.length === 0) return emptyReply;
+
+  return queueProgramSuggestion(
+    summary,
+    exerciseNames.map((exerciseName) => ({
+      type: "remove_exercise",
+      exerciseName,
+      reason: summary,
+    }))
+  );
+}
+
+function queueAddProgramSuggestion(
+  matchPass: (pass: WorkoutPass) => boolean,
+  exercise: string,
+  summary: string,
+  emptyReply: string
+) {
+  if (!workoutPlan) return emptyReply;
+
+  const resolved = resolveExerciseName(exercise);
+  const exerciseName = resolved.status === "known" ? resolved.name : exercise;
+  const targetPasses = workoutPlan.passes.filter(matchPass);
+
+  if (targetPasses.length === 0) return emptyReply;
+
+  return queueProgramSuggestion(
+    summary,
+    targetPasses.map((pass) => ({
+      type: "add_exercise",
+      exerciseName,
+      passKey: pass.key,
+      passName: pass.displayName,
+      reason: summary,
+    }))
+  );
+}
+
+function getPreferredProgramReplacement(exerciseName: string) {
+  const definition = getExerciseDefinition(exerciseName);
+  const originalKey = normalizeExerciseSearchText(exerciseName);
+  const substitutions = definition?.substitutions ?? [];
+  const available = substitutions
+    .map((name) => resolveExerciseName(name))
+    .map((resolved) =>
+      resolved.status === "known"
+        ? resolved.name
+        : resolved.status === "suggest"
+        ? resolved.suggestion
+        : ""
+    )
+    .filter(Boolean)
+    .filter((name) => {
+      const key = normalizeExerciseSearchText(name);
+      return key !== originalKey && !key.includes(originalKey);
+    });
+
+  const scored = available
+    .map((name) => {
+      const replacement = getExerciseDefinition(name);
+      const key = normalizeExerciseSearchText(name);
+      let score = 0;
+
+      if (replacement?.category === definition?.category) score += 3;
+      if (replacement?.beginnerFit === "bra") score += 1;
+      if (replacement?.difficulty === "enkel") score += 1;
+      if (userProfile?.location === "gym") {
+        if (replacement?.environment === "gym") score += 3;
+        if (replacement?.equipmentTags.some((tag) => tag === "cables" || tag === "machines")) {
+          score += 2;
+        }
+      }
+      if (userProfile?.location === "hemma") {
+        if (replacement?.environment === "hemma" || replacement?.environment === "båda") {
+          score += 3;
+        }
+        if (replacement?.equipmentTags.includes("none") || replacement?.equipmentTags.includes("bodyweight")) {
+          score += 1;
+        }
+      }
+      if (key.includes("planka") && originalKey.includes("planka")) score -= 4;
+
+      return { name, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.name ?? "";
+}
+
+function buildExerciseWhyText(exerciseName: string) {
+  const info = getExerciseUserInfo(exerciseName);
+  const trains = info.trains ? `Den tränar ${info.trains}.` : "";
+  const why = info.whyChosen ? info.whyChosen : "";
+
+  return [why, trains].filter(Boolean).join(" ");
+}
+
+function queueReplaceOrRemoveProgramSuggestion(
+  exerciseNames: string[],
+  fallbackSummary: string,
+  emptyReply: string
+) {
+  if (exerciseNames.length === 0) return emptyReply;
+
+  const actions = exerciseNames.map((exerciseName) => {
+    const replacement = getPreferredProgramReplacement(exerciseName);
+
+    return replacement
+      ? ({
+          type: "replace_exercise",
+          fromExerciseName: exerciseName,
+          toExerciseName: replacement,
+          reason: buildExerciseWhyText(exerciseName),
+        } satisfies CoachProgramSuggestionAction)
+      : ({
+          type: "remove_exercise",
+          exerciseName,
+          reason: buildExerciseWhyText(exerciseName),
+        } satisfies CoachProgramSuggestionAction);
+  });
+
+  const firstExercise = exerciseNames[0];
+  const firstReplacement =
+    actions[0]?.type === "replace_exercise" ? actions[0].toExerciseName : "";
+  const explanation = buildExerciseWhyText(firstExercise);
+  const summary = firstReplacement
+    ? `${firstExercise} låg där av en anledning. ${explanation} Om du inte gillar den föreslår jag att vi byter till ${firstReplacement}.`
+    : `${firstExercise} låg där av en anledning. ${explanation} Om du inte vill ha den föreslår jag att vi tar bort den.`;
+
+  return queueProgramSuggestion(summary || fallbackSummary, actions);
+}
+
+function buildReplaceOrRemoveSummary(action: CoachProgramSuggestionAction) {
+  if (action.type === "replace_exercise") {
+    const explanation = buildExerciseWhyText(action.fromExerciseName);
+    return `${action.fromExerciseName} låg där av en anledning. ${explanation} Jag föreslår att vi byter till ${action.toExerciseName}.`;
+  }
+
+  if (action.type === "remove_exercise") {
+    const explanation = buildExerciseWhyText(action.exerciseName);
+    return `${action.exerciseName} låg där av en anledning. ${explanation} Jag föreslår att vi tar bort den.`;
+  }
+
+  return "";
+}
+
+function queueAiProgramSuggestion(suggestion?: CoachProgramSuggestion | null) {
+  if (!suggestion?.actions.length) return false;
+
+  const actions = suggestion.actions
+    .map((action): CoachProgramSuggestionAction | null => {
+      if (action.type === "remove_exercise") {
+        const matchingName =
+          getProgramExerciseNamesMatching(
+            (name) => exerciseKey(name) === exerciseKey(action.exerciseName)
+          )[0] ?? action.exerciseName;
+        const replacement = getPreferredProgramReplacement(matchingName);
+        const reason = action.reason || buildExerciseWhyText(matchingName);
+
+        return replacement
+          ? {
+              type: "replace_exercise",
+              fromExerciseName: matchingName,
+              toExerciseName: replacement,
+              reason,
+            }
+          : {
+              ...action,
+              exerciseName: matchingName,
+              reason,
+            };
+      }
+
+      if (action.type === "replace_exercise") {
+        return {
+          ...action,
+          reason: action.reason || buildExerciseWhyText(action.fromExerciseName),
+        };
+      }
+
+      return action;
+    })
+    .filter((action): action is CoachProgramSuggestionAction => Boolean(action));
+
+  if (actions.length === 0) return false;
+
+  setPendingProgramSuggestion({
+    summary: buildReplaceOrRemoveSummary(actions[0]) || suggestion.summary,
+    actions,
+  });
+
+  return true;
+}
+
+function isChestStressProgramExercise(name: string) {
+  const key = exerciseKey(name);
+  const profile = getExerciseProfile(name);
+
+  return (
+    profile.category === "bröst" ||
+    key.includes("pec") ||
+    key.includes("flyes") ||
+    key.includes("brost") ||
+    key.includes("bröst") ||
+    key.includes("axelpress") ||
+    key.includes("hantelpress") ||
+    key.includes("bänkpress") ||
+    key.includes("bankpress") ||
+    key.includes("bröstpress") ||
+    key.includes("brostpress") ||
+    key.includes("militärpress") ||
+    key.includes("militarpress") ||
+    key.includes("dips") ||
+    key.includes("armhav") ||
+    key.includes("armhäv")
+  );
+}
+
 async function applyProgramPreference(preferenceRaw: string) {
   const preference = preferenceRaw.trim();
   const lower = preference.toLowerCase();
 
   if (!preference || !workoutPlan) return "";
+
+  const isAffirmativeReply =
+    /^(ja|japp|yes|okej|ok|absolut|gör det|gor det|kör|kor|ta bort dem|ta bort)$/i.test(
+      lower
+    );
+
+  if (isAffirmativeReply && pendingProgramSuggestion) {
+    applyPendingProgramSuggestion();
+    return "Klart. Jag har lagt in ändringen i upplägget.";
+  }
+
+  if (
+    isAffirmativeReply &&
+    programPreferenceReply &&
+    /(?:ta bort|plocka bort|skippa|undvik|undvika)/i.test(programPreferenceReply) &&
+    /(?:bröst|brost|pec|press|axelpress)/i.test(programPreferenceReply)
+  ) {
+    const removed = removeExercisesFromProgram(isChestStressProgramExercise);
+    const removedNames = removed.flatMap((entry) => entry.removed);
+
+    return removedNames.length > 0
+      ? `Klart. Jag tar bort ${removedNames.join(", ")} ur upplägget. Bröstsmärta går före planen.`
+      : "Jag hittar inga bröst- eller pressövningar kvar att ta bort. Bröstsmärta går före planen.";
+  }
+
   setPendingProgramSuggestion(null);
 
   if (
@@ -6066,10 +6330,20 @@ async function applyProgramPreference(preferenceRaw: string) {
 
   const swapRequest = parseProgramSwap(preference);
   if (swapRequest) {
-    const changedCount = swapProgramExercise(swapRequest.fromName, swapRequest.toName);
+    const matchingPasses = getProgramPassesWithExercise(swapRequest.fromName);
 
-    return changedCount > 0
-      ? `Klart. Jag byter ${swapRequest.fromName} mot ${swapRequest.toName}.`
+    return matchingPasses.length > 0
+      ? queueProgramSuggestion(
+          `Jag föreslår att vi byter ${swapRequest.fromName} mot ${swapRequest.toName}.`,
+          [
+            {
+              type: "replace_exercise",
+              fromExerciseName: swapRequest.fromName,
+              toExerciseName: swapRequest.toName,
+              reason: "Du bad coachen byta övning.",
+            },
+          ]
+        )
       : `Jag hittar inte ${swapRequest.fromName} i upplägget. Skriv gärna vilken övning du vill byta bort.`;
   }
 
@@ -6103,6 +6377,22 @@ async function applyProgramPreference(preferenceRaw: string) {
     return count > 0
       ? "Bra att du säger det. Jag gör passen lite lugnare och tar bort sånt som inte behövs just nu."
       : "Bra att du säger det. Då börjar vi lugnare: kontrollerade set, ingen maxning och tydlig marginal i början.";
+  }
+
+  if (
+    (lower.includes("bröst") || lower.includes("brost")) &&
+    (lower.includes("ont") ||
+      lower.includes("smärta") ||
+      lower.includes("smarta") ||
+      lower.includes("obehag") ||
+      lower.includes("känns fel") ||
+      lower.includes("kanns fel"))
+  ) {
+    return queueRemoveProgramSuggestion(
+      isChestStressProgramExercise,
+      "Bröstsmärta går före planen. Jag föreslår att vi pausar övningar som belastar bröst, press eller axelpress tills det känns tryggt igen.",
+      "Bra att du säger det. Jag hittar inga tydliga bröst- eller pressövningar att ta bort, men bröstsmärta går före planen. Sänk belastningen eller avbryt om det känns fel."
+    );
   }
 
   if (asksAboutSafetyOrFit && !wantsAddExercise && !wantsLessOrAvoid) {
@@ -6189,6 +6479,8 @@ async function applyProgramPreference(preferenceRaw: string) {
       fallbackReply,
     });
 
+    queueAiProgramSuggestion(aiReply.suggestion);
+
     return aiReply.text;
   }
 
@@ -6247,43 +6539,35 @@ async function applyProgramPreference(preferenceRaw: string) {
   }
 
   if (wantsLessOrAvoid && lower.includes("marklyft")) {
-    const removed = removeExercisesFromProgram((name) =>
-      exerciseKey(name).includes("marklyft")
+    return queueReplaceOrRemoveProgramSuggestion(
+      getProgramExerciseNamesMatching((name) => exerciseKey(name).includes("marklyft")),
+      "Jag föreslår att vi byter bort marklyft ur upplägget.",
+      "Bra input. Jag sparar att marklyft inte ska prioriteras i upplägget."
     );
-
-    return removed.length > 0
-      ? "Bra. Jag tar bort marklyft ur upplägget."
-      : "Bra input. Jag sparar att marklyft inte ska prioriteras i upplägget.";
   }
 
   if (wantsLessOrAvoid && lower.includes("benpress")) {
-    const removed = removeExercisesFromProgram((name) =>
-      exerciseKey(name).includes("benpress")
+    return queueReplaceOrRemoveProgramSuggestion(
+      getProgramExerciseNamesMatching((name) => exerciseKey(name).includes("benpress")),
+      "Jag föreslår att vi byter bort benpress ur upplägget.",
+      "Jag sparar det. Benpress får inte vara en viktig del av upplägget."
     );
-
-    return removed.length > 0
-      ? "Bra. Jag tar bort benpress ur upplägget."
-      : "Jag sparar det. Benpress får inte vara en viktig del av upplägget.";
   }
 
   if (wantsLessOrAvoid && lower.includes("latsdrag")) {
-    const removed = removeExercisesFromProgram((name) =>
-      exerciseKey(name).includes("latsdrag")
+    return queueReplaceOrRemoveProgramSuggestion(
+      getProgramExerciseNamesMatching((name) => exerciseKey(name).includes("latsdrag")),
+      "Jag föreslår att vi byter bort latsdrag ur upplägget.",
+      "Jag sparar det. Vi bygger ryggen utan att latsdrag behöver vara med."
     );
-
-    return removed.length > 0
-      ? "Okej. Jag tar bort latsdrag ur upplägget."
-      : "Jag sparar det. Vi bygger ryggen utan att latsdrag behöver vara med.";
   }
 
   if (wantsLessOrAvoid && lower.includes("vadpress")) {
-    const removed = removeExercisesFromProgram((name) =>
-      exerciseKey(name).includes("vadpress")
+    return queueReplaceOrRemoveProgramSuggestion(
+      getProgramExerciseNamesMatching((name) => exerciseKey(name).includes("vadpress")),
+      "Jag föreslår att vi byter bort vadpress ur upplägget.",
+      "Bra att du säger det. Jag sparar att vadpress inte ska prioriteras."
     );
-
-    return removed.length > 0
-      ? "Bra att du säger det. Jag tar bort vadpress ur upplägget."
-      : "Bra att du säger det. Jag sparar att vadpress inte ska prioriteras.";
   }
 
   if (wantsLessOrAvoid) {
@@ -6309,12 +6593,16 @@ async function applyProgramPreference(preferenceRaw: string) {
         : "";
 
     if (exerciseName) {
-      const removed = removeExercisesFromProgram(
+      const matchingNames = getProgramExerciseNamesMatching(
         (name) => exerciseKey(name) === exerciseKey(exerciseName)
       );
 
-      if (removed.length > 0) {
-        return `Bra att du säger det. Jag tar bort ${exerciseName} ur upplägget.`;
+      if (matchingNames.length > 0) {
+        return queueReplaceOrRemoveProgramSuggestion(
+          matchingNames,
+          `Jag föreslår att vi byter bort ${exerciseName} ur upplägget.`,
+          `Jag hittar inte ${exerciseName} i upplägget.`
+        );
       }
     }
   }
@@ -6342,8 +6630,7 @@ async function applyProgramPreference(preferenceRaw: string) {
         : "";
 
     if (requestedExerciseName) {
-      const count = addProgramFocusExercise(
-        (pass) => {
+      const targetPasses = workoutPlan.passes.filter((pass) => {
           const key = exerciseKey(pass.displayName);
           if (lower.includes("överkropp") || lower.includes("overkropp")) {
             return key.includes("överkropp") || key.includes("overkropp");
@@ -6364,12 +6651,19 @@ async function applyProgramPreference(preferenceRaw: string) {
             key.includes("overkropp") ||
             key.includes("helkropp")
           );
-        },
-        requestedExerciseName
-      );
+        });
 
-      return count > 0
-        ? `Bra. Jag lägger in ${requestedExerciseName} i upplägget.`
+      return targetPasses.length > 0
+        ? queueProgramSuggestion(
+            `Jag föreslår att vi lägger till ${requestedExerciseName} där den passar bäst.`,
+            targetPasses.map((pass) => ({
+              type: "add_exercise",
+              exerciseName: requestedExerciseName,
+              passKey: pass.key,
+              passName: pass.displayName,
+              reason: "Du bad coachen lägga till övningen.",
+            }))
+          )
         : `Bra. Jag sparar att ${requestedExerciseName} ska in i upplägget.`;
     }
 
@@ -6379,32 +6673,28 @@ async function applyProgramPreference(preferenceRaw: string) {
       lower.includes("ben")
     ) {
       const exercise = userProfile?.location === "hemma" ? "Utfall" : "Lårcurl";
-      const count = addProgramFocusExercise(
+      return queueAddProgramSuggestion(
         (pass) => {
           const key = exerciseKey(pass.displayName);
           return key.includes("underkropp") || key.includes("ben");
         },
-        exercise
+        exercise,
+        `Jag föreslår att vi lägger till ${exercise.toLowerCase()} i underkroppspasset.`,
+        `Bra. Jag sparar att underkropp ska få en övning till.`
       );
-
-      return count > 0
-        ? `Bra. Jag lägger in ${exercise.toLowerCase()} i underkroppspasset.`
-        : `Bra. Jag sparar att underkropp ska få en övning till.`;
     }
 
     if (lower.includes("överkropp") || lower.includes("overkropp")) {
       const exercise = userProfile?.location === "hemma" ? "Hantelrodd" : "Sittande kabelrodd";
-      const count = addProgramFocusExercise(
+      return queueAddProgramSuggestion(
         (pass) => {
           const key = exerciseKey(pass.displayName);
           return key.includes("överkropp") || key.includes("overkropp");
         },
-        exercise
+        exercise,
+        `Jag föreslår att vi lägger till ${exercise.toLowerCase()} i överkroppspasset.`,
+        `Bra. Jag sparar att överkropp ska få en övning till.`
       );
-
-      return count > 0
-        ? `Bra. Jag lägger in ${exercise.toLowerCase()} i överkroppspasset.`
-        : `Bra. Jag sparar att överkropp ska få en övning till.`;
     }
 
     const requestedExerciseFallback = extractExerciseNameAfterNormalized(preference, [
@@ -6416,16 +6706,14 @@ async function applyProgramPreference(preferenceRaw: string) {
     const resolved = resolveExerciseName(requestedExerciseFallback);
 
     if (resolved.status === "known") {
-      const count = addProgramFocusExercise(
+      return queueAddProgramSuggestion(
         (pass) =>
           exerciseKey(pass.displayName).includes("överkropp") ||
           exerciseKey(pass.displayName).includes("helkropp"),
-        resolved.name
+        resolved.name,
+        `Jag föreslår att vi lägger till ${resolved.name} i upplägget.`,
+        `Bra. Jag sparar ${resolved.name} till upplägget.`
       );
-
-      return count > 0
-        ? `Bra. Jag lägger in ${resolved.name} i upplägget.`
-        : `Bra. Jag sparar ${resolved.name} till upplägget.`;
     }
 
     if (resolved.status === "suggest") {
@@ -6444,77 +6732,65 @@ async function applyProgramPreference(preferenceRaw: string) {
   }
 
   if (wantsMore && lower.includes("bröst")) {
-    const count = addProgramFocusExercise(
+    return queueAddProgramSuggestion(
       (pass) => exerciseKey(pass.displayName).includes("överkropp"),
-      userProfile?.location === "hemma" ? "Hantelpress" : "Bröstpress"
+      userProfile?.location === "hemma" ? "Hantelpress" : "Bröstpress",
+      "Jag föreslår att vi ger bröst lite mer plats i överkroppspasset.",
+      "Bra. Jag sparar att bröst ska få mer fokus i upplägget."
     );
-
-    return count > 0
-      ? "Bra. Jag ger bröst lite mer plats i överkroppspasset."
-      : "Bra. Jag sparar att bröst ska få mer fokus i upplägget.";
   }
 
   if (wantsMore && lower.includes("rygg")) {
-    const count = addProgramFocusExercise(
+    return queueAddProgramSuggestion(
       (pass) =>
         exerciseKey(pass.displayName).includes("överkropp") ||
         exerciseKey(pass.displayName).includes("helkropp"),
-      userProfile?.location === "hemma" ? "Bandrodd" : "Sittande kabelrodd"
+      userProfile?.location === "hemma" ? "Bandrodd" : "Sittande kabelrodd",
+      "Jag föreslår att vi lägger in lite mer ryggarbete där det passar bäst.",
+      "Bra. Jag sparar att ryggen ska få mer fokus."
     );
-
-    return count > 0
-      ? "Bra. Jag lägger in lite mer ryggarbete där det passar bäst."
-      : "Bra. Jag sparar att ryggen ska få mer fokus.";
   }
 
   if (wantsMore && (lower.includes("ben") || lower.includes("baksida"))) {
-    const count = addProgramFocusExercise(
+    return queueAddProgramSuggestion(
       (pass) =>
         exerciseKey(pass.displayName).includes("underkropp") ||
         exerciseKey(pass.displayName).includes("helkropp"),
-      lower.includes("baksida") ? "Lårcurl" : "Utfall"
+      lower.includes("baksida") ? "Lårcurl" : "Utfall",
+      "Jag föreslår att vi ger benen lite mer utrymme i upplägget.",
+      "Bra. Jag sparar att benen ska prioriteras mer."
     );
-
-    return count > 0
-      ? "Bra. Jag ger benen lite mer utrymme i upplägget."
-      : "Bra. Jag sparar att benen ska prioriteras mer.";
   }
 
   if (wantsMore && (lower.includes("axlar") || lower.includes("axel"))) {
-    const count = addProgramFocusExercise(
+    return queueAddProgramSuggestion(
       (pass) => exerciseKey(pass.displayName).includes("överkropp"),
-      "Sidolyft"
+      "Sidolyft",
+      "Jag föreslår att vi lägger in mer axelarbete utan att göra passet rörigt.",
+      "Bra. Jag sparar att axlar ska få mer fokus."
     );
-
-    return count > 0
-      ? "Bra. Jag lägger in mer axelarbete utan att göra passet rörigt."
-      : "Bra. Jag sparar att axlar ska få mer fokus.";
   }
 
   if (wantsMore && (lower.includes("armar") || lower.includes("biceps") || lower.includes("triceps"))) {
-    const count = addProgramFocusExercise(
+    return queueAddProgramSuggestion(
       (pass) =>
         exerciseKey(pass.displayName).includes("överkropp") ||
         exerciseKey(pass.displayName).includes("helkropp"),
-      lower.includes("triceps") ? "Triceps pushdown med rep" : "Hantelcurl"
+      lower.includes("triceps") ? "Triceps pushdown med rep" : "Hantelcurl",
+      "Jag föreslår att vi ger armar lite mer plats utan att passet blir rörigt.",
+      "Bra. Jag sparar att armar ska få mer fokus."
     );
-
-    return count > 0
-      ? "Bra. Jag ger armar lite mer plats utan att passet blir rörigt."
-      : "Bra. Jag sparar att armar ska få mer fokus.";
   }
 
   if (wantsMore && (lower.includes("mage") || lower.includes("core") || lower.includes("bål") || lower.includes("bal"))) {
-    const count = addProgramFocusExercise(
+    return queueAddProgramSuggestion(
       (pass) =>
         exerciseKey(pass.displayName).includes("underkropp") ||
         exerciseKey(pass.displayName).includes("helkropp"),
-      userProfile?.location === "hemma" ? "Planka" : "Cable crunch"
+      userProfile?.location === "hemma" ? "Planka" : "Cable crunch",
+      "Jag föreslår att vi lägger in lite mage där det inte stör resten.",
+      "Bra. Jag sparar att mage ska få mer plats."
     );
-
-    return count > 0
-      ? "Bra. Jag lägger in lite mage på ett ställe där det inte stör resten."
-      : "Bra. Jag sparar att mage ska få mer plats.";
   }
 
   if (
@@ -6529,36 +6805,71 @@ async function applyProgramPreference(preferenceRaw: string) {
     lower.includes("för mycket övningar") ||
     lower.includes("for mycket ovningar")
   ) {
-    const count = shortenProgramPasses();
+    const removeActions: CoachProgramSuggestionAction[] = workoutPlan.passes
+      .flatMap<CoachProgramSuggestionAction>((pass) => {
+        if (pass.exercises.length <= 4) return [];
 
-    return count > 0
-      ? "Okej. Jag kortar ner passen lite och tar bort sånt som är minst viktigt."
+        const accessory = [...pass.exercises]
+          .reverse()
+          .find((exercise) => {
+            const key = exerciseKey(exercise.name);
+            return (
+              key.includes("curl") ||
+              key.includes("triceps") ||
+              key.includes("crunch") ||
+              key.includes("cable cross") ||
+              key.includes("sidolyft")
+            );
+          });
+
+        return accessory
+          ? [{
+              type: "remove_exercise",
+              exerciseName: accessory.name,
+              reason: "Du bad coachen korta ner passet.",
+            } satisfies CoachProgramSuggestionAction]
+          : [];
+      });
+
+    return removeActions.length > 0
+      ? queueProgramSuggestion(
+          "Jag föreslår att vi kortar ner passen och tar bort det som är minst viktigt just nu.",
+          removeActions
+        )
       : "Okej. Upplägget är redan ganska kompakt, men jag sparar att passen ska hållas korta.";
   }
 
   if (lower.includes("knä") || lower.includes("kna")) {
-    const removed = removeExercisesFromProgram(
-      (name) => {
-        const key = exerciseKey(name);
-        return key.includes("benspark") || key.includes("utfall") || key.includes("knäböj");
-      },
-      () => "Lårcurl"
-    );
+    const kneeExerciseNames = getProgramExerciseNamesMatching((name) => {
+      const key = exerciseKey(name);
+      return key.includes("benspark") || key.includes("utfall") || key.includes("knäböj");
+    });
 
-    return removed.length > 0
-      ? "Bra att du säger det. Jag minskar knäbelastningen och lägger in lugnare benarbete."
+    return kneeExerciseNames.length > 0
+      ? queueProgramSuggestion(
+          "Jag föreslår att vi minskar knäbelastningen och lägger in lugnare benarbete.",
+          [
+            ...kneeExerciseNames.map((exerciseName) => ({
+              type: "remove_exercise" as const,
+              exerciseName,
+              reason: "Du nämnde knäbesvär.",
+            })),
+            {
+              type: "add_exercise",
+              exerciseName: "Lårcurl",
+              reason: "Lugnare benarbete med mindre knäkrav.",
+            },
+          ]
+        )
       : "Bra att du säger det. Jag sparar knäet som något coachen ska ta hänsyn till.";
   }
 
   if (lower.includes("ländrygg") || lower.includes("ryggont")) {
-    const removed = removeExercisesFromProgram(
+    return queueRemoveProgramSuggestion(
       (name) => exerciseKey(name).includes("marklyft"),
-      () => "Lårcurl"
+      "Jag föreslår att vi tar bort marklyft och gör upplägget snällare mot ländryggen.",
+      "Bra att du säger det. Jag sparar ländryggen som något coachen ska ha koll på."
     );
-
-    return removed.length > 0
-      ? "Bra att du säger det. Jag tar bort marklyft och gör upplägget snällare mot ländryggen."
-      : "Bra att du säger det. Jag sparar ländryggen som något coachen ska ha koll på.";
   }
 
   const aiReply = await requestAiProgramReply({
@@ -6593,26 +6904,7 @@ async function applyProgramPreference(preferenceRaw: string) {
       'Jag är inte helt säker på vad du vill ändra. Skriv gärna lite tydligare, till exempel "ta bort marklyft", "lägg till knäböj", "färre övningar" eller "Dag 1: bänkpress, rodd".',
   });
 
-  if (aiReply.suggestion?.actions.length) {
-    const actions =
-      wantsLessOrAvoid && !wantsAddExercise
-        ? aiReply.suggestion.actions
-            .map((action) =>
-              action.type === "replace_exercise"
-                ? {
-                    type: "remove_exercise" as const,
-                    exerciseName: action.fromExerciseName,
-                    reason: action.reason,
-                  }
-                : action
-            )
-            .filter((action) => action.type !== "add_exercise")
-        : aiReply.suggestion.actions;
-
-    if (actions.length > 0) {
-      setPendingProgramSuggestion({ ...aiReply.suggestion, actions });
-    }
-  }
+  queueAiProgramSuggestion(aiReply.suggestion);
 
   return aiReply.text;
 }

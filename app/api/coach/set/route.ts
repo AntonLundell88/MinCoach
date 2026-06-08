@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import {
   buildCoachPromptPayload,
   sanitizeCoachReply,
+  sanitizeCoachSetFallback,
+  sanitizeCoachSetReply,
   type CoachSetContext,
 } from "../../../lib/coachAi";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
@@ -45,12 +47,15 @@ function extractOutputText(data: unknown) {
 function fallbackResponse(
   fallbackReply: string,
   reason: string,
-  maxCharacters?: number
+  maxCharacters?: number,
+  context?: CoachSetContext
 ) {
   return NextResponse.json({
     mode: "fallback",
     reason,
-    text: sanitizeCoachReply(fallbackReply, fallbackReply, maxCharacters),
+    text: context
+      ? sanitizeCoachSetFallback(context, fallbackReply, maxCharacters)
+      : sanitizeCoachReply(fallbackReply, fallbackReply, maxCharacters),
   });
 }
 
@@ -77,7 +82,8 @@ export async function POST(request: Request) {
     return fallbackResponse(
       fallbackReply,
       "rate_limited",
-      payload.maxCharacters
+      payload.maxCharacters,
+      context
     );
   }
 
@@ -87,7 +93,8 @@ export async function POST(request: Request) {
     return fallbackResponse(
       fallbackReply,
       "missing_api_key",
-      payload.maxCharacters
+      payload.maxCharacters,
+      context
     );
   }
 
@@ -136,14 +143,15 @@ export async function POST(request: Request) {
       return fallbackResponse(
         fallbackReply,
         "api_error",
-        payload.maxCharacters
+        payload.maxCharacters,
+        context
       );
     }
 
     const data = await response.json();
     const aiText = extractOutputText(data);
-    const fallbackText = sanitizeCoachReply(
-      fallbackReply,
+    const fallbackText = sanitizeCoachSetFallback(
+      context,
       fallbackReply,
       payload.maxCharacters
     );
@@ -158,14 +166,20 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       mode: "ai",
-      text: sanitizeCoachReply(
+      text: sanitizeCoachSetReply(
+        context,
         aiText,
         fallbackReply,
         payload.maxCharacters
       ),
     });
   } catch {
-    return fallbackResponse(fallbackReply, "api_error", payload.maxCharacters);
+    return fallbackResponse(
+      fallbackReply,
+      "api_error",
+      payload.maxCharacters,
+      context
+    );
   } finally {
     clearTimeout(timeoutId);
   }

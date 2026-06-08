@@ -23,10 +23,10 @@ type CoachProgramBuildRequest = {
 
 const PASS_KEYS = ["A", "B", "C", "D", "E", "F"] as const;
 const PROGRAM_BUILD_TIMEOUT_MS = Number(
-  process.env.OPENAI_PROGRAM_BUILD_TIMEOUT_MS ?? 18000
+  process.env.OPENAI_PROGRAM_BUILD_TIMEOUT_MS ?? 26000
 );
 const PROGRAM_BUILD_ATTEMPTS = Number(
-  process.env.OPENAI_PROGRAM_BUILD_ATTEMPTS ?? 2
+  process.env.OPENAI_PROGRAM_BUILD_ATTEMPTS ?? 1
 );
 
 const PROGRAM_BUILD_SYSTEM_PROMPT = `
@@ -800,6 +800,11 @@ function fallbackResponse(
   reason: string,
   issues: ProgramBuildIssue[] = []
 ) {
+  console.warn("Program build fallback response", {
+    reason,
+    issues: issueText(issues),
+  });
+
   return NextResponse.json({
     mode: "fallback",
     reason,

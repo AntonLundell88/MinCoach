@@ -929,6 +929,11 @@ function getLobbyIntro() {
                 Vid skada, sjukdom eller medicinska frågor ska du rådgöra med
                 vårdpersonal.
               </p>
+              <p>
+                Vid bröstsmärta, yrsel, illamående, andfåddhet som känns fel
+                eller andra tydliga varningssignaler ska du avbryta. Ring 112
+                vid akuta symtom och 1177 om du är osäker i Sverige.
+              </p>
             </div>
 
             <div className="mt-4 grid gap-2">
