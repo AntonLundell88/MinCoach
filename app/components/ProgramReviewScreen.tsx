@@ -7,6 +7,7 @@ import {
   getExerciseProfile,
   getExerciseUserInfo,
   getProgramExercisePool,
+  isTimedExercise,
   normalizeExerciseSearchText,
 } from "../lib/exercises";
 import { getReviewedExerciseInfoTemplate } from "../lib/exerciseInfoTemplates";
@@ -974,8 +975,8 @@ export default function ProgramReviewScreen({
   return (
     <>
     {termsHelpOverlay}
-    <main className="min-h-screen bg-[#0b1018] px-4 pb-5 pt-16 text-white">
-      <div className="mx-auto flex w-full max-w-[430px] flex-col gap-4">
+    <main className="min-h-screen bg-[#0b1018] px-3 pb-5 pt-16 text-white sm:px-4">
+      <div className="mx-auto flex w-full max-w-[460px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
             Coachen
@@ -1361,6 +1362,8 @@ export default function ProgramReviewScreen({
                 <div className="grid gap-1.5 px-2.5 pb-2.5">
                   {pass.exercises.map((exercise) => {
                     const exercisePurpose = cleanProgramCopy(exercise.purpose);
+                    const isTimedExerciseInList =
+                      isTimedExercise(exercise.exerciseKey || exercise.name);
                     const removeSuggestion = removeReviewSuggestions.find(
                       (suggestion) =>
                         normalizeExerciseSearchText(suggestion.name) ===
@@ -1383,9 +1386,16 @@ export default function ProgramReviewScreen({
                             {exercisePurpose}
                           </span>
                         ) : null}
-                        {exercise.sets || exercise.reps || exercise.rir ? (
+                        {exercise.sets || exercise.reps || (exercise.rir && !isTimedExerciseInList) ? (
                           <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-100/36">
-                            {[exercise.sets && `${exercise.sets} set`, exercise.reps && `${exercise.reps} reps`, exercise.rir && `RIR ${exercise.rir}`]
+                            {[
+                              exercise.sets && `${exercise.sets} set`,
+                              exercise.reps &&
+                                `${exercise.reps}${isTimedExerciseInList ? "" : " reps"}`,
+                              exercise.rir &&
+                                !isTimedExerciseInList &&
+                                `RIR ${exercise.rir}`,
+                            ]
                               .filter(Boolean)
                               .join(" · ")}
                           </span>
@@ -1635,6 +1645,7 @@ export default function ProgramReviewScreen({
                     userInfo.logTypeText.includes("Tid")
                       ? "Tid"
                       : "Reps";
+                  const isTimedInfoExercise = metricLabel === "Tid";
                   const reviewedInfoTemplate = getReviewedExerciseInfoTemplate(
                     exercise.exerciseKey || exercise.name
                   );
@@ -1730,8 +1741,12 @@ export default function ProgramReviewScreen({
                           </p>
                         </>
                       )}
-                      {exercise.sets || exercise.reps || exercise.rir ? (
-                        <div className="mt-3 grid grid-cols-3 gap-1.5">
+                      {exercise.sets || exercise.reps || (exercise.rir && !isTimedInfoExercise) ? (
+                        <div
+                          className={`mt-3 grid gap-1.5 ${
+                            isTimedInfoExercise ? "grid-cols-2" : "grid-cols-3"
+                          }`}
+                        >
                           {exercise.sets ? (
                             <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
                               <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
@@ -1752,7 +1767,7 @@ export default function ProgramReviewScreen({
                               </p>
                             </div>
                           ) : null}
-                          {exercise.rir ? (
+                          {exercise.rir && !isTimedInfoExercise ? (
                             <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
                               <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
                                 RIR
@@ -1896,7 +1911,7 @@ export default function ProgramReviewScreen({
                         {cleanProgramCopy(exercise.detail)}
                       </p>
                       <p className="mt-2 text-[11px] leading-4 text-white/38">
-                        Loggas: {exercise.logType === "time_rir" ? "tid och marginal" : "vikt, reps och RIR"}
+                        Loggas: {exercise.logType === "time_rir" ? "tid" : "vikt, reps och RIR"}
                       </p>
                     </div>
                     );

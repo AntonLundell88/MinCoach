@@ -30,6 +30,8 @@ type Props = {
   chatInput: string;
   setChatInput: (v: string) => void;
   sendChat: () => void;
+  isCoachThinking?: boolean;
+  isExpanded?: boolean;
 };
 
 const coachInputPlaceholders = [
@@ -90,7 +92,7 @@ function CoachText({ text, isPrimary = false }: { text: string; isPrimary?: bool
   );
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {lines.map((line, index) => {
         const trimmed = line.trim();
 
@@ -117,14 +119,14 @@ function CoachText({ text, isPrimary = false }: { text: string; isPrimary?: bool
             key={index}
             className={
               isLabel
-                ? `${currentLineIndex > 0 ? "pt-1.5" : "pt-0"} text-[9px] font-semibold uppercase tracking-[0.13em] text-blue-100/45`
+                ? `${currentLineIndex > 0 ? "pt-2" : "pt-0"} text-[9px] font-semibold uppercase tracking-[0.13em] text-blue-100/45`
                 : isTargetNumber
                 ? isPrimary
                   ? "text-[14px] font-semibold leading-[1.32] tracking-normal text-white"
                   : "text-[14px] font-semibold leading-[1.32] tracking-normal text-white"
                 : isPrimary
-                ? "text-[13.5px] leading-[1.5] tracking-normal text-white/86"
-                : "text-[13.5px] leading-[1.5] tracking-normal text-white/86"
+                ? "text-[13.5px] leading-[1.62] tracking-normal text-white/86"
+                : "text-[13.5px] leading-[1.62] tracking-normal text-white/86"
             }
           >
             {trimmed}
@@ -141,6 +143,8 @@ export default function CoachPanel({
   chatInput,
   setChatInput,
   sendChat,
+  isCoachThinking = false,
+  isExpanded = false,
 }: Props) {
     const [coachInputPlaceholder, setCoachInputPlaceholder] = React.useState(
       () => getRandomCoachPlaceholder()
@@ -157,18 +161,40 @@ export default function CoachPanel({
   
     const chatScrollRef = useRef<HTMLDivElement | null>(null);
     const chatEndRef = useRef<HTMLDivElement | null>(null);
+    const shouldStickToBottomRef = useRef(true);
+    const lastChatLengthRef = useRef(chatLog.length);
+
+  function updateStickToBottom() {
+    const el = chatScrollRef.current;
+    if (!el) return;
+
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldStickToBottomRef.current = distanceFromBottom < 96;
+  }
 
   useEffect(() => {
-    const scrollFrame = window.requestAnimationFrame(() => {
-      if (chatScrollRef.current) {
-        chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-      }
+    const lastMessage = chatLog[chatLog.length - 1];
+    const chatLengthChanged = lastChatLengthRef.current !== chatLog.length;
+    const forceScrollForUserMessage =
+      chatLengthChanged && lastMessage?.role === "you";
 
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    lastChatLengthRef.current = chatLog.length;
+
+    if (forceScrollForUserMessage) {
+      shouldStickToBottomRef.current = true;
+    }
+
+    if (!shouldStickToBottomRef.current) return;
+
+    const scrollFrame = window.requestAnimationFrame(() => {
+      chatScrollRef.current?.scrollTo({
+        top: chatScrollRef.current.scrollHeight,
+        behavior: "auto",
+      });
     });
 
     return () => window.cancelAnimationFrame(scrollFrame);
-  }, [chatLog, coachData, typedLastCoachMessage, isThinkingLastCoach]);
+  }, [chatLog, coachData, typedLastCoachMessage, isThinkingLastCoach, isCoachThinking]);
 
   useEffect(() => {
     if (chatInput.trim()) return;
@@ -187,7 +213,12 @@ export default function CoachPanel({
       <div className="coach-panel-shell space-y-2.5 rounded-[1.35rem] border border-white/[0.09] bg-white/[0.05] p-2.5 shadow-[0_16px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-3">
         <div
           ref={chatScrollRef}
-          className="max-h-[42vh] min-h-[210px] overflow-auto space-y-2 pr-1 sm:min-h-[260px]"
+          onScroll={updateStickToBottom}
+          className={`overflow-auto space-y-2 pr-1 transition-[max-height,min-height] duration-200 ease-out ${
+            isExpanded
+              ? "max-h-[62vh] min-h-[52vh]"
+              : "max-h-[42vh] min-h-[210px] sm:min-h-[260px]"
+          }`}
         >
           {chatLog.length === 0 ? (
             <p className="coach-empty-message rounded-2xl border border-white/[0.09] bg-white/[0.042] px-3 py-2 text-sm leading-5 text-white/62">
@@ -237,6 +268,21 @@ export default function CoachPanel({
               </div>
             ))
           )}
+          {isCoachThinking ? (
+            <div className="coach-message animate-message-in relative rounded-[1.15rem] border border-white/[0.09] bg-slate-900/50 px-3 py-2 text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] sm:px-3.5">
+              <p className="coach-message-label mb-1 text-[9px] uppercase tracking-[0.12em] text-white/36">
+                Coach
+              </p>
+              <div className="flex items-center gap-2 text-sm text-white/68">
+                <span>Coachen skriver</span>
+                <span className="flex gap-1" aria-hidden="true">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-300/70" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-300/70 [animation-delay:120ms]" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-300/70 [animation-delay:240ms]" />
+                </span>
+              </div>
+            </div>
+          ) : null}
           
           <div ref={chatEndRef} />
         </div>
@@ -252,8 +298,9 @@ export default function CoachPanel({
             }}
           />
           <button
-            className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-600 text-white transition hover:bg-blue-500"
+            className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-600 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
             onClick={sendChat}
+            disabled={isCoachThinking || !chatInput.trim()}
             aria-label="Skicka"
           >
             <SendGlyph className="h-[18px] w-[18px]" />

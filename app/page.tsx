@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import StartScreen from "./components/StartScreen";
 import WorkoutScreen from "./components/WorkoutScreen";
@@ -54,6 +54,13 @@ const PROGRAM_BUILD_MIN_MS = 4500;
 const ALL_PASS_KEYS: PassType[] = ["A", "B", "C", "D", "E", "F", "G"];
 const COACH_PROGRAM_MAX_DAYS = 6;
 const MANUAL_PROGRAM_MAX_DAYS = 7;
+const WORKOUT_FINISH_LINES = [
+  "Där är vi klara med dagens pass. Gå vidare så kollar vi igenom det.",
+  "Där stänger vi passet. Gå vidare så tar vi genomgången.",
+  "Klart för idag. Tryck vidare så går vi igenom vad vi tar med oss.",
+  "Där har vi dagens jobb. Gå vidare så summerar vi passet.",
+  "Passet är klart. Gå vidare så tittar vi på helheten.",
+];
 
 function getPassKeys(daysPerWeek: number, maxDays = COACH_PROGRAM_MAX_DAYS) {
   const count = Math.min(Math.max(1, Math.round(daysPerWeek) || 1), maxDays);
@@ -129,6 +136,53 @@ function AppControls({
           }`}
         />
       </button>
+    </div>
+  );
+}
+
+function WorkoutReviewLoadingScreen({ theme }: { theme: AppTheme }) {
+  const isLight = theme === "light";
+
+  return (
+    <div className="w-full max-w-xl px-5 pb-10 pt-16 sm:px-6">
+      <section
+        className={`rounded-[1.75rem] px-6 py-7 ${
+          isLight
+            ? "border border-[#d9cbbb]/70 bg-[#fffdf8]/92 text-[#2b2520] shadow-[0_24px_70px_rgba(92,74,49,0.18)]"
+            : "border border-white/8 bg-[#131a25] text-white shadow-[0_24px_70px_rgba(0,0,0,0.34)]"
+        }`}
+      >
+        <p
+          className={`text-[0.68rem] font-black uppercase tracking-[0.22em] ${
+            isLight ? "text-[#8a7867]" : "text-slate-400"
+          }`}
+        >
+          Pass klart
+        </p>
+        <h1 className="mt-3 text-2xl font-black tracking-tight">
+          Coachen sammanfattar passet.
+        </h1>
+        <p
+          className={`mt-3 max-w-sm text-sm font-semibold leading-6 ${
+            isLight ? "text-[#6f6256]" : "text-slate-300"
+          }`}
+        >
+          Jag kollar igenom seten och tar fram det viktigaste.
+        </p>
+        <div className="mt-7 flex items-center gap-2" aria-hidden="true">
+          <span className="h-2.5 w-10 animate-pulse rounded-full bg-[#2f6df6] shadow-[0_0_20px_rgba(47,109,246,0.52)]" />
+          <span
+            className={`h-2.5 w-2.5 animate-pulse rounded-full [animation-delay:120ms] ${
+              isLight ? "bg-[#8a7867]/24" : "bg-white/18"
+            }`}
+          />
+          <span
+            className={`h-2.5 w-2.5 animate-pulse rounded-full [animation-delay:240ms] ${
+              isLight ? "bg-[#8a7867]/24" : "bg-white/18"
+            }`}
+          />
+        </div>
+      </section>
     </div>
   );
 }
@@ -233,6 +287,10 @@ type LoggedSet = {
 
 type LoggedExercise = {
   name: string;
+  plannedSets?: number;
+  plannedReps?: string;
+  plannedRir?: string;
+  completed?: boolean;
   sets: LoggedSet[];
 };
 
@@ -429,25 +487,6 @@ function buildWarmupContext(input: string): WarmupContext | null {
   };
 }
 
-function getWarmupCoachReply(warmup: WarmupContext) {
-  if (warmup.status === "skipped") {
-    return "Okej. Då startar vi lugnt.";
-  }
-
-  if (warmup.status === "cardio") {
-    return "Bra. Jag har uppvärmningen med mig.";
-  }
-
-  if (warmup.status === "light") {
-    return "Bra. Jag har uppvärmningsseten med mig.";
-  }
-
-  if (warmup.status === "ready") {
-    return "Bra. Då tar vi första arbetssetet.";
-  }
-
-  return "Bra. Starta passet när du är redo.";
-}
 
 function getPainCoachReply(warmup: WarmupContext | null) {
   if (!warmup || warmup.status === "unknown") {
@@ -545,28 +584,6 @@ function buildConditioningContext(input: string): ConditioningContext | null {
   };
 }
 
-function getConditioningCoachReply(
-  conditioning: ConditioningContext,
-  goalPrimary?: UserProfile["goalPrimary"]
-) {
-  if (conditioning.timing === "after") {
-    return "Bra. Vi lägger den efter styrkan.";
-  }
-
-  if (conditioning.timing === "before" && conditioning.intensity === "light") {
-    return "Bra. Håll det lugnt före första arbetssetet.";
-  }
-
-  if (conditioning.timing === "before" && conditioning.intensity === "hard") {
-    if (goalPrimary === "fett") {
-      return "Håll den lugn före styrkan. Vill du köra hårt lägger vi den efter.";
-    }
-
-    return "Lägg den efter styrkan idag.";
-  }
-
-  return "Bra. Jag räknar med det när vi startar.";
-}
 function loadJSON<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -584,6 +601,21 @@ function saveRawValue(key: string, value: string) {
   localStorage.setItem(key, value);
   scheduleBetaSync({ changedKey: key });
 }
+
+function getRotatingWorkoutFinishLine(workoutId: string, setNumber: number) {
+  const seed = `${workoutId}-${setNumber}`;
+  const hash = [...seed].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return WORKOUT_FINISH_LINES[hash % WORKOUT_FINISH_LINES.length];
+}
+
+function appendWorkoutFinishLine(text: string, finishLine: string) {
+  const trimmed = text.trim();
+  if (!trimmed) return finishLine;
+  if (trimmed.toLowerCase().includes("genomgång")) return trimmed;
+
+  return `${trimmed}\n\n${finishLine}`;
+}
+
 function exerciseKey(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
   }
@@ -598,6 +630,14 @@ type ExerciseBestSet = {
   createdAt?: string;
 };
 
+type ProgressionOpportunity = {
+  type: "offer_increase" | "increase_now";
+  confidence: "medium" | "high";
+  suggestedWeight: string;
+  reason: string;
+  tone: "offer" | "clear";
+};
+
 type ExerciseProgressionPlan = {
   action: "start" | "hold" | "increase" | "decrease" | "deload";
   weight: string;
@@ -606,6 +646,7 @@ type ExerciseProgressionPlan = {
   rirText: string;
   note: string;
   reason: string;
+  opportunity?: ProgressionOpportunity;
 };
 
 function formatWeightInput(weight: number) {
@@ -683,6 +724,38 @@ function getExerciseProgression(
   return getExerciseBestSets(history, exerciseName, 3);
 }
 
+function getPreviousExerciseSets(
+  history: Workout[],
+  exerciseName: string
+) {
+  const key = exerciseKey(exerciseName);
+  const workouts = [...history].sort(
+    (a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt)
+  );
+  const matches: LoggedExercise[] = [];
+
+  for (const workout of workouts) {
+    const exercise = workout.exercises.find(
+      (item) => exerciseKey(item.name) === key
+    );
+
+    if (exercise?.sets.length) matches.push(exercise);
+  }
+
+  const completedMatch = matches.find(
+    (exercise) =>
+      typeof exercise.plannedSets === "number" &&
+      exercise.plannedSets > 1 &&
+      exercise.sets.length >= exercise.plannedSets
+  );
+
+  if (completedMatch) return completedMatch.sets;
+
+  const usefulMatch = matches.find((exercise) => exercise.sets.length > 1);
+
+  return usefulMatch?.sets ?? matches[0]?.sets ?? [];
+}
+
 function isHardOrFailedSet(set: ExerciseBestSet) {
   if (set.failNote) return true;
   return typeof set.rir === "number" && set.rir <= 0;
@@ -729,11 +802,67 @@ function buildProgressionPlan(args: {
     .filter((set) => set.failNote || (typeof set.rir === "number" && set.rir <= 1))
     .length;
   const shouldDeload = recentHardCount >= 3;
+  const workingRepRange = getWorkingRepRange(exerciseName, targetReps);
+  const topSetBelowWorkingRange =
+    targetReps >= 8 && topSet.reps < workingRepRange.min;
+  const topSetTooLight =
+    targetReps >= 8 &&
+    !latestHard &&
+    !shouldDeload &&
+    topSet.reps >= Math.max(targetReps + 4, workingRepRange.max + 4) &&
+    hasUsefulMargin(topSet);
   const canIncrease =
     dayForm !== "trött" &&
     !shouldDeload &&
     !latestHard &&
     topWeightStableSets.length >= 2;
+  const canOfferIncrease =
+    dayForm !== "trött" &&
+    !shouldDeload &&
+    !latestHard &&
+    !topSetBelowWorkingRange &&
+    topSet.reps >= targetReps &&
+    hasUsefulMargin(topSet) &&
+    topWeightStableSets.length >= 1;
+  const offerIncreaseOpportunity: ProgressionOpportunity | undefined =
+    canOfferIncrease && !canIncrease
+      ? {
+          type: "offer_increase",
+          confidence: "medium",
+          suggestedWeight: formatWeightInput(
+            getNextAvailableWeight(topSet.weight, exerciseName, "up")
+          ),
+          reason:
+            "Toppsetet har nått målet med marginal nog för att ett försiktigt test upp kan vara rimligt.",
+          tone: "offer",
+        }
+      : undefined;
+
+  if (topSetTooLight && dayForm !== "trött") {
+    const nextWeight = getNextAvailableWeight(topSet.weight, exerciseName, "up");
+    const minReps = workingRepRange.min;
+    const maxReps = Math.max(
+      minReps,
+      Math.min(targetReps + 4, topSet.reps - 3)
+    );
+
+    return {
+      action: "increase",
+      weight: formatWeightInput(nextWeight),
+      reps: String(minReps),
+      repsText: formatRepRange(minReps, maxReps),
+      rirText: "RIR 1–2",
+      note: "Förra nivån blev för lätt. Vi går upp ett steg och hittar rätt belastning.",
+      reason: "Senaste bästa setet hade höga reps med marginal kvar.",
+      opportunity: {
+        type: "increase_now",
+        confidence: "high",
+        suggestedWeight: formatWeightInput(nextWeight),
+        reason: "Repsen blev för höga med marginal kvar.",
+        tone: "clear",
+      },
+    } satisfies ExerciseProgressionPlan;
+  }
 
   if (shouldDeload) {
     const deloadWeight = getNextAvailableWeight(topSet.weight, exerciseName, "down");
@@ -747,6 +876,20 @@ function buildProgressionPlan(args: {
       rirText: "RIR 2",
       note: "Du har haft flera tunga set. Idag håller vi igen lite.",
       reason: "Flera senaste set har varit nära failure.",
+    } satisfies ExerciseProgressionPlan;
+  }
+
+  if (topSetBelowWorkingRange) {
+    const loweredWeight = getNextAvailableWeight(topSet.weight, exerciseName, "down");
+
+    return {
+      action: "decrease",
+      weight: formatWeightInput(loweredWeight),
+      reps: String(workingRepRange.min),
+      repsText: formatRepRange(workingRepRange.min, workingRepRange.max),
+      rirText: "RIR 1-2",
+      note: "Senaste nivån hamnade för lågt i reps för målet. Jag tycker vi sänker lite och bygger bättre arbetsset.",
+      reason: "Repsspannet ska passa muskelbygge, inte bli ett tungt styrketest.",
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -778,6 +921,14 @@ function buildProgressionPlan(args: {
       rirText: "RIR 1–2",
       note: `${formatWeightInput(topSet.weight)} kg har suttit flera pass. Nu testar vi lite upp.`,
       reason: "Samma toppvikt har suttit flera pass med tillräckligt många reps.",
+      opportunity: {
+        type: "increase_now",
+        confidence: "high",
+        suggestedWeight: formatWeightInput(nextWeight),
+        reason:
+          "Samma toppvikt har suttit flera pass med tillräckligt många reps.",
+        tone: "clear",
+      },
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -805,8 +956,9 @@ function buildProgressionPlan(args: {
     reps: String(minReps),
     repsText: formatRepRange(minReps, maxReps),
     rirText: "RIR 1–2",
-      note: "Samma vikt som ditt bästa. Vi siktar lite lägre först.",
+    note: "Samma vikt som ditt bästa. Vi siktar lite lägre först.",
     reason: `Jag vill se att ${formatWeightInput(topSet.weight)} kg sitter nära ${topSet.reps} reps minst ett pass till innan vi höjer.`,
+    opportunity: offerIncreaseOpportunity,
   } satisfies ExerciseProgressionPlan;
 }
 
@@ -2096,6 +2248,41 @@ function getGoalTargets(goalPrimary: UserProfile["goalPrimary"]) {
   };
 }
 
+function isStableMachineOrCableExercise(exerciseName: string) {
+  const definition = getExerciseDefinition(exerciseName);
+
+  if (!definition) return false;
+
+  return (
+    definition.logType === "weight_reps_rir" &&
+    (definition.equipmentTags.includes("machines") ||
+      definition.equipmentTags.includes("cables"))
+  );
+}
+
+function getMinimumWorkingReps(exerciseName: string, targetReps: number) {
+  if (targetReps <= 6) return Math.max(3, targetReps - 1);
+
+  if (isStableMachineOrCableExercise(exerciseName)) {
+    return Math.min(targetReps, 8);
+  }
+
+  const restKind = getExerciseRestKind(exerciseName);
+
+  if (restKind === "heavy") return Math.min(targetReps, 6);
+  if (restKind === "isolation") return Math.min(targetReps, 8);
+
+  return Math.min(targetReps, 8);
+}
+
+function getWorkingRepRange(exerciseName: string, targetReps: number) {
+  const min = getMinimumWorkingReps(exerciseName, targetReps);
+  return {
+    min,
+    max: Math.max(min, targetReps),
+  };
+}
+
 type CoachNote = {
   createdAt: string;
   pass: PassType;
@@ -2129,7 +2316,7 @@ function getLegacyExerciseCue(exerciseName: string) {
   }
 
   if (name.includes("benspark")) {
-    return "Fokus: paus i toppen och kontakt före mer vikt.";
+    return "Fokus: paus i toppen och kontakt innan vi höjer.";
   }
 
   if (name.includes("vad")) {
@@ -2137,7 +2324,7 @@ function getLegacyExerciseCue(exerciseName: string) {
   }
 
   if (name.includes("biceps") || name.includes("curl")) {
-    return "Fokus: ren curl och stoppa innan senan börjar bråka.";
+    return "Fokus: ren curl, stilla armbågar och ingen sving.";
   }
 
   if (name.includes("triceps") || name.includes("pushdown")) {
@@ -2318,7 +2505,7 @@ function getWorkoutFatigueSignal(args: {
   }
 
   if (averageRir <= 1.75) {
-    return "Passet börjar kosta nu, så håll tekniken ren.";
+    return "Ansträngningen börjar märkas nu, så håll tekniken ren.";
   }
 
   if (averageRir >= 2.5) {
@@ -2428,7 +2615,7 @@ function formatLoggedSetText(args: {
         : ""
     }`;
 
-    return typeof args.rir === "number" ? `${base} · marginal ${args.rir}` : base;
+    return base;
   }
 
   const base = shouldDisplayAsBodyweight(args.exerciseName, args.weight)
@@ -2442,6 +2629,15 @@ function formatNextLoadText(exerciseName: string, weight: number) {
   return shouldDisplayAsBodyweight(exerciseName, weight)
     ? "kroppsvikt"
     : `${formatCoachWeight(weight)} kg`;
+}
+
+function parsePlannedSetCount(sets?: string | null) {
+  if (!sets) return null;
+
+  const numbers = sets.match(/\d+/g)?.map(Number).filter(Number.isFinite) ?? [];
+  if (numbers.length === 0) return null;
+
+  return Math.max(1, Math.min(...numbers));
 }
 
 function getExerciseRestKind(exerciseName: string) {
@@ -2495,24 +2691,72 @@ type NextSetPlan = {
   reason: string;
 };
 
-function getTimedTargetText(seconds: number, rir: number) {
-  const base = Math.max(10, Math.round(seconds));
-  const next =
-    rir <= 0 ? Math.max(10, base - 10) : rir >= 3 ? base + 15 : base;
-  const min = Math.max(10, next - 5);
-  const max = Math.max(min, next);
+function getSameWeightTrendSignal(args: {
+  weight: number;
+  reps: number;
+  rir: number;
+  previousSets?: { weight: number; reps: number; rir?: number }[];
+  targetReps: number;
+  exerciseName?: string;
+}) {
+  const sets = [
+    ...(args.previousSets ?? []),
+    { weight: args.weight, reps: args.reps, rir: args.rir },
+  ].filter(
+    (set) =>
+      set.weight === args.weight &&
+      set.reps > 0 &&
+      typeof set.rir === "number"
+  );
 
-  return min === max
-    ? formatDurationText(max)
-    : `${formatDurationText(min)}-${formatDurationText(max)}`;
+  if (sets.length < 2) {
+    return {
+      repsClimbed: false,
+      tooEasy: false,
+      firstReps: args.reps,
+      currentReps: args.reps,
+    };
+  }
+
+  const first = sets[0];
+  const current = sets[sets.length - 1];
+  const exerciseName = args.exerciseName ?? "";
+  const restKind = exerciseName ? getExerciseRestKind(exerciseName) : "normal";
+  const isHighRepExercise =
+    restKind === "isolation" ||
+    (exerciseName ? isStableMachineOrCableExercise(exerciseName) : false);
+  const tooEasyRepFloor = isHighRepExercise
+    ? Math.max(args.targetReps + 4, 14)
+    : Math.max(args.targetReps + 5, 16);
+  const allHadMargin = sets.every((set) => typeof set.rir === "number" && set.rir >= 2);
+  const repsClimbed = current.reps >= first.reps + 2;
+  const highEnoughToBeTooEasy =
+    current.reps >= tooEasyRepFloor;
+  const singleSetClearlyTooEasy =
+    typeof current.rir === "number" &&
+    current.rir >= 2 &&
+    current.reps >= tooEasyRepFloor;
+
+  return {
+    repsClimbed,
+    tooEasy:
+      (repsClimbed && allHadMargin && highEnoughToBeTooEasy) ||
+      singleSetClearlyTooEasy,
+    firstReps: first.reps,
+    currentReps: current.reps,
+  };
+}
+
+function getTimedTargetText(seconds: number) {
+  return formatDurationText(Math.max(1, Math.round(seconds)));
 }
 
 function getNextTimedSetPlan(args: {
   weight: number;
   durationSeconds: number;
-  rir: number;
   failNote?: string;
   setNumber: number;
+  plannedSetCount?: number;
   exerciseName?: string;
 }) {
   const exerciseName = args.exerciseName ?? "";
@@ -2526,15 +2770,16 @@ function getNextTimedSetPlan(args: {
     fail.includes("rygg") ||
     fail.includes("höft") ||
     fail.includes("knä");
-  const restText = args.rir <= 1 ? "90-120 sek." : "60-90 sek.";
+  const restText = "60-90 sek.";
   const techniqueCue = getExerciseCue(exerciseName);
+  const plannedSetCount = Math.max(1, args.plannedSetCount ?? 3);
 
   if (hasPainIssue) {
     return {
       weight: args.weight,
       repsText: "gå vidare",
       repsInput: 0,
-      rirText: "klar",
+      rirText: "",
       rirInput: 2,
       restText,
       techniqueCue,
@@ -2544,12 +2789,12 @@ function getNextTimedSetPlan(args: {
     } satisfies NextSetPlan;
   }
 
-  if (args.setNumber >= 3 || (args.setNumber >= 2 && args.rir <= 0)) {
+  if (args.setNumber >= plannedSetCount) {
     return {
       weight: args.weight,
       repsText: "gå vidare",
       repsInput: 0,
-      rirText: "klar",
+      rirText: "",
       rirInput: 2,
       restText,
       techniqueCue,
@@ -2559,23 +2804,16 @@ function getNextTimedSetPlan(args: {
     } satisfies NextSetPlan;
   }
 
-  const strategy = args.rir >= 3 ? "press" : args.rir <= 0 ? "backoff" : "hold";
-
   return {
     weight: args.weight,
-    repsText: getTimedTargetText(args.durationSeconds, args.rir),
+    repsText: getTimedTargetText(args.durationSeconds),
     repsInput: 0,
-    rirText: args.rir <= 1 ? "marginal 1-2." : "marginal 2.",
-    rirInput: args.rir <= 1 ? 2 : 2,
+    rirText: "",
+    rirInput: 2,
     restText,
     techniqueCue,
-    strategy,
-    reason:
-      strategy === "press"
-        ? "Du hade mer tid kvar i kroppen. Vi bygger vidare lite."
-        : strategy === "backoff"
-        ? "Det blev nära gränsen. Vi håller kvaliteten och sänker tidskravet lite."
-        : "Tiden satt bra. Vi håller oss nära samma nivå.",
+    strategy: "hold",
+    reason: "Tiden är loggad. Vi håller nästa set enkelt och kontrollerat.",
   } satisfies NextSetPlan;
 }
 
@@ -2585,6 +2823,8 @@ function getNextSetPlan(args: {
   rir: number;
   failNote?: string;
   setNumber: number;
+  plannedSetCount?: number;
+  targetReps?: number;
   exerciseName?: string;
   previousSets?: { weight: number; reps: number; rir?: number }[];
 }) {
@@ -2603,6 +2843,51 @@ function getNextSetPlan(args: {
   const fail = args.failNote?.trim().toLowerCase() ?? "";
   const restText = getRestTextForRir(rir, exerciseName);
   const techniqueCue = getExerciseCue(exerciseName);
+  const plannedSetCount = Math.max(1, args.plannedSetCount ?? 3);
+  const targetReps = Math.max(1, args.targetReps ?? 10);
+  const workingRepRange = getWorkingRepRange(exerciseName, targetReps);
+  const plannedExtraSet =
+    decisionProfile.type !== "technical-heavy" &&
+    plannedSetCount > decisionProfile.maxHardSets &&
+    setNumber >= decisionProfile.maxHardSets &&
+    setNumber < plannedSetCount;
+  const sameWeightRepsDropped =
+    previousSet &&
+    previousSet.weight === weight &&
+    previousSet.reps - reps >= 2;
+  const hardEnoughToSkipPlannedExtra =
+    rir <= 0 ||
+    (rir <= 1 && Boolean(sameWeightRepsDropped)) ||
+    (rir <= 1 && setNumber >= decisionProfile.maxHardSets);
+  const shouldSkipPlannedExtraSet =
+    plannedExtraSet && hardEnoughToSkipPlannedExtra;
+  const activePlannedExtraSet = plannedExtraSet && !shouldSkipPlannedExtraSet;
+  const finalSetNeedsQualityExtra =
+    setNumber >= plannedSetCount &&
+    !fail &&
+    rir >= 2 &&
+    reps < workingRepRange.min &&
+    decisionProfile.type !== "technical-heavy";
+  const shouldCompleteExercise =
+    (setNumber >= plannedSetCount && !finalSetNeedsQualityExtra) ||
+    (setNumber >= decisionProfile.maxHardSets &&
+      !activePlannedExtraSet &&
+      !finalSetNeedsQualityExtra);
+  const plannedExtraSetReason =
+    "Schemat har ett extraset här. Vi sänker lite så avslutet blir rent och faktiskt ger något.";
+  const sameWeightTrend = getSameWeightTrendSignal({
+    weight,
+    reps,
+    rir,
+    previousSets: args.previousSets,
+    targetReps,
+    exerciseName,
+  });
+  const belowWorkingRepRange =
+    targetReps >= 8 &&
+    reps < workingRepRange.min &&
+    !shouldCompleteExercise;
+  const belowWorkingRepRangeWithMargin = belowWorkingRepRange && rir >= 2;
   const isIsolation =
     techniqueCue.toLowerCase().includes("curl") ||
     techniqueCue.toLowerCase().includes("triceps") ||
@@ -2628,13 +2913,31 @@ function getNextSetPlan(args: {
     fail.includes("rygg") ||
     fail.includes("knä");
 
+  if (finalSetNeedsQualityExtra) {
+    const min = workingRepRange.min;
+    const max = Math.max(min, Math.min(workingRepRange.max, reps + Math.max(1, rir)));
+
+    return {
+      weight: normalizeSuggestedWeight(weight, exerciseName),
+      repsText: range(min, max),
+      repsInput: min,
+      rirText: "RIR 0-1",
+      rirInput: 1,
+      restText,
+      techniqueCue,
+      strategy: "hold",
+      reason:
+        "Det fanns mer kvar, men repsen blev lite låga. Vi slänger in ett set till här och försöker nå repsspannet.",
+    } satisfies NextSetPlan;
+  }
+
   if (fail) {
     if (hasPainIssue) {
       return {
         weight,
         repsText: "gå vidare",
         repsInput: reps,
-        rirText: "klar",
+        rirText: "",
         rirInput: 2,
         restText,
         techniqueCue,
@@ -2644,12 +2947,27 @@ function getNextSetPlan(args: {
       } satisfies NextSetPlan;
     }
 
-    if (setNumber >= 3) {
+    if (fail.includes("grepp") && shouldCompleteExercise) {
       return {
         weight,
         repsText: "gå vidare",
         repsInput: reps,
-        rirText: "klar",
+        rirText: "",
+        rirInput: 2,
+        restText,
+        techniqueCue,
+        strategy: "complete",
+        reason:
+          "Greppet tog stopp, inte ryggen. Bra, då är övningen klar här. Om det händer igen byter vi grepp eller sänker ett steg nästa gång.",
+      } satisfies NextSetPlan;
+    }
+
+    if (shouldCompleteExercise) {
+      return {
+        weight,
+        repsText: "gå vidare",
+        repsInput: reps,
+        rirText: "",
         rirInput: 2,
         restText,
         techniqueCue,
@@ -2711,17 +3029,59 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "reduce",
-      reason: "Det tog stopp. Vi sänker lite och jagar inte fler maxreps här.",
+      reason: activePlannedExtraSet
+        ? plannedExtraSetReason
+        : "Det tog stopp. Vi sänker lite och jagar inte fler maxreps här.",
+    } satisfies NextSetPlan;
+  }
+
+  if (belowWorkingRepRangeWithMargin) {
+    const min = workingRepRange.min;
+    const max = Math.max(min, Math.min(workingRepRange.max, reps + Math.max(1, rir)));
+
+    return {
+      weight: normalizeSuggestedWeight(weight, exerciseName),
+      repsText: range(min, max),
+      repsInput: min,
+      rirText: "RIR 1–2",
+      rirInput: 2,
+      restText,
+      techniqueCue,
+      strategy: "hold",
+      reason:
+        "Det fanns mer kvar. Vi håller vikten och försöker ta oss upp i repsspannet innan vi ändrar belastningen.",
+    } satisfies NextSetPlan;
+  }
+
+  if (belowWorkingRepRange) {
+    const nextWeight = getBackoffWeight({
+      weight,
+      exerciseName,
+      reason: "hard-backoff",
+    });
+
+    return {
+      weight: nextWeight,
+      repsText: range(workingRepRange.min, workingRepRange.max),
+      repsInput: workingRepRange.min,
+      rirText: "RIR 1–2",
+      rirInput: 2,
+      restText,
+      techniqueCue,
+      strategy: "backoff",
+      reason: activePlannedExtraSet
+        ? plannedExtraSetReason
+        : "Repsen hamnade för lågt för målet. Vi backar vikten och bygger ett bättre arbetsset.",
     } satisfies NextSetPlan;
   }
 
   if (rir <= 0) {
-    if (setNumber >= decisionProfile.maxHardSets) {
+    if (shouldCompleteExercise) {
       return {
         weight,
         repsText: "gå vidare",
         repsInput: reps,
-        rirText: "klar",
+        rirText: "",
         rirInput: 2,
         restText,
         techniqueCue,
@@ -2750,11 +3110,13 @@ function getNextSetPlan(args: {
       techniqueCue,
       strategy: "reduce",
       reason:
-        decisionProfile.type === "technical-heavy"
-          ? "Där var gränsen. Nu gör vi en tydlig backoff så tekniken håller."
+        activePlannedExtraSet
+          ? plannedExtraSetReason
+          : decisionProfile.type === "technical-heavy"
+          ? "Det var ett hårt set. Jag tycker vi sänker lite så nästa set också blir rent."
           : isIsolation
-          ? "Vi sänker lite och låter nästa set handla om kontroll, inte maxreps."
-          : "Vi sänker och låter nästa set bli rent.",
+          ? "Det var ett hårt set. Jag tycker vi sänker lite så vi får ett bra set till."
+          : "Det var ett hårt set. Jag tycker vi sänker lite så nästa set också blir bra.",
     } satisfies NextSetPlan;
   }
 
@@ -2776,17 +3138,50 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "backoff",
-      reason:
-        "Samma vikt och reps kostade mer nu. Vi backar lite så nästa set håller kvalitet.",
+      reason: activePlannedExtraSet
+        ? plannedExtraSetReason
+        : "Samma vikt och reps krävde mer nu. Jag tycker vi sänker lite så nästa set blir lika träffsäkert.",
     } satisfies NextSetPlan;
   }
 
-  if (setNumber >= 3 && rir <= 2) {
+  if (sameWeightTrend.tooEasy) {
+    if (shouldCompleteExercise) {
+      return {
+        weight,
+        repsText: "gå vidare",
+        repsInput: reps,
+        rirText: "",
+        rirInput: 2,
+        restText,
+        techniqueCue,
+        strategy: "complete",
+        reason:
+          "Samma vikt gav fler reps med marginal kvar. Den var för lätt idag; nästa gång öppnar vi högre.",
+      } satisfies NextSetPlan;
+    }
+
+    const nextWeight = getNextAvailableWeight(weight, exerciseName, "up");
+
+    return {
+      weight: nextWeight,
+      repsText: range(workingRepRange.min, workingRepRange.max),
+      repsInput: workingRepRange.min,
+      rirText: "RIR 1–2",
+      rirInput: 2,
+      restText,
+      techniqueCue,
+      strategy: "press",
+      reason:
+        "Samma vikt gav fler reps med marginal kvar. Vi höjer ett steg och gör jobbet på rätt nivå.",
+    } satisfies NextSetPlan;
+  }
+
+  if (shouldCompleteExercise && rir <= 2) {
     return {
       weight,
       repsText: "gå vidare",
       repsInput: reps,
-      rirText: "klar",
+      rirText: "",
       rirInput: 2,
       restText,
       techniqueCue,
@@ -2796,7 +3191,13 @@ function getNextSetPlan(args: {
   }
 
   if (rir === 1) {
-    const isBackoff = setNumber >= 2;
+    const stableRepeat =
+      previousSet &&
+      previousSet.weight === weight &&
+      previousSet.reps === reps &&
+      previousRir !== null &&
+      previousRir <= rir;
+    const isBackoff = setNumber >= 2 && !stableRepeat;
     const nextWeight = isBackoff
       ? getBackoffWeight({
           weight,
@@ -2816,8 +3217,12 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: isBackoff ? "backoff" : "hold",
-      reason: isBackoff
-        ? "Nu tar vi ett lättare set med bra kvalitet."
+      reason: stableRepeat
+        ? "Samma vikt, reps och marginal igen. Det är stabilt, så vi håller nivån."
+        : activePlannedExtraSet
+        ? plannedExtraSetReason
+        : isBackoff
+        ? "Nu tar vi ett lättare set och får mer bra arbete ur övningen."
         : "Vi håller vikten och låter nästa set bekräfta nivån.",
     } satisfies NextSetPlan;
   }
@@ -2833,7 +3238,9 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "hold",
-      reason: "Den nivån sitter. Vi tar samma vikt en gång till.",
+      reason: activePlannedExtraSet
+        ? plannedExtraSetReason
+        : "Den nivån sitter. Vi tar samma vikt en gång till.",
     } satisfies NextSetPlan;
   }
 
@@ -2886,6 +3293,8 @@ function buildCoachSetContext(args: {
   failNote: string;
   nextWeight: number;
   nextSetPlan: NextSetPlan;
+  plannedSetCount?: number;
+  isLastExercise?: boolean;
   previousSets: {
     weight: number;
     reps: number;
@@ -2899,15 +3308,27 @@ function buildCoachSetContext(args: {
   conditioningContext: ConditioningContext | null;
 }): CoachSetContext {
   const previousSet = args.previousSets[args.previousSets.length - 1];
-  const decisionProfile = getExerciseDecisionProfile(args.exerciseName);
+  const isTimedSet = args.metricType === "time" || isTimedExercise(args.exerciseName);
   const signals: string[] = [];
+  const plannedSetCount = args.plannedSetCount;
+  const setsRemaining =
+    typeof plannedSetCount === "number"
+      ? Math.max(plannedSetCount - args.setNumber, 0)
+      : undefined;
+  const isLastSet =
+    args.nextSetPlan.strategy === "complete" ||
+    (typeof plannedSetCount === "number" && args.setNumber >= plannedSetCount);
+  const nextSetIsLast =
+    !isLastSet &&
+    typeof plannedSetCount === "number" &&
+    args.setNumber + 1 >= plannedSetCount;
   const currentSetText = formatLoggedSetText({
     exerciseName: args.exerciseName,
     weight: args.weight,
     reps: args.reps,
     durationSeconds: args.durationSeconds,
     metricType: args.metricType,
-    rir: args.rir,
+    rir: isTimedSet ? undefined : args.rir,
   });
   const previousSetText = previousSet
     ? formatLoggedSetText({
@@ -2916,70 +3337,174 @@ function buildCoachSetContext(args: {
         reps: previousSet.reps,
         durationSeconds: previousSet.durationSeconds,
         metricType: previousSet.metricType,
-        rir: previousSet.rir,
+        rir: isTimedSet ? undefined : previousSet.rir,
       })
     : undefined;
   const nextLoadText = formatNextLoadText(args.exerciseName, args.nextSetPlan.weight);
+  const progressionOpportunity: ProgressionOpportunity | undefined =
+    !isTimedSet && args.nextSetPlan.strategy === "press"
+      ? {
+          type: "increase_now",
+          confidence: "high",
+          suggestedWeight: nextLoadText,
+          reason:
+            "Setet gav nog marginal för att appen ska föreslå ett steg upp.",
+          tone: "clear",
+        }
+      : undefined;
+  const failText = args.failNote.trim().toLowerCase();
+  const hasUserReportedTechniqueOrPain =
+    Boolean(failText) &&
+    (failText.includes("teknik") ||
+      failText.includes("slarv") ||
+      failText.includes("kontakt") ||
+      failText.includes("grepp") ||
+      failText.includes("ont") ||
+      failText.includes("smärta") ||
+      failText.includes("känning"));
+  const shouldMentionTechniqueCue =
+    args.nextSetPlan.strategy !== "complete" &&
+    (args.setNumber === 1 || hasUserReportedTechniqueOrPain);
+  const repsChange = previousSet ? args.reps - previousSet.reps : undefined;
+  const rirChange =
+    !isTimedSet && previousSet && typeof previousSet.rir === "number"
+      ? args.rir - previousSet.rir
+      : undefined;
+  const weightChangeKg = previousSet ? args.weight - previousSet.weight : undefined;
+  const sameWeightTrend = getSameWeightTrendSignal({
+    weight: args.weight,
+    reps: args.reps,
+    rir: args.rir,
+    previousSets: args.previousSets,
+    targetReps: 10,
+    exerciseName: args.exerciseName,
+  });
+  const decisionReasonCode = (() => {
+    if (args.nextSetPlan.reason.toLowerCase().includes("extraset")) {
+      return "planned_extra_finish";
+    }
 
-  if (args.personalRecordText) signals.push(args.personalRecordText);
-  signals.push(decisionProfile.riskNote);
-  if (args.metricType === "time" || isTimedExercise(args.exerciseName)) {
-    signals.push(
-      "Tidsövning: använd tid som huvudmått. Skriv inte reps som huvuddata. RIR-värdet betyder marginal till att tappa positionen eller behöva släppa, inte reps kvar."
-    );
+    if (sameWeightTrend.tooEasy) {
+      return args.nextSetPlan.strategy === "complete"
+        ? "too_light_next_time"
+        : "too_light_increase_now";
+    }
+
+    if (isTimedSet) {
+      return args.nextSetPlan.strategy === "complete"
+        ? "planned_sets_complete"
+        : "routine_hold";
+    }
+
+    if (args.nextSetPlan.strategy === "complete") {
+      if (failText.includes("ont") || failText.includes("smärta")) return "pain_stop";
+      if (args.rir <= 0) return "hard_set_complete";
+      return "planned_sets_complete";
+    }
+
+    if (args.nextSetPlan.strategy === "reduce") {
+      if (hasUserReportedTechniqueOrPain) return "user_reported_issue";
+      if (args.rir <= 0) return "hard_stimulus_reduce";
+      return "reduce_for_more_good_work";
+    }
+
+    if (args.nextSetPlan.strategy === "backoff") {
+      if (typeof rirChange === "number" && rirChange <= -2) return "margin_dropped";
+      if (args.rir <= 0) return "hard_stimulus_backoff";
+      return "backoff_after_hard_set";
+    }
+
+    if (args.nextSetPlan.strategy === "press") return "room_to_progress";
+
+    if (
+      args.nextSetPlan.strategy === "hold" &&
+      args.nextSetPlan.reason.toLowerCase().includes("repsspannet")
+    ) {
+      return "under_target_with_margin";
+    }
+
+    if (previousSet && args.weight === previousSet.weight && args.reps === previousSet.reps) {
+      if (typeof rirChange === "number" && rirChange > 0) return "same_work_more_margin";
+      if (typeof rirChange === "number" && rirChange < 0) return "same_work_less_margin";
+      return "same_work_repeated";
+    }
+
+    if (previousSet && args.weight === previousSet.weight && args.reps > previousSet.reps) {
+      return "reps_up_same_weight";
+    }
+
+    return "routine_hold";
+  })();
+
+  if (args.personalRecordText) signals.push("personal_record");
+  if (typeof plannedSetCount === "number") {
+    signals.push(`set_status:${args.setNumber}/${plannedSetCount}`);
+  }
+  if (isTimedSet) {
+    signals.push("timed_exercise");
   }
   if (shouldDisplayAsBodyweight(args.exerciseName, args.weight)) {
-    signals.push("Kroppsviktsövning utan extra vikt: logga reps och RIR. Skriv inte 0 kg.");
+    signals.push("bodyweight_no_extra_load");
   }
 
-  if (previousSet && args.weight === previousSet.weight && args.reps > previousSet.reps) {
-    signals.push(`Reps upp på samma vikt: +${args.reps - previousSet.reps}.`);
+  if (!isTimedSet && previousSet && args.weight === previousSet.weight && args.reps > previousSet.reps) {
+    signals.push(`reps_up_same_weight:${args.reps - previousSet.reps}`);
+  }
+
+  if (sameWeightTrend.tooEasy) {
+    signals.push(
+      `too_light_same_weight_trend:${sameWeightTrend.firstReps}->${sameWeightTrend.currentReps}`
+    );
+  }
+
+  if (
+    args.nextSetPlan.strategy === "hold" &&
+    args.nextSetPlan.reason.toLowerCase().includes("repsspannet")
+  ) {
+    signals.push("under_target_with_margin");
   }
 
   if (
     previousSet &&
+    !isTimedSet &&
     typeof previousSet.rir === "number" &&
     args.weight === previousSet.weight &&
     args.reps === previousSet.reps &&
     args.rir > previousSet.rir
   ) {
-    signals.push("Samma reps som förra setet, men mer kvar i tanken.");
+    signals.push(`same_work_more_margin:${args.rir - previousSet.rir}`);
   }
 
   if (
     previousSet &&
+    !isTimedSet &&
     typeof previousSet.rir === "number" &&
     args.weight === previousSet.weight &&
     args.reps === previousSet.reps &&
     previousSet.rir - args.rir >= 2
   ) {
-    signals.push(
-      "Samma vikt och reps kostade tydligt mer RIR nu. Tolka som högre faktisk ansträngning och använd backoff vid behov."
-    );
+    signals.push(`same_work_margin_drop:${previousSet.rir - args.rir}`);
   }
 
   if (previousSet && args.weight > previousSet.weight) {
-    signals.push(`Vikten höjdes från ${previousSet.weight} kg till ${args.weight} kg.`);
+    signals.push(`weight_up:${previousSet.weight}->${args.weight}`);
   }
 
   if (
     previousSet &&
+    !isTimedSet &&
     typeof previousSet.rir === "number" &&
     args.weight === previousSet.weight &&
     args.reps < previousSet.reps &&
     args.reps >= Math.max(1, previousSet.reps - 2) &&
     args.rir >= 1
   ) {
-    signals.push(
-      "Planerad repsänkning träffad med marginal kvar. Beskriv det som bra utfört, inte som problem eller tappad styrka."
-    );
+    signals.push("planned_rep_drop_hit_with_margin");
   }
 
-  if (args.failNote) signals.push(`Failure-orsak: ${args.failNote}.`);
+  if (args.failNote) signals.push("user_fail_note_present");
   if (args.nextSetPlan.strategy === "backoff" || args.nextSetPlan.strategy === "reduce") {
-    signals.push(
-      `Nästa belastning är ett coachbeslut enligt autoreglering, inte ett fast viktsteg: ${nextLoadText}.`
-    );
+    signals.push(`auto_adjustment:${args.nextSetPlan.strategy}`);
   }
   const exerciseCategory = getExerciseProfile(args.exerciseName).category;
 
@@ -2991,12 +3516,20 @@ function buildCoachSetContext(args: {
     exerciseName: args.exerciseName,
     exerciseCategory,
     setNumber: args.setNumber,
+    setPlan: {
+      plannedSetCount,
+      setsCompleted: args.setNumber,
+      setsRemaining,
+      isLastSet,
+      nextSetIsLast,
+      isLastExercise: args.isLastExercise,
+    },
     currentSet: {
       weight: args.weight,
       reps: args.reps,
       durationSeconds: args.durationSeconds,
       metricType: args.metricType,
-      rir: args.rir,
+      rir: isTimedSet ? undefined : args.rir,
       loadText: shouldDisplayAsBodyweight(args.exerciseName, args.weight)
         ? "kroppsvikt"
         : `${formatCoachWeight(args.weight)} kg`,
@@ -3009,19 +3542,44 @@ function buildCoachSetContext(args: {
           reps: previousSet.reps,
           durationSeconds: previousSet.durationSeconds,
           metricType: previousSet.metricType,
-          rir: previousSet.rir,
+          rir: isTimedSet ? undefined : previousSet.rir,
           setText: previousSetText,
         }
       : undefined,
     personalRecordText: args.personalRecordText || undefined,
+    progressionOpportunity: progressionOpportunity
+      ? {
+          type: progressionOpportunity.type,
+          confidence: progressionOpportunity.confidence,
+          suggestedLoadText: progressionOpportunity.suggestedWeight,
+          reason: progressionOpportunity.reason,
+          tone: progressionOpportunity.tone,
+        }
+      : undefined,
+    decisionFacts: {
+      strategy: args.nextSetPlan.strategy,
+      reasonCode: decisionReasonCode,
+      weightChangeKg,
+      repsChange,
+      rirChange,
+      shouldMentionTechniqueCue,
+    },
+    uiHints: {
+      nextSetCardShowsPlan: args.nextSetPlan.strategy !== "complete",
+      avoidRepeatingFullPlan: args.nextSetPlan.strategy !== "complete",
+      avoidRepeatingRest: true,
+      avoidRepeatingTechniqueCue: !shouldMentionTechniqueCue,
+    },
     nextTarget: {
       weight: args.nextWeight,
       loadText: nextLoadText,
       repsText: args.nextSetPlan.repsText,
       rirText: args.nextSetPlan.rirText,
       strategy: args.nextSetPlan.strategy,
-      reason: args.nextSetPlan.reason,
-      techniqueCue: args.nextSetPlan.techniqueCue,
+      reason: decisionReasonCode,
+      techniqueCue: shouldMentionTechniqueCue
+        ? args.nextSetPlan.techniqueCue
+        : undefined,
     },
     restText: args.nextSetPlan.restText,
     warmupNote: args.warmupContext?.note,
@@ -3143,7 +3701,6 @@ function buildCoachMessage(args: {
     failNote,
     exerciseName,
     setNumber,
-    nextWeight,
     nextSetPlan,
     previousSets,
     personalRecordText,
@@ -3167,21 +3724,29 @@ function buildCoachMessage(args: {
     reps,
     durationSeconds,
     metricType,
-    rir,
+    rir: isTimedSet ? undefined : rir,
   });
-  const currentCoachText = shouldDisplayAsBodyweight(exerciseName, weight)
-    ? `${reps} reps med ${marginText}`
-    : `${formatCoachWeight(weight)} kg × ${reps} med ${marginText}`;
-  const previousText = previousSet
-      ? formatLoggedSetText({
-        exerciseName,
-        weight: previousSet.weight,
-        reps: previousSet.reps,
-        durationSeconds: previousSet.durationSeconds,
-        metricType: previousSet.metricType,
-        rir: previousSet.rir,
-      })
-    : "";
+
+  if (isTimedSet) {
+    const timedLines =
+      nextSetPlan.strategy === "complete"
+        ? [
+            "Snyggt. Där har vi tidsjobbet.",
+            `${currentText} är loggat.`,
+            `${exerciseName} är klar för idag. Gå vidare när du är redo.`,
+          ]
+        : [
+            setNumber === 1
+              ? "Bra start. Nu har vi en tydlig tidsnivå."
+              : "Snyggt. Tiden är inne och vi bygger vidare.",
+            `${currentText} är loggat.`,
+            `Nästa: ${nextSetPlan.repsText}. ${nextTechniqueCue}`,
+            `Vila ${restTime}.`,
+          ];
+
+    return shortCoach(timedLines);
+  }
+
   const previousRir =
     previousSet && typeof previousSet.rir === "number" ? previousSet.rir : null;
   const repsUpSameWeight =
@@ -3206,6 +3771,14 @@ function buildCoachMessage(args: {
     reps >= Math.max(1, previousSet.reps - 2) &&
     reps < previousSet.reps &&
     rir >= 1;
+  const sameWeightTrend = getSameWeightTrendSignal({
+    weight,
+    reps,
+    rir,
+    previousSets,
+    targetReps: 10,
+    exerciseName,
+  });
   const clearProgression = repsUpSameWeight || sameRepsMoreMargin;
   const isNewPersonalBest = personalRecordText?.startsWith("Nytt personbästa");
   const specificObservation = (() => {
@@ -3320,6 +3893,14 @@ function buildCoachMessage(args: {
     );
 
   if (nextSetPlan.strategy === "complete") {
+    if (sameWeightTrend.tooEasy) {
+      return coachResponse([
+        "Okej.",
+        "Den var för lätt idag.",
+        "Nästa gång öppnar vi högre.",
+      ]);
+    }
+
     if (hasPayoff) {
       return coachResponse([
         `${exerciseName} är klar för idag.`,
@@ -3497,10 +4078,10 @@ function buildCoachMessage(args: {
 
   if (rir === 0) {
     return coachResponse([
-      "Bra kämpat! Där var vi nära gränsen.",
+      "Bra. Det där var ett hårt set.",
       currentText,
       hasPreviousSet
-        ? "Det är helt rimligt efter arbetet innan."
+        ? "Det är bra stimulans efter seten innan, inte ett tecken på slarv."
         : bodyObservation,
       nextSetPlan.reason,
       "",
@@ -3528,80 +4109,6 @@ function buildCoachMessage(args: {
     `Vila ${restTime}.`,
   ]);
 }
-type CheckInSignal = {
-  dayForm: DayForm;
-  coachIntro: string;
-  coachChatMessage: string;
-  caution: string;
-};
-
-function buildCheckInSignal(input: string): CheckInSignal | null {
-  const lower = input.trim().toLowerCase();
-
-  if (!lower) return null;
-
-  if (
-    lower.includes("rygg") ||
-    lower.includes("ländrygg") ||
-    lower.includes("ont") ||
-    lower.includes("stel")
-  ) {
-    return {
-      dayForm: "trött",
-      coachIntro:
-        "Vi startar lugnt idag.",
-      coachChatMessage:
-        "Säg till direkt om något känns fel.",
-      caution:
-        "Avbryt om något gör ont.",
-    };
-  }
-
-  if (
-    lower.includes("trött") ||
-    lower.includes("sliten") ||
-    lower.includes("seg") ||
-    lower.includes("sovit dåligt")
-  ) {
-    return {
-      dayForm: "trött",
-      coachIntro:
-        "Vi börjar lite lugnare idag.",
-      coachChatMessage:
-        "Första arbetssetet visar oss var vi ligger.",
-      caution:
-        "Ingen stress upp i vikt direkt.",
-    };
-  }
-
-  if (
-    lower.includes("stark") ||
-    lower.includes("redo") ||
-    lower.includes("taggad") ||
-    lower.includes("pigga ben")
-  ) {
-    return {
-      dayForm: "stark",
-      coachIntro:
-        "Bra. Du verkar pigg idag.",
-      coachChatMessage:
-        "Bra. Första setet visar hur offensiva vi kan vara.",
-      caution:
-        "Vi börjar fortfarande med kontroll.",
-    };
-  }
-
-  return {
-    dayForm: "normal",
-      coachIntro:
-        "Vi startar lugnt.",
-      coachChatMessage:
-        "Första setet visar oss var vi ligger.",
-    caution:
-      "Logga första setet tidigt.",
-  };
-}
-
 function getWorkoutComparison(history: Workout[]) {
   if (history.length < 2) {
     return {
@@ -3711,8 +4218,10 @@ export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
   const [started, setStarted] = useState(false);
   const [workoutReview, setWorkoutReview] = useState<WorkoutReview | null>(null);
+  const [workoutReviewLoading, setWorkoutReviewLoading] = useState(false);
   const [latestCompletedReview, setLatestCompletedReview] =
   useState<WorkoutReview | null>(null);
+  const exerciseInputKeyRef = useRef("");
   const [now, setNow] = useState<Date>(new Date());
   const [gym, setGym] = useState<string>("Sjöviksgymmet");
   const [lastPass, setLastPass] = useState<PassType | null>(null);
@@ -3770,6 +4279,7 @@ const [chatLog, setChatLog] = useState<
     aiStatus?: "fallback";
   }[]
 >([]);
+const [coachPendingReply, setCoachPendingReply] = useState(false);
 const [nameInput, setNameInput] = useState("");
 const [ageInput, setAgeInput] = useState("");
 const [genderInput, setGenderInput] =
@@ -3808,8 +4318,6 @@ const [swapToInput, setSwapToInput] = useState("");
 
 const [customExerciseInput, setCustomExerciseInput] = useState("");
 const [workoutExerciseInput, setWorkoutExerciseInput] = useState("");
-const [checkInInput, setCheckInInput] = useState("");
-const [checkInCoachReply, setCheckInCoachReply] = useState("")
 const [showProgramReview, setShowProgramReview] = useState(false);
 const [programPreferenceInput, setProgramPreferenceInput] = useState("");
 const [programPreferenceReply, setProgramPreferenceReply] = useState("");
@@ -3825,8 +4333,6 @@ const [customWorkoutPlan, setCustomWorkoutPlan] =
   useState<StoredWorkoutPlan | null>(null);
 const [passDisplayNamesByPass, setPassDisplayNamesByPass] =
   useState<PassDisplayNamesByPass>({});
-const [activeCheckInSignal, setActiveCheckInSignal] =
-  useState<CheckInSignal | null>(null);
 const [activeWarmupContext, setActiveWarmupContext] =
   useState<WarmupContext | null>(null);
 const [activeConditioningContext, setActiveConditioningContext] =
@@ -4254,6 +4760,55 @@ const progression = useMemo(() => {
     .slice(0, 3);
 }, [history, currentExerciseName, workout, personalRecords]);
 
+const previousExerciseSets = useMemo(() => {
+  if (!currentExerciseName) return [];
+
+  return getPreviousExerciseSets(history, currentExerciseName);
+}, [history, currentExerciseName]);
+
+function getProgressionHistoryForExercise(
+  exerciseName: string,
+  baseHistory: Workout[],
+  fallback?: { gym: string; pass: PassType; displayName: string }
+) {
+  const pr = personalRecords[exerciseKey(exerciseName)];
+  if (!pr) return baseHistory;
+
+  const alreadyHasPr = baseHistory.some((item) =>
+    item.exercises.some(
+      (exercise) =>
+        exerciseKey(exercise.name) === exerciseKey(exerciseName) &&
+        exercise.sets.some(
+          (set) => set.weight === pr.weight && set.reps === pr.reps
+        )
+    )
+  );
+
+  if (alreadyHasPr) return baseHistory;
+
+  const prWorkout: Workout = {
+    id: `personal-record-${exerciseKey(exerciseName)}`,
+    startedAt: pr.createdAt,
+    gym: fallback?.gym ?? workout?.gym ?? "",
+    pass: fallback?.pass ?? workout?.pass ?? nextPass,
+    displayName: fallback?.displayName ?? workout?.displayName ?? "Personbästa",
+    exercises: [
+      {
+        name: exerciseName,
+        sets: [
+          {
+            weight: pr.weight,
+            reps: pr.reps,
+            createdAt: pr.createdAt,
+          },
+        ],
+      },
+    ],
+  };
+
+  return [prWorkout, ...baseHistory];
+}
+
 const progressionHistory = useMemo(() => {
   const baseHistory = workout ? [workout, ...history] : history;
   if (!currentExerciseName) return baseHistory;
@@ -4451,9 +5006,7 @@ const removedExercisesNote = buildRemovedExercisesCoachNote(
   removedExercisesForNextPass
 );
 
-const introBase = activeCheckInSignal?.coachIntro
-  ? `${getWorkoutIntro(dayForm)} ${activeCheckInSignal.coachIntro}`
-  : getWorkoutIntro(dayForm);
+const introBase = getWorkoutIntro(dayForm);
 
 const intro = removedExercisesNote
   ? `${introBase} ${removedExercisesNote}`
@@ -4475,9 +5028,8 @@ const memoryInsight = buildExerciseMemoryInsight({
   exerciseName: currentExerciseName,
 });
 
-let insight = activeCheckInSignal?.caution ?? "";
-if (!insight && memoryInsight) insight = memoryInsight;
-else if (!insight && fatigue) insight = fatigue;
+let insight = memoryInsight;
+if (!insight && fatigue) insight = fatigue;
 else if (!insight && stagnation) insight = stagnation;
 else if (!insight && progressionPlan.action === "increase") insight = progressionPlan.reason;
 else if (!insight && progressionPlan.action === "deload") insight = progressionPlan.reason;
@@ -4503,7 +5055,6 @@ else if (!insight && progressionPlan.action === "deload") insight = progressionP
   dayForm,
   history,
   removedExercisesForNextPass,
-  activeCheckInSignal,
   coachMemory,
 ]);
 
@@ -4511,22 +5062,24 @@ else if (!insight && progressionPlan.action === "deload") insight = progressionP
 useEffect(() => {
   if (!started) return;
   if (!currentExerciseName) return;
+  const nextExerciseKey = exerciseKey(currentExerciseName);
+
+  if (exerciseInputKeyRef.current === nextExerciseKey) return;
+
+  exerciseInputKeyRef.current = nextExerciseKey;
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  setWeightInput((prev) =>
-    !isBodyweightExercise(currentExerciseName) && prev.trim() === ""
-      ? adjustedSuggestion.weight
-      : prev
+  setWeightInput(
+    !isBodyweightExercise(currentExerciseName) ? adjustedSuggestion.weight : ""
   );
-  setRepsInput((prev) => (prev.trim() === "" ? adjustedSuggestion.reps : prev));
+  setRepsInput(adjustedSuggestion.reps);
 }, [currentExerciseName, started, adjustedSuggestion.weight, adjustedSuggestion.reps]);
 
 
 function startWorkout() {
   if (!nextPlannedPass || !workoutPlan) return;
-  const checkInSignal = buildCheckInSignal(checkInInput);
-  const warmupContext = buildWarmupContext(checkInInput);
-  const conditioningContext = buildConditioningContext(checkInInput);
+  const warmupContext = null;
+  const conditioningContext = null;
 
   const startedAt = new Date();
 const w: Workout = {
@@ -4538,7 +5091,19 @@ const w: Workout = {
     nextPlannedPass?.displayName ?? `Pass ${nextPass}`
   ),
   planTitle: workoutPlan?.title,
-  exercises: plan.map((name: string) => ({ name, sets: [] })),
+  exercises: plan.map((name: string) => {
+    const plannedExercise = nextPlannedPass.exercises.find(
+      (exercise) => exerciseKey(exercise.name) === exerciseKey(name)
+    );
+
+    return {
+      name,
+      plannedSets: parsePlannedSetCount(plannedExercise?.sets) ?? undefined,
+      plannedReps: plannedExercise?.reps,
+      plannedRir: plannedExercise?.rir,
+      sets: [],
+    };
+  }),
   warmupContext,
   conditioningContext,
 };
@@ -4550,48 +5115,35 @@ const w: Workout = {
     setStarted(true);
     setSelectedStartPass(null);
     setChatInput("");
-    setDayForm(checkInSignal?.dayForm ?? "normal");
-    setActiveCheckInSignal(checkInSignal);
+    setDayForm("normal");
     setActiveWarmupContext(warmupContext);
     setActiveConditioningContext(conditioningContext);
     setNow(startedAt);
 const firstExerciseName = plan[0] ?? "";
+const firstExercisePlan = firstExerciseName
+  ? buildProgressionPlan({
+      history: getProgressionHistoryForExercise(firstExerciseName, history, {
+        gym,
+        pass: nextPass,
+        displayName: nextPassLabel,
+      }),
+      exerciseName: firstExerciseName,
+      targetReps: goalTargets.targetReps,
+      dayForm: "normal",
+    })
+  : null;
 
-const startMessages: { role: "coach" | "you"; text: string; setNumber?: number }[] = [];
-
-if (checkInSignal) {
-  startMessages.push({
-    role: "coach",
-    text: checkInSignal.coachChatMessage,
-  });
-}
-
-if (warmupContext) {
-  startMessages.push({
-    role: "coach",
-    text: getWarmupCoachReply(warmupContext),
-  });
-}
-
-if (
-  conditioningContext &&
-  !(warmupContext?.status === "cardio" && conditioningContext.intensity === "light")
-) {
-  startMessages.push({
-    role: "coach",
-    text: getConditioningCoachReply(conditioningContext, userProfile?.goalPrimary),
-  });
-}
-
-setChatLog(startMessages);
+setChatLog([]);
 localStorage.setItem("lastGym", gym);
 
 // Fyll direkt första övningens förslag
-setWeightInput(isBodyweightExercise(firstExerciseName) ? "" : adjustedSuggestion.weight);
-setRepsInput(adjustedSuggestion.reps);
-    setCheckInCoachReply("");
-    setCheckInInput("");
-    setActiveWarmupContext(null);
+exerciseInputKeyRef.current = firstExerciseName ? exerciseKey(firstExerciseName) : "";
+setWeightInput(
+  firstExerciseName && !isBodyweightExercise(firstExerciseName)
+    ? firstExercisePlan?.weight ?? ""
+    : ""
+);
+setRepsInput(firstExercisePlan?.reps ?? String(goalTargets.targetReps));
     setDidFailInput(false);
   }
 function shouldHoldYouToPlan(opts: {
@@ -4859,8 +5411,10 @@ async function sendChat() {
   // Lägg in ditt meddelande
   setChatLog((prev) => [...prev, { role: "you", text: msg }]);
   setChatInput("");
+  setCoachPendingReply(true);
 
   const reply = (text: string, aiStatus?: "fallback") => {
+    setCoachPendingReply(false);
     setChatLog((prev) => {
       const last = prev[prev.length - 1];
       if (last?.role === "coach" && last.text === text) return prev;
@@ -4917,6 +5471,7 @@ async function sendChat() {
           : undefined,
         exerciseIndex: workout ? exerciseIndex + 1 : undefined,
         exerciseCount: workout?.exercises.length,
+        currentExerciseCompleted: Boolean(currentWorkoutExercise?.completed),
         currentSets: currentWorkoutExercise?.sets.map((set) => ({
           weight: set.weight,
           reps: set.reps,
@@ -4928,6 +5483,13 @@ async function sendChat() {
         currentCoachDecision:
           currentWorkoutExercise && currentWorkoutExercise.sets.length > 0
             ? (() => {
+                if (currentWorkoutExercise.completed) {
+                  return {
+                    strategy: "complete" as const,
+                    reason: "Övningen är klar. Prata om nästa gång eller nästa övning, inte nästa set.",
+                  };
+                }
+
                 const latestSet =
                   currentWorkoutExercise.sets[
                     currentWorkoutExercise.sets.length - 1
@@ -4938,6 +5500,8 @@ async function sendChat() {
                   rir: latestSet.rir ?? 2,
                   failNote: latestSet.failNote,
                   setNumber: currentWorkoutExercise.sets.length,
+                  plannedSetCount: currentWorkoutExercise.plannedSets,
+                  targetReps: goalTargets.targetReps,
                   exerciseName: currentExerciseName,
                   previousSets: currentWorkoutExercise.sets.slice(0, -1),
                 });
@@ -4961,6 +5525,24 @@ async function sendChat() {
                   techniqueCue: decision.techniqueCue,
                 };
               })()
+            : undefined,
+        progressionOpportunity: progressionPlan.opportunity
+          ? {
+              type: progressionPlan.opportunity.type,
+              confidence: progressionPlan.opportunity.confidence,
+              suggestedLoadText: `${progressionPlan.opportunity.suggestedWeight} kg`,
+              reason: progressionPlan.opportunity.reason,
+              tone: progressionPlan.opportunity.tone,
+            }
+          : undefined,
+        uiHints:
+          currentWorkoutExercise && currentWorkoutExercise.sets.length > 0
+            ? {
+                nextSetCardShowsPlan: true,
+                avoidRepeatingFullPlan: true,
+                avoidRepeatingRest: true,
+                avoidRepeatingTechniqueCue: true,
+              }
             : undefined,
         activePlan,
         activePlanExerciseInfo: buildExerciseLibraryInfoList(activePlan),
@@ -4999,6 +5581,7 @@ async function sendChat() {
 
   if (confirmsPendingSwap) {
     replaceExerciseInCurrentWorkout(swapFrom, swapToInput);
+    setCoachPendingReply(false);
     return;
   }
 
@@ -5079,6 +5662,7 @@ async function sendChat() {
   if (routedIntent.topic === "addExercise") {
     if (workout && routedIntent.addExerciseName) {
       addExerciseToCurrentWorkout(routedIntent.addExerciseName);
+      setCoachPendingReply(false);
       return;
     }
 
@@ -5201,24 +5785,15 @@ function addCustomExercise(pass: PassType, nameRaw: string) {
 
   if (resolved.status === "suggest") {
     setCustomExerciseInput(resolved.suggestion);
-    setCheckInCoachReply(
-      `Menar du ${resolved.suggestion}? Jag har fyllt i det namnet. Tryck igen om det stämmer.`
-    );
     return;
   }
 
   if (resolved.status === "needsCategory") {
     setCustomExerciseInput(`egen ben: ${resolved.name}`);
-    setCheckInCoachReply(
-      "Vad tränar den främst? Skriv till exempel egen ben:, egen rygg: eller egen armar:. Jag fyllde i ben som exempel."
-    );
     return;
   }
 
   if (resolved.status === "unknown") {
-    setCheckInCoachReply(
-      "Jag är osäker på vilken övning du menar. Skriv gärna det vanligaste namnet, eller börja med egen: om du vill lägga in den exakt så."
-    );
     return;
   }
 
@@ -5244,24 +5819,15 @@ function addTodayExercise(pass: PassType, nameRaw: string) {
 
   if (resolved.status === "suggest") {
     setCustomExerciseInput(resolved.suggestion);
-    setCheckInCoachReply(
-      `Menar du ${resolved.suggestion}? Jag har fyllt i det namnet. Tryck igen om det stämmer.`
-    );
     return;
   }
 
   if (resolved.status === "needsCategory") {
     setCustomExerciseInput(`egen ben: ${resolved.name}`);
-    setCheckInCoachReply(
-      "Vad tränar den främst? Skriv till exempel egen ben:, egen rygg: eller egen armar:. Jag fyllde i ben som exempel."
-    );
     return;
   }
 
   if (resolved.status === "unknown") {
-    setCheckInCoachReply(
-      "Jag är osäker på vilken övning du menar. Skriv gärna det vanligaste namnet, eller börja med egen: om du vill lägga in den exakt så."
-    );
     return;
   }
 
@@ -7115,7 +7681,11 @@ const set: LoggedSet = {
   reps: timedExercise ? 0 : reps,
   durationSeconds,
   metricType: timedExercise ? "time" : "reps",
-  rir: typeof rirInput === "number" ? Number(rirInput) : undefined,
+  rir: timedExercise
+    ? undefined
+    : typeof rirInput === "number"
+    ? Number(rirInput)
+    : undefined,
   failNote: didFailInput ? failNoteInput.trim() || "failure" : undefined,
   createdAt: new Date().toISOString(),
 };
@@ -7128,15 +7698,28 @@ const painFailure =
 
     const updated = structuredClone(workout);
     updated.exercises[exerciseIndex].sets.push(set);
-    setWorkout(updated);
-   const setNumber = updated.exercises[exerciseIndex].sets.length;
+   const currentLoggedExercise = updated.exercises[exerciseIndex];
+   const plannedExerciseForCurrent = (workoutPlan?.passes
+    .find((pass) => pass.key === updated.pass)
+    ?.exercises.find(
+      (exercise) =>
+        exerciseKey(exercise.name) === exerciseKey(currentLoggedExercise.name)
+    ) ?? null) as PlannedExercise | null;
+   const plannedSetCount =
+    currentLoggedExercise.plannedSets ??
+    parsePlannedSetCount(plannedExerciseForCurrent?.sets) ??
+    goalTargets.targetSets;
+   currentLoggedExercise.plannedSets = plannedSetCount;
+   currentLoggedExercise.plannedReps ??= plannedExerciseForCurrent?.reps;
+   currentLoggedExercise.plannedRir ??= plannedExerciseForCurrent?.rir;
+   const setNumber = currentLoggedExercise.sets.length;
    const rawNextSetPlan = timedExercise
     ? getNextTimedSetPlan({
         weight,
         durationSeconds: durationSeconds ?? 0,
-        rir: rirInput,
         failNote: didFailInput ? failNoteInput : "",
         setNumber,
+        plannedSetCount,
         exerciseName: currentExerciseName,
       })
     : getNextSetPlan({
@@ -7145,6 +7728,8 @@ const painFailure =
         rir: rirInput,
         failNote: didFailInput ? failNoteInput : "",
         setNumber,
+        plannedSetCount,
+        targetReps: goalTargets.targetReps,
         exerciseName: currentExerciseName,
         previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
       });
@@ -7152,6 +7737,13 @@ const painFailure =
     bodyweightExercise && !hasLoggedWeight
       ? { ...rawNextSetPlan, weight: 0 }
       : rawNextSetPlan;
+   const effectivePlannedSetCount =
+    nextSetPlan.strategy !== "complete" && setNumber >= plannedSetCount
+      ? setNumber + 1
+      : plannedSetCount;
+   currentLoggedExercise.plannedSets = effectivePlannedSetCount;
+   currentLoggedExercise.completed = nextSetPlan.strategy === "complete";
+    setWorkout(updated);
    const suggestedNextWeight = nextSetPlan.weight;
 
 
@@ -7169,7 +7761,7 @@ const newLastByExercise: LastByExercise = {
   reps: timedExercise ? 0 : reps,
   durationSeconds,
   metricType: timedExercise ? "time" : "reps",
-  rir: rirInput ?? null,
+  rir: timedExercise ? null : rirInput ?? null,
   failNote: didFailInput ? failNoteInput.trim() || "failure" : null,
   updatedAt: new Date().toISOString(),
 },
@@ -7237,6 +7829,8 @@ const coachSetContext = buildCoachSetContext({
   failNote: didFailInput ? failNoteInput.trim() || "failure" : "",
   nextWeight: suggestedNextWeight,
   nextSetPlan,
+  plannedSetCount: effectivePlannedSetCount,
+  isLastExercise: exerciseIndex >= updated.exercises.length - 1,
   previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
   personalRecordText,
   lastCoachMessage,
@@ -7267,24 +7861,36 @@ if (isNewPR(existingPR, prAttempt)) {
     reps: timedExercise ? 0 : reps,
     durationSeconds,
     metricType: prAttempt.metricType,
-    rir: typeof rirInput === "number" ? rirInput : null,
+    rir: timedExercise ? null : typeof rirInput === "number" ? rirInput : null,
     achievedAt: newPR.createdAt,
   });
 
 
 }
 
+setCoachPendingReply(true);
 const coachReply = await requestAiCoachSetReply({
   context: coachSetContext,
   fallbackReply: coachMessage,
 });
+setCoachPendingReply(false);
 
 if (coachReply.text) {
+  const isWorkoutFinished =
+    nextSetPlan.strategy === "complete" &&
+    exerciseIndex >= updated.exercises.length - 1;
+  const coachReplyText = isWorkoutFinished
+    ? appendWorkoutFinishLine(
+        coachReply.text,
+        getRotatingWorkoutFinishLine(updated.id, setNumber)
+      )
+    : coachReply.text;
+
   setChatLog((prev) => [
     ...prev,
     {
       role: "coach",
-      text: coachReply.text,
+      text: coachReplyText,
       setNumber,
       aiStatus: coachReply.mode === "ai" ? undefined : "fallback",
     },
@@ -7337,6 +7943,7 @@ setRirInput(nextSetRirInput);
     const exerciseName = updated.exercises[exerciseIndex].name;
     const key = exerciseKey(exerciseName);
     sets.pop();
+    updated.exercises[exerciseIndex].completed = false;
     setWorkout(updated);
 
     const workoutsForExercise = [updated, ...history];
@@ -7760,7 +8367,8 @@ const review = buildWorkoutReview({
   progression: progressionComparison,
 });
 
-setWorkoutReview(review);
+setWorkoutReview(null);
+setWorkoutReviewLoading(true);
 setLatestCompletedReview(review);
 void syncStructuredBetaWorkout({
   id: workoutWithSummary.id,
@@ -7817,14 +8425,18 @@ void requestAiWorkoutReview({
   },
   fallbackReview: getReviewCoachParts(review),
 }).then((response) => {
-  if (response.mode !== "ai") return;
+  const finalReview =
+    response.mode === "ai"
+      ? applyReviewCoachParts(review, response.review)
+      : review;
 
-  setWorkoutReview((current) =>
-    current ? applyReviewCoachParts(current, response.review) : current
-  );
-  setLatestCompletedReview((current) =>
-    current ? applyReviewCoachParts(current, response.review) : current
-  );
+  setWorkoutReview(finalReview);
+  setLatestCompletedReview(finalReview);
+}).catch(() => {
+  setWorkoutReview(review);
+  setLatestCompletedReview(review);
+}).finally(() => {
+  setWorkoutReviewLoading(false);
 });
 setWorkoutComplete(false);
 setWorkout(null);
@@ -7856,9 +8468,6 @@ setStarted(false);
     setGym("Sjöviksgymmet");
     setHistory([]);
     setLastByExercise({});
-    setCheckInInput("");
-    setCheckInCoachReply("");
-    setActiveCheckInSignal(null);
     setActiveWarmupContext(null);
     setActiveConditioningContext(null);
     setUserProfile(null);
@@ -7871,6 +8480,9 @@ setStarted(false);
     setPassDisplayNamesByPass({});
     setWorkout(null);
     setSkippedExercise(null);
+    setWorkoutReview(null);
+    setWorkoutReviewLoading(false);
+    setWorkoutComplete(false);
     setStarted(false);
     alert("Allt återställt ✅");
     setCoachMemory({ notes: [] });
@@ -7905,10 +8517,6 @@ const settingsPanel = showSettings ? (
       saveJSON("appTheme", theme);
     }}
     onBack={() => setShowSettings(false)}
-    onOpenProfile={() => {
-      setShowSettings(false);
-      setEditingProfile(true);
-    }}
     onOpenProgram={
       userProfile
         ? () => {
@@ -8212,10 +8820,12 @@ return (
         dayForm={dayForm}
         setDayForm={setDayForm}
         currentSets={workout?.exercises?.[exerciseIndex]?.sets ?? []}
+        currentExerciseCompleted={Boolean(workout?.exercises?.[exerciseIndex]?.completed)}
         chatLog={chatLog}
         chatInput={chatInput}
         setChatInput={setChatInput}
         sendChat={sendChat}
+        isCoachThinking={coachPendingReply}
         workoutExerciseInput={workoutExerciseInput}
         setWorkoutExerciseInput={setWorkoutExerciseInput}
         addExerciseDuringWorkout={addExerciseDuringWorkout}
@@ -8262,15 +8872,19 @@ addCoachMessage={(text) =>
         finishWorkout={finishWorkout}
         personalRecords={personalRecords}
         progression={progression}
+        previousExerciseSets={previousExerciseSets}
         progressionPlan={progressionPlan}
       />
       
+) : workoutReviewLoading ? (
+  <WorkoutReviewLoadingScreen theme={appTheme} />
 ) : workoutReview ? (
   <WorkoutReviewScreen
     review={workoutReview}
     onClose={() => {
       setWorkoutReview(null);
-      setWorkoutComplete(true);
+      setWorkoutComplete(false);
+      setShowDailyPlan(false);
     }}
   />
 ) : showDailyPlan ? (
@@ -8281,7 +8895,6 @@ addCoachMessage={(text) =>
     availablePasses={availablePassChoices}
     onSelectPass={(pass) => {
       setSelectedStartPass(pass);
-      setCheckInCoachReply("");
     }}
     now={now}
     plan={savedPlan}
@@ -8301,10 +8914,6 @@ addCoachMessage={(text) =>
     removePlannedExercise={removePlannedExercise}
     customExercisesByPass={customExercisesByPass}
     todayExercisesByPass={todayExercisesByPass}
-    checkInInput={checkInInput}
-    setCheckInInput={setCheckInInput}
-    checkInCoachReply={checkInCoachReply}
-    setCheckInCoachReply={setCheckInCoachReply}
     startWorkout={startWorkout}
     hasAcceptedTrainingSafety={hasAcceptedTrainingSafety}
     onAcceptTrainingSafety={() => {
@@ -8361,6 +8970,7 @@ addCoachMessage={(text) =>
     personalRecords={personalRecords}
     weeklyStats={weeklyStats}
     daysPerWeek={userProfile.daysPerWeek}
+    now={now}
     theme={appTheme}
     onStartWorkout={() => {
       setShowExerciseProgress(false);

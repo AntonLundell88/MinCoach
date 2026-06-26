@@ -51,6 +51,7 @@ type Props = {
     totalSets: number;
   };
   daysPerWeek: number;
+  now: Date;
   onStartWorkout: () => void;
   onOpenStatistics: () => void;
   onOpenHistory: () => void;
@@ -91,6 +92,14 @@ function formatRecord(record: PersonalRecord) {
   return `${record.weight} × ${record.reps}`;
 }
 
+function getTimeGreeting(date: Date, personName: string) {
+  const hour = date.getHours();
+
+  if (hour < 10) return `God morgon ${personName}.`;
+  if (hour < 18) return `Hej ${personName}.`;
+  return `God kväll ${personName}.`;
+}
+
 export default function LobbyScreen({
   name,
   nextPassLabel,
@@ -98,6 +107,7 @@ export default function LobbyScreen({
   personalRecords,
   weeklyStats,
   daysPerWeek,
+  now,
   onStartWorkout,
   onOpenStatistics,
   onOpenHistory,
@@ -292,7 +302,7 @@ export default function LobbyScreen({
             <h2
               className={`mt-3 text-xl font-semibold tracking-[-0.03em] sm:text-2xl ${titleClassName}`}
             >
-              Hej {name}.
+              {getTimeGreeting(now, name)}
             </h2>
 
             <p

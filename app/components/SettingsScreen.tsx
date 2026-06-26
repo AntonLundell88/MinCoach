@@ -34,7 +34,6 @@ type Props = {
   theme: AppTheme;
   onThemeChange: (theme: AppTheme) => void;
   onBack: () => void;
-  onOpenProfile: () => void;
   onOpenProgram?: () => void;
   onResetAll: () => void;
 };
@@ -84,11 +83,35 @@ function getStatusMode(status: StoredSyncStatus | null) {
   return status.httpStatus ? `Fel ${status.httpStatus}` : "Fel";
 }
 
+function clearAuthQueryFromAddressBar() {
+  if (typeof window === "undefined") return;
+
+  const url = new URL(window.location.href);
+  const authParams = [
+    "token_hash",
+    "type",
+    "next",
+    "code",
+    "error",
+    "error_code",
+    "error_description",
+  ];
+  const hasAuthParam = authParams.some((key) => url.searchParams.has(key));
+
+  if (!hasAuthParam) return;
+
+  for (const key of authParams) {
+    url.searchParams.delete(key);
+  }
+
+  const cleanUrl = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState({}, "", cleanUrl || "/");
+}
+
 export default function SettingsScreen({
   theme,
   onThemeChange,
   onBack,
-  onOpenProfile,
   onOpenProgram,
   onResetAll,
 }: Props) {
@@ -178,6 +201,9 @@ export default function SettingsScreen({
     void supabase.auth.getSession().then(({ data }) => {
       if (isMounted) {
         setAuthSession(data.session);
+        if (data.session) {
+          clearAuthQueryFromAddressBar();
+        }
       }
     });
 
@@ -187,6 +213,7 @@ export default function SettingsScreen({
         setAuthMessage("");
         setAuthError("");
         setAccountSyncStatus(readAccountSyncStatus());
+        clearAuthQueryFromAddressBar();
       }
     });
 
@@ -634,19 +661,6 @@ export default function SettingsScreen({
                 {accountSyncError}
               </p>
             ) : null}
-          </section>
-
-          <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-            <p className={labelClassName}>Coachprofil</p>
-            <h2 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
-              Träningsunderlag
-            </h2>
-            <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
-              Mål, träningsdagar, utrustning och begränsningar styr hur coachen bygger passen.
-            </p>
-            <button onClick={onOpenProfile} className={`mt-4 ${subtleButtonClassName}`}>
-              Öppna profil
-            </button>
           </section>
 
           {onOpenProgram ? (

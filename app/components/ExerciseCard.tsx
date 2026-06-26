@@ -380,8 +380,8 @@ useEffect(() => {
 
       {isTimed ? (
         <p className="-mt-1 text-xs leading-5 text-white/42">
-          Logga tid och marginal. Slå på extra vikt om du använder viktväst, kedja
-          eller platta.
+          Logga tid. Slå på extra vikt om du använder viktväst, kedja eller
+          platta.
         </p>
       ) : isBodyweight ? (
         <p className="-mt-1 text-xs leading-5 text-white/42">
@@ -390,10 +390,12 @@ useEffect(() => {
         </p>
       ) : null}
 
+      {!isTimed ? (
+      <>
       <div className="space-y-1">
         <div className="flex items-center gap-2">
   <label className="text-xs text-gray-300">
-    {isTimed ? "Marginal till stopp" : "RIR (reps kvar i tanken)"}
+    RIR (reps kvar i tanken)
   </label>
 
   <button
@@ -407,29 +409,14 @@ useEffect(() => {
 
 {showRirInfo && (
   <div className="text-xs text-gray-300 bg-slate-950/48 border border-zinc-700 rounded-xl p-3 mt-2">
-    {isTimed ? (
-      <>
-        Hur nära du var att tappa positionen eller behöva släppa.
-        <br />
-        <br />
-        0 = max, formen höll precis
-        <br />
-        1 = nära stopp
-        <br />
-        2 = tungt men kontrollerat
-      </>
-    ) : (
-      <>
-        Hur många reps du hade kvar innan det tog stopp.
-        <br />
-        <br />
-        0 = du nådde max
-        <br />
-        1 = du hade klarat 1 rep till
-        <br />
-        2 = du hade klarat 2 reps till
-      </>
-    )}
+    Hur många reps du hade kvar innan det tog stopp.
+    <br />
+    <br />
+    0 = du nådde max
+    <br />
+    1 = du hade klarat 1 rep till
+    <br />
+    2 = du hade klarat 2 reps till
   </div>
 )}
 
@@ -462,7 +449,7 @@ useEffect(() => {
       onChange={(e) => setDidFailInput(e.target.checked)}
       className="h-4 w-4 rounded border border-white/20 bg-slate-950/38"
     />
-    <span>{isTimed ? "Jag nådde stoppet" : "Setet gick till failure"}</span>
+    <span>Setet gick till failure</span>
   </label>
 ) : null}
 {didFailInput ? (
@@ -503,6 +490,8 @@ useEffect(() => {
           />
         </div>
       )}
+      </>
+      ) : null}
 
       <div className="flex gap-2 pt-0.5">
         <button

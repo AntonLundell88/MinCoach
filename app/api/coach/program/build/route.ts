@@ -58,6 +58,7 @@ Principer:
 - Vid armbåge/handled/axel: välj smärtfritt grepp, stabila varianter och undvik onödig stress från curls, pushdowns och pressar.
 - Varje övning ska ha ett tydligt syfte. Hellre 3-5 bra övningar än ett stökigt pass, särskilt hemma eller vid lite utrustning.
 - Om availableExercises är begränsad får samma trygga övning återkomma i flera pass med olika syfte eller dosering. Fyll aldrig ut med otillåtna övningar.
+- Lägg aldrig samma exerciseKey två gånger i samma pass. Välj hellre en annan kompletterande övning eller färre övningar.
 - Välj ENDAST övningar från availableExercises. Använd exerciseKey exakt som den står i listan och matchande name. Hitta inte på nya loggbara övningar.
 - Saker som uppvärmning, skulderstabilitet, mobilitet eller rörlighet får vara råd i text, men aldrig loggbara övningar i passet.
 - Om location är hemma gäller det hårt: inga maskiner, kablar, benpress, latsdrag eller cable crunch om de inte finns i availableExercises.
@@ -298,7 +299,7 @@ function buildProgramBuildInstruction(args: {
   previousPlan: BuiltWorkoutPlan | null;
 }) {
   if (args.attempt === 1) {
-    return "Bygg ett komplett fÃ¶rsta program. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer Ã¥terhÃ¤mtningsvÃ¤nliga, sÃ¤rskilt fÃ¶r nybÃ¶rjare. Varje pass ska normalt ha 3-5 Ã¶vningar. Om availableExercises Ã¤r begrÃ¤nsad, sÃ¤rskilt hemma med lite utrustning, hellre 3 bra Ã¶vningar per pass och upprepade trygga Ã¶vningar Ã¤n otillÃ¥tna utfyllnadsÃ¶vningar. AnvÃ¤nd endast Ã¶vningar frÃ¥n availableExercises och returnera bÃ¥de exerciseKey och name exakt frÃ¥n listan. Skriv coachSummary, planReason, structureReason och safetyNotes som fyra olika texter med olika syfte. coachSummary ska prata direkt till anvÃ¤ndaren med du/vi och vara unik fÃ¶r profilen. structureReason ska fÃ¶rklara passuppdelningen. safetyNotes ska vara direkta rÃ¥d om smÃ¤rta, vikt och begrÃ¤nsningar. Om limitation finns ska den synas i Ã¶vningsval, caution och safetyNotes.";
+    return "Bygg ett komplett fÃ¶rsta program. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer Ã¥terhÃ¤mtningsvÃ¤nliga, sÃ¤rskilt fÃ¶r nybÃ¶rjare. Varje pass ska normalt ha 3-5 Ã¶vningar. Samma exerciseKey fÃ¥r inte ligga tvÃ¥ gÃ¥nger i samma pass. Om availableExercises Ã¤r begrÃ¤nsad, sÃ¤rskilt hemma med lite utrustning, hellre 3 bra Ã¶vningar per pass och upprepade trygga Ã¶vningar Ã¤n otillÃ¥tna utfyllnadsÃ¶vningar. AnvÃ¤nd endast Ã¶vningar frÃ¥n availableExercises och returnera bÃ¥de exerciseKey och name exakt frÃ¥n listan. Skriv coachSummary, planReason, structureReason och safetyNotes som fyra olika texter med olika syfte. coachSummary ska prata direkt till anvÃ¤ndaren med du/vi och vara unik fÃ¶r profilen. structureReason ska fÃ¶rklara passuppdelningen. safetyNotes ska vara direkta rÃ¥d om smÃ¤rta, vikt och begrÃ¤nsningar. Om limitation finns ska den synas i Ã¶vningsval, caution och safetyNotes.";
   }
 
   return [
@@ -611,6 +612,8 @@ function getPlanValidationIssues(
   void userName;
 
   plan.passes.forEach((pass) => {
+    const passExerciseKeys = new Set<string>();
+
     if (pass.exercises.length < passTarget.min) {
       issues.push(
         issue(
@@ -631,6 +634,20 @@ function getPlanValidationIssues(
 
     pass.exercises.forEach((exercise) => {
       const normalizedExerciseName = normalizeExerciseSearchText(exercise.name);
+      const normalizedExerciseKey = exercise.exerciseKey
+        ? normalizeExerciseKeyText(exercise.exerciseKey)
+        : getExerciseKey(exercise.name);
+
+      if (passExerciseKeys.has(normalizedExerciseKey)) {
+        issues.push(
+          issue(
+            "duplicate_exercise_in_pass",
+            `${pass.key}: ${exercise.name} ligger med mer än en gång i samma pass.`
+          )
+        );
+      }
+
+      passExerciseKeys.add(normalizedExerciseKey);
 
       if (
         forbiddenExerciseTerms.some((term) =>
@@ -905,7 +922,7 @@ export async function POST(request: Request) {
                     context: compactContext,
                     instruction:
                       attempt === 1
-                        ? "Bygg ett komplett första program. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer återhämtningsvänliga, särskilt för nybörjare. Varje pass ska normalt ha 3-5 övningar. Om availableExercises är begränsad, särskilt hemma med lite utrustning, hellre 3 bra övningar per pass och upprepade trygga övningar än otillåtna utfyllnadsövningar. Använd endast övningar från availableExercises och returnera både exerciseKey och name exakt från listan. Skriv coachSummary, planReason, structureReason och safetyNotes som fyra olika texter med olika syfte. coachSummary ska prata direkt till användaren med du/vi och vara unik för profilen. structureReason ska förklara passuppdelningen. safetyNotes ska vara direkta råd om smärta, vikt och begränsningar. Om limitation finns ska den synas i övningsval, caution och safetyNotes."
+                        ? "Bygg ett komplett första program. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer återhämtningsvänliga, särskilt för nybörjare. Varje pass ska normalt ha 3-5 övningar. Samma exerciseKey får inte ligga två gånger i samma pass. Om availableExercises är begränsad, särskilt hemma med lite utrustning, hellre 3 bra övningar per pass och upprepade trygga övningar än otillåtna utfyllnadsövningar. Använd endast övningar från availableExercises och returnera både exerciseKey och name exakt från listan. Skriv coachSummary, planReason, structureReason och safetyNotes som fyra olika texter med olika syfte. coachSummary ska prata direkt till användaren med du/vi och vara unik för profilen. structureReason ska förklara passuppdelningen. safetyNotes ska vara direkta råd om smärta, vikt och begränsningar. Om limitation finns ska den synas i övningsval, caution och safetyNotes."
                         : "Svara med komplett giltig JSON enligt schemat.",
                     validationIssues: issueText(lastIssues),
                     previousPlan: previousInvalidPlan,

@@ -19,7 +19,7 @@ function template(
 const weightLog = "Vikt, reps och RIR.";
 const machineLog = "Maskinens vikt, reps och RIR.";
 const bodyweightLog = "Reps och RIR. Extra vikt loggas bara om du använder den.";
-const timeLog = "Tid och RIR. RIR betyder marginal innan positionen börjar falla.";
+const timeLog = "Tid.";
 
 const flatPress = template(
   "Plan bänk + skivstång",

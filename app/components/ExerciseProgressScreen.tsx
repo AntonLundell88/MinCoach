@@ -76,6 +76,16 @@ function getSetLabel(set: LoggedSet) {
   return `${set.weight} × ${set.reps}`;
 }
 
+function getSetEffortLabel(set?: LoggedSet | null) {
+  if (!set) return "";
+
+  if (set.metricType === "time" || typeof set.durationSeconds === "number") {
+    return "";
+  }
+
+  return `RIR ${set.rir ?? "-"}`;
+}
+
 function getBestSet(sets: LoggedSet[]) {
   return sets.reduce<LoggedSet | null>((best, set) => {
     if (!best) return set;
@@ -570,9 +580,11 @@ export default function ExerciseProgressScreen({
                   <p className="mt-1.5 text-lg font-semibold tracking-[-0.04em] text-white sm:text-xl">
                     {latestSet ? getSetLabel(latestSet) : "-"}
                   </p>
-                  <p className="mt-1 text-xs text-white/48">
-                    RIR {latestSet?.rir ?? "-"}
-                  </p>
+                  {getSetEffortLabel(latestSet) ? (
+                    <p className="mt-1 text-xs text-white/48">
+                      {getSetEffortLabel(latestSet)}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="rounded-xl border border-white/[0.09] bg-slate-950/18 p-3">
@@ -582,9 +594,11 @@ export default function ExerciseProgressScreen({
                   <p className="mt-1.5 text-lg font-semibold tracking-[-0.04em] text-white sm:text-xl">
                     {bestSet ? getSetLabel(bestSet) : "-"}
                   </p>
-                  <p className="mt-1 text-xs text-white/48">
-                    RIR {bestSet?.rir ?? "-"}
-                  </p>
+                  {getSetEffortLabel(bestSet) ? (
+                    <p className="mt-1 text-xs text-white/48">
+                      {getSetEffortLabel(bestSet)}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="rounded-xl border border-white/[0.09] bg-slate-950/18 p-3">
@@ -685,13 +699,15 @@ export default function ExerciseProgressScreen({
                                   </span>
                                 ) : null}
                               </span>
-                              <span
-                                className={`text-xs font-medium ${
-                                  isTopSet ? "text-white/76" : "text-blue-100/70"
-                                }`}
-                              >
-                                RIR {set.rir ?? "-"}
-                              </span>
+                              {getSetEffortLabel(set) ? (
+                                <span
+                                  className={`text-xs font-medium ${
+                                    isTopSet ? "text-white/76" : "text-blue-100/70"
+                                  }`}
+                                >
+                                  {getSetEffortLabel(set)}
+                                </span>
+                              ) : null}
                             </div>
                           );
                         })}

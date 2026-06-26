@@ -11,6 +11,7 @@ type Props = {
   prevExercise: () => void;
   nextExercise: () => void;
   finishWorkout: () => void;
+  currentExerciseReadyToFinish: boolean;
 };
 
 export default function WorkoutNavigation({
@@ -21,10 +22,12 @@ export default function WorkoutNavigation({
   prevExercise,
   nextExercise,
   finishWorkout,
+  currentExerciseReadyToFinish,
 }: Props) {
   const [showMore, setShowMore] = useState(false);
   const isFirstExercise = exerciseIndex === 0;
   const isLastExercise = exerciseIndex === activePlan.length - 1;
+  const canFinishWorkout = isLastExercise && currentExerciseReadyToFinish;
 
   return (
     <div className="rounded-[1.25rem] border border-white/[0.065] bg-white/[0.022] p-2 backdrop-blur-2xl">
@@ -39,18 +42,23 @@ export default function WorkoutNavigation({
         </button>
 
         <button
-          className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold shadow-[0_8px_22px_rgba(37,99,235,0.10)] transition active:scale-[0.985] ${
-            isLastExercise
+          className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold shadow-[0_8px_22px_rgba(37,99,235,0.10)] transition active:scale-[0.985] disabled:cursor-not-allowed disabled:active:scale-100 ${
+            canFinishWorkout
               ? "border border-emerald-300/24 bg-emerald-400/[0.15] text-emerald-50 hover:bg-emerald-400/[0.20]"
+              : isLastExercise
+              ? "border border-white/[0.075] bg-white/[0.045] text-white/42"
               : "border border-blue-300/20 bg-blue-500/[0.14] text-blue-50 hover:bg-blue-500/[0.20]"
           }`}
           onClick={isLastExercise ? finishWorkout : nextExercise}
+          disabled={isLastExercise && !currentExerciseReadyToFinish}
         >
-          {isLastExercise ? (
+          {canFinishWorkout ? (
             <>
               <CheckGlyph className="h-4 w-4" />
               <span>Passet är klart</span>
             </>
+          ) : isLastExercise ? (
+            "Logga klart övningen"
           ) : (
             "Nästa övning"
           )}

@@ -32,6 +32,16 @@ function getSetLabel(set: LoggedSet) {
   return `${set.weight} x ${set.reps}`;
 }
 
+function getEffortLabel(set: LoggedSet) {
+  if (typeof set.rir !== "number") return "-";
+
+  if (set.metricType === "time" || typeof set.durationSeconds === "number") {
+    return "";
+  }
+
+  return `RIR ${set.rir}`;
+}
+
 export default function SetList({ currentSets }: Props) {
   const setListContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -64,9 +74,11 @@ export default function SetList({ currentSets }: Props) {
               {index + 1}. {getSetLabel(set)}
             </span>
 
-            <span className="text-[11px] text-gray-400">
-              {typeof set.rir === "number" ? `RIR ${set.rir}` : "-"}
-            </span>
+            {getEffortLabel(set) ? (
+              <span className="text-[11px] text-gray-400">
+                {getEffortLabel(set)}
+              </span>
+            ) : null}
           </li>
         ))}
       </ul>

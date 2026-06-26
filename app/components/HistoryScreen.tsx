@@ -71,6 +71,14 @@ function getSetLabel(set: LoggedSet) {
   return `${set.weight} × ${set.reps}`;
 }
 
+function getSetEffortLabel(set: LoggedSet) {
+  if (set.metricType === "time" || typeof set.durationSeconds === "number") {
+    return "";
+  }
+
+  return `RIR ${set.rir ?? "-"}`;
+}
+
 function getSetScore(set: LoggedSet) {
   if (set.metricType === "time" || typeof set.durationSeconds === "number") {
     return (set.durationSeconds ?? 0) + set.weight * 0.1;
@@ -279,9 +287,11 @@ export default function HistoryScreen({
                             <span className="text-base font-semibold text-white">
                               {getSetLabel(set)}
                             </span>
-                            <span className="text-xs font-medium text-blue-100/70">
-                              RIR {set.rir ?? "-"}
-                            </span>
+                            {getSetEffortLabel(set) ? (
+                              <span className="text-xs font-medium text-blue-100/70">
+                                {getSetEffortLabel(set)}
+                              </span>
+                            ) : null}
                           </div>
                         ))}
                       </div>

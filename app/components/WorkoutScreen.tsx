@@ -6,15 +6,30 @@ import CoachPanel from "./CoachPanel";
 import WorkoutNavigation from "./WorkoutNavigation";
 import ToggleSwitch from "./ToggleSwitch";
 import { CloseGlyph, PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
-import { getExerciseProfile, isTimedExercise } from "../lib/exercises";
+import { getExerciseProfile, isBodyweightExercise, isTimedExercise } from "../lib/exercises";
 
 type Props = {
   progression: { weight: number; reps: number; rir?: number | null; failNote?: string | null }[];
+  previousExerciseSets: {
+    createdAt: string;
+    weight: number;
+    reps: number;
+    durationSeconds?: number;
+    metricType?: "reps" | "time";
+    rir?: number;
+  }[];
   progressionPlan: {
     weight: string;
     repsText: string;
     rirText: string;
     note: string;
+    opportunity?: {
+      type: "offer_increase" | "increase_now";
+      confidence: "medium" | "high";
+      suggestedWeight: string;
+      reason: string;
+      tone: "offer" | "clear";
+    };
   };
   exerciseIndex: number;
   activePlan: string[];
@@ -41,6 +56,7 @@ type Props = {
   setChatInput: (v: string) => void;
   addCoachMessage: (text: string) => void;
   sendChat: () => void;
+  isCoachThinking?: boolean;
   workoutExerciseInput: string;
   setWorkoutExerciseInput: (v: string) => void;
   addExerciseDuringWorkout: () => void;
@@ -84,6 +100,7 @@ type Props = {
     metricType?: "reps" | "time";
     rir?: number;
   }[];
+  currentExerciseCompleted?: boolean;
   prevExercise: () => void;
   nextExercise: () => void;
   finishWorkout: () => void;
@@ -166,6 +183,35 @@ function formatDurationLabel(seconds: number) {
 
   if (minutes === 0) return `${rest} sek`;
   return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function formatWeightLabel(weight: number) {
+  if (!Number.isFinite(weight)) return "";
+  return Number(weight.toFixed(2)).toString().replace(".", ",");
+}
+
+function formatPreviousSetLabel(
+  exerciseName: string,
+  set: Props["previousExerciseSets"][number]
+) {
+  const isTimed = set.metricType === "time" || isTimedExercise(exerciseName);
+
+  if (isTimed) {
+    const time = formatDurationLabel(set.durationSeconds ?? 0);
+    const load =
+      Number.isFinite(set.weight) && set.weight > 0
+        ? ` + ${formatWeightLabel(set.weight)} kg`
+        : "";
+
+    return `${time}${load}`;
+  }
+
+  const base =
+    Number.isFinite(set.weight) && set.weight > 0
+      ? `${formatWeightLabel(set.weight)} kg x ${set.reps}`
+      : `${set.reps} reps`;
+
+  return typeof set.rir === "number" ? `${base} · RIR ${set.rir}` : base;
 }
 
 function getRestTargetRange(exerciseName: string, rir?: number) {
@@ -260,14 +306,39 @@ function getIntroTarget(args: {
   };
 }
 
+const WORKOUT_START_PEP_LINES = [
+  "Yes. Nu kör vi 🔥",
+  "Där ja. Nu kör vi 🔥",
+  "Okej. Nu startar vi passet 🔥",
+  "Nu är vi igång 🔥",
+];
+
+function getWorkoutStartPepLine(exerciseName: string) {
+  const hash = [...exerciseName].reduce(
+    (sum, char) => sum + char.charCodeAt(0),
+    0
+  );
+
+  return WORKOUT_START_PEP_LINES[hash % WORKOUT_START_PEP_LINES.length];
+}
+
 function buildExerciseIntroCoachText(args: {
   exerciseName: string;
+  exerciseIndex: number;
+  exerciseCount: number;
   progression: { weight: number; reps: number }[];
   progressionPlan: {
     weight: string;
     repsText: string;
     rirText: string;
     note: string;
+    opportunity?: {
+      type: "offer_increase" | "increase_now";
+      confidence: "medium" | "high";
+      suggestedWeight: string;
+      reason: string;
+      tone: "offer" | "clear";
+    };
   };
   lastByExercise: Props["lastByExercise"];
   exerciseKey: (name: string) => string;
@@ -275,6 +346,8 @@ function buildExerciseIntroCoachText(args: {
 }) {
   const {
     exerciseName,
+    exerciseIndex,
+    exerciseCount,
     progression,
     progressionPlan,
     lastByExercise,
@@ -285,6 +358,12 @@ function buildExerciseIntroCoachText(args: {
   const key = exerciseKey(exerciseName);
   const last = lastByExercise[key];
   const pr = personalRecords[key];
+  const introLine =
+    exerciseIndex === 0
+      ? `${getWorkoutStartPepLine(exerciseName)}\n\nFörst: ${exerciseName}.`
+      : exerciseIndex === exerciseCount - 1
+      ? `Avslutar med ${exerciseName}.`
+      : `Nu tar vi ${exerciseName}.`;
   const isTimed = isTimedExercise(exerciseName);
   if (isTimed) {
     const bestTime = pr?.durationSeconds ?? last?.durationSeconds ?? 0;
@@ -295,15 +374,12 @@ function buildExerciseIntroCoachText(args: {
       ? `Ditt bästa här är ${formatDurationLabel(bestTime)}.`
       : "Det här är första gången vi kör den tillsammans.";
 
-    return `Då tar vi ${exerciseName}.
+    return `${introLine}
 
 ${bestLine}
-Starta klockan och håll positionen så länge formen är bra.
+Starta lugnt och håll positionen så länge formen är bra.
 
-Sikta på:
-${formatDurationLabel(targetSeconds)}
-RIR 2
-
+Sikta på ${formatDurationLabel(targetSeconds)}.
 Vila 60–90 sek.`;
   }
   const topSet = pr
@@ -311,9 +387,9 @@ Vila 60–90 sek.`;
     : getTopSet(progression);
   const rest = getRestTime(exerciseName);
   const plannedWeight = Number(progressionPlan.weight);
-  const baseWeight = topSet?.weight ?? (Number.isFinite(plannedWeight) && plannedWeight > 0
+  const baseWeight = Number.isFinite(plannedWeight) && plannedWeight > 0
     ? plannedWeight
-    : last?.weight ?? null);
+    : topSet?.weight ?? last?.weight ?? null;
   const target = progressionPlan
     ? {
         reps: progressionPlan.repsText,
@@ -323,19 +399,15 @@ Vila 60–90 sek.`;
     : getIntroTarget({ last, topSet, baseWeight });
 
   if (!last && !topSet) {
-    return `Då tar vi ${exerciseName}.
+    return `${introLine}
 
-Det här är första gången vi kör den tillsammans.
-Första setet visar oss var vi ligger.
+Vi börjar kontrollerat och låter första setet visa dagsformen.
 
-Sikta på:
-${target.reps}
-${target.rir}
-
+Sikta på ${target.reps}, ${target.rir}.
 Vila ${rest}.`;
   }
 
-  const lines: string[] = [`Då tar vi ${exerciseName}.`, ""];
+  const lines: string[] = [introLine, ""];
 
   if (last?.failNote) {
     lines.push("Senast tog det stopp här, så vi öppnar smart.");
@@ -353,15 +425,22 @@ Vila ${rest}.`;
         : `Vi börjar på ${baseWeight} kg och siktar på ${target.reps}, ${target.rir}.`
     );
 
+    if (
+      progressionPlan.opportunity?.type === "offer_increase" &&
+      progressionPlan.opportunity.suggestedWeight &&
+      topSet &&
+      baseWeight === topSet.weight
+    ) {
+      lines.push(
+        `Vill du testa ${progressionPlan.opportunity.suggestedWeight} kg idag så köper jag det. Då jagar vi färre, snygga reps - inte ego.`
+      );
+    }
+
     if (progressionPlan.note && !(topSet && baseWeight === topSet.weight)) {
       lines.push(progressionPlan.note);
     }
   } else {
-    lines.push("Sikta på:");
-    lines.push(target.reps);
-    lines.push(target.rir);
-    lines.push("");
-    lines.push("Första setet visar oss var vi ligger.");
+    lines.push(`Sikta på ${target.reps}, ${target.rir}.`);
   }
 
   lines.push("");
@@ -381,6 +460,7 @@ export default function WorkoutScreen({
   chatInput,
   setChatInput,
   sendChat,
+  isCoachThinking = false,
   workoutExerciseInput,
   setWorkoutExerciseInput,
   addExerciseDuringWorkout,
@@ -406,15 +486,18 @@ export default function WorkoutScreen({
   skippedExerciseName,
   undoSkipExercise,
   currentSets,
+  currentExerciseCompleted,
   prevExercise,
   nextExercise,
   finishWorkout,
   progression,
+  previousExerciseSets,
   progressionPlan,
   addCoachMessage,
 }: Props) {
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
+  const [chatFocusMode, setChatFocusMode] = useState(false);
   const [autoStartRestTimer, setAutoStartRestTimer] = useState(false);
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
   const [restElapsed, setRestElapsed] = useState(0);
@@ -438,18 +521,34 @@ export default function WorkoutScreen({
     : restTargetReached
     ? "ready"
     : "resting";
-  const shouldShowRestDock = showRestTimer;
+  const shouldShowRestDock = showRestTimer && !chatFocusMode;
   const isLastExercise = exerciseIndex === activePlan.length - 1;
-  const currentMetricLabel = isTimedExercise(currentExerciseName)
-    ? progressionPlan.repsText || "tid"
+  const currentExerciseReadyToFinish = Boolean(currentExerciseCompleted);
+  const isTimedCurrentExercise = isTimedExercise(currentExerciseName);
+  const isBodyweightCurrentExercise = isBodyweightExercise(currentExerciseName);
+  const shouldShowWeightInput =
+    !isTimedCurrentExercise && !isBodyweightCurrentExercise;
+  const currentMetricLabel = isTimedCurrentExercise
+    ? durationSecondsInput > 0
+      ? formatDurationLabel(durationSecondsInput)
+      : progressionPlan.repsText || "tid"
+    : repsInput.trim()
+    ? `${repsInput.trim()} reps`
     : progressionPlan.repsText;
-  const nextWeightLabel = progressionPlan.weight
-    ? `${progressionPlan.weight} kg`
+  const nextWeightLabel = weightInput.trim()
+    ? `${weightInput.trim().replace(".", ",")} kg`
     : "";
+  const nextRirLabel =
+    typeof rirInput === "number"
+      ? isTimedCurrentExercise
+        ? ""
+        : `RIR ${rirInput >= 5 ? "5+" : rirInput}`
+      : progressionPlan.rirText;
   const hasNextPrescription =
-    Boolean(nextWeightLabel) ||
-    Boolean(currentMetricLabel) ||
-    Boolean(progressionPlan.rirText);
+    !currentExerciseReadyToFinish &&
+    (Boolean(nextWeightLabel) ||
+      Boolean(currentMetricLabel) ||
+      Boolean(nextRirLabel));
 
   useEffect(() => {
     if (currentSets.length > previousSetCountRef.current) {
@@ -500,6 +599,8 @@ useEffect(() => {
   addCoachMessage(
     buildExerciseIntroCoachText({
       exerciseName: currentExerciseName,
+      exerciseIndex,
+      exerciseCount: activePlan.length,
       progression,
       progressionPlan,
       lastByExercise,
@@ -521,8 +622,274 @@ useEffect(() => {
   chatInput={chatInput}
   setChatInput={setChatInput}
   sendChat={sendChat}
+  isCoachThinking={isCoachThinking}
+  isExpanded={chatFocusMode}
 />
 
+      <button
+        type="button"
+        onClick={() => setChatFocusMode((value) => !value)}
+        className="mx-auto -mt-1 flex h-9 w-14 items-center justify-center rounded-full border border-blue-300/18 bg-blue-500/[0.10] text-blue-100 shadow-[0_10px_28px_rgba(37,99,235,0.14)] transition duration-200 hover:bg-blue-500/[0.16] active:scale-[0.97]"
+        aria-label={chatFocusMode ? "Visa hela passet" : "Fokusera chatten"}
+      >
+        <span
+          className={`flex flex-col gap-0.5 transition-transform duration-200 ease-out ${
+            chatFocusMode ? "rotate-180" : ""
+          }`}
+          aria-hidden="true"
+        >
+          <span className="h-2 w-2 rotate-45 border-b-2 border-r-2 border-blue-100/85" />
+          <span className="h-2 w-2 rotate-45 border-b-2 border-r-2 border-blue-100/55" />
+        </span>
+      </button>
+
+      {chatFocusMode ? (
+        <section className="animate-message-in rounded-[1.35rem] border border-blue-300/14 bg-[linear-gradient(180deg,rgba(37,99,235,0.105),rgba(15,23,42,0.38))] p-3 shadow-[0_16px_46px_rgba(0,0,0,0.20),0_0_30px_rgba(37,99,235,0.08),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-semibold tracking-tight text-white">
+                {currentExerciseName}
+              </h2>
+            </div>
+            <div className="shrink-0 rounded-full border border-blue-300/18 bg-blue-500/[0.10] px-3 py-1.5 text-xs font-semibold text-blue-50">
+              {currentExerciseReadyToFinish ? "Klar" : `Set ${currentSets.length + 1}`}
+            </div>
+          </div>
+
+          {currentExerciseReadyToFinish ? (
+            <button
+              type="button"
+              onClick={isLastExercise ? finishWorkout : nextExercise}
+              className={`mt-3 flex h-12 w-full items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition active:scale-[0.99] ${
+                isLastExercise
+                  ? "border-emerald-300/25 bg-emerald-400/[0.13] text-emerald-50"
+                  : "border-blue-300/18 bg-blue-500/[0.13] text-blue-50"
+              }`}
+            >
+              {isLastExercise ? "Passet är klart" : "Nästa övning"}
+            </button>
+          ) : (
+            <>
+              <div
+                className={`mt-3 grid gap-2 ${
+                  shouldShowWeightInput ? "grid-cols-[1fr_1fr]" : "grid-cols-1"
+                }`}
+              >
+                {shouldShowWeightInput ? (
+                  <div className="rounded-2xl border border-white/[0.07] bg-slate-950/34 px-2 py-2">
+                    <div className="grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = Number(String(weightInput).replace(",", "."));
+                          const next = Math.max(0, (Number.isFinite(current) ? current : 0) - 2.5);
+                          setWeightInput(Number(next.toFixed(1)).toString());
+                        }}
+                        className="flex h-9 items-center justify-center border-r border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
+                        aria-label="Sänk vikt"
+                      >
+                        -
+                      </button>
+                      <input
+                        className="h-9 min-w-0 bg-transparent px-2 text-center text-lg font-semibold text-white outline-none placeholder:text-white/28"
+                        inputMode="decimal"
+                        value={weightInput}
+                        onChange={(event) => setWeightInput(event.target.value)}
+                        placeholder="kg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = Number(String(weightInput).replace(",", "."));
+                          const next = (Number.isFinite(current) ? current : 0) + 2.5;
+                          setWeightInput(Number(next.toFixed(1)).toString());
+                        }}
+                        className="flex h-9 items-center justify-center border-l border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
+                        aria-label="Höj vikt"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="rounded-2xl border border-white/[0.07] bg-slate-950/34 px-2 py-2">
+                  {isTimedCurrentExercise ? (
+                    <div className="grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDurationSecondsInput(Math.max(0, durationSecondsInput - 5))
+                        }
+                        className="flex h-9 items-center justify-center border-r border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
+                        aria-label="Sänk tid"
+                      >
+                        -
+                      </button>
+                      <input
+                        className="h-9 min-w-0 bg-transparent px-2 text-center text-lg font-semibold text-white outline-none placeholder:text-white/28"
+                        inputMode="numeric"
+                        value={durationSecondsInput || ""}
+                        onChange={(event) =>
+                          setDurationSecondsInput(Number(event.target.value) || 0)
+                        }
+                        placeholder="sek"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setDurationSecondsInput(durationSecondsInput + 5)}
+                        className="flex h-9 items-center justify-center border-l border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
+                        aria-label="Höj tid"
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = Number(repsInput);
+                          const next = Math.max(0, (Number.isFinite(current) ? current : 0) - 1);
+                          setRepsInput(next ? String(next) : "");
+                        }}
+                        className="flex h-9 items-center justify-center border-r border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
+                        aria-label="Sänk reps"
+                      >
+                        -
+                      </button>
+                      <input
+                        className="h-9 min-w-0 bg-transparent px-2 text-center text-lg font-semibold text-white outline-none placeholder:text-white/28"
+                        inputMode="numeric"
+                        value={repsInput}
+                        onChange={(event) => setRepsInput(event.target.value)}
+                        placeholder="reps"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = Number(repsInput);
+                          const next = (Number.isFinite(current) ? current : 0) + 1;
+                          setRepsInput(String(next));
+                        }}
+                        className="flex h-9 items-center justify-center border-l border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
+                        aria-label="Höj reps"
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {!isTimedCurrentExercise ? (
+                <div className="mt-2 grid grid-cols-6 gap-1.5">
+                  {[0, 1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setRirInput(value)}
+                      className={`h-10 rounded-xl border text-sm font-semibold transition ${
+                        rirInput === value
+                          ? "border-blue-300/34 bg-blue-500/[0.22] text-blue-50 shadow-[0_0_20px_rgba(37,99,235,0.16)]"
+                          : "border-white/[0.06] bg-white/[0.045] text-white/58 hover:bg-white/[0.075] hover:text-white"
+                      }`}
+                    >
+                      {value === 5 ? "5+" : value}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="mt-2 overflow-hidden rounded-2xl border border-white/[0.055] bg-white/[0.026]">
+                <button
+                  type="button"
+                  onClick={() => setShowRestTimer((value) => !value)}
+                  className="flex min-h-10 w-full items-center justify-between gap-3 px-3 text-left text-xs font-semibold text-white/58 transition hover:bg-white/[0.045] hover:text-white"
+                >
+                  <span>Vila</span>
+                  <span className="text-white/82">
+                    {showRestTimer ? formatRestTimer(restElapsed) : restTarget.label}
+                  </span>
+                </button>
+                {showRestTimer ? (
+                  <div className="border-t border-white/[0.055] px-3 py-2">
+                    <div className="mb-2 flex items-center justify-center">
+                      <span
+                        className={`text-2xl font-semibold tracking-tight ${
+                          restTimerState === "over"
+                            ? "text-red-100"
+                            : restTimerState === "ready"
+                            ? "text-orange-100"
+                            : "text-white"
+                        }`}
+                      >
+                        {formatRestTimer(restElapsed)}
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          restTimerState === "over"
+                            ? "bg-red-400"
+                            : restTimerState === "ready"
+                            ? "bg-orange-300"
+                            : "bg-blue-400"
+                        }`}
+                        style={{ width: `${restProgress * 100}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 grid grid-cols-[1fr_1fr_auto] gap-1.5">
+                      <button
+                        type="button"
+                        onClick={startRestTimer}
+                        className="rounded-lg border border-blue-400/18 bg-blue-500/[0.10] px-2 py-1.5 text-xs font-semibold text-blue-100"
+                      >
+                        {restStartedAt ? "Starta om" : "Starta"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetRestTimer}
+                        className="rounded-lg border border-white/[0.07] bg-white/[0.045] px-2 py-1.5 text-xs font-semibold text-white/58"
+                      >
+                        Nollställ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowRestTimer(false)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.045] text-white/48"
+                        aria-label="Dölj vila"
+                      >
+                        <CloseGlyph className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={addSet}
+                  className="h-12 min-w-0 flex-1 rounded-2xl border border-blue-400/20 bg-blue-600 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.22)] transition hover:bg-blue-500 active:scale-[0.99]"
+                >
+                  Lägg till set
+                </button>
+                {currentSets.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={removeLastSet}
+                    className="h-12 rounded-2xl border border-white/[0.075] bg-white/[0.052] px-4 text-sm font-semibold text-white/62 transition hover:bg-white/[0.08] hover:text-white active:scale-[0.99]"
+                  >
+                    Ångra
+                  </button>
+                ) : null}
+              </div>
+            </>
+          )}
+        </section>
+      ) : (
+        <>
       <section className="workout-status-panel rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-3.5 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -551,9 +918,13 @@ useEffect(() => {
         <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
           <div className="workout-next-card rounded-2xl border border-blue-300/12 bg-blue-500/[0.055] px-3 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/55">
-              Nästa set
+              {currentExerciseReadyToFinish ? "Klar" : "Nästa set"}
             </p>
-            {hasNextPrescription ? (
+            {currentExerciseReadyToFinish ? (
+              <p className="mt-1 text-sm font-semibold leading-5 text-white">
+                {isLastExercise ? "Passet kan avslutas" : "Gå vidare när du är redo"}
+              </p>
+            ) : hasNextPrescription ? (
               <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                 {nextWeightLabel && (
                   <span className="text-lg font-semibold leading-none text-white">
@@ -565,9 +936,9 @@ useEffect(() => {
                     {currentMetricLabel}
                   </span>
                 )}
-                {progressionPlan.rirText && (
+                {nextRirLabel && (
                   <span className="text-sm font-semibold leading-none text-white/86">
-                    {progressionPlan.rirText}
+                    {nextRirLabel}
                   </span>
                 )}
               </div>
@@ -586,6 +957,29 @@ useEffect(() => {
             </p>
           </div>
         </div>
+
+        {previousExerciseSets.length > 0 ? (
+          <div className="mt-2.5 rounded-2xl border border-blue-200/[0.10] bg-blue-500/[0.035] px-3 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/55">
+              Förra gången
+            </p>
+            <div className="mt-2 space-y-1.5">
+              {previousExerciseSets.map((set, index) => (
+                <div
+                  key={`${set.createdAt}-${index}`}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <span className="shrink-0 text-xs font-semibold text-white/38">
+                    Set {index + 1}
+                  </span>
+                  <span className="min-w-0 text-right font-semibold text-white/86">
+                    {formatPreviousSetLabel(currentExerciseName, set)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <ExerciseCard
@@ -620,6 +1014,7 @@ useEffect(() => {
         prevExercise={prevExercise}
         nextExercise={nextExercise}
         finishWorkout={finishWorkout}
+        currentExerciseReadyToFinish={currentExerciseReadyToFinish}
       />
 
       <div
@@ -806,6 +1201,8 @@ useEffect(() => {
           </div>
         </div>
       ) : null}
+        </>
+      )}
     </div>
     {shouldShowRestDock ? (
       <div className="fixed inset-x-0 bottom-3 z-40 px-3 sm:bottom-5">
@@ -923,3 +1320,4 @@ useEffect(() => {
     </>
   );
 }
+

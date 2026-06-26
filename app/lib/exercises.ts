@@ -112,7 +112,8 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Bröstpress tränar främst bröst, men även framsida axel och triceps. Den är vald när coachen vill ha en stabil press där tekniken är lätt att hålla jämn.",
     coachReason:
       "Ger mycket bröstträning med låg teknisk tröskel och tydlig progression.",
-    techniqueCue: "Fokus: tryck jämnt, håll skuldrorna stabila och vänd kontrollerat.",
+    techniqueCue:
+      "Tänk på att trycka jämnt, hålla skuldrorna stabila och utföra övningen kontrollerat.",
     progressionRule:
       "Höj när repsen sitter med samma kontroll och rimlig marginal.",
     beginnerNote:
@@ -285,7 +286,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Sittande kabelrodd tränar övre rygg och lats. Den är vald när coachen vill ha ett stabilt horisontellt drag.",
     coachReason:
       "Bra ryggvolym med tydlig teknik och lätt belastningskontroll.",
-    techniqueCue: "Fokus: strikt drag och ryggkontakt före mer vikt.",
+    techniqueCue: "Fokus: strikt drag och ryggkontakt innan vi höjer.",
     progressionRule:
       "Bygg strikt reps innan du höjer. Om det blir slarvigt: sänk.",
     beginnerNote:
@@ -468,7 +469,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Benspark tränar framsida lår isolerat. Den är vald när coachen vill ge lårarbete utan att belasta rygg eller balans lika mycket.",
     coachReason:
       "Stabil och lätt att dosera, särskilt för nya eller trötta ben.",
-    techniqueCue: "Fokus: paus i toppen och kontakt före mer vikt.",
+    techniqueCue: "Fokus: paus i toppen och kontakt innan vi höjer.",
     progressionRule:
       "Kontakt styr. Om tungt blir slarvigt: sänk och pausa i toppen.",
     beginnerNote:
@@ -613,7 +614,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Hip thrust tränar främst säte. Den passar när coachen vill bygga höftstyrka utan att göra passet ryggtungt.",
     coachReason:
       "Bra sätesövning med tydlig progression när positionen känns bra.",
-    techniqueCue: "Fokus: pausa i toppen och håll revbenen nere.",
+    techniqueCue: "Fokus: pausa i toppen och håll bålen stabil.",
     progressionRule:
       "Höj när toppen är stark utan att ländryggen tar över.",
     beginnerNote:
@@ -729,7 +730,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Bicepscurl tränar biceps. Den är enkel att förstå och lätt att dosera, men armbågarna ska kännas bra.",
     coachReason:
       "Ger direkt armträning utan att störa resten av passet för mycket.",
-    techniqueCue: "Fokus: ren curl och stoppa innan senan börjar bråka.",
+    techniqueCue: "Fokus: ren curl, stilla armbågar och ingen sving.",
     progressionRule: "Höj bara när repsen är rena och smärtfria.",
     beginnerNote:
       "Enkel övning, men ska hållas lugn vid armbåge eller handled.",
@@ -1141,7 +1142,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Höftlyft tränar säte med låg teknisk tröskel. Den passar hemma eller som enklare alternativ till hip thrust.",
     coachReason:
       "Trygg sätesövning utan krav på bänk, maskin eller tung vikt.",
-    techniqueCue: "Fokus: pausa i toppen och håll revbenen nere.",
+    techniqueCue: "Fokus: pausa i toppen och håll bålen stabil.",
     progressionRule:
       "Bygg reps och paus först. Lägg till hantel när säte, inte ländrygg, gör jobbet.",
     beginnerNote:
@@ -1321,7 +1322,8 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Pec deck tränar bröst isolerat i en stabil maskin. Den passar när coachen vill ha bröstvolym utan att pressar blir för tunga.",
     coachReason:
       "Stabil och enkel bröstisolering, särskilt bra efter en huvudpress.",
-    techniqueCue: "Fokus: mjuk stretch, kontrollerad ihoppressning och lugna axlar.",
+    techniqueCue:
+      "Tänk på att pressa ihop långsamt och jobba inte med axlarna.",
     progressionRule:
       "Höj när kontakten och rörelsebanan är samma genom hela setet.",
     beginnerNote:
@@ -2023,9 +2025,9 @@ export function getExerciseUserInfo(identifier: string) {
       equipment: profile.equipment,
       whyChosen: profile.detail,
       logTypeText: isTimedExercise(identifier)
-        ? "Loggas med tid och marginal."
+        ? "Loggas med tid."
         : isBodyweightExercise(identifier)
-          ? "Loggas med reps och marginal. Extra vikt Ã¤r valfritt."
+          ? "Loggas med reps och marginal. Extra vikt är valfritt."
           : "Loggas med vikt, reps och RIR.",
       keepInMind: profile.caution,
       easierAlternative: "",
@@ -2054,9 +2056,9 @@ export function getExerciseUserInfo(identifier: string) {
     whyChosen: definition.userFacingWhy ?? definition.coachReason,
     logTypeText:
       definition.logType === "time_rir"
-        ? "Loggas med tid och marginal. Extra vikt kan lÃ¤ggas till senare om positionen sitter."
+        ? "Loggas med tid. Extra vikt kan läggas till senare om positionen sitter."
         : definition.logType === "bodyweight_reps_rir"
-          ? "Loggas med reps och marginal. Extra vikt Ã¤r valfritt om du anvÃ¤nder viktvÃ¤st, kedja eller hantel."
+          ? "Loggas med reps och marginal. Extra vikt är valfritt om du använder viktväst, kedja eller hantel."
           : "Loggas med vikt, reps och RIR.",
     keepInMind: definition.risks,
     easierAlternative,
@@ -2417,7 +2419,7 @@ export function getExerciseProfile(name: string): ExerciseProfile {
     return {
       ...info,
       category: "rygg",
-      techniqueCue: "Fokus: strikt drag och ryggkontakt före mer vikt.",
+      techniqueCue: "Fokus: strikt drag och ryggkontakt innan vi höjer.",
       progressionRule:
         "Bygg strikt reps innan du höjer. Om det blir slarvigt: sänk.",
       caution: "Om ländryggen tar över: avbryt eller byt roddvariant.",
@@ -2440,7 +2442,7 @@ export function getExerciseProfile(name: string): ExerciseProfile {
     return {
       ...info,
       category: "ben",
-      techniqueCue: "Fokus: paus i toppen och kontakt före mer vikt.",
+      techniqueCue: "Fokus: paus i toppen och kontakt innan vi höjer.",
       progressionRule:
         "Kontakt styr. Om tungt blir slarvigt: sänk och pausa i toppen.",
       caution: "Vid knäsmärta: stoppa eller korta rörelsen.",
@@ -2485,7 +2487,7 @@ export function getExerciseProfile(name: string): ExerciseProfile {
     return {
       ...info,
       category: "armar",
-      techniqueCue: "Fokus: ren curl och stoppa innan senan börjar bråka.",
+      techniqueCue: "Fokus: ren curl, stilla armbågar och ingen sving.",
       progressionRule: "Höj bara när repsen är rena och smärtfria.",
       caution: "Biceps är smärtstyrd. Jaga inte failure vid senkänning.",
       isCustom: false,
