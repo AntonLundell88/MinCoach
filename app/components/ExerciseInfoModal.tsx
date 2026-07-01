@@ -145,8 +145,12 @@ export default function ExerciseInfoModal({
   const reviewedInfoTemplate = getReviewedExerciseInfoTemplate(exerciseName);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/72 px-4 py-4 backdrop-blur-sm">
-      <div className="max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 px-4 py-4">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-3 rounded-[1.8rem] bg-black/42 backdrop-blur-sm sm:inset-5"
+      />
+      <div className="relative z-10 max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
