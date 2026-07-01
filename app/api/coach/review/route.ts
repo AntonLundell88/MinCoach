@@ -137,7 +137,7 @@ export async function POST(request: Request) {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 26000);
+  const timeoutId = setTimeout(() => controller.abort(), 35000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -147,10 +147,10 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL ?? "gpt-5-mini",
+        model: process.env.OPENAI_MODEL ?? "gpt-5.5",
         instructions: payload.system,
-        reasoning: { effort: "minimal" },
-        text: { verbosity: "low" },
+        reasoning: { effort: "medium" },
+        text: { verbosity: "medium" },
         input: [
           {
             role: "user",

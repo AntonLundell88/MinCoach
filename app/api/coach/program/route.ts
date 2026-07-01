@@ -242,7 +242,7 @@ export async function POST(request: Request) {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 22000);
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -252,10 +252,10 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL ?? "gpt-5-mini",
+        model: process.env.OPENAI_MODEL ?? "gpt-5.5",
         instructions: payload.system,
-        reasoning: { effort: "minimal" },
-        text: { verbosity: "low" },
+        reasoning: { effort: "medium" },
+        text: { verbosity: "medium" },
         input: [
           {
             role: "user",
@@ -302,14 +302,22 @@ export async function POST(request: Request) {
     }
 
     const parsed = parseProgramAiResponse(aiText);
+    const fallbackText = sanitizeCoachReply(
+      fallbackReply,
+      fallbackReply,
+      payload.maxCharacters
+    );
+    const sanitizedText = sanitizeCoachReply(
+      parsed.text,
+      fallbackReply,
+      payload.maxCharacters
+    );
+    const usedSanitizedFallback = sanitizedText === fallbackText;
 
     return NextResponse.json({
-      mode: "ai",
-      text: sanitizeCoachReply(
-        parsed.text,
-        fallbackReply,
-        payload.maxCharacters
-      ),
+      mode: usedSanitizedFallback ? "fallback" : "ai",
+      reason: usedSanitizedFallback ? "sanitized_reply" : undefined,
+      text: sanitizedText,
       suggestion: parsed.suggestion,
     });
   } catch {

@@ -585,7 +585,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Lårcurl tränar baksida lår i maskin. Den är vald när coachen vill ha tydlig hamstringträning utan att ländryggen måste jobba hårt.",
     coachReason:
       "Trygg isolering för baksida lår och lätt att dosera.",
-    techniqueCue: "Fokus: dra kontrollerat och håll höften stilla.",
+    techniqueCue: "Fokus: böj kontrollerat och håll höften stilla.",
     progressionRule:
       "Höj när repsen är rena utan ryck eller tappad position.",
     beginnerNote:
@@ -1653,7 +1653,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Sittande lårcurl tränar baksida lår i maskin. Den är stabil och lätt att logga.",
     coachReason:
       "Trygg hamstringträning utan att belasta ländryggen.",
-    techniqueCue: "Fokus: dra kontrollerat och håll höften stilla.",
+    techniqueCue: "Fokus: böj kontrollerat och håll höften stilla.",
     progressionRule:
       "Höj när repsen är rena utan ryck eller tappad position.",
     beginnerNote:

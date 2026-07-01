@@ -28,6 +28,7 @@ type BetaWorkout = {
   conditioningNote?: string | null;
   review?: Record<string, unknown>;
   summary?: Record<string, unknown>;
+  events?: Array<Record<string, unknown>>;
   sets: BetaWorkoutSet[];
 };
 

@@ -11,6 +11,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
+function isReasonablePersonalRecord(
+  record: Record<string, unknown>
+): record is Record<string, unknown> & { weight: number; reps: number } {
+  const durationSeconds =
+    typeof record.durationSeconds === "number" ? record.durationSeconds : null;
+
+  return (
+    typeof record.weight === "number" &&
+    Number.isFinite(record.weight) &&
+    record.weight >= 0 &&
+    record.weight <= 1000 &&
+    typeof record.reps === "number" &&
+    Number.isFinite(record.reps) &&
+    record.reps >= 0 &&
+    record.reps <= 200 &&
+    (durationSeconds === null ||
+      (Number.isFinite(durationSeconds) &&
+        durationSeconds >= 0 &&
+        durationSeconds <= 7200))
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as unknown;
@@ -37,8 +59,7 @@ export async function POST(request: Request) {
         !isRecord(record) ||
         typeof record.exerciseKey !== "string" ||
         typeof record.exerciseName !== "string" ||
-        typeof record.weight !== "number" ||
-        typeof record.reps !== "number"
+        !isReasonablePersonalRecord(record)
       ) {
         return NextResponse.json(
           { ok: false, error: "Invalid personal record" },

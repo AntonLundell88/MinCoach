@@ -1,5 +1,5 @@
 import {
-  containsForbiddenCoachPhrase,
+  containsUnsafeCoachPhrase,
   MINCOACH_AI_SYSTEM_RULES,
   PROGRAM_DESIGN_PROTOCOL,
   TRAINING_DECISION_PROTOCOL,
@@ -63,7 +63,7 @@ export type CoachSetContext = {
   };
   personalRecordText?: string;
   progressionOpportunity?: {
-    type: "offer_increase" | "increase_now";
+    type: "offer_increase" | "increase_now" | "optional_last_set_test";
     confidence: "medium" | "high";
     suggestedLoadText: string;
     reason: string;
@@ -93,6 +93,7 @@ export type CoachSetContext = {
     techniqueCue?: string;
   };
   restText?: string;
+  memoryInsight?: string;
   warmupNote?: string;
   conditioningNote?: string;
   previousCoachReply?: string;
@@ -109,6 +110,7 @@ export type CoachChatContext = {
   currentExerciseName?: string;
   currentExerciseCategory?: string;
   currentExerciseInfo?: CoachExerciseLibraryInfo;
+  memoryInsight?: string;
   exerciseIndex?: number;
   exerciseCount?: number;
   currentExerciseCompleted?: boolean;
@@ -130,7 +132,7 @@ export type CoachChatContext = {
     techniqueCue?: string;
   };
   progressionOpportunity?: {
-    type: "offer_increase" | "increase_now";
+    type: "offer_increase" | "increase_now" | "optional_last_set_test";
     confidence: "medium" | "high";
     suggestedLoadText: string;
     reason: string;
@@ -241,6 +243,13 @@ export type CoachWorkoutReviewContext = {
       failNote?: string;
     }>;
   }>;
+  events?: Array<{
+    type: "pain" | "exercise_replaced" | "exercise_completed_early";
+    exerciseName: string;
+    note?: string;
+    setCount?: number;
+    replacementName?: string;
+  }>;
   warmupNote?: string;
   conditioningNote?: string;
 };
@@ -331,40 +340,6 @@ export type CoachPromptPayload = {
 
 const MAX_COACH_REPLY_CHARACTERS = 620;
 const MAX_CHAT_REPLY_CHARACTERS = 800;
-const COACH_REPLY_REPLACEMENTS: Array<[RegExp, string]> = [
-  [/(\d+)\s*[–-]\s*(\d+)\s*@\s*RIR\s*([0-5]\+?)\s*[–-]\s*([0-5]\+?)/gi, "$1-$2 reps, RIR $3-$4"],
-  [/(\d+)\s*@\s*RIR\s*([0-5]\+?)/gi, "$1 reps med RIR $2"],
-  [
-    /\bFokus till n[äa]sta:\s*tryck j[äa]mnt,\s*h[åa]ll skuldrorna stabila och v[äa]nd kontrollerat\.?/gi,
-    "Tänk på att trycka jämnt, hålla skuldrorna stabila och utföra övningen kontrollerat.",
-  ],
-  [
-    /\bFokus:\s*tryck j[äa]mnt,\s*h[åa]ll skuldrorna stabila och v[äa]nd kontrollerat\.?/gi,
-    "Tänk på att trycka jämnt, hålla skuldrorna stabila och utföra övningen kontrollerat.",
-  ],
-  [/\bVi är klara med den här övningen\.\./gi, "Vi är klara med den här övningen."],
-  [/\bVi är klara med den här övningen\.\s*✅/gi, "Vi är klara med den här övningen. ✅"],
-  [/\bFint tryck där\s*[–—-]\s*håll vikten[^.?!]*[.?!]?/gi, "Vi kör samma igen."],
-  [/\bSmart backoff\s*[–—-]\s*samma kontroll men lite mer marginal nu\.?/gi, "Jag tycker vi sänker lite."],
-  [/\bSmart backoff:\s*samma kontroll,\s*lite mer marginal nu\.?/gi, "Jag tycker vi sänker lite."],
-  [/\s*Klar\?\s*/gi, " "],
-  [/\bKlar\?\s*$/gim, ""],
-  [/\bKlar\.\s*$/gim, ""],
-  [/\b\d+(?:[,.]\d+)?\s*kg,\s*g[åa] vidare\s*[–—-]\s*klar\b/gi, "övningen är klar"],
-  [/\bg[åa] vidare\s*[–—-]\s*klar\b/gi, "övningen är klar"],
-  [/\bAvsluta övningen\s*[–—-]\s*g[åa] vidare till nästa\.?/gi, "Vi är klara med den här övningen.\n\nVidare."],
-  [/\bDen d[äa]r [äa]r f[äa]rdig\s*[–—-]?/gi, "Vi är klara med den här övningen."],
-  [/~\s*(\d+)/g, "cirka $1"],
-  [/\bGripegling\b/gi, "När greppet glider"],
-  [/\bgrepegling\b/gi, "när greppet glider"],
-  [/\bKettletown\b/gi, "curlen"],
-  [/\bkettletown\b/gi, "curlen"],
-  [/\btryggningen\b/gi, "tryggheten"],
-  [/\btryggning\b/gi, "trygghet"],
-  [/\bTeknikcue\s*:/gi, "Fokus:"],
-  [/\bteknikcue\s*:/gi, "Fokus:"],
-  [/\bteknikcue\b/gi, "fokus"],
-];
 const NAME_USAGE_RULE =
   "Använd användarens namn mycket sparsamt. Skriv inte namnet i vanliga svar som \"Bra fråga\" eller \"Okej\". Namnet får användas vid start, stora milstolpar eller när extra närvaro behövs, men högst undantagsvis. Om du är osäker: använd inte namnet.";
 
@@ -373,32 +348,9 @@ function compactWhitespace(text: string) {
     .split("\n")
     .map((line) => line.trim())
     .join("\n")
+    .replace(/([.!?])(?=[A-ZÅÄÖ])/g, "$1 ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-}
-
-function applyCoachReplyGuardrails(text: string) {
-  return COACH_REPLY_REPLACEMENTS.reduce(
-    (current, [pattern, replacement]) => current.replace(pattern, replacement),
-    text
-  );
-}
-
-function addPulseToVeryShortReply(text: string) {
-  if (text === "Bra.") return "Bra!";
-  if (text === "Där ja.") return "Där ja!";
-  if (text === "Japp.") return "Japp 👊";
-  if (text === "Exakt.") return "Exakt 👊";
-  if (text === "Snyggt.") return "Snyggt 👊";
-  return text;
-}
-
-function addPulseToShortOpening(text: string) {
-  return text
-    .replace(/^(Bra|Där ja|Exakt|Snyggt)\.\s*$/m, "$1!")
-    .replace(/^(Bra|Där ja|Exakt|Snyggt)\.\n/m, "$1!\n")
-    .replace(/^Japp\.\s*$/m, "Japp 👊")
-    .replace(/^Japp\.\n/m, "Japp 👊\n");
 }
 
 function softenOverusedSurpriseEmoji(text: string) {
@@ -410,18 +362,23 @@ export function sanitizeCoachReply(
   fallback: string,
   maxCharacters = MAX_COACH_REPLY_CHARACTERS
 ) {
-  const compact = addPulseToVeryShortReply(
-    addPulseToShortOpening(
-      compactWhitespace(applyCoachReplyGuardrails(softenOverusedSurpriseEmoji(reply)))
-    )
-  );
+  const compact = compactWhitespace(softenOverusedSurpriseEmoji(reply));
 
   if (!compact) return compactWhitespace(fallback);
-  if (containsForbiddenCoachPhrase(compact)) return compactWhitespace(fallback);
+  if (containsUnsafeCoachPhrase(compact)) return compactWhitespace(fallback);
 
   if (compact.length <= maxCharacters) return compact;
 
-  const shortened = compact.slice(0, maxCharacters).replace(/\s+\S*$/, "").trim();
+  const truncated = compact.slice(0, maxCharacters);
+  const lastEnd = Math.max(
+    truncated.lastIndexOf("."),
+    truncated.lastIndexOf("!"),
+    truncated.lastIndexOf("?")
+  );
+  const shortened =
+    lastEnd > truncated.length / 2
+      ? truncated.slice(0, lastEnd + 1).trim()
+      : truncated.replace(/\s+\S*$/, "").trim();
   return shortened || compactWhitespace(fallback);
 }
 
@@ -465,7 +422,7 @@ function hasTooLightSameWeightTrend(context: CoachSetContext) {
   );
 }
 
-function ensureSetMilestoneReaction(context: CoachSetContext, reply: string) {
+export function ensureSetMilestoneReaction(context: CoachSetContext, reply: string) {
   const recordText = context.personalRecordText?.trim() ?? "";
   const isNewPersonalBest = recordText.toLowerCase().startsWith("nytt person");
   const alreadyMentionsRecord = /\b(pb|pr)\b|personbästa|personbasta/i.test(reply);
@@ -475,78 +432,10 @@ function ensureSetMilestoneReaction(context: CoachSetContext, reply: string) {
   }
 
   const setText = context.currentSet.setText?.trim() || recordText;
-  const reactions = ["Där ja! 👊", "Oj! 👊", "Nu snackar vi!"];
+  const reactions = ["Där ja!", "Oj.", "Nu snackar vi!"];
   const reaction = reactions[Math.max(0, context.setNumber - 1) % reactions.length];
 
   return `${reaction}\n\nNytt PB: ${setText}.\n\n${reply}`;
-}
-
-function applyTrainingSignalOverrides(context: CoachSetContext, reply: string) {
-  const tooLight = hasTooLightSameWeightTrend(context);
-
-  if (tooLight) {
-    if (context.nextTarget.strategy === "complete") {
-      return "Okej.\n\nDen var för lätt idag.\n\nNästa gång öppnar vi högre.";
-    }
-
-    return "Okej.\n\nDen var lätt.\n\nUpp ett steg.";
-  }
-
-  return reply;
-}
-
-function reduceRepeatedPersonalRecordLanguage(context: CoachSetContext, reply: string) {
-  const isNewPersonalBest = context.personalRecordText
-    ?.trim()
-    .toLowerCase()
-    .startsWith("nytt person");
-  const previousMentionedRecord = /\b(pb|pr)\b|personbästa|personbasta/i.test(
-    context.previousCoachReply ?? ""
-  );
-
-  if (!isNewPersonalBest || !previousMentionedRecord) return reply;
-
-  return reply
-    .replace(/\bDär ja\s*[–—-]\s*personbästa!?[^\n]*/gi, "Haha okej.\n\nIgen?")
-    .replace(/\bDär ja\s*[–—-]\s*nytt PB!?[^\n]*/gi, "Haha okej.\n\nIgen?")
-    .replace(/\bpersonbästa!\s*Den satt\.?/gi, "den satt.")
-    .replace(/\bnytt personbästa\b/gi, "nytt PB")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function firstMeaningfulLine(text?: string) {
-  if (!text) return "";
-  return (
-    text
-      .split("\n")
-      .map((line) => line.trim())
-      .find(Boolean) ?? ""
-  );
-}
-
-function varyRepeatedOpening(context: CoachSetContext, reply: string) {
-  const previousOpening = firstMeaningfulLine(context.previousCoachReply).toLowerCase();
-  if (!previousOpening) return reply;
-
-  const lines = reply.split("\n");
-  const firstIndex = lines.findIndex((line) => line.trim());
-  if (firstIndex < 0) return reply;
-
-  const currentOpening = lines[firstIndex].trim();
-  if (currentOpening.toLowerCase() !== previousOpening) return reply;
-
-  const alternatives: Record<string, string[]> = {
-    "bra.": ["Japp 👊", "Okej.", "Där ja!"],
-    "okej.": ["Japp 👊", "Bra!", "Där ja!"],
-    "japp.": ["Bra!", "Okej.", "Där ja!"],
-  };
-
-  const options = alternatives[previousOpening];
-  if (!options) return reply;
-
-  lines[firstIndex] = options[Math.max(0, context.setNumber - 1) % options.length];
-  return lines.join("\n");
 }
 
 function emphasizeHardStopWhenObvious(context: CoachSetContext, reply: string) {
@@ -622,142 +511,35 @@ function removeStackedRecordPraise(reply: string) {
     .trim();
 }
 
-function removeVisiblePlanRepetition(context: CoachSetContext, reply: string) {
-  const hints = context.uiHints;
-  if (!hints?.nextSetCardShowsPlan) return reply;
-
+function removeDuplicateAdjacentLines(reply: string) {
   const lines = reply.split("\n");
-  const cleaned: string[] = [];
-  let skippingPlanBlock = false;
+  const deduped: string[] = [];
 
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    const lower = line.toLowerCase();
+  for (const line of lines) {
+    const current = line.trim();
+    const previous = deduped[deduped.length - 1]?.trim();
 
-    if (lower === "nästa set:" || lower === "nasta set:") {
-      skippingPlanBlock = true;
+    if (current && previous && current.toLowerCase() === previous.toLowerCase()) {
       continue;
     }
 
-    if (skippingPlanBlock) {
-      if (!line) {
-        skippingPlanBlock = false;
-      }
-      continue;
-    }
-
-    if (hints.avoidRepeatingTechniqueCue) {
-      const focusIndex = rawLine.search(/Fokus(?:\s+till\s+n[äa]sta\s+set)?\s*:/i);
-      if (focusIndex >= 0) {
-        const beforeFocus = rawLine.slice(0, focusIndex).trim();
-        const normalized = beforeFocus
-          .replace(/\bSamma vikt(?:\s+igen)?\.?/gi, "Vi kör samma igen.")
-          .replace(/\b(?:Samma igen|Vi kör samma igen)\.\s*(?:igen|Vi kör samma igen)\.?/gi, "Vi kör samma igen.")
-          .replace(/\s{2,}/g, " ")
-          .trim();
-        if (normalized) {
-          cleaned.push(normalized);
-        }
-        continue;
-      }
-    }
-
-    if (
-      hints.avoidRepeatingTechniqueCue &&
-      /^fokus(?:\s+till\s+nästa\s+set)?\s*:/i.test(line)
-    ) {
-      continue;
-    }
-
-    if (hints.avoidRepeatingRest && /\bvila\b/i.test(line)) {
-      continue;
-    }
-
-    if (
-      hints.avoidRepeatingFullPlan &&
-      /\b(?:nästa|nasta|sikta|håll vikten|hall vikten|kör nästa|kor nasta|kör samma|kor samma)\b/i.test(line) &&
-      (/\bkg\b/i.test(line) || /\breps\b/i.test(line) || /\bRIR\b/i.test(line))
-    ) {
-      const isSameAgain = /\b(?:håll vikten|hall vikten|samma vikt|kör samma|kor samma)\b/i.test(line);
-      if (isSameAgain) {
-        cleaned.push("Vi kör samma igen.");
-      }
-      continue;
-    }
-
-    const nextLine = rawLine
-      .replace(/\bnästa set enligt planen\s*:\s*/gi, "")
-      .replace(/\bSamma vikt igen\s*[–—-]\s*sikta på[^.]*\.?/gi, "Vi kör samma igen.")
-      .replace(/\bSamma vikt(?:\s+igen)?\.?/gi, "Vi kör samma igen.")
-      .replace(/\bHåll vikten\s*[^.]*\.?/gi, "Vi kör samma igen.")
-      .replace(/\bKör samma igen\s*[–—-]\s*[^.]*RIR[^.]*\.?/gi, "Vi kör samma igen.")
-      .replace(/\bKör samma vikt\s*[–—-]\s*\.?$/gi, "Vi kör samma igen.")
-      .replace(/\bKör samma vikt\s*[–—-]\s*[^.]*RIR[^.]*\.?/gi, "Vi kör samma igen.")
-      .replace(/\bNästa set[^.?!]*(?:kg|reps|RIR)[^.?!]*[.?!]?/gi, "")
-      .replace(/\bKör nästa set på\s*[^.]*RIR[^.]*\.?/gi, "Gör nästa rent.")
-      .replace(/\bVi backar lite som planerat för ett avslut\.?/gi, "Jag tycker vi sänker lite.")
-      .replace(/\bNu backar vi lite\s*[–—-]\s*[^.]*\.?/gi, "Jag tycker vi sänker lite.")
-      .replace(/\bVi backar lite\s*[–—-]\s*[^.]*\.?/gi, "Jag tycker vi sänker lite.")
-      .replace(/\bVi backar lite\.?/gi, "Jag tycker vi sänker lite.")
-      .replace(/\bDär tog det stopp\.\s*Jag tycker vi sänker lite\.\s*Klar\.?/gi, "Där tog det stopp.\n\nJag tycker vi sänker lite.")
-      .replace(/\s*\bKlar\.?\s*$/gi, "")
-      .replace(/\s*,?\s*sikta på [^.]*RIR[^.]*\.?/gi, ".")
-      .replace(/\b(?:Samma igen|Vi kör samma igen)\.\s*(?:igen|Vi kör samma igen)\.?/gi, "Vi kör samma igen.")
-      .replace(/\s*[–—-]\s*\./g, ".")
-      .replace(/\s{2,}/g, " ")
-      .trim();
-
-    if (!nextLine) continue;
-    cleaned.push(nextLine);
+    deduped.push(line);
   }
 
-  return cleaned.join("\n");
-}
-
-function ensureAdjustmentMention(context: CoachSetContext, reply: string) {
-  const strategy = context.nextTarget.strategy;
-  if (strategy !== "reduce" && strategy !== "backoff") return reply;
-
-  const currentWeight = context.currentSet.weight;
-  const nextWeight = context.nextTarget.weight;
-  const weightWasReduced =
-    Number.isFinite(currentWeight) &&
-    Number.isFinite(nextWeight) &&
-    nextWeight < currentWeight;
-
-  if (!weightWasReduced) return reply;
-  if (/\bs[äa]nker\b|\bs[äa]nk\b|\bbackar\b|\bbackoff\b/i.test(reply)) {
-    return reply;
-  }
-
-  const isRecordSet = /\bNytt PB:/i.test(reply);
-  const line = isRecordSet
-    ? "Riktigt bra. Jag tycker vi sänker lite nu så nästa set också blir snyggt."
-    : typeof context.currentSet.rir === "number" && context.currentSet.rir <= 0
-      ? "Jag tycker vi sänker lite så nästa set också blir rent."
-      : "Jag tycker vi sänker lite här.";
-
-  return reply.trim() ? `${reply.trim()}\n\n${line}` : line;
-}
-
-function ensureUnderTargetWithMarginMention(context: CoachSetContext, reply: string) {
-  if (context.decisionFacts?.reasonCode !== "under_target_with_margin") return reply;
-
-  const text = reply.trim();
-  const saysMoreWasAvailable = /\b(fanns mer|mer kvar|lämnade .*kvar|hade mer|för snällt)\b/i.test(text);
-  const pointsToSameWeight = /\b(samma igen|samma vikt|håller vikten|vi kör samma)\b/i.test(text);
-  if (saysMoreWasAvailable && pointsToSameWeight) return reply;
-
-  const line = "Bra! Men där fanns mer.\n\nVi kör samma igen och försöker nå repsspannet om tekniken känns bra.";
-  if (!text || /^(bra|japp|okej|där ja)[.!]?\s*(?:👊|👍|✅)?$/i.test(text)) {
-    return line;
-  }
-
-  return `${text}\n\nMen där fanns mer. Vi kör samma igen.`;
+  return deduped.join("\n");
 }
 
 function removeCompleteStrategyContradictions(context: CoachSetContext, reply: string) {
   if (context.nextTarget.strategy !== "complete") return reply;
+
+  // If there's a progression opportunity, the coach may suggest an extra set — allow it through
+  if (context.progressionOpportunity) {
+    return removeDuplicateAdjacentLines(compactWhitespace(reply));
+  }
+
+  const originalAlreadyMentionsWorkoutDone =
+    context.setPlan?.isLastExercise === true &&
+    /\b(pass|dagens pass)\b/i.test(reply);
 
   const failText = context.currentSet.failNote?.trim().toLowerCase() ?? "";
   const hasReportedIssue = Boolean(failText);
@@ -765,8 +547,8 @@ function removeCompleteStrategyContradictions(context: CoachSetContext, reply: s
     !hasReportedIssue && typeof context.currentSet.rir === "number" && context.currentSet.rir <= 0;
   const exerciseIsLastInWorkout = context.setPlan?.isLastExercise === true;
   const completionLine = exerciseIsLastInWorkout
-    ? "Där är vi klara med dagens pass."
-    : "Vi går vidare till nästa övning.";
+    ? "Där har du passet."
+    : "Då tar vi nästa.";
 
   let cleaned = reply
     .replace(/\bN[aä]sta set[^.?!]*(?:kg|reps|RIR)[^.?!]*[.?!]?/gi, "")
@@ -782,8 +564,8 @@ function removeCompleteStrategyContradictions(context: CoachSetContext, reply: s
     .replace(/\bK[oö]r ett till[^.?!]*[.?!]?/gi, "")
     .replace(/\bK[oö]r klart setet[^.?!]*[.?!]?/gi, "")
     .replace(/\b(?:extra|extra-)set(?:et)?[^.?!]*[.?!]?/gi, "")
-    .replace(/\bg[aå] vidare med [^.?!]*(?:kg|reps|RIR)[^.?!]*[.?!]?/gi, "Vi är klara med den här övningen.")
-    .replace(/\bAvsluta [oö]vningen\s*[–—-]\s*g[aå] vidare till n[aä]sta\.?/gi, "Vi är klara med den här övningen.\n\nVidare.")
+    .replace(/\bg[aå] vidare med [^.?!]*(?:kg|reps|RIR)[^.?!]*[.?!]?/gi, "Den lämnar vi där.")
+    .replace(/\bAvsluta [oö]vningen\s*[–—-]\s*g[aå] vidare till n[aä]sta\.?/gi, "Den lämnar vi där.\n\nDå tar vi nästa.")
     .replace(/\s*G[aå] vidare till n[aä]sta [oö]vning\.?/gi, "")
     .replace(/\s*G[aå] vidare n[aä]r du [aä]r redo\.?/gi, "")
     .replace(/\s*Tryck vidare[^.?!]*[.?!]?/gi, "")
@@ -791,7 +573,8 @@ function removeCompleteStrategyContradictions(context: CoachSetContext, reply: s
     .replace(/\s*D[äa]r [aä]r vi klara med dagens pass\.?/gi, "")
     .replace(/\bVila\s+\d[^.?!]*minuter\.?/gi, "")
     .replace(/\s*Klar\.\s*(?=👊|$)/gim, "")
-    .replace(/\bVi [aä]r klara med den h[äa]r [oö]vningen\.\./gi, "Vi är klara med den här övningen.")
+    .replace(/\bVi [aä]r klara med den h[äa]r [oö]vningen\.\./gi, "Den lämnar vi där.")
+    .replace(/\bD[åa] tar vi n[äa]sta\.\s*(?:\r?\n\s*)+D[åa] tar vi n[äa]sta\./gi, "Då tar vi nästa.")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
@@ -799,21 +582,31 @@ function removeCompleteStrategyContradictions(context: CoachSetContext, reply: s
     cleaned = cleaned
       .replace(/\bD[äa]r tog det stopp\.?/gi, "Bra kämpat.")
       .replace(/\bD[äa]r tog du setet hela v[aä]gen\.?/gi, "Bra kämpat.")
-      .replace(/\bBra jobbat\.?\s*Vi l[äa]mnar den h[äa]r [oö]vningen h[äa]r\.?/gi, "Bra kämpat. Riktigt fint avslut på den här övningen.")
+      .replace(/\bBra jobbat\.?\s*Vi l[äa]mnar den h[äa]r [oö]vningen h[äa]r\.?/gi, "Bra kämpat. Det där var ett riktigt set.")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   }
 
   if (cleaned) {
-    const mentionsCompletion = /\b(f[äa]rdig|klar|vidare)\b/i.test(cleaned);
-    const mentionsWorkoutDone = /\b(pass|dagens pass)\b/i.test(cleaned);
+    cleaned = removeDuplicateAdjacentLines(cleaned)
+      .replace(
+        /\bN[äa]sta [oö]vning\.?\s*(?:\r?\n\s*)+(?=D[åa] tar vi n[äa]sta\.?)/gi,
+        ""
+      )
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    const mentionsCompletion = /\b(f[äa]rdig|klar|vidare|nästa övning|nasta ovning|tar vi nästa|tar vi nasta|lämnar vi där|lamnar vi dar)\b/i.test(cleaned);
+    const mentionsWorkoutDone = /\bpass(?:et)?\b|\bdagens pass\b/i.test(cleaned);
     const needsCompletionLine =
       exerciseIsLastInWorkout ? !mentionsWorkoutDone : !mentionsCompletion;
 
-    return needsCompletionLine ? `${cleaned}\n\n${completionLine}` : cleaned;
+    return needsCompletionLine && !originalAlreadyMentionsWorkoutDone
+      ? `${cleaned}\n\n${completionLine}`
+      : cleaned;
   }
 
-  return `Bra kämpat.\n\nRiktigt fint avslut på den här övningen.\n\n${completionLine}`;
+  return `Bra kämpat.\n\nDet där var ett riktigt set.\n\n${completionLine}`;
 }
 
 export function sanitizeCoachSetReply(
@@ -822,31 +615,16 @@ export function sanitizeCoachSetReply(
   fallback: string,
   maxCharacters = MAX_COACH_REPLY_CHARACTERS
 ) {
-  const compacted = compactRoutineSetFallback(context, reply);
-  const withoutVisiblePlan = removeVisiblePlanRepetition(context, compacted);
-  const withAdjustmentMention = ensureAdjustmentMention(context, withoutVisiblePlan);
   const withoutCompleteContradiction = removeCompleteStrategyContradictions(
     context,
-    withAdjustmentMention
-  );
-  const withUnderTargetMention = ensureUnderTargetWithMarginMention(
-    context,
-    withoutCompleteContradiction
+    reply
   );
   const withHardStop = emphasizeHardStopWhenObvious(
     context,
-    withUnderTargetMention
+    withoutCompleteContradiction
   );
   const withoutDuplicateReaction = removeDuplicateShortReactions(withHardStop);
-  const variedOpening = varyRepeatedOpening(context, withoutDuplicateReaction);
-  const withTrainingOverride = applyTrainingSignalOverrides(context, variedOpening);
-  const withRecordVariation = reduceRepeatedPersonalRecordLanguage(
-    context,
-    withTrainingOverride
-  );
-  const withRecordPraiseDedupe = removeStackedRecordPraise(
-    ensureSetMilestoneReaction(context, withRecordVariation)
-  );
+  const withRecordPraiseDedupe = removeStackedRecordPraise(withoutDuplicateReaction);
 
   return sanitizeCoachReply(
     withRecordPraiseDedupe,
@@ -860,10 +638,12 @@ export function sanitizeCoachSetFallback(
   fallbackReply: string,
   maxCharacters = MAX_COACH_REPLY_CHARACTERS
 ) {
+  const compactFallback = compactRoutineSetFallback(context, fallbackReply);
+
   return sanitizeCoachSetReply(
     context,
-    fallbackReply,
-    fallbackReply,
+    compactFallback,
+    compactFallback,
     maxCharacters
   );
 }
@@ -904,55 +684,28 @@ const SET_COACH_INSTRUCTION = [
   "",
   COACH_SOUL_RULES,
   "",
-  "Appens och coachens ansvar:",
-  "- Appen äger siffror, nästa vikt, reps, RIR och vila.",
-  "- Regelmotorn äger säkerhet och progression.",
-  "- Du äger känslan i stunden: reaktion, kort tolkning och enkel riktning.",
-  "- UI visar fakta. Du ska inte narrera UI:t.",
-  "- Coachen ska komplettera UI:t, inte upprepa det.",
-  "- Om context.progressionOpportunity finns: använd den som coachbrief. offer_increase = erbjud test upp utan press. increase_now = prata tydligt om att vi höjer.",
-  "- Säg aldrig att en maskin är +kg per sida om context inte uttryckligen säger det. Säg hellre ett steg upp eller använd suggestedLoadText.",
+  "Data du har tillgång till:",
+  "- currentSet och previousSet: vikt, reps, RIR — det är din verklighet",
+  "- nextTarget: nästa steg enligt systemet — följ det som default",
+  "- nextTarget.techniqueCue: övningens teknikcue från biblioteket — använd den, hitta inte på egna",
+  "- decisionFacts.shouldMentionTechniqueCue: om teknik är relevant just nu",
+  "- personalRecordText: om det är PB — reagera på det som om du sett det hända",
+  "- computedSignals: maskintolkade mönster — använd som underlag för din tolkning",
+  "- memoryInsight: vad systemet minns om användaren — det är din historia med dem",
+  "- progressionOpportunity: om användaren har mer att ge — ta det på allvar",
+  "- decisionFacts.rirChange: RIR jämfört med föregående set. -1 är normal variation — nämn det inte. Reagera bara om -2 eller sämre, RIR 0 tidigt i ett övningsblock, eller om användaren själv rapporterat att det var tungt.",
+  "- previousCoachReply: vad du sa senast — upprepa inte samma öppning",
   "",
-  "Setsvar:",
-  "- Designa beteende, inte repliker.",
-  "- Vanliga set ska få vanliga svar. Försök inte skapa ett minnesvärt ögonblick av ett normalt set.",
-  "- Om setet är normalt och nästa steg är uppenbart: kort bekräftelse kan vara hela svaret.",
-  "- När inget särskilt händer: håll rytmen och skicka användaren vidare.",
-  "- Vid stort set, tydlig progression, PR eller smart beslut: reagera först och mer tydligt.",
-  "- Om context.personalRecordText börjar med 'Nytt personbästa': det är en milstolpe. Reagera först, men upprepa inte samma PB-fras flera set i rad.",
-  "- Vid första personbästat i övningen: låt användaren känna att du såg det. Kort, glad och specifik.",
-  "- Vid andra personbästat i samma övning: reagera mer som 'igen?' än som samma firande en gång till.",
-  "- Om computedSignals innehåller too_light_same_weight_trend: vikten var för lätt idag. Då ska den poängen vinna över PB-firande.",
-  "- Om context.personalRecordText börjar med 'Första noteringen': lägre intensitet än PB. Bekräfta bara att ni har något att jobba från.",
-  "- Om UI redan visar nästa set: repetera inte hela planen. Coachen ska komplettera UI:t.",
-  "- Om UI redan visar nästa vikt, reps, RIR och vila: nämn bara riktningen om den behövs.",
-  "- Teknikcue ska bara nämnas när den verkligen hjälper nästa set.",
-  "- Om context.uiHints.avoidRepeatingFullPlan är true: upprepa inte vikt, reps, RIR och vila som full plan.",
-  "- Om context.uiHints.avoidRepeatingRest är true: nämn bara vila om den är extra viktig.",
-  "- Om context.uiHints.avoidRepeatingTechniqueCue är true: upprepa inte teknikcue.",
-  "- Vid backoff/reduce: förklara kort varför, men gör det som coachens åsikt och riktning, inte som rapport.",
-  "- Vid reduce/backoff efter RIR 0 utan rapporterad failure, smärta eller teknikproblem: låt det positivt. RIR 0 är ett hårt set och bra stimulans. Säg hellre att du tycker vi sänker lite för att nästa set också ska bli rent.",
-  "- Om decisionFacts.reasonCode är under_target_with_margin: svara inte bara 'Bra'. Säg kort att det fanns mer kvar och att ni kör samma igen för att nå repsspannet.",
-  "- Om previousCoachReply finns: upprepa inte samma öppning eller samma poäng.",
-  "- Om decisionFacts.reasonCode är planned_extra_finish: säg alltid uttryckligen att ni kör ett set till eller ett extra set, och säg varför. Använd tydlig svenska, t.ex. \"Vi kör ett set till här. Jag vill ha ett rent avslut.\" eller \"Vi slänger in ett set till på den här övningen så vi får ett bättre avslut.\" Skriv inte bara varför utan att säga att det är ett set till.",
-  "- Om computedSignals innehåller too_light_same_weight_trend: säg att vikten var för lätt idag och att vi höjer nu eller nästa gång. Gör det kort, inte som en varning.",
-  "",
-  "Fakta:",
-  "- Säg bara sista setet om context.setPlan.isLastSet eller context.setPlan.nextSetIsLast är true.",
-  "- Om setPlan visar att fler set återstår: kalla det nästa set, inte sista set.",
-  "- Om nextTarget.strategy är complete: övningen är klar. Sista setet på en övning ska få lite extra kred, som en coach som klappar användaren på axeln.",
-  "- Om nextTarget.strategy är complete och context.setPlan.isLastExercise inte är true: säg tydligt att ni går vidare till nästa övning.",
-  "- Om nextTarget.strategy är complete och context.setPlan.isLastExercise är true: säg att dagens pass är klart, inte att ni går till nästa övning.",
-  "- Om reasonCode är hard_set_complete utan smärta eller tekniknotis: låt positivt. Skriv hellre 'Bra kämpat', 'riktigt fint avslut' eller 'vi är klara med den här övningen' än 'Där tog det stopp'.",
-  "- computedSignals är maskinfakta, inte text att citera.",
-  "- decisionFacts.reasonCode är bara orsakskod, inte en formulering.",
-  "",
-  "Teknik och smärta:",
-  "- Anta inte teknikproblem från reps, vikt eller RIR ensam.",
-  "- Du får ge en kort teknikcue som hjälp, men inte som dom.",
-  "- RIR 0-1 utan smärta eller tekniknotis är först ett hårt set, inte ett problem.",
-  "- Skriv inte 'Där tog det stopp' bara för att RIR är 0. Använd den tonen när användaren rapporterar failure/stopp, tekniktapp, smärta eller när det är uppenbart att setet föll isär.",
-  "- Vid smärta eller känning: bli lugnare, kortare och tydligare.",
+  "Regler:",
+  "- Hitta inte på fakta. Du ser siffrorna, inte seten.",
+  "- Upprepa inte UI:t. Appen visar vikt, reps, RIR och vila — du lägger till känslan.",
+  "- Säg bara 'sista setet' om setPlan.isLastSet är true.",
+  "- Om nextTarget.strategy är 'complete' och progressionOpportunity saknas: övningen är klar, säg det naturligt.",
+  "- Om progressionOpportunity finns efter sista planerade setet: du får och ska föreslå ett extraset om du bedömer att användaren har mer att ge. Användaren kan logga det direkt i appen.",
+  "- Om setPlan.isLastExercise är true och inga fler set föreslås: passet är klart, säg det.",
+  "- Teknikcue bara när det hjälper nästa set: första setet, hårt set, shouldMentionTechniqueCue är true, eller användaren frågat.",
+  "- Vid smärta eller känning: bli lugn, kort och skyddande. Planen väntar.",
+  "- Använd namn mycket sparsamt — bara vid riktiga milstolpar.",
   "",
   "Tonreferenser, inte manus:",
   COACH_VOICE_EXAMPLES,
@@ -1075,7 +828,7 @@ export function buildCoachWorkoutReviewPromptPayload(
     system: MINCOACH_AI_SYSTEM_RULES,
     context,
     instruction:
-      `${NAME_USAGE_RULE}\n\nSkriv en varm passgenomgång för MinCoach. Returnera ENDAST giltig JSON, inte markdown. Format: {"coachHeadline":"kort emotionell rad","coachSummary":"2-3 korta meningar","positives":["1-3 korta punkter"],"adjustments":["0-2 korta punkter"],"nextFocus":["1-2 korta punkter"],"coachMemoryTakeaway":["1-2 korta punkter"]}.\n\nDet här är avslutet efter passet. Användaren ska känna: coachen såg mig, coachen fattar vad passet betydde, och jag vill komma tillbaka. Behåll datan korrekt. Hitta verkliga saker i context: bästa set, progression, tunga set, failure, genomförda övningar, uppvärmning/kondition om det påverkar. Var inte en loggbok. Skriv inte generiskt. Förklara vad passet säger om användarens utveckling eller beslut, inte bara vad som hände. Om användaren gjorde ett moget val, lyft det. Om en vikt börjar bli arbetsvikt, säg det. Om något var tungt men klokt hanterat, gör det till en styrka. Skriv aldrig "gör coachen stolt" eller "gör mig stolt". Använd namn högst undantagsvis. Använd gärna 0-2 emojis från paletten ✅ ✔️ 💪 🔥 💡 🚀 ➡️ 📈 🎯 👀 👊 om det finns riktig prestation. Vid smärta/failure: var trygg och skyddande, aldrig skuldbeläggande. Om passet är delvis sparat: bekräfta lugnt och utan skuld. Håll allt kort och lättläst.`,
+      `${NAME_USAGE_RULE}\n\nSkriv en varm passgenomgång för MinCoach. Returnera ENDAST giltig JSON, inte markdown. Format: {"coachHeadline":"kort emotionell rad","coachSummary":"2-3 korta meningar","positives":["1-3 korta punkter"],"adjustments":["0-2 korta punkter"],"nextFocus":["1-2 korta punkter"],"coachMemoryTakeaway":["1-2 korta punkter"]}.\n\nDet här är avslutet efter passet. Användaren ska känna: coachen såg mig, coachen fattar vad passet betydde, och jag vill komma tillbaka. Behåll datan korrekt. Hitta verkliga saker i context: bästa set, progression, tunga set, failure, genomförda övningar, eventuella byten/smärta, uppvärmning/kondition om det påverkar. Var inte en loggbok. Skriv inte generiskt. Förklara vad passet säger om användarens utveckling eller beslut, inte bara vad som hände. Om användaren sa till om smärta, bytte övning eller avslutade tidigt: lyft det som ett smart beslut och ta med det i nästa fokus. Om en vikt börjar bli arbetsvikt, säg det. Om något var tungt men klokt hanterat, gör det till en styrka. Skriv aldrig "gör coachen stolt" eller "gör mig stolt". Använd namn högst undantagsvis. Använd gärna 0-2 emojis från paletten ✅ ✔️ 💪 🔥 💡 🚀 ➡️ 📈 🎯 👀 👊 om det finns riktig prestation. Vid smärta/failure: var trygg och skyddande, aldrig skuldbeläggande. Om passet är delvis sparat: bekräfta lugnt och utan skuld. Håll allt kort och lättläst.`,
     maxCharacters: 1400,
   };
 }
@@ -1142,12 +895,7 @@ export async function requestAiCoachSetReply(args: {
     return {
       mode: data.mode ?? "fallback",
       reason: data.reason,
-      text: sanitizeCoachSetReply(
-        context,
-        data.text ?? "",
-        fallback.text,
-        fallback.payload.maxCharacters
-      ),
+      text: data.text ?? fallback.text,
     };
   } catch {
     return {

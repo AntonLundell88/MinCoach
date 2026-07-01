@@ -15,6 +15,7 @@ import {
   normalizeExerciseSearchText,
   resolveExerciseName,
 } from "../../../../lib/exercises";
+import { repairMojibake } from "../../../../lib/textEncoding";
 
 type CoachProgramBuildRequest = {
   context?: CoachProgramBuildContext;
@@ -23,7 +24,7 @@ type CoachProgramBuildRequest = {
 
 const PASS_KEYS = ["A", "B", "C", "D", "E", "F"] as const;
 const PROGRAM_BUILD_TIMEOUT_MS = Number(
-  process.env.OPENAI_PROGRAM_BUILD_TIMEOUT_MS ?? 26000
+  process.env.OPENAI_PROGRAM_BUILD_TIMEOUT_MS ?? 55000
 );
 const PROGRAM_BUILD_ATTEMPTS = Number(
   process.env.OPENAI_PROGRAM_BUILD_ATTEMPTS ?? 1
@@ -67,7 +68,7 @@ Principer:
 Textfältens roller:
 - coachSummary: skriv 2-3 korta meningar direkt till användaren med "du" och "vi". Nämn träningsvana, plats, antal dagar, passlängd, primärt mål och viktiga begränsningar om de finns. Använd inte användarens namn och skriv aldrig om användaren i tredje person. Förklara inte veckans passuppdelning här.
 - planReason: förklara kort varför övningsval, nivå, volym och progression passar just den här profilen. Upprepa inte hela användarprofilen.
-- structureReason: förklara hur veckan är uppdelad och varför passen har sina roller. Nämn passens fokus och hur det hjälper målet. Upprepa inte coachSummary.
+- structureReason: förklara hur veckan är uppdelad med enkelt användarspråk. Undvik interna tränarord som rörelsemönster, horisontell press, dragfokus, knäböjsfokus, basövningar och isolationsövningar. Skriv hellre "bröst och triceps", "ben och bål", "rygg och axlar", "huvudövningar" och "extra övningar". Upprepa inte coachSummary.
 - safetyNotes: skriv 2-4 korta, direkta råd till användaren. Anpassa till begränsningar/skador. Nämn smärta, att inte lägga på för mycket vikt för tidigt och att avbryta eller byta övning om kroppen känns fel. Ge inga medicinska garantier.
 Returnera endast giltig JSON enligt schemat.
 `.trim();
@@ -78,7 +79,7 @@ function compactProgramBuildContext(context: CoachProgramBuildContext) {
     userName: context.userName,
     profile: context.profile,
     existingPreferences: context.existingPreferences.slice(0, 10),
-    availableExercises: context.availableExercises.slice(0, 80).map((exercise) => {
+    availableExercises: context.availableExercises.slice(0, 32).map((exercise) => {
       const programMeta = getExerciseProgramMeta(exercise.name);
 
       return {
@@ -98,13 +99,14 @@ function compactProgramBuildContext(context: CoachProgramBuildContext) {
         movementPattern:
           "movementPattern" in exercise ? exercise.movementPattern : undefined,
         logType: "logType" in exercise ? exercise.logType : undefined,
-        substitutions: "substitutions" in exercise ? exercise.substitutions : undefined,
-        coachReason: "coachReason" in exercise ? exercise.coachReason : undefined,
+        substitutions:
+          "substitutions" in exercise
+            ? exercise.substitutions?.slice(0, 3)
+            : undefined,
         caution: exercise.caution,
         difficulty: programMeta.difficulty,
         beginnerFit: programMeta.beginnerFit,
         stability: programMeta.stability,
-        beginnerNote: programMeta.beginnerNote,
       };
     }),
   };
@@ -241,7 +243,7 @@ const PROGRAM_COPY_REPLACEMENTS: Array<[RegExp, string]> = [
 function applyProgramCopyGuardrails(value: string) {
   return PROGRAM_COPY_REPLACEMENTS.reduce(
     (text, [pattern, replacement]) => text.replace(pattern, replacement),
-    value
+    repairMojibake(value)
   )
     .replace(/\s+/g, " ")
     .trim();
@@ -290,7 +292,7 @@ function issue(code: string, detail: string): ProgramBuildIssue {
 }
 
 function issueText(issues: ProgramBuildIssue[]) {
-  return issues.map((item) => `${item.code}: ${item.detail}`);
+  return issues.map((item) => repairMojibake(`${item.code}: ${item.detail}`));
 }
 
 function buildProgramBuildInstruction(args: {
@@ -884,6 +886,13 @@ export async function POST(request: Request) {
   let previousInvalidPlan: BuiltWorkoutPlan | null = null;
 
   for (let attempt = 1; attempt <= PROGRAM_BUILD_ATTEMPTS; attempt += 1) {
+    const buildInstruction = repairMojibake(
+      buildProgramBuildInstruction({
+        attempt,
+        lastIssues,
+        previousPlan: previousInvalidPlan,
+      })
+    );
     const controller = new AbortController();
     const timeoutId = setTimeout(
       () => controller.abort(),
@@ -901,7 +910,7 @@ export async function POST(request: Request) {
           model:
             process.env.OPENAI_PROGRAM_MODEL ??
             "gpt-5-mini",
-          instructions: PROGRAM_BUILD_SYSTEM_PROMPT,
+          instructions: repairMojibake(PROGRAM_BUILD_SYSTEM_PROMPT),
           reasoning: { effort: "minimal" },
           text: {
             verbosity: "low",
@@ -920,26 +929,15 @@ export async function POST(request: Request) {
                   type: "input_text",
                   text: JSON.stringify({
                     context: compactContext,
-                    instruction:
-                      attempt === 1
-                        ? "Bygg ett komplett första program. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer återhämtningsvänliga, särskilt för nybörjare. Varje pass ska normalt ha 3-5 övningar. Samma exerciseKey får inte ligga två gånger i samma pass. Om availableExercises är begränsad, särskilt hemma med lite utrustning, hellre 3 bra övningar per pass och upprepade trygga övningar än otillåtna utfyllnadsövningar. Använd endast övningar från availableExercises och returnera både exerciseKey och name exakt från listan. Skriv coachSummary, planReason, structureReason och safetyNotes som fyra olika texter med olika syfte. coachSummary ska prata direkt till användaren med du/vi och vara unik för profilen. structureReason ska förklara passuppdelningen. safetyNotes ska vara direkta råd om smärta, vikt och begränsningar. Om limitation finns ska den synas i övningsval, caution och safetyNotes."
-                        : "Svara med komplett giltig JSON enligt schemat.",
+                    instruction: buildInstruction,
                     validationIssues: issueText(lastIssues),
-                    previousPlan: previousInvalidPlan,
-                  }),
-                },
-                {
-                  type: "input_text",
-                  text: buildProgramBuildInstruction({
-                    attempt,
-                    lastIssues,
                     previousPlan: previousInvalidPlan,
                   }),
                 },
               ],
             },
           ],
-          max_output_tokens: 4200,
+          max_output_tokens: 2200,
         }),
         signal: controller.signal,
       });

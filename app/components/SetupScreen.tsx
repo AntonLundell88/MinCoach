@@ -39,6 +39,7 @@ type Props = {
   setProgramStartModeInput: (v: ProgramStartMode) => void;
   isEditing: boolean;
   onSubmit: () => void;
+  theme: "dark" | "light";
 };
 
 const fieldClassName =
@@ -108,6 +109,15 @@ const experienceOptions: {
   { value: "erfaren", label: "Erfaren", helper: "god koll" },
 ];
 
+const experienceDescriptions: Record<TrainingExperience, string> = {
+  nyborjare:
+    "Coachen väljer enklare övningar, mer marginal och ett upplägg som bygger vana först.",
+  van:
+    "Coachen kör normal progression, lagom volym och justerar när passen visar att nivån är rätt.",
+  erfaren:
+    "Coachen kan ge mer frihet, tuffare progression och fler avancerade justeringar när datan stödjer det.",
+};
+
 const genderOptions: { value: Gender; label: string }[] = [
   { value: "kvinna", label: "Kvinna" },
   { value: "man", label: "Man" },
@@ -152,9 +162,12 @@ export default function SetupScreen({
   setProgramStartModeInput,
   isEditing,
   onSubmit,
+  theme,
 }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acceptedAiNotice, setAcceptedAiNotice] = useState(isEditing);
+  const selectedExperienceDescription =
+    experienceDescriptions[trainingExperienceInput];
 
   function toggleEquipment(value: string) {
     if (value === "none") {
@@ -195,7 +208,7 @@ export default function SetupScreen({
       <div className="w-full max-w-none space-y-0 sm:max-w-md sm:space-y-3">
         <div className="flex items-center justify-center py-3 sm:py-0">
           <Image
-            src="/logo-dark.png"
+            src={theme === "light" ? "/logo-light.png" : "/logo-dark.png"}
             alt="MinCoach"
             width={128}
             height={128}
@@ -294,7 +307,7 @@ export default function SetupScreen({
                           onClick={() => setTrainingExperienceInput(experience.value)}
                           className={`min-h-12 rounded-2xl border px-2 py-2 text-center transition ${
                             trainingExperienceInput === experience.value
-                              ? "border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
+                              ? "setup-blue-selected border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
                               : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
                           }`}
                         >
@@ -304,6 +317,9 @@ export default function SetupScreen({
                         </button>
                       ))}
                     </div>
+                    <p className="setup-blue-selected mt-2 rounded-xl border border-blue-300/10 bg-blue-500/[0.055] px-3 py-2 text-[12px] leading-5 text-white/62">
+                      {selectedExperienceDescription}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -338,7 +354,7 @@ export default function SetupScreen({
                         }}
                         className={`min-h-11 rounded-xl px-3 text-center text-[13px] font-semibold transition ${
                           active
-                            ? "bg-blue-600 text-white shadow-[0_0_18px_rgba(37,99,235,0.22)]"
+                            ? "setup-blue-selected bg-blue-600 text-white shadow-[0_0_18px_rgba(37,99,235,0.22)]"
                             : "text-white/48 hover:bg-white/[0.04] hover:text-white/70"
                         }`}
                       >
@@ -418,7 +434,7 @@ export default function SetupScreen({
                       }}
                       className={`rounded-2xl border px-3 py-3 text-sm font-semibold transition ${
                         locationInput === location
-                          ? "border-blue-300/45 bg-blue-500/[0.18] text-white shadow-[0_0_22px_rgba(59,130,246,0.14)]"
+                          ? "setup-blue-selected border-blue-300/45 bg-blue-500/[0.18] text-white shadow-[0_0_22px_rgba(59,130,246,0.14)]"
                           : "border-white/[0.09] bg-slate-950/36 text-white/62 hover:bg-white/[0.06]"
                       }`}
                     >
@@ -445,7 +461,7 @@ export default function SetupScreen({
                           onClick={() => toggleEquipment(equipment.value)}
                           className={`min-h-12 rounded-2xl border px-3 py-2 text-center transition ${
                             active
-                              ? "border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
+                              ? "setup-blue-selected border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
                               : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
                           }`}
                         >
@@ -464,6 +480,9 @@ export default function SetupScreen({
                 <p className="mt-1 text-[12px] leading-4 text-white/44">
                   Valfritt. Coachen prioriterar detta när upplägget byggs.
                 </p>
+                <p className="mt-1 text-[12px] leading-4 text-blue-100/54">
+                  Tryck på en eller flera. Blå betyder vald.
+                </p>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {exercisePreferenceOptions.map((preference) => {
                     const active = exercisePreferencesInput.includes(
@@ -477,11 +496,11 @@ export default function SetupScreen({
                         onClick={() => toggleExercisePreference(preference.value)}
                         className={`min-h-12 rounded-2xl border px-3 py-2 text-center transition ${
                           active
-                            ? "border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
-                            : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
+                            ? "setup-blue-selected border-blue-300/45 bg-blue-500/[0.18] text-white shadow-[0_0_22px_rgba(59,130,246,0.14)]"
+                            : "border-white/[0.16] bg-white/[0.035] text-white/74 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] hover:border-white/[0.24] hover:bg-white/[0.065] hover:text-white"
                         }`}
                       >
-                        <span className="block text-[13px] font-semibold text-white">
+                        <span className="block text-[13px] font-semibold">
                           {preference.label}
                         </span>
                       </button>
@@ -507,7 +526,7 @@ export default function SetupScreen({
                       }}
                       className={`min-h-12 rounded-2xl border px-2 py-2 text-center transition ${
                         goalInput === goal.value
-                          ? "border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
+                          ? "setup-blue-selected border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
                           : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
                       }`}
                     >
@@ -537,7 +556,7 @@ export default function SetupScreen({
                         onClick={() => toggleSecondaryGoal(goal.value)}
                         className={`min-h-11 rounded-2xl border px-2 py-2 text-center transition ${
                           active
-                            ? "border-blue-300/35 bg-blue-500/[0.12] text-white"
+                            ? "setup-blue-selected border-blue-300/35 bg-blue-500/[0.12] text-white"
                             : isPrimary
                             ? "border-white/5 bg-slate-950/22 text-white/28"
                             : "border-white/[0.09] bg-slate-950/22 text-white/62 hover:bg-white/[0.06]"
@@ -586,6 +605,10 @@ export default function SetupScreen({
                   />
                 </label>
               ) : null}
+
+              <p className="px-1 text-center text-[12px] leading-5 text-white/46">
+                Du får granska upplägget innan det används.
+              </p>
 
               <button
                 type="submit"

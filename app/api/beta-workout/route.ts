@@ -14,6 +14,26 @@ function isWorkoutSet(value: unknown): value is Record<string, unknown> {
   return isRecord(value) && typeof value.exerciseName === "string";
 }
 
+function isReasonableWorkoutSet(set: Record<string, unknown>) {
+  const weight = typeof set.weight === "number" ? set.weight : 0;
+  const reps = typeof set.reps === "number" ? set.reps : 0;
+  const durationSeconds =
+    typeof set.durationSeconds === "number" ? set.durationSeconds : null;
+
+  return (
+    Number.isFinite(weight) &&
+    weight >= 0 &&
+    weight <= 1000 &&
+    Number.isFinite(reps) &&
+    reps >= 0 &&
+    reps <= 200 &&
+    (durationSeconds === null ||
+      (Number.isFinite(durationSeconds) &&
+        durationSeconds >= 0 &&
+        durationSeconds <= 7200))
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as unknown;
@@ -32,7 +52,8 @@ export async function POST(request: Request) {
       !isRecord(workout) ||
       typeof workout.id !== "string" ||
       !Array.isArray(workout.sets) ||
-      !workout.sets.every(isWorkoutSet)
+      !workout.sets.every(isWorkoutSet) ||
+      !workout.sets.every(isReasonableWorkoutSet)
     ) {
       return NextResponse.json(
         { ok: false, error: "Invalid workout" },

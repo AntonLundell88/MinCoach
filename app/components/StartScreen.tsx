@@ -95,7 +95,15 @@ export default function StartScreen({
   const cleanNextPassLabel = nextPassLabel.replace(" 1", "").replace(" 2", "");
   const todayExercises = todayExercisesByPass[nextPass] ?? [];
   const savedCustomExercises = customExercisesByPass[nextPass] ?? [];
-  const addedExerciseCount = todayExercises.length + savedCustomExercises.length;
+  const plannedExerciseKeys = new Set(plan.map((ex) => exerciseKey(ex)));
+  const visibleTodayExercises = todayExercises.filter(
+    (ex) => !plannedExerciseKeys.has(exerciseKey(ex))
+  );
+  const visibleSavedCustomExercises = savedCustomExercises.filter(
+    (ex) => !plannedExerciseKeys.has(exerciseKey(ex))
+  );
+  const addedExerciseCount =
+    visibleTodayExercises.length + visibleSavedCustomExercises.length;
 
 
 
@@ -103,18 +111,6 @@ export default function StartScreen({
     <div className="w-full max-w-lg space-y-5">
       <div className="rounded-[1.75rem] border border-white/[0.09] bg-white/[0.05] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14)] backdrop-blur-xl">
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.055] text-sm font-semibold text-blue-100">
-              C
-            </div>
-
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-white/38">
-                Coachen
-              </p>
-            </div>
-          </div>
-
           <div className="space-y-2">
             <h1
               className="fade-up text-2xl font-semibold leading-tight text-white"
@@ -290,9 +286,9 @@ export default function StartScreen({
           </div>
         </div>
 
-        {todayExercises.length === 0 ? null : (
+        {visibleTodayExercises.length === 0 ? null : (
           <ul className="mt-3 space-y-2">
-            {todayExercises.map((ex) => (
+            {visibleTodayExercises.map((ex) => (
               <li
                 key={`today-${exerciseKey(ex)}`}
               className="flex items-center justify-between rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2.5"
@@ -322,9 +318,9 @@ export default function StartScreen({
           </ul>
         )}
 
-        {savedCustomExercises.length === 0 ? null : (
+        {visibleSavedCustomExercises.length === 0 ? null : (
           <ul className="mt-3 space-y-2">
-            {savedCustomExercises.map((ex) => (
+            {visibleSavedCustomExercises.map((ex) => (
               <li
                 key={`saved-${exerciseKey(ex)}`}
               className="flex items-center justify-between rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2.5"

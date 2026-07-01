@@ -22,7 +22,8 @@ import type {
 } from "../lib/coachAi";
 import { reviewManualProgram } from "../lib/programReview";
 import type { ManualProgramReviewSuggestion } from "../lib/programReview";
-import { CloseGlyph, PencilGlyph, SendGlyph } from "./IconGlyphs";
+import { repairMojibake } from "../lib/textEncoding";
+import { CloseGlyph, PencilGlyph, RotateGlyph, SendGlyph } from "./IconGlyphs";
 
 type Goal = "muskel" | "styrka" | "fett";
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
@@ -112,6 +113,11 @@ type Props = {
   onRebuildProgram: () => void;
   onRenamePass: (passKey: PassType, displayName: string) => void;
   onAddExercise: (passKey: PassType, exerciseName: string) => AddExerciseResult;
+  onReplaceExercise: (
+    passKey: PassType,
+    fromExerciseName: string,
+    toExerciseName: string
+  ) => void;
   onRemoveExercise: (passKey: PassType, exerciseName: string) => void;
   onApprove: () => void;
   onEditProfile: () => void;
@@ -142,7 +148,7 @@ function cleanProgramCopy(value?: string | null) {
 
   return PROGRAM_COPY_REPLACEMENTS.reduce(
     (text, [pattern, replacement]) => text.replace(pattern, replacement),
-    value
+    repairMojibake(value)
   )
     .replace(/\s+/g, " ")
     .trim();
@@ -176,10 +182,6 @@ function formatMissingPasses(passes: WorkoutPass[]) {
 
 function exerciseCountLabel(count: number) {
   return count === 1 ? "1 övning" : `${count} övningar`;
-}
-
-function isFallbackProgramBuildStatus(status: Props["programBuildStatus"]) {
-  return status === "fallback";
 }
 
 function escapeRegExp(value: string) {
@@ -219,6 +221,69 @@ function splitCoachPoints(value: string, profile: UserProfile, max = 3) {
     .slice(0, max);
 }
 
+function lowerFirst(value: string) {
+  return value
+    ? `${value.charAt(0).toLocaleLowerCase("sv-SE")}${value.slice(1)}`
+    : "";
+}
+
+function naturalJoin(items: string[]) {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]} och ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")} och ${items.at(-1)}`;
+}
+
+function getPassFocus(pass: WorkoutPass) {
+  return cleanPassNameForDisplay(pass.displayName)
+    .replace(/^Pass\s+[A-G0-9]\s*[—-]\s*/i, "")
+    .replace(/^Dag\s+\d+\s*[—-]\s*/i, "")
+    .trim();
+}
+
+function simplifyCoachExplanation(value: string) {
+  return cleanProgramCopy(value)
+    .replace(/\s*\([^)]*\)\s*/g, " ")
+    .replace(/\bhypertrofi\b/gi, "muskeltillväxt")
+    .replace(/\bprogressa\b/gi, "öka")
+    .replace(/\bprogression\b/gi, "utveckling")
+    .replace(/\bbasövningar\b/gi, "huvudövningar")
+    .replace(/\bisolationsövningar\b/gi, "extra övningar")
+    .replace(/\bhorisontell(?:t)? pressfokus\b/gi, "bröst och press")
+    .replace(/\bdragfokus\b/gi, "rygg och drag")
+    .replace(/\bknäböj-\/höftfokus\b/gi, "ben och höft")
+    .replace(/\bveckovolym\b/gi, "träning över veckan")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildCoachExplanationPoints(
+  workoutPlan: WorkoutPlan,
+  profile: UserProfile
+) {
+  const passParts = workoutPlan.passes
+    .map((pass) => {
+      const focus = getPassFocus(pass);
+      return focus ? `Pass ${pass.key}: ${lowerFirst(focus)}` : "";
+    })
+    .filter(Boolean);
+  const points: string[] = [];
+
+  if (passParts.length > 0) {
+    points.push(`Veckan är enkel: ${naturalJoin(passParts)}.`);
+  }
+
+  points.push(
+    `${workoutPlan.daysPerWeek} pass med lagom mycket i varje pass gör det lättare att träna hårt, återhämta sig och se vad som går framåt.`
+  );
+
+  splitCoachPoints(workoutPlan.planReason ?? "", profile, 2)
+    .map(simplifyCoachExplanation)
+    .filter(Boolean)
+    .forEach((point) => points.push(point));
+
+  return Array.from(new Set(points)).slice(0, 3);
+}
+
 function fallbackCoachSummary(profile: UserProfile) {
   return [
     `Du tränar ${profile.daysPerWeek} dagar i veckan i cirka ${profile.minutesPerSession} minuter.`,
@@ -247,6 +312,28 @@ function fallbackCoachWarnings(profile: UserProfile) {
     profile.limitations.trim()
       ? `Ta extra hänsyn till: ${profile.limitations.trim()}.`
       : "",
+  ];
+}
+
+function buildLimitationsAcknowledgement(
+  profile: UserProfile,
+  safetyLines: string[]
+) {
+  const limitations = cleanSafetyLine(profile.limitations);
+  if (!limitations) return [];
+
+  const supportingLine = safetyLines.find(
+    (line) =>
+      !line.toLocaleLowerCase("sv-SE").includes(limitations.toLocaleLowerCase("sv-SE")) &&
+      !/^jag tar hänsyn till:/i.test(line) &&
+      !/^ta extra hänsyn till:/i.test(line)
+  );
+
+  return [
+    `Jag har tagit hänsyn till: ${limitations}.`,
+    supportingLine ||
+      "Upplägget väljer hellre stabila varianter och kontrollerad progression än att chansa.",
+    "Om något ger skarp smärta byter vi övning direkt.",
   ];
 }
 
@@ -624,6 +711,7 @@ export default function ProgramReviewScreen({
   onRebuildProgram,
   onRenamePass,
   onAddExercise,
+  onReplaceExercise,
   onRemoveExercise,
   onApprove,
   onEditProfile,
@@ -642,6 +730,11 @@ export default function ProgramReviewScreen({
   const [isPreferenceSubmitting, setIsPreferenceSubmitting] = useState(false);
   const [editingPassKey, setEditingPassKey] = useState<PassType | null>(null);
   const [passNameInput, setPassNameInput] = useState("");
+  const [focusedPassKey, setFocusedPassKey] = useState<PassType | null>(null);
+  const [alternativeTarget, setAlternativeTarget] = useState<{
+    exerciseName: string;
+    passKey: PassType;
+  } | null>(null);
   const [activePassKey, setActivePassKey] = useState<PassType>(
     workoutPlan.passes[0]?.key ?? "A"
   );
@@ -755,6 +848,59 @@ export default function ProgramReviewScreen({
 
     return matchesCategory && matchesSearch;
   });
+  const alternativeTargetPass = alternativeTarget
+    ? workoutPlan.passes.find((pass) => pass.key === alternativeTarget.passKey) ??
+      null
+    : null;
+  const alternativeSource = alternativeTarget
+    ? libraryExercises.find(
+        (exercise) =>
+          normalizeExerciseSearchText(exercise.name) ===
+          normalizeExerciseSearchText(alternativeTarget.exerciseName)
+      ) ?? null
+    : null;
+  const alternativeExistingKeys = new Set(
+    alternativeTargetPass?.exercises.map((exercise) =>
+      normalizeExerciseSearchText(exercise.name)
+    ) ?? []
+  );
+  const alternativeOptions =
+    alternativeTarget && alternativeSource
+      ? libraryExercises
+          .filter((exercise) => {
+            const key = normalizeExerciseSearchText(exercise.name);
+            return (
+              key !== normalizeExerciseSearchText(alternativeTarget.exerciseName) &&
+              !alternativeExistingKeys.has(key)
+            );
+          })
+          .map((exercise) => {
+            const substitutionRank = alternativeSource.substitutions.findIndex(
+              (name) =>
+                normalizeExerciseSearchText(name) ===
+                normalizeExerciseSearchText(exercise.name)
+            );
+            const sharedEquipment = exercise.equipmentTags.filter((tag) =>
+              alternativeSource.equipmentTags.includes(tag)
+            ).length;
+            const score =
+              (substitutionRank >= 0 ? 180 - substitutionRank * 8 : 0) +
+              (exercise.movementPattern === alternativeSource.movementPattern
+                ? 48
+                : 0) +
+              (exercise.primaryMuscle === alternativeSource.primaryMuscle
+                ? 34
+                : 0) +
+              (exercise.category === alternativeSource.category ? 18 : 0) +
+              (exercise.exerciseType === alternativeSource.exerciseType ? 10 : 0) +
+              sharedEquipment * 5;
+
+            return { exercise, score, direct: substitutionRank >= 0 };
+          })
+          .filter((item) => item.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 6)
+      : [];
   function addLibraryExercise(passKey: PassType, exerciseName: string) {
     const result = onAddExercise(passKey, exerciseName);
     setExerciseInputsByPass((prev) => ({
@@ -852,16 +998,16 @@ export default function ProgramReviewScreen({
     .map((line) => cleanSafetyLine(directUserCopy(line, profile)))
     .filter(Boolean)
     .slice(0, 4);
+  const limitationAcknowledgement = buildLimitationsAcknowledgement(
+    profile,
+    safetyLines
+  );
   const coachSummaryPoints = splitCoachPoints(
     workoutPlan.coachSummary ?? "",
     profile,
     3
   );
-  const coachExplanationPoints = splitCoachPoints(
-    workoutPlan.structureReason || workoutPlan.planReason || "",
-    profile,
-    4
-  );
+  const coachExplanationPoints = buildCoachExplanationPoints(workoutPlan, profile);
   const visibleCoachSummaryPoints =
     coachSummaryPoints.length > 0 ? coachSummaryPoints : fallbackCoachSummary(profile);
   const visibleCoachExplanationPoints =
@@ -878,7 +1024,6 @@ export default function ProgramReviewScreen({
     : [];
   const missingPassText = formatMissingPasses(missingPasses);
   const canApproveProgram =
-    programBuildStatus !== "fallback" &&
     totalExercises > 0 &&
     missingPasses.length === 0;
   const hasCoachReviewSuggestions = coachReviewSuggestions.length > 0;
@@ -971,10 +1116,98 @@ export default function ProgramReviewScreen({
           document.body
         )
       : null;
+  const alternativesOverlay =
+    alternativeTarget && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[9998] flex items-end justify-center bg-black/24 px-3 pb-5 pt-20 backdrop-blur-[1px] sm:items-center sm:pb-0"
+            onClick={() => setAlternativeTarget(null)}
+          >
+            <div
+              role="dialog"
+              aria-label={`Liknande övningar för ${alternativeTarget.exerciseName}`}
+              className="w-full max-w-[420px] rounded-[1.4rem] border border-blue-300/14 bg-[#0d1724] p-3.5 shadow-[0_28px_90px_rgba(0,0,0,0.52),0_0_48px_rgba(37,99,235,0.16),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/70">
+                    Liknande övningar
+                  </p>
+                  <h3 className="mt-1 text-base font-semibold text-white">
+                    Byt {cleanProgramCopy(alternativeTarget.exerciseName)}
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-white/48">
+                    Välj ett alternativ som passar bättre på ditt gym.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAlternativeTarget(null)}
+                  aria-label="Stäng alternativ"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white/48 transition hover:bg-white/[0.10] hover:text-white"
+                >
+                  <CloseGlyph className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                {alternativeOptions.length > 0 ? (
+                  alternativeOptions.map(({ exercise, direct }) => (
+                    <button
+                      key={exercise.name}
+                      type="button"
+                      onClick={() => {
+                        onReplaceExercise(
+                          alternativeTarget.passKey,
+                          alternativeTarget.exerciseName,
+                          exercise.name
+                        );
+                        setAddFeedbackByPass((prev) => ({
+                          ...prev,
+                          [alternativeTarget.passKey]: {
+                            clearInput: true,
+                            tone: "success",
+                            message: `${alternativeTarget.exerciseName} byttes mot ${exercise.name}.`,
+                          },
+                        }));
+                        setAlternativeTarget(null);
+                      }}
+                      className="rounded-2xl border border-white/[0.07] bg-white/[0.04] px-3 py-3 text-left transition hover:border-blue-300/32 hover:bg-blue-400/[0.10]"
+                    >
+                      <span className="flex items-start justify-between gap-3">
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-white/82">
+                            {exercise.name}
+                          </span>
+                          <span className="mt-1 block text-[11px] font-medium leading-4 text-white/46">
+                            {exercise.primaryMuscle} · {exercise.equipment}
+                          </span>
+                        </span>
+                        {direct ? (
+                          <span className="shrink-0 rounded-full bg-blue-400/[0.12] px-2 py-1 text-[10px] font-semibold text-blue-100/70">
+                            nära
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="rounded-2xl bg-white/[0.04] px-3 py-3 text-sm leading-5 text-white/58">
+                    Jag hittar inget tydligt alternativ i biblioteket för just den här övningen.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <>
     {termsHelpOverlay}
+    {alternativesOverlay}
     <main className="min-h-screen bg-[#0b1018] px-3 pb-5 pt-16 text-white sm:px-4">
       <div className="mx-auto flex w-full max-w-[460px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
@@ -984,7 +1217,7 @@ export default function ProgramReviewScreen({
 
           <h1 className="mt-3 text-[1.45rem] font-semibold leading-tight tracking-normal text-white">
             {programBuildStatus === "fallback"
-              ? "AI-bygget behöver köras om."
+              ? "Jag har byggt ett tryggt grundupplägg."
               : isManualBuilder
               ? "Fyll passen med övningar."
               : "Jag har byggt ditt upplägg."}
@@ -994,7 +1227,7 @@ export default function ProgramReviewScreen({
             <>
               {programBuildStatus === "fallback" ? (
                 <p className="mt-3 text-sm leading-6 text-white/72">
-                  Jag vill inte ge dig ett standardpass här. Tryck bygg om, så låter vi coachen göra upplägget ordentligt.
+                  Det här är ett säkert upplägg att starta från. Coachen har byggt runt dina svar, och du kan justera det innan du godkänner.
                 </p>
               ) : (
                 <div className="mt-3 grid gap-2">
@@ -1019,9 +1252,24 @@ export default function ProgramReviewScreen({
           ) : null}
 
           {programBuildStatus === "fallback" ? (
-            <div className="mt-4 rounded-2xl border border-amber-300/18 bg-amber-300/[0.07] p-3 text-sm leading-6 text-amber-50/74">
-              AI-bygget gick inte igenom. Det här upplägget är bara ett tillfälligt säkerhetsläge och ska inte godkännas som ditt program.
+            <div className="mt-4 rounded-2xl border border-blue-300/18 bg-blue-500/[0.055] p-3 text-sm leading-6 text-blue-50/74">
+              Jag har valt ett tryggt grundupplägg så du inte fastnar här. Vill du ha ett nytt förslag kan du bygga om med coachen.
             </div>
+          ) : null}
+
+          {limitationAcknowledgement.length > 0 ? (
+            <section className="mt-4 rounded-2xl border border-blue-300/18 bg-blue-500/[0.055] p-3.5 shadow-[inset_3px_0_0_rgba(96,165,250,0.62),inset_0_1px_0_rgba(255,255,255,0.045)]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/58">
+                Byggt med hänsyn
+              </p>
+              <div className="mt-2.5 grid gap-1.5">
+                {limitationAcknowledgement.map((line) => (
+                  <p key={line} className="text-sm leading-6 text-white/76">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            </section>
           ) : null}
 
           {!isManualBuilder ? (
@@ -1038,7 +1286,7 @@ export default function ProgramReviewScreen({
                     : "Hur har coachen tänkt?"}
                 </span>
                 <span className="mt-1 block text-xs leading-5 text-white/44">
-                  Varför passen, övningarna och nivån ser ut som de gör.
+                  En snabb bild av veckans upplägg.
                 </span>
               </span>
               <span className="text-lg leading-none text-white/42">
@@ -1048,9 +1296,12 @@ export default function ProgramReviewScreen({
 
             {showCoachDetails ? (
               <div className="border-t border-white/[0.055] px-3.5 pb-3.5 pt-3">
-                <div className="grid gap-2">
+                <div className="grid gap-2.5">
                   {visibleCoachExplanationPoints.map((point) => (
-                    <p key={point} className="text-sm leading-5 text-white/66">
+                    <p
+                      key={point}
+                      className="rounded-2xl bg-white/[0.028] px-3 py-2.5 text-sm leading-5 text-white/66"
+                    >
                       {point}
                     </p>
                   ))}
@@ -1177,7 +1428,7 @@ export default function ProgramReviewScreen({
           </div>
           ) : null}
 
-          {!isManualBuilder && programBuildStatus !== "fallback" ? (
+          {!isManualBuilder ? (
             <div className="program-coach-nudge mt-3 rounded-2xl px-3.5 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
                 Behöver något justeras?
@@ -1201,7 +1452,7 @@ export default function ProgramReviewScreen({
           ) : null}
         </section>
 
-        {programBuildStatus !== "fallback" ? (
+        {true ? (
         <section className="rounded-[1.5rem] bg-white/[0.035] p-3.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -1275,6 +1526,7 @@ export default function ProgramReviewScreen({
               const addFeedback = addFeedbackByPass[pass.key];
               const inputValue = exerciseInputsByPass[pass.key] ?? "";
               const hasExerciseInput = inputValue.trim().length > 0;
+              const isPassFocused = focusedPassKey === pass.key;
               const showCustomCategories =
                 showCustomCategoriesByPass[pass.key] ||
                 addFeedback?.tone === "question";
@@ -1291,7 +1543,12 @@ export default function ProgramReviewScreen({
               return (
               <div
                 key={pass.key}
-              className="overflow-hidden rounded-[1.35rem] bg-slate-950/16 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)]"
+                data-program-pass
+              className={`overflow-hidden rounded-[1.35rem] bg-slate-950/16 transition-[box-shadow,background-color] duration-200 ${
+                isPassFocused
+                  ? "shadow-[0_0_0_1px_rgba(96,165,250,0.38),0_0_32px_rgba(37,99,235,0.12),inset_0_0_0_1px_rgba(147,197,253,0.12)]"
+                  : "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)]"
+              }`}
               >
                 <div className="flex items-center justify-between gap-3 px-3 py-3">
                   {editingPassKey === pass.key ? (
@@ -1299,6 +1556,14 @@ export default function ProgramReviewScreen({
                       <input
                         className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/45 px-3 py-2 text-sm font-semibold text-white outline-none placeholder:text-white/28 focus:border-blue-300/45"
                         value={passNameInput}
+                        onFocus={() => setFocusedPassKey(pass.key)}
+                        onBlur={(event) => {
+                          if (!event.currentTarget.parentElement?.contains(event.relatedTarget as Node | null)) {
+                            setFocusedPassKey((current) =>
+                              current === pass.key ? null : current
+                            );
+                          }
+                        }}
                         onChange={(event) => setPassNameInput(event.target.value)}
                         onKeyDown={(event) => {
                           if (event.key === "Enter") savePassName(pass);
@@ -1328,11 +1593,6 @@ export default function ProgramReviewScreen({
                         <p className="mt-0.5 text-[11px] font-medium text-white/38">
                           {exerciseCountLabel(pass.exercises.length)}
                         </p>
-                        {passIntent && !isManualBuilder ? (
-                          <p className="mt-1 line-clamp-2 text-[11px] font-medium leading-4 text-white/48">
-                            {passIntent}
-                          </p>
-                        ) : null}
                       </div>
                     </div>
                   )}
@@ -1346,6 +1606,12 @@ export default function ProgramReviewScreen({
                     </button>
                   </div>
                 </div>
+
+                {passIntent && !isManualBuilder && editingPassKey !== pass.key ? (
+                  <p className="px-3 pb-2 text-[11px] font-medium leading-4 text-white/48">
+                    {passIntent}
+                  </p>
+                ) : null}
 
                 {editingPassKey !== pass.key ? (
                   <div className="flex items-center justify-end px-3 pb-2">
@@ -1424,14 +1690,30 @@ export default function ProgramReviewScreen({
                           </button>
                         </span>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => onRemoveExercise(pass.key, exercise.name)}
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.06] bg-slate-950/18 text-white/38 transition hover:bg-white/[0.08] hover:text-white"
-                          aria-label={`Ta bort ${exercise.name}`}
-                        >
-                          <CloseGlyph className="h-3.5 w-3.5" />
-                        </button>
+                        <span className="flex shrink-0 flex-col items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => onRemoveExercise(pass.key, exercise.name)}
+                            className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.06] bg-slate-950/18 text-white/38 transition hover:bg-white/[0.08] hover:text-white"
+                            aria-label={`Ta bort ${exercise.name}`}
+                          >
+                            <CloseGlyph className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setAlternativeTarget({
+                                passKey: pass.key,
+                                exerciseName: exercise.name,
+                              });
+                            }}
+                            className="flex h-6 w-6 items-center justify-center rounded-full border border-blue-300/10 bg-blue-400/[0.045] text-blue-100/42 transition hover:border-blue-300/28 hover:bg-blue-400/[0.12] hover:text-blue-50"
+                            aria-label={`Föreslå liknande övningar för ${exercise.name}`}
+                          >
+                            <RotateGlyph className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
                       )}
                     </div>
                     );
@@ -1485,6 +1767,15 @@ export default function ProgramReviewScreen({
                       <input
                         className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/34 px-3.5 py-3 text-base font-semibold text-white outline-none placeholder:text-white/30 focus:border-blue-300/55 focus:bg-slate-950/46"
                         value={inputValue}
+                        onFocus={() => setFocusedPassKey(pass.key)}
+                        onBlur={(event) => {
+                          const nextTarget = event.relatedTarget as Node | null;
+                          if (!event.currentTarget.closest("[data-program-pass]")?.contains(nextTarget)) {
+                            setFocusedPassKey((current) =>
+                              current === pass.key ? null : current
+                            );
+                          }
+                        }}
                         onChange={(event) => {
                           setExerciseInputsByPass((prev) => ({
                             ...prev,
@@ -2090,22 +2381,22 @@ export default function ProgramReviewScreen({
           </div>
         ) : null}
 
-        {!isManualBuilder && !isFallbackProgramBuildStatus(programBuildStatus) ? (
-        <section className={`program-coach-dialog rounded-[1.5rem] border border-white/[0.09] backdrop-blur-xl ${
-          isManualBuilder ? "bg-white/[0.028] p-3" : "bg-white/[0.048] p-3.5"
+        {!isManualBuilder ? (
+        <section className={`program-coach-dialog rounded-[1.5rem] border border-white/[0.08] backdrop-blur-xl ${
+          isManualBuilder ? "bg-white/[0.026] p-3" : "bg-white/[0.04] p-3.5"
         }`}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
                 {isManualBuilder ? "Fråga coachen" : "Prata med coachen"}
               </p>
-              <p className={`${isManualBuilder ? "mt-1 text-xs" : "mt-2 text-sm"} leading-6 text-white/72`}>
+              <p className={`${isManualBuilder ? "mt-1 text-xs" : "mt-2 text-sm"} leading-6 text-white/66`}>
                 {isManualBuilder
                   ? "Behöver du hjälp att välja, byta eller förstå en övning?"
                   : "Fråga, säg om något känns fel eller be mig justera upplägget."}
               </p>
               {!isManualBuilder ? (
-                <p className="mt-1 text-xs leading-5 text-white/46">
+                <p className="mt-1 text-xs leading-5 text-white/42">
                   Du godkänner alltid ändringar innan de läggs in.
                 </p>
               ) : hasCoachReviewSuggestions ? (
@@ -2126,7 +2417,7 @@ export default function ProgramReviewScreen({
             <button
               type="button"
               onClick={() => setShowInputHelp(true)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.052] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-xs font-semibold text-white/48 transition hover:bg-white/[0.075] hover:text-white"
               aria-label="Visa exempel på vad du kan ändra"
             >
               i
@@ -2134,10 +2425,10 @@ export default function ProgramReviewScreen({
           </div>
 
           <div
-            className={`program-coach-input-panel mt-3 rounded-2xl border p-2.5 transition ${
+            className={`program-coach-input-panel mt-3 rounded-2xl border transition ${
               preferenceReply || pendingProgramSuggestion
-                ? "border-blue-300/18 bg-blue-400/[0.055]"
-                : "border-transparent bg-transparent p-0"
+                ? "border-blue-300/10 bg-blue-400/[0.022] p-2.5 shadow-[inset_0_0_0_1px_rgba(147,197,253,0.035)]"
+                : "border-white/[0.06] bg-slate-950/18 p-2"
             }`}
           >
             {preferenceReply || pendingProgramSuggestion ? (
@@ -2153,7 +2444,7 @@ export default function ProgramReviewScreen({
 
             <div className="flex gap-2">
               <input
-                className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/45 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/45"
+                className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/26 focus:border-blue-300/34 focus:bg-slate-950/42"
                 value={preferenceInput}
                 onChange={(event) => setPreferenceInput(event.target.value)}
                 disabled={isPreferenceSubmitting}
@@ -2170,12 +2461,15 @@ export default function ProgramReviewScreen({
                 }
               />
               <button
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2f6df6] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4f83ff] disabled:opacity-45"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-300/12 bg-blue-400/[0.12] text-blue-50/80 transition hover:bg-blue-400/[0.18] hover:text-white disabled:border-white/[0.06] disabled:bg-white/[0.045] disabled:text-white/24"
                 disabled={!preferenceInput.trim() || isPreferenceSubmitting}
                 onClick={submitPreference}
+                aria-label={isPreferenceSubmitting ? "Skickar" : "Skicka"}
               >
                 <SendGlyph className="h-4 w-4" />
-                {isPreferenceSubmitting ? "Skickar" : "Skicka"}
+                <span className="sr-only">
+                  {isPreferenceSubmitting ? "Skickar" : "Skicka"}
+                </span>
               </button>
             </div>
 
@@ -2297,24 +2591,20 @@ export default function ProgramReviewScreen({
             </div>
           ) : null}
 
-          <div className="mt-4 grid gap-2">
+          <div className="mt-4 grid gap-2.5">
             {!canApproveProgram ? (
               <p className="text-center text-xs font-medium leading-5 text-white/44">
-                {(programBuildStatus as Props["programBuildStatus"]) === "fallback"
-                  ? "Bygg med AI först."
-                  : totalExercises === 0
+                {totalExercises === 0
                   ? "Lägg till minst en övning."
                   : missingPassText || "Lägg till övningar först."}
               </p>
             ) : null}
             <button
-              className="w-full rounded-2xl bg-[#2f6df6] py-3.5 text-sm font-semibold text-white shadow-[0_0_26px_rgba(37,99,235,0.24)] transition hover:bg-[#4f83ff] disabled:bg-white/[0.07] disabled:text-white/32 disabled:shadow-none"
+              className="w-full rounded-2xl bg-[#2f6df6] py-4 text-[15px] font-semibold text-white shadow-[0_0_34px_rgba(37,99,235,0.30)] transition hover:bg-[#4f83ff] disabled:bg-white/[0.07] disabled:text-white/32 disabled:shadow-none"
               onClick={handleApprove}
               disabled={!canApproveProgram}
             >
-              {(programBuildStatus as Props["programBuildStatus"]) === "fallback"
-                ? "Bygg med AI först"
-                : totalExercises === 0
+              {totalExercises === 0
                 ? "Lägg till övningar först"
                 : missingPassText
                 ? "Fyll i saknade pass"
@@ -2327,7 +2617,7 @@ export default function ProgramReviewScreen({
                 : "Godkänn upplägget"}
             </button>
             <button
-              className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.048] py-3 text-sm font-medium text-white/62 transition hover:bg-white/[0.07] hover:text-white"
+              className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.035] py-3 text-sm font-medium text-white/54 transition hover:bg-white/[0.065] hover:text-white/78"
               onClick={onEditProfile}
             >
               Ändra mina svar
@@ -2339,9 +2629,7 @@ export default function ProgramReviewScreen({
             <div className="mt-1 grid gap-2">
               {!canApproveProgram ? (
                 <p className="text-center text-xs font-medium leading-5 text-white/44">
-                  {programBuildStatus === "fallback"
-                    ? "Bygg med AI först."
-                    : totalExercises === 0
+                  {totalExercises === 0
                     ? "Lägg till minst en övning i varje pass."
                     : missingPassText || "Lägg till övningar först."}
                 </p>
@@ -2351,9 +2639,7 @@ export default function ProgramReviewScreen({
                 onClick={handleApprove}
                 disabled={!canApproveProgram}
               >
-                  {programBuildStatus === "fallback"
-                  ? "Bygg med AI först"
-                  : totalExercises === 0
+                  {totalExercises === 0
                   ? "Fyll passen först"
                   : missingPassText
                   ? "Fyll i saknade pass"

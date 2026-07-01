@@ -1,12 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { CloseGlyph, PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
+import { PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
-  getExerciseProfile,
-  getExerciseUserInfo,
   isBodyweightExercise,
   isTimedExercise,
 } from "../lib/exercises";
+import ExerciseInfoModal from "./ExerciseInfoModal";
 
 type PersonalRecord = {
   exerciseName: string;
@@ -41,6 +40,7 @@ type Props = {
   skippedExerciseName: string | null;
   undoSkipExercise: () => void;
   personalRecords: PersonalRecords;
+  plannedWeightKg?: number;
 };
 
 export default function ExerciseCard({
@@ -65,18 +65,28 @@ export default function ExerciseCard({
   skippedExerciseName,
   undoSkipExercise,
   personalRecords,
+  plannedWeightKg,
 }: Props) {
   const [showRirInfo, setShowRirInfo] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
   const [useAddedWeight, setUseAddedWeight] = useState(false);
   const [isDurationRunning, setIsDurationRunning] = useState(false);
-  const exerciseInfo = getExerciseProfile(currentExerciseName);
-  const exerciseUserInfo = getExerciseUserInfo(currentExerciseName);
+  const [awaitingWeightConfirm, setAwaitingWeightConfirm] = useState(false);
   const isBodyweight = isBodyweightExercise(currentExerciseName);
   const isTimed = isTimedExercise(currentExerciseName);
   const hasAddedWeight =
     Number(weightInput.trim().replace(",", ".")) > 0 && isBodyweight;
+
   const showWeightInput = !isBodyweight || useAddedWeight || hasAddedWeight;
+
+  const enteredWeight = parseFloat(weightInput.trim().replace(",", "."));
+  const weightDiffers =
+    showWeightInput &&
+    plannedWeightKg != null &&
+    plannedWeightKg > 0 &&
+    Number.isFinite(enteredWeight) &&
+    enteredWeight > 0 &&
+    enteredWeight !== plannedWeightKg;
   const adjustReps = (delta: number) => {
     const current = Number(repsInput);
     const next = Number.isFinite(current)
@@ -87,8 +97,15 @@ export default function ExerciseCard({
 
     setRepsInput(String(next));
   };
-  const adjustDuration = (delta: number) => {
-    setDurationSecondsInput(Math.max(0, durationSecondsInput + delta));
+  const adjustWeight = (delta: number) => {
+    const current = Number(weightInput.trim().replace(",", "."));
+    const base = Number.isFinite(current) ? current : 0;
+    const next =
+      delta > 0
+        ? Math.ceil((base + 0.01) / 2.5) * 2.5
+        : Math.max(0, Math.floor((base - 0.01) / 2.5) * 2.5);
+
+    setWeightInput(next > 0 ? Number(next.toFixed(2)).toString() : "");
   };
   const formatDuration = (seconds: number) => {
     const safeSeconds = Math.max(0, Math.round(seconds));
@@ -105,7 +122,13 @@ export default function ExerciseCard({
     return isBodyweight && record.weight <= 0
       ? `${record.reps} reps`
       : `${record.weight} x ${record.reps}`;
-  };
+};
+/* eslint-disable react-hooks/set-state-in-effect */
+useEffect(() => {
+  setAwaitingWeightConfirm(false);
+}, [weightInput]);
+/* eslint-enable react-hooks/set-state-in-effect */
+
 useEffect(() => {
   if (rirInput > 1 && didFailInput) {
     setDidFailInput(false);
@@ -187,57 +210,10 @@ useEffect(() => {
       </div>
 
       {showExerciseInfo ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-4 backdrop-blur-sm">
-          <div className="w-full max-w-[430px] rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
-                  Övningsinfo
-                </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
-                  {currentExerciseName}
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
-                onClick={() => setShowExerciseInfo(false)}
-                aria-label="Stäng"
-              >
-                <CloseGlyph className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-100/42">
-                {exerciseInfo.equipment}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-white/72">
-                {exerciseUserInfo.whyChosen || exerciseInfo.detail}
-              </p>
-              <p className="mt-2 text-xs leading-5 text-white/52">
-                Tränar: {exerciseUserInfo.trains}
-              </p>
-              <p className="mt-1 text-xs leading-5 text-white/44">
-                {exerciseUserInfo.logTypeText}
-              </p>
-              <div className="mt-3 rounded-xl border border-white/8 bg-white/[0.035] p-2.5">
-                <p className="text-xs leading-5 text-white/66">
-                  {exerciseInfo.techniqueCue}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-white/44">
-                  {exerciseUserInfo.keepInMind || exerciseInfo.progressionRule}
-                </p>
-                {exerciseUserInfo.easierAlternative ? (
-                  <p className="mt-1 text-xs leading-5 text-white/44">
-                    Lättare variant: {exerciseUserInfo.easierAlternative}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
+        <ExerciseInfoModal
+          exerciseName={currentExerciseName}
+          onClose={() => setShowExerciseInfo(false)}
+        />
       ) : null}
 
       {(() => {
@@ -260,9 +236,9 @@ useEffect(() => {
       })()}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
+      <div className="grid grid-cols-2 items-end gap-3">
+        <div className="min-w-0 space-y-1">
+          <div className="flex h-5 items-center justify-between gap-2">
             <label className="text-xs text-gray-300">
               {isBodyweight ? "Belastning" : "Vikt (kg)"}
             </label>
@@ -286,13 +262,33 @@ useEffect(() => {
           </div>
 
           {showWeightInput ? (
-            <input
-              className="w-full rounded-2xl border border-white/[0.075] bg-slate-950/50 px-3.5 py-2.5 text-center text-lg font-semibold text-white outline-none transition focus:border-blue-300/35"
-              inputMode="decimal"
-              value={weightInput}
-              onChange={(e) => setWeightInput(e.target.value)}
-              placeholder={isBodyweight ? "t.ex. 5" : "t.ex. 80"}
-            />
+            <div className="space-y-1.5">
+              <div className="workout-input-stepper grid h-12 grid-cols-[2.55rem_minmax(0,1fr)_2.55rem] overflow-hidden rounded-2xl border border-white/[0.075] bg-slate-950/50 transition focus-within:border-blue-300/35">
+                <button
+                  type="button"
+                  onClick={() => adjustWeight(-2.5)}
+                  className="flex h-full items-center justify-center border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
+                  aria-label="Sänk vikt"
+                >
+                  -
+                </button>
+                <input
+                  className="h-full min-w-0 bg-transparent px-2 text-center text-lg font-semibold text-white outline-none placeholder:text-white/28"
+                  inputMode="decimal"
+                  value={weightInput}
+                  onChange={(e) => setWeightInput(e.target.value)}
+                  placeholder={isBodyweight ? "t.ex. 5" : "t.ex. 80"}
+                />
+                <button
+                  type="button"
+                  onClick={() => adjustWeight(2.5)}
+                  className="flex h-full items-center justify-center border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
+                  aria-label="Höj vikt"
+                >
+                  +
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="flex h-[47px] items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.026] px-3.5 text-sm font-semibold text-white/50">
               Kroppsvikt
@@ -300,11 +296,13 @@ useEffect(() => {
           )}
         </div>
 
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           {isTimed ? (
             <div className="space-y-1">
-              <label className="text-xs text-gray-300">Tid</label>
-              <div className="rounded-2xl border border-blue-300/15 bg-slate-950/50 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+              <div className="flex h-5 items-center">
+                <label className="text-xs text-gray-300">Tid</label>
+              </div>
+              <div className="workout-timer-card rounded-2xl border border-blue-300/15 bg-slate-950/50 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-2xl font-semibold tracking-[-0.03em] text-white">
                     {formatDuration(durationSecondsInput)}
@@ -313,7 +311,7 @@ useEffect(() => {
                     <button
                       type="button"
                       onClick={() => setIsDurationRunning((value) => !value)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-blue-300/20 bg-blue-500/[0.12] px-3 py-1.5 text-xs font-semibold text-blue-50 transition hover:bg-blue-500/[0.18]"
+                      className="workout-ai-action inline-flex items-center gap-1.5 rounded-xl border border-blue-300/20 bg-blue-500/[0.12] px-3 py-1.5 text-xs font-semibold text-blue-50 transition hover:bg-blue-500/[0.18]"
                     >
                       {isDurationRunning ? <PauseGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
                       {isDurationRunning ? "Stoppa" : "Starta"}
@@ -331,34 +329,24 @@ useEffect(() => {
                     </button>
                   </div>
                 </div>
-                <div className="mt-2 grid grid-cols-4 gap-1.5">
-                  {[15, 30, 45, 60].map((seconds) => (
-                    <button
-                      key={seconds}
-                      type="button"
-                      onClick={() => adjustDuration(seconds)}
-                      className="rounded-xl border border-white/[0.06] bg-white/[0.035] py-1.5 text-xs font-semibold text-white/62 transition hover:bg-white/[0.07] hover:text-white"
-                    >
-                      +{seconds}s
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           ) : (
             <>
-          <label className="text-xs text-gray-300">Reps</label>
-          <div className="grid grid-cols-[2.55rem_1fr_2.55rem] overflow-hidden rounded-2xl border border-white/[0.075] bg-slate-950/50 transition focus-within:border-blue-300/35">
+          <div className="flex h-5 items-center">
+            <label className="text-xs text-gray-300">Reps</label>
+          </div>
+          <div className="workout-input-stepper grid h-12 grid-cols-[2.55rem_minmax(0,1fr)_2.55rem] overflow-hidden rounded-2xl border border-white/[0.075] bg-slate-950/50 transition focus-within:border-blue-300/35">
             <button
               type="button"
               onClick={() => adjustReps(-1)}
-              className="border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
+              className="flex h-full items-center justify-center border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
               aria-label="Minska reps"
             >
               −
             </button>
             <input
-              className="min-w-0 bg-transparent px-3 py-2.5 text-center text-lg font-semibold text-white outline-none"
+              className="h-full min-w-0 bg-transparent px-2 text-center text-lg font-semibold text-white outline-none placeholder:text-white/28"
               inputMode="numeric"
               value={repsInput}
               onChange={(e) => setRepsInput(e.target.value)}
@@ -367,7 +355,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => adjustReps(1)}
-              className="border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
+              className="flex h-full items-center justify-center border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
               aria-label="Öka reps"
             >
               +
@@ -420,7 +408,7 @@ useEffect(() => {
   </div>
 )}
 
-<div className="mt-1.5 grid grid-cols-6 gap-1.5 rounded-2xl bg-slate-950/22 p-1">
+<div className="mt-1.5 grid grid-cols-6 gap-1.5 rounded-2xl bg-white/[0.035] p-1">
   {[0, 1, 2, 3, 4, 5].map((value) => {
     const isActive = rirInput === value;
 
@@ -431,7 +419,7 @@ useEffect(() => {
         onClick={() => setRirInput(value)}
         className={`rounded-xl border px-2 py-1.5 text-sm font-semibold transition ${
           isActive
-            ? "border-blue-400/25 bg-blue-500/[0.16] text-white shadow-[0_0_16px_rgba(59,130,246,0.10)]"
+            ? "workout-rir-selected border-blue-400/25 bg-blue-500/[0.16] text-white shadow-[0_0_16px_rgba(59,130,246,0.10)]"
             : "border-transparent bg-transparent text-white/64 hover:bg-white/[0.045] hover:text-white"
         }`}
       >
@@ -467,7 +455,7 @@ useEffect(() => {
             onClick={() => setFailNoteInput(reason)}
             className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
               isActive
-                ? "border-blue-400/30 bg-blue-500/[0.10] text-white"
+                ? "workout-rir-selected border-blue-400/30 bg-blue-500/[0.10] text-white"
                 : "border-white/[0.09] bg-slate-950/38 text-white/75 hover:bg-white/5 hover:text-white"
             }`}
           >
@@ -480,7 +468,7 @@ useEffect(() => {
 ) : null}
 
       {rirInput === 0 && (
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <label className="text-sm text-gray-300">Vad hände? (valfritt)</label>
           <input
             className="w-full rounded-xl border border-white/[0.09] bg-slate-950/55 p-2.5 text-sm text-white outline-none focus:border-blue-300/35"
@@ -493,22 +481,59 @@ useEffect(() => {
       </>
       ) : null}
 
-      <div className="flex gap-2 pt-0.5">
-        <button
-       className="flex-1 rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98]"
-          onClick={addSet}
-        >
-          Lägg till set
-        </button>
+      {awaitingWeightConfirm ? (
+        <div className="space-y-2 pt-0.5">
+          <p className="text-center text-sm text-white/65">
+            Du angav{" "}
+            <span className="font-semibold text-white">{enteredWeight} kg</span>
+            {" — "}planerat var{" "}
+            <span className="font-semibold text-white">{plannedWeightKg} kg</span>. Stämmer det?
+          </p>
+          <div className="flex gap-2">
+            <button
+              className="flex-1 rounded-2xl border border-white/[0.075] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/[0.07] hover:text-white active:scale-[0.98]"
+              onClick={() => {
+                setWeightInput(String(plannedWeightKg));
+                setAwaitingWeightConfirm(false);
+              }}
+            >
+              Ändra till {plannedWeightKg} kg
+            </button>
+            <button
+              className="workout-primary-action flex-1 rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98]"
+              onClick={() => {
+                setAwaitingWeightConfirm(false);
+                addSet();
+              }}
+            >
+              Ja, {enteredWeight} kg
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2 pt-0.5">
+          <button
+            className="workout-primary-action flex-1 rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98]"
+            onClick={() => {
+              if (weightDiffers) {
+                setAwaitingWeightConfirm(true);
+              } else {
+                addSet();
+              }
+            }}
+          >
+            Lägg till set
+          </button>
 
-        <button
-          className="rounded-2xl border border-white/[0.075] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/64 transition hover:bg-white/[0.07] hover:text-white"
-          onClick={removeLastSet}
-          title="Ta bort senaste set"
-        >
-          Ångra set
-        </button>
-      </div>
+          <button
+            className="rounded-2xl border border-white/[0.075] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/64 transition hover:bg-white/[0.07] hover:text-white"
+            onClick={removeLastSet}
+            title="Ta bort senaste set"
+          >
+            Ångra set
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
 import WorkoutNavigation from "./WorkoutNavigation";
 import ToggleSwitch from "./ToggleSwitch";
-import { CloseGlyph, PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
+import { CloseGlyph, DoubleChevronDownGlyph, PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import { getExerciseProfile, isBodyweightExercise, isTimedExercise } from "../lib/exercises";
 
 type Props = {
@@ -24,7 +24,7 @@ type Props = {
     rirText: string;
     note: string;
     opportunity?: {
-      type: "offer_increase" | "increase_now";
+      type: "offer_increase" | "increase_now" | "optional_last_set_test";
       confidence: "medium" | "high";
       suggestedWeight: string;
       reason: string;
@@ -115,6 +115,7 @@ type Props = {
       createdAt: string;
     }
   >;
+  plannedWeightKg?: number;
 };
 
 function getTopSet(progression: { weight: number; reps: number }[]) {
@@ -333,7 +334,7 @@ function buildExerciseIntroCoachText(args: {
     rirText: string;
     note: string;
     opportunity?: {
-      type: "offer_increase" | "increase_now";
+      type: "offer_increase" | "increase_now" | "optional_last_set_test";
       confidence: "medium" | "high";
       suggestedWeight: string;
       reason: string;
@@ -494,11 +495,12 @@ export default function WorkoutScreen({
   previousExerciseSets,
   progressionPlan,
   addCoachMessage,
+  plannedWeightKg,
 }: Props) {
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [chatFocusMode, setChatFocusMode] = useState(false);
-  const [autoStartRestTimer, setAutoStartRestTimer] = useState(false);
+  const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
   const [restElapsed, setRestElapsed] = useState(0);
   const [manualRestTarget, setManualRestTarget] = useState<{
@@ -521,6 +523,18 @@ export default function WorkoutScreen({
     : restTargetReached
     ? "ready"
     : "resting";
+  const restSecondsUntilReady = Math.max(restTarget.min - restElapsed, 0);
+  const restTargetLabel = manualRestTarget
+    ? `mål ${restTarget.label}`
+    : `coach ${restTarget.label}`;
+  const restTimerHint =
+    restStartedAt === null
+      ? restTargetLabel
+      : restTimerState === "over"
+      ? `Lite lång vila · ${formatRestTimer(restElapsed)}`
+      : restTimerState === "ready"
+      ? `Redo · ${restTarget.label}`
+      : `Redo om ${formatRestTimer(restSecondsUntilReady)}`;
   const shouldShowRestDock = showRestTimer && !chatFocusMode;
   const isLastExercise = exerciseIndex === activePlan.length - 1;
   const currentExerciseReadyToFinish = Boolean(currentExerciseCompleted);
@@ -529,9 +543,7 @@ export default function WorkoutScreen({
   const shouldShowWeightInput =
     !isTimedCurrentExercise && !isBodyweightCurrentExercise;
   const currentMetricLabel = isTimedCurrentExercise
-    ? durationSecondsInput > 0
-      ? formatDurationLabel(durationSecondsInput)
-      : progressionPlan.repsText || "tid"
+    ? progressionPlan.repsText || "tid"
     : repsInput.trim()
     ? `${repsInput.trim()} reps`
     : progressionPlan.repsText;
@@ -613,7 +625,7 @@ useEffect(() => {
 
   return (
     <>
-    <div className={`w-full max-w-none space-y-2.5 sm:max-w-xl sm:space-y-3 ${shouldShowRestDock ? "pb-44" : ""}`}>
+    <div className={`workout-screen-shell w-full max-w-none space-y-2.5 sm:max-w-xl sm:space-y-3 ${shouldShowRestDock ? "pb-44" : ""}`}>
 <CoachPanel
   coachData={coachData}
   dayForm={dayForm}
@@ -629,29 +641,25 @@ useEffect(() => {
       <button
         type="button"
         onClick={() => setChatFocusMode((value) => !value)}
-        className="mx-auto -mt-1 flex h-9 w-14 items-center justify-center rounded-full border border-blue-300/18 bg-blue-500/[0.10] text-blue-100 shadow-[0_10px_28px_rgba(37,99,235,0.14)] transition duration-200 hover:bg-blue-500/[0.16] active:scale-[0.97]"
+        className="workout-layout-toggle mx-auto -mt-1 flex h-9 w-14 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.045] text-white/72 shadow-[0_10px_28px_rgba(0,0,0,0.14)] transition duration-200 hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
         aria-label={chatFocusMode ? "Visa hela passet" : "Fokusera chatten"}
       >
-        <span
-          className={`flex flex-col gap-0.5 transition-transform duration-200 ease-out ${
+        <DoubleChevronDownGlyph
+          className={`h-5 w-5 transition-transform duration-200 ease-out ${
             chatFocusMode ? "rotate-180" : ""
           }`}
-          aria-hidden="true"
-        >
-          <span className="h-2 w-2 rotate-45 border-b-2 border-r-2 border-blue-100/85" />
-          <span className="h-2 w-2 rotate-45 border-b-2 border-r-2 border-blue-100/55" />
-        </span>
+        />
       </button>
 
       {chatFocusMode ? (
-        <section className="animate-message-in rounded-[1.35rem] border border-blue-300/14 bg-[linear-gradient(180deg,rgba(37,99,235,0.105),rgba(15,23,42,0.38))] p-3 shadow-[0_16px_46px_rgba(0,0,0,0.20),0_0_30px_rgba(37,99,235,0.08),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl">
+        <section className="workout-focus-card animate-message-in rounded-[1.35rem] border border-blue-300/14 bg-[linear-gradient(180deg,rgba(37,99,235,0.105),rgba(15,23,42,0.38))] p-3 shadow-[0_16px_46px_rgba(0,0,0,0.20),0_0_30px_rgba(37,99,235,0.08),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="truncate text-base font-semibold tracking-tight text-white">
                 {currentExerciseName}
               </h2>
             </div>
-            <div className="shrink-0 rounded-full border border-blue-300/18 bg-blue-500/[0.10] px-3 py-1.5 text-xs font-semibold text-blue-50">
+            <div className="workout-state-pill shrink-0 rounded-full border border-blue-300/18 bg-blue-500/[0.10] px-3 py-1.5 text-xs font-semibold text-blue-50">
               {currentExerciseReadyToFinish ? "Klar" : `Set ${currentSets.length + 1}`}
             </div>
           </div>
@@ -660,7 +668,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={isLastExercise ? finishWorkout : nextExercise}
-              className={`mt-3 flex h-12 w-full items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition active:scale-[0.99] ${
+              className={`workout-primary-action mt-3 flex h-12 w-full items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition active:scale-[0.99] ${
                 isLastExercise
                   ? "border-emerald-300/25 bg-emerald-400/[0.13] text-emerald-50"
                   : "border-blue-300/18 bg-blue-500/[0.13] text-blue-50"
@@ -676,14 +684,14 @@ useEffect(() => {
                 }`}
               >
                 {shouldShowWeightInput ? (
-                  <div className="rounded-2xl border border-white/[0.07] bg-slate-950/34 px-2 py-2">
-                    <div className="grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
+                  <div className="workout-mini-input rounded-2xl border border-white/[0.07] bg-slate-950/34 px-2 py-2">
+                    <div className="workout-input-stepper grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
                       <button
                         type="button"
                         onClick={() => {
                           const current = Number(String(weightInput).replace(",", "."));
                           const next = Math.max(0, (Number.isFinite(current) ? current : 0) - 2.5);
-                          setWeightInput(Number(next.toFixed(1)).toString());
+                          setWeightInput(Number(next.toFixed(2)).toString());
                         }}
                         className="flex h-9 items-center justify-center border-r border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
                         aria-label="Sänk vikt"
@@ -702,7 +710,7 @@ useEffect(() => {
                         onClick={() => {
                           const current = Number(String(weightInput).replace(",", "."));
                           const next = (Number.isFinite(current) ? current : 0) + 2.5;
-                          setWeightInput(Number(next.toFixed(1)).toString());
+                          setWeightInput(Number(next.toFixed(2)).toString());
                         }}
                         className="flex h-9 items-center justify-center border-l border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
                         aria-label="Höj vikt"
@@ -713,19 +721,9 @@ useEffect(() => {
                   </div>
                 ) : null}
 
-                <div className="rounded-2xl border border-white/[0.07] bg-slate-950/34 px-2 py-2">
+                <div className="workout-mini-input rounded-2xl border border-white/[0.07] bg-slate-950/34 px-2 py-2">
                   {isTimedCurrentExercise ? (
-                    <div className="grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDurationSecondsInput(Math.max(0, durationSecondsInput - 5))
-                        }
-                        className="flex h-9 items-center justify-center border-r border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
-                        aria-label="Sänk tid"
-                      >
-                        -
-                      </button>
+                    <div className="workout-input-stepper overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
                       <input
                         className="h-9 min-w-0 bg-transparent px-2 text-center text-lg font-semibold text-white outline-none placeholder:text-white/28"
                         inputMode="numeric"
@@ -735,17 +733,9 @@ useEffect(() => {
                         }
                         placeholder="sek"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setDurationSecondsInput(durationSecondsInput + 5)}
-                        className="flex h-9 items-center justify-center border-l border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
-                        aria-label="Höj tid"
-                      >
-                        +
-                      </button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
+                    <div className="workout-input-stepper grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
                       <button
                         type="button"
                         onClick={() => {
@@ -791,7 +781,7 @@ useEffect(() => {
                       onClick={() => setRirInput(value)}
                       className={`h-10 rounded-xl border text-sm font-semibold transition ${
                         rirInput === value
-                          ? "border-blue-300/34 bg-blue-500/[0.22] text-blue-50 shadow-[0_0_20px_rgba(37,99,235,0.16)]"
+                          ? "workout-rir-selected border-blue-300/34 bg-blue-500/[0.22] text-blue-50 shadow-[0_0_20px_rgba(37,99,235,0.16)]"
                           : "border-white/[0.06] bg-white/[0.045] text-white/58 hover:bg-white/[0.075] hover:text-white"
                       }`}
                     >
@@ -809,7 +799,7 @@ useEffect(() => {
                 >
                   <span>Vila</span>
                   <span className="text-white/82">
-                    {showRestTimer ? formatRestTimer(restElapsed) : restTarget.label}
+                    {showRestTimer ? restTimerHint : restTargetLabel}
                   </span>
                 </button>
                 {showRestTimer ? (
@@ -818,9 +808,9 @@ useEffect(() => {
                       <span
                         className={`text-2xl font-semibold tracking-tight ${
                           restTimerState === "over"
-                            ? "text-red-100"
-                            : restTimerState === "ready"
                             ? "text-orange-100"
+                            : restTimerState === "ready"
+                            ? "text-emerald-100"
                             : "text-white"
                         }`}
                       >
@@ -831,19 +821,19 @@ useEffect(() => {
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
                           restTimerState === "over"
-                            ? "bg-red-400"
-                            : restTimerState === "ready"
                             ? "bg-orange-300"
+                            : restTimerState === "ready"
+                            ? "bg-emerald-400"
                             : "bg-blue-400"
                         }`}
                         style={{ width: `${restProgress * 100}%` }}
                       />
                     </div>
                     <div className="mt-2 grid grid-cols-[1fr_1fr_auto] gap-1.5">
-                      <button
-                        type="button"
-                        onClick={startRestTimer}
-                        className="rounded-lg border border-blue-400/18 bg-blue-500/[0.10] px-2 py-1.5 text-xs font-semibold text-blue-100"
+                <button
+                  type="button"
+                  onClick={startRestTimer}
+                  className="workout-ai-action rounded-lg border border-blue-400/18 bg-blue-500/[0.10] px-2 py-1.5 text-xs font-semibold text-blue-100"
                       >
                         {restStartedAt ? "Starta om" : "Starta"}
                       </button>
@@ -871,7 +861,7 @@ useEffect(() => {
                 <button
                   type="button"
                   onClick={addSet}
-                  className="h-12 min-w-0 flex-1 rounded-2xl border border-blue-400/20 bg-blue-600 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.22)] transition hover:bg-blue-500 active:scale-[0.99]"
+                  className="workout-primary-action h-12 min-w-0 flex-1 rounded-2xl border border-blue-400/20 bg-blue-600 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.22)] transition hover:bg-blue-500 active:scale-[0.99]"
                 >
                   Lägg till set
                 </button>
@@ -893,7 +883,7 @@ useEffect(() => {
       <section className="workout-status-panel rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-3.5 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
+            <p className="workout-section-kicker text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
               Nu
             </p>
             <h2 className="mt-1 truncate text-xl font-semibold tracking-tight text-white">
@@ -905,10 +895,10 @@ useEffect(() => {
           </div>
 
           <div
-            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+            className={`workout-state-pill shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
               isLastExercise
                 ? "border-emerald-300/22 bg-emerald-400/[0.10] text-emerald-50"
-                : "border-blue-300/18 bg-blue-500/[0.10] text-blue-50"
+                : "border-blue-300/18 bg-white/[0.045] text-blue-50"
             }`}
           >
             {isLastExercise ? "Sista" : "Pågår"}
@@ -916,7 +906,7 @@ useEffect(() => {
         </div>
 
         <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
-          <div className="workout-next-card rounded-2xl border border-blue-300/12 bg-blue-500/[0.055] px-3 py-2.5">
+          <div className="workout-next-card rounded-2xl border border-white/[0.075] bg-white/[0.045] px-3 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/55">
               {currentExerciseReadyToFinish ? "Klar" : "Nästa set"}
             </p>
@@ -953,13 +943,13 @@ useEffect(() => {
               Vila
             </p>
             <p className="mt-1 text-sm font-semibold text-white">
-              {restTarget.label}
+              {restTimerHint}
             </p>
           </div>
         </div>
 
         {previousExerciseSets.length > 0 ? (
-          <div className="mt-2.5 rounded-2xl border border-blue-200/[0.10] bg-blue-500/[0.035] px-3 py-2.5">
+          <div className="workout-history-card mt-2.5 rounded-2xl border border-white/[0.075] bg-white/[0.04] px-3 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/55">
               Förra gången
             </p>
@@ -1004,6 +994,7 @@ useEffect(() => {
         skippedExerciseName={skippedExerciseName}
         undoSkipExercise={undoSkipExercise}
         personalRecords={personalRecords}
+        plannedWeightKg={plannedWeightKg}
       />
 
       <WorkoutNavigation
@@ -1034,7 +1025,7 @@ useEffect(() => {
             <span className="mt-0.5 flex items-center gap-2 text-sm font-semibold text-white/82">
               {formatRestTimer(restElapsed)}
               <span className="text-xs font-medium text-white/42">
-                coach {restTarget.label}
+                {restTimerHint}
               </span>
             </span>
           </button>
@@ -1042,7 +1033,7 @@ useEffect(() => {
           <button
             type="button"
             onClick={startRestTimer}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-blue-400/18 bg-blue-500/[0.075] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.13]"
+            className="workout-ai-action inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-blue-400/18 bg-blue-500/[0.075] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.13]"
           >
             {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
             {restStartedAt ? "Om" : "Starta"}
@@ -1070,9 +1061,9 @@ useEffect(() => {
           <div
             className={`hidden mt-2 rounded-[1.1rem] border p-2.5 transition ${
               restTimerState === "over"
-                ? "border-red-300/45 bg-[#2a1417] shadow-[0_0_30px_rgba(248,113,113,0.22)]"
+                ? "border-orange-300/45 bg-[#2a1d12] shadow-[0_0_30px_rgba(251,146,60,0.22)]"
                 : restTimerState === "ready"
-                ? "border-orange-300/45 bg-[#2a1d12] shadow-[0_0_28px_rgba(251,146,60,0.22)]"
+                ? "border-emerald-300/36 bg-[#10251d] shadow-[0_0_28px_rgba(52,211,153,0.20)]"
                 : "border-blue-400/15 bg-slate-950/22"
             }`}
           >
@@ -1084,9 +1075,9 @@ useEffect(() => {
                 <p
                   className={`mt-0.5 text-2xl font-semibold tracking-[-0.04em] ${
                     restTimerState === "over"
-                      ? "text-red-100"
-                      : restTimerState === "ready"
                       ? "text-orange-100"
+                      : restTimerState === "ready"
+                      ? "text-emerald-100"
                       : "text-white"
                   }`}
                 >
@@ -1097,19 +1088,19 @@ useEffect(() => {
               <p
                 className={`pb-0.5 text-xs font-medium ${
                   restTimerState === "over"
-                    ? "text-red-100/72"
-                    : restTimerState === "ready"
                     ? "text-orange-100/72"
+                    : restTimerState === "ready"
+                    ? "text-emerald-100/72"
                     : "text-white/50"
                 }`}
               >
-                {restTimerState === "over"
+                {restTimerHint || (restTimerState === "over"
                   ? "klart. Kör när du vill."
                   : restTimerState === "ready"
                   ? "vilan är klar"
                   : manualRestTarget
                   ? `mål ${restTarget.label}`
-                  : `coach ${restTarget.label}`}
+                  : `coach ${restTarget.label}`)}
               </p>
             </div>
 
@@ -1117,9 +1108,9 @@ useEffect(() => {
               <div
                 className={`h-full rounded-full shadow-[0_0_18px_rgba(96,165,250,0.35)] transition-all duration-500 ${
                   restTimerState === "over"
-                    ? "bg-red-400"
-                    : restTimerState === "ready"
                     ? "bg-orange-300"
+                    : restTimerState === "ready"
+                    ? "bg-emerald-400"
                     : "bg-blue-400"
                 }`}
                 style={{ width: `${restProgress * 100}%` }}
@@ -1130,7 +1121,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={startRestTimer}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/20 bg-blue-500/[0.10] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.16]"
+                className="workout-ai-action inline-flex items-center gap-1.5 rounded-lg border border-blue-400/20 bg-blue-500/[0.10] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.16]"
               >
                 {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
                 {restStartedAt ? "Starta om" : "Starta"}
@@ -1190,7 +1181,7 @@ useEffect(() => {
             />
 
             <button
-              className="rounded-xl border border-blue-400/18 bg-blue-500/[0.09] px-4 text-sm font-semibold text-white transition hover:bg-[#4f83ff]/[0.14]"
+              className="workout-ai-action rounded-xl border border-blue-400/18 bg-blue-500/[0.09] px-4 text-sm font-semibold text-white transition hover:bg-[#4f83ff]/[0.14]"
               onClick={() => {
                 addExerciseDuringWorkout();
                 setShowAddExercise(false);
@@ -1209,9 +1200,9 @@ useEffect(() => {
         <div
           className={`mx-auto w-full max-w-[430px] rounded-[1.35rem] border p-3 shadow-[0_18px_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl transition ${
             restTimerState === "over"
-              ? "border-red-300/45 bg-[#2a1417] shadow-[0_0_34px_rgba(248,113,113,0.28)]"
+              ? "border-orange-300/45 bg-[#2a1d12] shadow-[0_0_34px_rgba(251,146,60,0.24)]"
               : restTimerState === "ready"
-              ? "border-orange-300/45 bg-[#2a1d12] shadow-[0_0_32px_rgba(251,146,60,0.26)]"
+              ? "border-emerald-300/36 bg-[#10251d] shadow-[0_0_32px_rgba(52,211,153,0.20)]"
               : "border-white/[0.11] bg-[#111a25]"
           }`}
         >
@@ -1224,9 +1215,9 @@ useEffect(() => {
                 <p
                   className={`text-2xl font-semibold tracking-tight ${
                     restTimerState === "over"
-                      ? "text-red-100"
-                      : restTimerState === "ready"
                       ? "text-orange-100"
+                      : restTimerState === "ready"
+                      ? "text-emerald-100"
                       : "text-white"
                   }`}
                 >
@@ -1235,19 +1226,19 @@ useEffect(() => {
                 <p
                   className={`truncate text-xs font-semibold ${
                     restTimerState === "over"
-                      ? "text-red-100/72"
-                      : restTimerState === "ready"
                       ? "text-orange-100/72"
+                      : restTimerState === "ready"
+                      ? "text-emerald-100/72"
                       : "text-white/48"
                   }`}
                 >
-                  {restTimerState === "over"
+                  {restTimerHint || (restTimerState === "over"
                     ? "över målet"
                     : restTimerState === "ready"
                     ? "vilan är klar"
                     : manualRestTarget
                     ? `mål ${restTarget.label}`
-                    : `coach ${restTarget.label}`}
+                    : `coach ${restTarget.label}`)}
                 </p>
               </div>
             </div>
@@ -1256,7 +1247,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={startRestTimer}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-blue-400/20 bg-blue-500/[0.14] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.18]"
+                className="workout-ai-action inline-flex items-center gap-1.5 rounded-xl border border-blue-400/20 bg-blue-500/[0.14] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.18]"
               >
                 {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
                 {restStartedAt ? "Om" : "Starta"}
@@ -1284,9 +1275,9 @@ useEffect(() => {
             <div
               className={`h-full rounded-full shadow-[0_0_18px_rgba(96,165,250,0.35)] transition-all duration-500 ${
                 restTimerState === "over"
-                  ? "bg-red-400"
-                  : restTimerState === "ready"
                   ? "bg-orange-300"
+                  : restTimerState === "ready"
+                  ? "bg-emerald-400"
                   : "bg-blue-400"
               }`}
               style={{ width: `${restProgress * 100}%` }}
@@ -1306,7 +1297,7 @@ useEffect(() => {
                 onClick={() => startManualRestTimer(Number(seconds))}
                 className={`rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${
                   manualRestTarget?.min === seconds
-                    ? "border-blue-400/30 bg-blue-500/[0.16] text-blue-100"
+                    ? "workout-rir-selected border-blue-400/30 bg-blue-500/[0.16] text-blue-100"
                     : "border-white/[0.09] bg-white/[0.052] text-white/62 hover:bg-white/[0.08] hover:text-white"
                 }`}
               >

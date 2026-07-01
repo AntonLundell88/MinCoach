@@ -83,8 +83,34 @@ function useTypewriter(text: string, speed = 20, delay = 500) {
   return { displayed, isThinking };
 }
 
+function normalizeCoachDisplayText(text: string) {
+  return [
+    ["Ã¥", "å"],
+    ["Ã¤", "ä"],
+    ["Ã¶", "ö"],
+    ["Ã…", "Å"],
+    ["Ã„", "Ä"],
+    ["Ã–", "Ö"],
+    ["â€“", "-"],
+    ["â€”", "-"],
+    ["Â·", "-"],
+    ["Ã—", "x"],
+    ["âœ…", "✅"],
+    ["âœ”ï¸", "✔️"],
+    ["ðŸ‘Š", "👊"],
+    ["ðŸ”¥", "🔥"],
+    ["ðŸ’ª", "💪"],
+    ["ðŸ’¡", "💡"],
+    ["ðŸš€", "🚀"],
+    ["âž¡ï¸", "➡️"],
+    ["ðŸ“ˆ", "📈"],
+    ["ðŸŽ¯", "🎯"],
+    ["ðŸ‘€", "👀"],
+  ].reduce((current, [broken, fixed]) => current.replaceAll(broken, fixed), text);
+}
+
 function CoachText({ text, isPrimary = false }: { text: string; isPrimary?: boolean }) {
-  const lines = text.split("\n");
+  const lines = normalizeCoachDisplayText(text).split("\n");
   const nonEmptyLineIndexes = lines.map((line, index) =>
     line.trim()
       ? lines.slice(0, index).filter((previousLine) => previousLine.trim()).length
@@ -154,7 +180,9 @@ export default function CoachPanel({
       -1
     );
     const lastCoachMessage =
-    lastCoachIndex >= 0 ? chatLog[lastCoachIndex]?.text ?? "" : "";
+    lastCoachIndex >= 0
+      ? normalizeCoachDisplayText(chatLog[lastCoachIndex]?.text ?? "")
+      : "";
 
   const { displayed: typedLastCoachMessage, isThinking: isThinkingLastCoach } =
     useTypewriter(lastCoachMessage, 18, 300);
@@ -298,7 +326,7 @@ export default function CoachPanel({
             }}
           />
           <button
-            className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-600 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
+            className="workout-ai-action flex h-10 w-12 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-600 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
             onClick={sendChat}
             disabled={isCoachThinking || !chatInput.trim()}
             aria-label="Skicka"

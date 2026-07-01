@@ -231,7 +231,7 @@ export default function LobbyScreen({
               className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.35rem] sm:h-20 sm:w-20 ${cardClassName}`}
             >
               <Image
-                src="/logo-dark.png"
+                src={isLight ? "/logo-light.png" : "/logo-dark.png"}
                 alt="MinCoach"
                 width={88}
                 height={88}

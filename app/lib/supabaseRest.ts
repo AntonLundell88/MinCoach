@@ -39,6 +39,7 @@ type StructuredWorkoutPayload = {
     conditioningNote?: string | null;
     review?: Record<string, unknown>;
     summary?: Record<string, unknown>;
+    events?: Array<Record<string, unknown>>;
     sets: StructuredWorkoutSet[];
   };
 };
@@ -98,7 +99,9 @@ type CoachMemoryPayload = {
 };
 
 function getSupabaseConfig() {
-  const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
+  const url = (
+    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
+  )?.replace(/\/$/, "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   return { url, serviceRoleKey };
@@ -497,6 +500,7 @@ export async function insertStructuredWorkout({
           ...(workout.summary ?? {}),
           betaDeviceId: deviceId,
           localWorkoutId: workout.id,
+          events: workout.events ?? [],
         },
       },
     ],

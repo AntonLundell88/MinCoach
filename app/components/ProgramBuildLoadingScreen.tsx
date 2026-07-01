@@ -20,7 +20,11 @@ const BUILD_STEPS = [
   "Gör sista rimlighetskollen",
 ];
 
-export default function ProgramBuildLoadingScreen() {
+type Props = {
+  theme: "dark" | "light";
+};
+
+export default function ProgramBuildLoadingScreen({ theme }: Props) {
   const [activeStep, setActiveStep] = useState(0);
   const [showReassurance, setShowReassurance] = useState(false);
   const [showStillWorking, setShowStillWorking] = useState(false);
@@ -67,7 +71,7 @@ export default function ProgramBuildLoadingScreen() {
       <section className="flex w-full max-w-[440px] flex-col items-center text-center">
         <div className="program-build-logo flex h-28 w-28 items-center justify-center rounded-[2rem] border border-blue-300/18 bg-blue-500/[0.07] shadow-[0_0_80px_rgba(59,130,246,0.14)] backdrop-blur-2xl">
           <Image
-            src="/logo-dark.png"
+            src={theme === "light" ? "/logo-light.png" : "/logo-dark.png"}
             alt="MinCoach"
             width={112}
             height={112}

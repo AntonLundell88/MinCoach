@@ -1,4 +1,4 @@
-import { normalizeExerciseSearchText } from "./exercises";
+import { getExerciseDefinition, normalizeExerciseSearchText } from "./exercises";
 
 export type MuscleMapLevel = "primary" | "active" | "secondary";
 
@@ -775,5 +775,11 @@ export function getReviewedExerciseMuscleMap(
   exerciseName: string
 ): ReviewedMuscleMap | null {
   const normalized = normalizeExerciseSearchText(exerciseName);
-  return REVIEWED_MUSCLE_MAPS[normalized] ?? null;
+  const direct = REVIEWED_MUSCLE_MAPS[normalized];
+  if (direct) return direct;
+
+  const definition = getExerciseDefinition(exerciseName);
+  if (!definition) return null;
+
+  return REVIEWED_MUSCLE_MAPS[normalizeExerciseSearchText(definition.name)] ?? null;
 }
