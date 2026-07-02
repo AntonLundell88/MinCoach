@@ -14,6 +14,28 @@ type Props = {
   theme: "dark" | "light";
 };
 
+function getLoginErrorMessage(message: string) {
+  const lower = message.toLowerCase();
+
+  if (lower.includes("rate limit") || lower.includes("too many")) {
+    return `För många försök på kort tid. Vänta en stund och testa igen. Supabase säger: ${message}`;
+  }
+
+  if (lower.includes("signup") || lower.includes("sign up")) {
+    return `Den här mejlen kunde inte skapa ett konto just nu. Supabase säger: ${message}`;
+  }
+
+  if (lower.includes("redirect") || lower.includes("url")) {
+    return `Inloggningslänken stoppas av redirect-inställningen. Supabase säger: ${message}`;
+  }
+
+  if (lower.includes("email")) {
+    return `Mejlet kunde inte skickas just nu. Supabase säger: ${message}`;
+  }
+
+  return `Kunde inte skicka länken just nu. Supabase säger: ${message}`;
+}
+
 export default function AuthStartScreen({
   onAuthenticated,
   onContinueWithoutAccount,
@@ -73,7 +95,8 @@ export default function AuthStartScreen({
     setBusy(false);
 
     if (loginError) {
-      setError("Kunde inte skicka länken just nu. Testa igen om en stund.");
+      console.error("Supabase login link failed", loginError);
+      setError(getLoginErrorMessage(loginError.message));
       return;
     }
 
