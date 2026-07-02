@@ -43,6 +43,17 @@ const coachInputPlaceholders = [
   't.ex. "jag känner av axeln"',
   't.ex. "maskinen är upptagen"',
   't.ex. "varför sänker vi?"',
+  't.ex. "jag har mer att ge"',
+  't.ex. "det blev tungt direkt"',
+  't.ex. "kan vi byta övning?"',
+  't.ex. "jag fick ont i knät"',
+  't.ex. "ska jag vila längre?"',
+  't.ex. "den här känns fel"',
+  't.ex. "jag vill testa tyngre"',
+  't.ex. "jag tappade tekniken"',
+  't.ex. "finns det ett alternativ?"',
+  't.ex. "det känns för lätt"',
+  't.ex. "jag orkar nog ett set till"',
 ];
 
 function getRandomCoachPlaceholder(current?: string) {
@@ -233,6 +244,16 @@ export default function CoachPanel({
 
     return () => window.clearTimeout(placeholderFrame);
   }, [chatLog.length, chatInput]);
+
+  useEffect(() => {
+    if (chatInput.trim()) return;
+
+    const interval = window.setInterval(() => {
+      setCoachInputPlaceholder((current) => getRandomCoachPlaceholder(current));
+    }, 6500);
+
+    return () => window.clearInterval(interval);
+  }, [chatInput]);
 
   return (
     <div className="space-y-4">

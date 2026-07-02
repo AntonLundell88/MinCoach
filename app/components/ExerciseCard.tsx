@@ -43,6 +43,35 @@ type Props = {
   plannedWeightKg?: number;
 };
 
+const weightPlaceholders = [
+  "t.ex. 40",
+  "t.ex. 50",
+  "t.ex. 62,5",
+  "t.ex. 70",
+  "t.ex. 75",
+  "t.ex. 85",
+  "t.ex. 100",
+  "t.ex. 120",
+];
+
+const addedWeightPlaceholders = [
+  "t.ex. 2,5",
+  "t.ex. 5",
+  "t.ex. 7,5",
+  "t.ex. 10",
+  "t.ex. 15",
+  "t.ex. 20",
+];
+
+function getStablePlaceholder(options: string[], key: string) {
+  const hash = Array.from(key).reduce(
+    (sum, char) => sum + char.charCodeAt(0),
+    0
+  );
+
+  return options[hash % options.length] ?? options[0];
+}
+
 export default function ExerciseCard({
   currentExerciseName,
   exerciseKey,
@@ -74,6 +103,10 @@ export default function ExerciseCard({
   const [awaitingWeightConfirm, setAwaitingWeightConfirm] = useState(false);
   const isBodyweight = isBodyweightExercise(currentExerciseName);
   const isTimed = isTimedExercise(currentExerciseName);
+  const weightPlaceholder = getStablePlaceholder(
+    isBodyweight ? addedWeightPlaceholders : weightPlaceholders,
+    currentExerciseName
+  );
   const hasAddedWeight =
     Number(weightInput.trim().replace(",", ".")) > 0 && isBodyweight;
 
@@ -277,7 +310,7 @@ useEffect(() => {
                   inputMode="decimal"
                   value={weightInput}
                   onChange={(e) => setWeightInput(e.target.value)}
-                  placeholder={isBodyweight ? "t.ex. 5" : "t.ex. 80"}
+                  placeholder={weightPlaceholder}
                 />
                 <button
                   type="button"
