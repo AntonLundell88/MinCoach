@@ -8599,13 +8599,12 @@ const coachSetContext = buildCoachSetContext({
   warmupContext: activeWarmupContext,
   conditioningContext: activeConditioningContext,
 });
-const recentUserMessages = chatLog
-  .filter((m) => m.role === "you")
-  .slice(-3)
-  .map((m) => m.text)
+const recentConversation = chatLog
+  .slice(-8)
+  .map((m) => `${m.role === "you" ? "Användaren" : "Coach"}: ${m.text}`)
   .filter(Boolean);
-if (recentUserMessages.length > 0) {
-  coachSetContext.recentUserMessages = recentUserMessages;
+if (recentConversation.length > 0) {
+  coachSetContext.recentConversation = recentConversation;
 }
 if (isNewPR(existingPR, prAttempt)) {
   const newPR: PersonalRecord = {
