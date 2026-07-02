@@ -116,6 +116,7 @@ type Props = {
     }
   >;
   plannedWeightKg?: number;
+  previousWorkoutSummary?: string;
 };
 
 function getTopSet(progression: { weight: number; reps: number }[]) {
@@ -312,15 +313,21 @@ const WORKOUT_START_PEP_LINES = [
   "Där ja. Nu kör vi 🔥",
   "Okej. Nu startar vi passet 🔥",
   "Nu är vi igång 🔥",
+  "Bra. Nu kör vi. 👊",
+  "Okej, vi är igång. 💪",
+  "Låt oss köra. 👊",
+  "Nu sätter vi igång. 💪",
+  "Alright. Nu kör vi. 👊",
+  "Nu snackar vi! 👊",
+  "Let's go! 🔥",
+  "Dags! Nu kör vi 💪",
+  "Kom igen! 🔥",
+  "Nu! ⚡",
+  "Nu! 👊",
 ];
 
-function getWorkoutStartPepLine(exerciseName: string) {
-  const hash = [...exerciseName].reduce(
-    (sum, char) => sum + char.charCodeAt(0),
-    0
-  );
-
-  return WORKOUT_START_PEP_LINES[hash % WORKOUT_START_PEP_LINES.length];
+function getWorkoutStartPepLine() {
+  return WORKOUT_START_PEP_LINES[Math.floor(Math.random() * WORKOUT_START_PEP_LINES.length)];
 }
 
 function buildExerciseIntroCoachText(args: {
@@ -344,6 +351,7 @@ function buildExerciseIntroCoachText(args: {
   lastByExercise: Props["lastByExercise"];
   exerciseKey: (name: string) => string;
   personalRecords: Props["personalRecords"];
+  previousWorkoutSummary?: string;
 }) {
   const {
     exerciseName,
@@ -354,6 +362,7 @@ function buildExerciseIntroCoachText(args: {
     lastByExercise,
     exerciseKey,
     personalRecords,
+    previousWorkoutSummary,
   } = args;
 
   const key = exerciseKey(exerciseName);
@@ -361,7 +370,7 @@ function buildExerciseIntroCoachText(args: {
   const pr = personalRecords[key];
   const introLine =
     exerciseIndex === 0
-      ? `${getWorkoutStartPepLine(exerciseName)}\n\nFörst: ${exerciseName}.`
+      ? `${getWorkoutStartPepLine()}${previousWorkoutSummary ? `\n\n${previousWorkoutSummary}` : ""}\n\nFörst: ${exerciseName}.`
       : exerciseIndex === exerciseCount - 1
       ? `Avslutar med ${exerciseName}.`
       : `Nu tar vi ${exerciseName}.`;
@@ -496,6 +505,7 @@ export default function WorkoutScreen({
   progressionPlan,
   addCoachMessage,
   plannedWeightKg,
+  previousWorkoutSummary,
 }: Props) {
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
@@ -618,6 +628,7 @@ useEffect(() => {
       lastByExercise,
       exerciseKey,
       personalRecords,
+      previousWorkoutSummary: exerciseIndex === 0 ? previousWorkoutSummary : undefined,
     })
   );
 }, [exerciseIndex]);

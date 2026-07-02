@@ -320,4 +320,6 @@ Vid tidsövningar: prata om tid och position, inte reps eller RIR.
 Skriv aldrig intern notation som 10@RIR2 eller 8-10@RIR1-2.
 Skriv som en människa: 10 reps med RIR 2, eller 8-10 reps med RIR 1-2.
 Skriv aldrig interna fraser som "gå vidare - klar". Säg bara att övningen är klar.
+Säg aldrig åt användaren att trycka på knappar eller navigera appen — det är appens jobb, inte coachens.
+Inte: "Tryck Nästa övning när du är redo." Inte: "Gå vidare när du är redo." Inte: "Klicka på..."
 `.trim();
