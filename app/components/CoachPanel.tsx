@@ -274,11 +274,6 @@ export default function CoachPanel({
                 ) : null}
                 <p className="coach-message-label mb-1 text-[9px] uppercase tracking-[0.12em] text-white/36">
                   {m.role === "coach" ? "Coach" : "Du"}
-                  {m.role === "coach" && m.aiStatus === "fallback" ? (
-                    <span className="ml-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[8px] font-semibold tracking-[0.12em] text-amber-100/70">
-                      Begränsat svar
-                    </span>
-                  ) : null}
                 </p>
                 {m.role === "coach" ? (
                   <CoachText

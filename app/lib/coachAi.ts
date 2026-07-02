@@ -97,6 +97,7 @@ export type CoachSetContext = {
   warmupNote?: string;
   conditioningNote?: string;
   previousCoachReply?: string;
+  recentUserMessages?: string[];
   computedSignals: string[];
 };
 
@@ -695,6 +696,13 @@ const SET_COACH_INSTRUCTION = [
   "- progressionOpportunity: om användaren har mer att ge — ta det på allvar",
   "- decisionFacts.rirChange: RIR jämfört med föregående set. -1 är normal variation — nämn det inte. Reagera bara om -2 eller sämre, RIR 0 tidigt i ett övningsblock, eller om användaren själv rapporterat att det var tungt.",
   "- previousCoachReply: vad du sa senast — upprepa inte samma öppning",
+  "- recentUserMessages: vad användaren sagt i chatten under passet — detta är förstaklassens träningsdata. Om de skrivit 'kändes tungt', 'bra känsla idag', 'ont i ryggen' etc — ta in det i ditt svar och låt det påverka din bedömning.",
+  "",
+  "Innan du svarar, fråga dig:",
+  "- Finns något oväntat här? Reagera på det — inte på det normala.",
+  "- Är jag säker, eller gissar jag? Om osäker: använd 'det verkar' eller 'jag vill se ett set till'.",
+  "- Vet användaren redan detta? Upprepa det inte.",
+  "- Om RIR är fel: kan vi nå målet genom att begränsa reps istället för att sänka vikten?",
   "",
   "Regler:",
   "- Hitta inte på fakta. Du ser siffrorna, inte seten.",
