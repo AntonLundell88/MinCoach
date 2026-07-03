@@ -157,6 +157,11 @@ Den bästa lösningen är inte den som fixar flest exempel. Den bästa
 lösningen är den som får coachen att resonera bättre även i situationer
 vi ännu inte har tänkt på.
 
+**Prompten ska bli kortare med tiden, inte längre.**
+Ingen ny instruktion får läggas till utan att en gammal tas bort eller
+motiveras. Varje ny idé måste konkurrera med de gamla. Resultatet ska
+vara en prompt som långsamt blir skarpare — inte större.
+
 ---
 
 ### Etablerad arkitekturprincip
