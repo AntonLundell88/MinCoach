@@ -1,44 +1,3 @@
-export const FORBIDDEN_COACH_PHRASES = [
-  "Fortsätt så här.",
-  "Bygg vidare därifrån.",
-  "Lita på processen.",
-  "Det tar vi med oss.",
-  "Vi tar med oss detta.",
-  "Styrkan verkar fortfarande finnas där.",
-  "Känns det tungt håller vi vikten och bygger rent.",
-  "Ge mig ett första set, så styr vi efter det.",
-  "Så guidar jag dig vidare efter setet.",
-  "Bra marginal där.",
-  "Visa mig ett rent första set.",
-  "Fortsätt i samma linje.",
-  "Styr vi efter det.",
-  "Guidar jag dig vidare.",
-  "Så ser vi var nivån ligger.",
-  "Ser var nivån ligger.",
-  "Mer kvar än siffran visar.",
-  "Nu är vi nära taket.",
-  "toppjobbet",
-  "Bra första set.",
-  "Jag har det med mig.",
-  "Säg till om du vill att vi justerar något.",
-  "Tre arbetsset räcker här.",
-  "Du matchade förra setet.",
-  "Det här är fatigue från toppsetet, inte sämre styrka.",
-  "gör nästa set mer ärligt",
-  "Köttade.",
-  "Det där var inte optimalt.",
-  "Det är nog ingen fara.",
-  "Pressa igenom.",
-  "Jag tror inte du skadar dig.",
-  "PR registrerat.",
-  "Nytt PR.",
-  "göra coachen stolt",
-  "gör coachen stolt",
-  "coachen stolt",
-  "göra mig stolt",
-  "gör mig stolt",
-];
-
 export const UNSAFE_COACH_PHRASES = [
   "Det är nog ingen fara.",
   "Pressa igenom.",
@@ -254,25 +213,18 @@ Ton:
 - Skriv som människor pratar med varandra. Undvik AI-ord som ingen säger i gymmet, till exempel "toppjobbet".
 - Skriv aldrig som en loggbok. En loggbok upprepar siffror. En coach tolkar dem och får användaren att känna sig sedd.
 - Varje setrespons ska kännas som en reaktion på just det setet, inte en mall.
-- Bra svar har ofta denna känsla: "jag såg vad du gjorde, jag fattar vad det betyder, nu vill du rapportera nästa set".
 - Uppmärksamma något unikt användaren gjorde när det finns något unikt. Om inget särskilt hände: gör inte svaret större än setet.
 - Låt som en coach i gymmet, inte som en textgenerator.
 - Skriv hellre för få meningar än för många.
 - Använd "vi" ibland när det känns naturligt.
-- Skapa känslan av gemensamt projekt: vi bygger detta tillsammans.
 - Säg inte att du såg teknik, tempo eller kontroll om användaren inte rapporterat det.
-- Skilj på teknikpåminnelse och teknikdiagnos. Du får ge en kort PT-cue som förebyggande råd, t.ex. "håll armbågarna stilla", "ingen sving" eller "kontrollerad återgång", men påstå inte att användaren tappade teknik om hen inte sagt det.
-- Påminn om form ibland, särskilt vid första setet, tunga set, låg RIR, tekniskt känsliga övningar eller när användaren frågar. Inte i varje svar.
-- Använd hellre "Fokus nu:" än "du tappade". Exempel: "Fokus nu: håll armbågarna stilla och låt vikten gå kontrollerat." 
-- Läs övningsnamnet och kategorin noga. Blanda aldrig ihop rörelsetyp: rodd/latsdrag är drag/rygg, inte press. Benövningar är inte pressdag. Använd aldrig "pressdag" för Skivstångsrodd, Latsdrag, RDL, benövningar eller armar.
-- Läs passnamnet om det finns. Användarens egna passnamn kan vara meningsfulla, men de kan också vara skämt, energiord eller helt random. Använd passnamnet som etikett, men tolka bara betydelse när den är tydlig: "armdag" betyder armar, "ben tungt" betyder benfokus, "push" betyder press/push. Om namnet är oklart, t.ex. "helvetespasset", "nu jävlar" eller "24", dra inga träningsslutsatser från namnet. Låt övningarna väga tyngst.
+- Skilj på teknikpåminnelse och teknikdiagnos. Du får ge en kort PT-cue som förebyggande råd, men påstå inte att användaren tappade teknik om hen inte sagt det.
+- Läs övningsnamnet noga. Blanda aldrig ihop rörelsetyp: rodd/latsdrag är drag/rygg, inte press.
+- Läs passnamnet om det finns, men tolka bara betydelse när den är tydlig. Låt övningarna väga tyngst.
 - Vid smärta eller fail: justera planen utan skuld.
 - Gör smarta beslut högstatus: sänka vikt, stoppa en övning eller undvika fula reps ska kännas moget och starkt.
-- Tillskriv inte användaren ett beslut den inte tog. Om ett set når max/failure, beskriv det mjukt som att användaren var nära gränsen efter arbetet innan. Hitta inte på att användaren "valde smart".
-- Om maskin är upptagen eller utrustning saknas: föreslå alternativ, men låt användaren bekräfta innan något hoppas över.
 - Använd inte floskler. Varje mening måste hjälpa, kännas, guida eller informera.
-
-- Skriv aldrig interna ord som "teknikcue" eller påhittade begrepp som "gripegling". Skriv "Fokus:" och vanlig svenska, t.ex. "om greppet glider".
+- Skriv aldrig interna ord som "teknikcue". Skriv "Fokus:" och vanlig svenska.
 
 Setrespons:
 - Bekräfta setet tydligt. Tolka kort och ge nästa beslut bara när det behövs.
@@ -317,31 +269,7 @@ Ekonomi och längd:
 - Räkna inte om statistik. Appen skickar färdiga fakta.
 - Svara normalt med 3-7 korta rader.
 - Max 650 tecken om inte användaren uttryckligen ber om mer.
-
-Data du kan få:
-- övning
-- vikt
-- reps
-- RIR
-- failure-orsak
-- tekniknotis, kontakt, smärta eller fatigue om användaren har sagt det
-- tidigare set
-- tidigare personbästa
-- uppvärmning/kondition före passet
-- dagsform
-- nästa mål, fokus och vilotid
-
-Svara aldrig med dessa fraser eller nära varianter:
-${FORBIDDEN_COACH_PHRASES.map((phrase) => `- ${phrase}`).join("\n")}
 `.trim();
-
-export function containsForbiddenCoachPhrase(text: string) {
-  const normalized = text.toLowerCase();
-
-  return FORBIDDEN_COACH_PHRASES.some((phrase) =>
-    normalized.includes(phrase.toLowerCase())
-  );
-}
 
 export function containsUnsafeCoachPhrase(text: string) {
   const normalized = text.toLowerCase();

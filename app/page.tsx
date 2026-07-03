@@ -484,25 +484,8 @@ function getPreviousWorkoutSummaryLine(history: Workout[]): string | null {
   if (totalSets === 0) return null;
 
   const exerciseCount = prev.exercises.filter((ex) => ex.sets.length > 0).length;
-
-  let bestSet: { exerciseName: string; weight: number; reps: number } | null = null;
-  for (const ex of prev.exercises) {
-    for (const s of ex.sets) {
-      if (s.metricType !== "time" && s.weight > 0 && s.reps > 0) {
-        if (!bestSet || s.weight * s.reps > bestSet.weight * bestSet.reps) {
-          bestSet = { exerciseName: ex.name, weight: s.weight, reps: s.reps };
-        }
-      }
-    }
-  }
-
   const exWord = exerciseCount === 1 ? "övning" : "övningar";
-  let line = `Förra passet: ${totalSets} set, ${exerciseCount} ${exWord}.`;
-  if (bestSet) {
-    const name = bestSet.exerciseName.charAt(0).toLowerCase() + bestSet.exerciseName.slice(1);
-    line += ` Bästa: ${bestSet.weight} × ${bestSet.reps} i ${name}.`;
-  }
-  return line;
+  return `Förra passet: ${totalSets} set, ${exerciseCount} ${exWord}.`;
 }
 
 function buildWarmupContext(input: string): WarmupContext | null {

@@ -176,8 +176,8 @@ AI ska resonera fritt inom verkligheten, men aldrig hitta på fakta.
 1. `gpt-5-mini` med `effort: "minimal"` → bytt till `gpt-5.4` med
    `effort: "medium"`, `verbosity: "medium"` i `app/api/coach/*/route.ts`.
 2. ~15–20 regex-baserade sanitize-funktioner i `app/lib/coachAi.ts` →
-   borttagna. Kvar: whitespace-trim, längdcap, `containsForbiddenCoachPhrase`
-   (bara för sakfel — inte för stil).
+   borttagna. Kvar: whitespace-trim, längdcap, `containsUnsafeCoachPhrase`
+   (bara för säkerhetskritiska fraser — inte för stil).
 
 ### Om coachen säger fel sak igen
 
