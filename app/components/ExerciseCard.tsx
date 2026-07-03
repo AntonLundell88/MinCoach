@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
   isBodyweightExercise,
@@ -41,7 +42,16 @@ type Props = {
   undoSkipExercise: () => void;
   personalRecords: PersonalRecords;
   plannedWeightKg?: number;
+  plannedReps?: number;
 };
+
+const CRAZY_WEIGHT_MESSAGES = [
+  "You wish 😂",
+  "I dina drömmar 🙃",
+  "Nu blev det lite mycket va?",
+  "Haha försök inte!",
+  "Jag har inga ögon men kan ändå se att det blev fel där.",
+];
 
 const weightPlaceholders = [
   "t.ex. 40",
@@ -95,12 +105,15 @@ export default function ExerciseCard({
   undoSkipExercise,
   personalRecords,
   plannedWeightKg,
+  plannedReps,
 }: Props) {
   const [showRirInfo, setShowRirInfo] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
   const [useAddedWeight, setUseAddedWeight] = useState(false);
   const [isDurationRunning, setIsDurationRunning] = useState(false);
   const [awaitingWeightConfirm, setAwaitingWeightConfirm] = useState(false);
+  const [awaitingRepsConfirm, setAwaitingRepsConfirm] = useState(false);
+  const [crazyWeightMessageIndex] = useState(() => Math.floor(Math.random() * CRAZY_WEIGHT_MESSAGES.length));
   const isBodyweight = isBodyweightExercise(currentExerciseName);
   const isTimed = isTimedExercise(currentExerciseName);
   const weightPlaceholder = getStablePlaceholder(
@@ -112,8 +125,24 @@ export default function ExerciseCard({
 
   const showWeightInput = !isBodyweight || useAddedWeight || hasAddedWeight;
 
+  const enteredReps = parseInt(repsInput.trim(), 10);
+  const repsTooHigh =
+    !isTimed &&
+    plannedReps != null &&
+    plannedReps > 0 &&
+    Number.isFinite(enteredReps) &&
+    enteredReps > 0 &&
+    enteredReps > plannedReps + 10;
+
   const enteredWeight = parseFloat(weightInput.trim().replace(",", "."));
+  const weightWayTooHigh =
+    showWeightInput &&
+    plannedWeightKg != null &&
+    plannedWeightKg > 0 &&
+    Number.isFinite(enteredWeight) &&
+    enteredWeight > plannedWeightKg * 5;
   const weightDiffers =
+    !weightWayTooHigh &&
     showWeightInput &&
     plannedWeightKg != null &&
     plannedWeightKg > 0 &&
@@ -160,6 +189,9 @@ export default function ExerciseCard({
 useEffect(() => {
   setAwaitingWeightConfirm(false);
 }, [weightInput]);
+useEffect(() => {
+  setAwaitingRepsConfirm(false);
+}, [repsInput]);
 /* eslint-enable react-hooks/set-state-in-effect */
 
 useEffect(() => {
@@ -514,42 +546,111 @@ useEffect(() => {
       </>
       ) : null}
 
-      {awaitingWeightConfirm ? (
-        <div className="space-y-2 pt-0.5">
-          <p className="text-center text-sm text-white/65">
-            Du angav{" "}
-            <span className="font-semibold text-white">{enteredWeight} kg</span>
-            {" — "}planerat var{" "}
-            <span className="font-semibold text-white">{plannedWeightKg} kg</span>. Stämmer det?
-          </p>
-          <div className="flex gap-2">
-            <button
-              className="flex-1 rounded-2xl border border-white/[0.075] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/[0.07] hover:text-white active:scale-[0.98]"
-              onClick={() => {
-                setWeightInput(String(plannedWeightKg));
-                setAwaitingWeightConfirm(false);
-              }}
-            >
-              Ändra till {plannedWeightKg} kg
-            </button>
-            <button
-              className="workout-primary-action flex-1 rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98]"
-              onClick={() => {
-                setAwaitingWeightConfirm(false);
-                addSet();
-              }}
-            >
-              Ja, {enteredWeight} kg
-            </button>
+      {awaitingWeightConfirm && createPortal(
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
+          <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+            {weightWayTooHigh ? (
+              <>
+                <div className="space-y-1.5 text-center">
+                  <p className="text-base font-semibold text-white">{CRAZY_WEIGHT_MESSAGES[crazyWeightMessageIndex]}</p>
+                  <p className="text-sm text-white/50">Du angav <span className="font-semibold text-white/80">{enteredWeight} kg</span> — planerat var <span className="font-semibold text-white/80">{plannedWeightKg} kg</span></p>
+                </div>
+                <button
+                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
+                  onClick={() => {
+                    setWeightInput(String(plannedWeightKg));
+                    setAwaitingWeightConfirm(false);
+                  }}
+                >
+                  Okej, ändra till {plannedWeightKg} kg
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="space-y-1.5 text-center">
+                  <p className="text-base font-semibold text-white">Stämmer vikten?</p>
+                  <p className="text-sm text-white/60">
+                    Du angav{" "}
+                    <span className="font-semibold text-white">{enteredWeight} kg</span>
+                    {" — "}planerat var{" "}
+                    <span className="font-semibold text-white">{plannedWeightKg} kg</span>
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98]"
+                    onClick={() => {
+                      setAwaitingWeightConfirm(false);
+                      addSet();
+                    }}
+                  >
+                    Ja, {enteredWeight} kg stämmer
+                  </button>
+                  <button
+                    className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
+                    onClick={() => {
+                      setWeightInput(String(plannedWeightKg));
+                      setAwaitingWeightConfirm(false);
+                    }}
+                  >
+                    Ändra till {plannedWeightKg} kg
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-        </div>
-      ) : (
+        </div>,
+        document.body
+      )}
+      {awaitingRepsConfirm && createPortal(
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
+          <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+            <div className="space-y-1.5 text-center">
+              <p className="text-base font-semibold text-white">Stämmer reps?</p>
+              <p className="text-sm text-white/60">
+                Du angav{" "}
+                <span className="font-semibold text-white">{enteredReps} reps</span>
+                {" — "}planerat var{" "}
+                <span className="font-semibold text-white">{plannedReps} reps</span>
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98]"
+                onClick={() => {
+                  setAwaitingRepsConfirm(false);
+                  addSet();
+                }}
+              >
+                Ja, {enteredReps} reps stämmer
+              </button>
+              <button
+                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
+                onClick={() => {
+                  setRepsInput(String(plannedReps));
+                  setAwaitingRepsConfirm(false);
+                }}
+              >
+                Ändra till {plannedReps} reps
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      {(
         <div className="flex gap-2 pt-0.5">
           <button
             className="workout-primary-action flex-1 rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98]"
             onClick={() => {
-              if (weightDiffers) {
+              if (weightWayTooHigh) {
                 setAwaitingWeightConfirm(true);
+              } else if (weightDiffers) {
+                setAwaitingWeightConfirm(true);
+              } else if (repsTooHigh) {
+                setAwaitingRepsConfirm(true);
               } else {
                 addSet();
               }

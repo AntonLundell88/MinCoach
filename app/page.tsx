@@ -4477,6 +4477,7 @@ const [dayForm, setDayForm] = useState<DayForm | null>(null);
   const [weightInput, setWeightInput] = useState<string>("");
   const systemSuggestedWeightRef = useRef<number | undefined>(undefined);
   const [repsInput, setRepsInput] = useState<string>("");
+  const systemSuggestedRepsRef = useRef<number | undefined>(undefined);
 const [durationSecondsInput, setDurationSecondsInput] = useState(0);
 const [rirInput, setRirInput] = useState<number>(2);
 const [didFailInput, setDidFailInput] = useState(false);
@@ -5391,6 +5392,7 @@ useEffect(() => {
   setWeightInput(nextExerciseWeight);
   systemSuggestedWeightRef.current = nextExerciseWeight ? parseFloat(nextExerciseWeight) || undefined : undefined;
   setRepsInput(adjustedSuggestion.reps);
+  systemSuggestedRepsRef.current = adjustedSuggestion.reps ? parseInt(adjustedSuggestion.reps, 10) || undefined : undefined;
 }, [currentExerciseName, started, adjustedSuggestion.weight, adjustedSuggestion.reps]);
 
 
@@ -5461,7 +5463,9 @@ const firstExerciseWeight = firstExerciseName && !isBodyweightExercise(firstExer
   : "";
 setWeightInput(firstExerciseWeight);
 systemSuggestedWeightRef.current = firstExerciseWeight ? parseFloat(firstExerciseWeight) || undefined : undefined;
-setRepsInput(firstExercisePlan?.reps ?? String(goalTargets.targetReps));
+const firstReps = firstExercisePlan?.reps ?? String(goalTargets.targetReps);
+setRepsInput(firstReps);
+systemSuggestedRepsRef.current = firstReps ? parseInt(firstReps, 10) || undefined : undefined;
     setDidFailInput(false);
   }
 function shouldHoldYouToPlan(opts: {
@@ -8670,7 +8674,9 @@ if (nextSetPlan.strategy === "complete") {
   const nextW = bodyweightExercise && !hasLoggedWeight ? "" : formatWeightInput(suggestedNextWeight);
   setWeightInput(nextW);
   systemSuggestedWeightRef.current = nextW ? suggestedNextWeight : undefined;
-  setRepsInput(timedExercise ? "" : String(nextSetPlan.repsInput || reps));
+  const completeReps = timedExercise ? "" : String(nextSetPlan.repsInput || reps);
+  setRepsInput(completeReps);
+  systemSuggestedRepsRef.current = completeReps ? parseInt(completeReps, 10) || undefined : undefined;
   setDurationSecondsInput(timedExercise ? durationSeconds ?? 0 : 0);
   setRirInput(nextSetPlan.rirInput ?? 2);
   setFailNoteInput("");
@@ -8683,6 +8689,7 @@ const nextSetRepInput = nextSetPlan.repsInput;
 const nextSetRirInput = nextSetPlan.rirInput;
 
 setRepsInput(String(nextSetRepInput));
+systemSuggestedRepsRef.current = nextSetRepInput ? Number(nextSetRepInput) || undefined : undefined;
 setDurationSecondsInput(0);
 const nextW = bodyweightExercise && !hasLoggedWeight ? "" : formatWeightInput(suggestedNextWeight);
 setWeightInput(nextW);
@@ -9879,6 +9886,7 @@ addCoachMessage={(text) =>
         previousExerciseSets={previousExerciseSets}
         progressionPlan={progressionPlan}
         plannedWeightKg={systemSuggestedWeightRef.current}
+        plannedReps={systemSuggestedRepsRef.current}
         previousWorkoutSummary={getPreviousWorkoutSummaryLine(history) ?? undefined}
       />
       

@@ -116,6 +116,7 @@ type Props = {
     }
   >;
   plannedWeightKg?: number;
+  plannedReps?: number;
   previousWorkoutSummary?: string;
 };
 
@@ -505,6 +506,7 @@ export default function WorkoutScreen({
   progressionPlan,
   addCoachMessage,
   plannedWeightKg,
+  plannedReps,
   previousWorkoutSummary,
 }: Props) {
   const [showRestTimer, setShowRestTimer] = useState(false);
@@ -1006,6 +1008,7 @@ useEffect(() => {
         undoSkipExercise={undoSkipExercise}
         personalRecords={personalRecords}
         plannedWeightKg={plannedWeightKg}
+        plannedReps={plannedReps}
       />
 
       <WorkoutNavigation
