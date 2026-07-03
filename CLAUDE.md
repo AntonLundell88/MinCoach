@@ -88,65 +88,106 @@ PB ska kännas som ett stolt ögonblick — utropstecken/emoji är okej där:
 "Nu snackar vi!", "Där ja! 👊", "Oj! Det där var bra.",
 "Nytt PB: 80 kg x 8 · RIR 2."
 
-## Arkitekturprincip för AI — redan etablerad, ändra den inte utan att fråga
+## AI-konstitution — läs detta innan du rör coachen
 
-Vi har redan gått igenom den här diskussionen en gång (med Anton +
-Claude i chatten) och landat i en tydlig princip. Läs det här innan du
-rör något i `app/lib/coachAi.ts` eller `app/api/coach/*`:
+Detta är viktigare än enskilda buggar.
+
+MinCoach ska inte bli en samling specialregler. Den ska bli en coach som
+resonerar. Vi accepterar att AI ibland gör fel. Vi accepterar inte att
+varje fel leder till en ny regel som långsamt förstör coachens förmåga
+att tänka.
+
+**Den största risken är regelspiralens:**
+Problem → Ny regel → AI mer begränsad → Nytt problem → Ny regel → …
+Till slut följer AI:n regler istället för att resonera. Det får inte
+hända.
+
+### Fyra frågor innan du ändrar coachen
+
+**1. Är detta ett enskilt exempel eller ett symptom på ett större
+problem?** Lös nästan alltid den bakomliggande orsaken.
+
+**2. Löser jag detta med bättre resonemang / kontext / uppdrag /
+datastruktur — eller med en ny regel?** Regler är alltid sista
+alternativet.
+
+**3. Lär jag coachen ett exempel eller en princip?**
+- Exempel (dåligt): "Om Cable Crunch-maskinen maxar på 50 kg…"
+- Princip (bra): "Om användaren beskriver en begränsning: försök
+  uppnå samma träningsmål inom begränsningen innan planen ändras."
+Principen löser hundratals framtida problem. Exemplet löser ett.
+
+**4. Blir coachen friare eller mer låst efter denna ändring?**
+Om svaret är "mer låst" — ifrågasätt lösningen.
+
+### Vad regler får användas till
+
+Regler är till för systemlogik: dataintegritet, säkerhet, UI-navigation,
+API-gränser, saker som måste vara deterministiska.
+
+Regler ska **inte** användas för coachens resonemang. Ingen if/then-logik
+för hur coachen ska reagera på ett set, en vikt eller ett meddelande.
+
+### Coachens uppdrag
+
+Vid varje beslut ska coachen försöka besvara:
+- Vad försöker användaren uppnå?
+- Vad vet jag sedan tidigare?
+- Vad förändrades precis?
+- Vad är den mest sannolika tolkningen?
+- Vad är den minsta förändring som krävs?
+
+### Minsta förändring-principen
+
+Sänk inte vikten om problemet kan lösas med färre reps, längre vila,
+ett bonusset eller ett testset. Byt inte övning om övningens syfte
+fortfarande kan uppnås. Justera aldrig mer än nödvändigt.
+
+### Data är inte alltid sann
+
+Coachen ska vara skeptisk. Om data verkar orimlig: ifrågasätt den —
+bygg inte vidare på den.
+
+### Kvalitetsmått
+
+Vi mäter inte kvalitet på hur många buggar som är stängda. Vi mäter
+kvalitet på hur **få nya regler** som behövdes för att stänga dem.
+
+Den bästa lösningen är inte den som fixar flest exempel. Den bästa
+lösningen är den som får coachen att resonera bättre även i situationer
+vi ännu inte har tänkt på.
+
+---
+
+### Etablerad arkitekturprincip
 
 > Planen är default, inte fängelse.
 
 **Systemet äger sanningen**: schema, övningsbibliotek, loggade set,
 vikt/reps/RIR, antal set, PB, historik.
 
-**AI äger tolkningen**: vad setet betyder, om något verkar orimligt, om
-planen bör justeras, om ett extraset är värt det, om användaren borde
-höja/sänka/hålla samma, och hur svaret känns och låter.
+**AI äger tolkningen**: vad setet betyder, om något verkar orimligt,
+om planen bör justeras, hur svaret känns och låter.
 
-AI ska få resonera fritt inom verkligheten, men aldrig hitta på fakta.
+AI ska resonera fritt inom verkligheten, men aldrig hitta på fakta.
 
-### Vad vi redan gjort för att uppnå detta (historik, inte att göra om)
+### Historik — vad som är gjort (gör inte om)
 
-Vi identifierade två saker som gjorde coachen robotisk:
+1. `gpt-5-mini` med `effort: "minimal"` → bytt till `gpt-5.4` med
+   `effort: "medium"`, `verbosity: "medium"` i `app/api/coach/*/route.ts`.
+2. ~15–20 regex-baserade sanitize-funktioner i `app/lib/coachAi.ts` →
+   borttagna. Kvar: whitespace-trim, längdcap, `containsForbiddenCoachPhrase`
+   (bara för sakfel — inte för stil).
 
-1. `reasoning effort: "minimal"` och `verbosity: "low"` på
-   `gpt-5-mini` i `app/api/coach/*/route.ts` — modellen fick i princip
-   inte tänka innan den svarade. Åtgärdat: bytt till `gpt-5.4` (full,
-   inte mini) med `effort: "medium"`, `verbosity: "medium"`.
-2. `app/lib/coachAi.ts` körde varje AI-svar genom ~15-20 regex-baserade
-   "sanitize"-funktioner som skrev om modellens formuleringar till ett
-   fast antal hårdkodade fraser. Det gjorde att även ett bra AI-svar
-   flatpressades till en av ~20 mallar. Åtgärdat: regex-lagret är
-   borttaget. Kvar är bara whitespace-trim, längdcap, och en riktig
-   säkerhetsspärr (`containsForbiddenCoachPhrase`, för sakfel som att
-   kalla en rodd för en press — inte för stil).
+### Om coachen säger fel sak igen
 
-Den här ändringen är redan skickad till Codex för implementation,
-eventuellt redan genomförd när du läser det här — kolla `git log` /
-diff på `app/api/coach/set/route.ts` och `app/lib/coachAi.ts` för
-status innan du antar något.
-
-**Viktig regel framåt: om coachen säger fel sak igen**
-
-1. Är det ett **sakfel** (påstår fel "sista set", fel övningsnamn,
-   hittar på siffror)? → Fixa genom att göra fakta tydligare i
-   `context`/instruktionen som skickas till modellen, inte genom att
-   lägga till en regex som skriver om outputen.
-2. Är det en **stilpreferens** (du hade hellre sett en annan
-   formulering, men den var inte felaktig)? → Lägg INTE till en ny hård
-   regel eller förbudsfras. Lägg istället till eller justera ett exempel
-   i röst-referenserna (`COACH_VOICE_EXAMPLES` i `app/lib/coachVoice.ts`
-   om den filen är relevant). Modeller generaliserar bättre från bra
-   exempel än långa förbudslistor.
-3. Om suget att "bara regex-fixa det här ena svaret" känns starkt —
-   det suget är precis vad som byggde det gamla, robotiska systemet.
-   Samla några exempel på samma typ av problem och fixa roten (data
-   eller instruktion) istället för symptomet (output-strängen).
-
-Likadant gäller om setlogik, PB-beräkning eller historik känns fel:
-lös det som systemlogik/datavalidering uppströms, inte genom att
-trycka in fler regler i AI-instruktionen (se "Kända problem" nedan,
-samma princip gäller där).
+- **Sakfel** (fel övningsnamn, hittar på siffror)? → Gör fakta tydligare
+  i `context`/instruktionen. Lägg inte till regex.
+- **Stilpreferens** (inte felaktigt, bara fel ton)? → Lägg till ett
+  exempel i `COACH_VOICE_EXAMPLES` i `app/lib/coachVoice.ts`. Regler
+  generaliserar sämre än exempel.
+- **Suget att "bara regex-fixa det här ena svaret"** — det suget byggde
+  det gamla, robotiska systemet. Lös roten istället.
 
 ## Kända problem just nu — högst prio
 

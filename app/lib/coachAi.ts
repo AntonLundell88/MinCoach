@@ -417,67 +417,6 @@ function compactRoutineSetFallback(context: CoachSetContext, fallbackReply: stri
   return `${keptText}\n\nNästa steg syns i rutan.`;
 }
 
-function hasTooLightSameWeightTrend(context: CoachSetContext) {
-  return context.computedSignals.some((signal) =>
-    signal.startsWith("too_light_same_weight_trend")
-  );
-}
-
-export function ensureSetMilestoneReaction(context: CoachSetContext, reply: string) {
-  const recordText = context.personalRecordText?.trim() ?? "";
-  const isNewPersonalBest = recordText.toLowerCase().startsWith("nytt person");
-  const alreadyMentionsRecord = /\b(pb|pr)\b|personbästa|personbasta/i.test(reply);
-
-  if (!isNewPersonalBest || alreadyMentionsRecord || hasTooLightSameWeightTrend(context)) {
-    return reply;
-  }
-
-  const setText = context.currentSet.setText?.trim() || recordText;
-  const reactions = ["Där ja!", "Oj.", "Nu snackar vi!"];
-  const reaction = reactions[Math.max(0, context.setNumber - 1) % reactions.length];
-
-  return `${reaction}\n\nNytt PB: ${setText}.\n\n${reply}`;
-}
-
-function emphasizeHardStopWhenObvious(context: CoachSetContext, reply: string) {
-  const current = context.currentSet;
-  const previous = context.previousSet;
-  const sameLoad =
-    typeof previous?.weight === "number" &&
-    typeof current.weight === "number" &&
-    Math.abs(previous.weight - current.weight) < 0.01;
-  const repsDropped =
-    typeof previous?.reps === "number" &&
-    typeof current.reps === "number" &&
-    previous.reps - current.reps >= 2;
-  const failText = current.failNote?.trim().toLowerCase() ?? "";
-  const hasReportedStop =
-    Boolean(failText) &&
-    (failText.includes("fail") ||
-      failText.includes("failure") ||
-      failText.includes("stopp") ||
-      failText.includes("slut") ||
-      failText.includes("ork") ||
-      failText.includes("teknik") ||
-      failText.includes("slarv") ||
-      failText.includes("ont") ||
-      failText.includes("smärta") ||
-      failText.includes("känning"));
-
-  if (!sameLoad || !repsDropped || !hasReportedStop) return reply;
-  if (/tog det stopp|failure|fail/i.test(reply)) return reply;
-
-  const lines = reply.split("\n");
-  const firstIndex = lines.findIndex((line) => line.trim());
-  if (firstIndex < 0) return reply;
-
-  if (/^bra\.?$/i.test(lines[firstIndex].trim())) {
-    lines[firstIndex] = "Okej.\n\nDär tog det stopp.";
-    return lines.join("\n");
-  }
-
-  return `Okej.\n\nDär tog det stopp.\n\n${reply}`;
-}
 
 function removeDuplicateShortReactions(reply: string) {
   return reply
@@ -530,101 +469,14 @@ function removeDuplicateAdjacentLines(reply: string) {
   return deduped.join("\n");
 }
 
-function removeCompleteStrategyContradictions(context: CoachSetContext, reply: string) {
-  if (context.nextTarget.strategy !== "complete") return reply;
-
-  // If there's a progression opportunity, the coach may suggest an extra set — allow it through
-  if (context.progressionOpportunity) {
-    return removeDuplicateAdjacentLines(compactWhitespace(reply));
-  }
-
-  const originalAlreadyMentionsWorkoutDone =
-    context.setPlan?.isLastExercise === true &&
-    /\b(pass|dagens pass)\b/i.test(reply);
-
-  const failText = context.currentSet.failNote?.trim().toLowerCase() ?? "";
-  const hasReportedIssue = Boolean(failText);
-  const isHardSetWithoutIssue =
-    !hasReportedIssue && typeof context.currentSet.rir === "number" && context.currentSet.rir <= 0;
-  const exerciseIsLastInWorkout = context.setPlan?.isLastExercise === true;
-  const completionLine = exerciseIsLastInWorkout
-    ? "Där har du passet."
-    : "Då tar vi nästa.";
-
-  let cleaned = reply
-    .replace(/\bN[aä]sta set[^.?!]*(?:kg|reps|RIR)[^.?!]*[.?!]?/gi, "")
-    .replace(/\bN[aä]sta set [aä]r klart:\s*/gi, "")
-    .replace(/\bK[oö]r n[aä]sta[^.?!]*(?:kg|reps|RIR)[^.?!]*[.?!]?/gi, "")
-    .replace(/\bVi k[oö]r samma vikt igen[^.?!]*[.?!]?/gi, "")
-    .replace(/\bVi k[oö]r samma igen[^.?!]*[.?!]?/gi, "")
-    .replace(/\bK[oö]r samma vikt igen[^.?!]*[.?!]?/gi, "")
-    .replace(/\bK[oö]r samma igen[^.?!]*[.?!]?/gi, "")
-    .replace(/\bSamma vikt igen[^.?!]*[.?!]?/gi, "")
-    .replace(/\bSamma igen[^.?!]*[.?!]?/gi, "")
-    .replace(/\bK[oö]r ett set till[^.?!]*[.?!]?/gi, "")
-    .replace(/\bK[oö]r ett till[^.?!]*[.?!]?/gi, "")
-    .replace(/\bK[oö]r klart setet[^.?!]*[.?!]?/gi, "")
-    .replace(/\b(?:extra|extra-)set(?:et)?[^.?!]*[.?!]?/gi, "")
-    .replace(/\bg[aå] vidare med [^.?!]*(?:kg|reps|RIR)[^.?!]*[.?!]?/gi, "Den lämnar vi där.")
-    .replace(/\bAvsluta [oö]vningen\s*[–—-]\s*g[aå] vidare till n[aä]sta\.?/gi, "Den lämnar vi där.\n\nDå tar vi nästa.")
-    .replace(/\s*G[aå] vidare till n[aä]sta [oö]vning\.?/gi, "")
-    .replace(/\s*G[aå] vidare n[aä]r du [aä]r redo\.?/gi, "")
-    .replace(/\s*Tryck vidare[^.?!]*[.?!]?/gi, "")
-    .replace(/\s*Klart f[öo]r idag[^.?!]*[.?!]?/gi, "")
-    .replace(/\s*D[äa]r [aä]r vi klara med dagens pass\.?/gi, "")
-    .replace(/\bVila\s+\d[^.?!]*minuter\.?/gi, "")
-    .replace(/\s*Klar\.\s*(?=👊|$)/gim, "")
-    .replace(/\bVi [aä]r klara med den h[äa]r [oö]vningen\.\./gi, "Den lämnar vi där.")
-    .replace(/\bD[åa] tar vi n[äa]sta\.\s*(?:\r?\n\s*)+D[åa] tar vi n[äa]sta\./gi, "Då tar vi nästa.")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-
-  if (isHardSetWithoutIssue) {
-    cleaned = cleaned
-      .replace(/\bD[äa]r tog det stopp\.?/gi, "Bra kämpat.")
-      .replace(/\bD[äa]r tog du setet hela v[aä]gen\.?/gi, "Bra kämpat.")
-      .replace(/\bBra jobbat\.?\s*Vi l[äa]mnar den h[äa]r [oö]vningen h[äa]r\.?/gi, "Bra kämpat. Det där var ett riktigt set.")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-  }
-
-  if (cleaned) {
-    cleaned = removeDuplicateAdjacentLines(cleaned)
-      .replace(
-        /\bN[äa]sta [oö]vning\.?\s*(?:\r?\n\s*)+(?=D[åa] tar vi n[äa]sta\.?)/gi,
-        ""
-      )
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
-    const mentionsCompletion = /\b(f[äa]rdig|klar|vidare|nästa övning|nasta ovning|tar vi nästa|tar vi nasta|lämnar vi där|lamnar vi dar)\b/i.test(cleaned);
-    const mentionsWorkoutDone = /\bpass(?:et)?\b|\bdagens pass\b/i.test(cleaned);
-    const needsCompletionLine =
-      exerciseIsLastInWorkout ? !mentionsWorkoutDone : !mentionsCompletion;
-
-    return needsCompletionLine && !originalAlreadyMentionsWorkoutDone
-      ? `${cleaned}\n\n${completionLine}`
-      : cleaned;
-  }
-
-  return `Bra kämpat.\n\nDet där var ett riktigt set.\n\n${completionLine}`;
-}
-
 export function sanitizeCoachSetReply(
   context: CoachSetContext,
   reply: string,
   fallback: string,
   maxCharacters = MAX_COACH_REPLY_CHARACTERS
 ) {
-  const withoutCompleteContradiction = removeCompleteStrategyContradictions(
-    context,
-    reply
-  );
-  const withHardStop = emphasizeHardStopWhenObvious(
-    context,
-    withoutCompleteContradiction
-  );
-  const withoutDuplicateReaction = removeDuplicateShortReactions(withHardStop);
+  const deduped = removeDuplicateAdjacentLines(reply);
+  const withoutDuplicateReaction = removeDuplicateShortReactions(deduped);
   const withRecordPraiseDedupe = removeStackedRecordPraise(withoutDuplicateReaction);
 
   return sanitizeCoachReply(
@@ -713,9 +565,9 @@ const SET_COACH_INSTRUCTION = [
   "- Hitta inte på fakta.",
   "- Upprepa inte UI:t.",
   "- Säg bara 'sista setet' om setPlan.isLastSet är true.",
-  "- Om nextTarget.strategy är 'complete' och progressionOpportunity saknas: övningen är klar.",
-  "- Om progressionOpportunity finns efter sista planerade setet: föreslå extraset om användaren har mer att ge.",
-  "- Om setPlan.isLastExercise är true och inga fler set: passet är klart.",
+  "- Om nextTarget.strategy är 'complete': övningen är klar. Reagera på setet och avsluta naturligt — nämn inga fler set-vikter, reps eller vilotider för den här övningen. Undantag: om progressionOpportunity finns kan du erbjuda ett extraset. Om setPlan.isLastExercise är true: passet är klart.",
+  "- Om personalRecordText börjar med 'Nytt person': det är ett PB. Det är det viktigaste i svaret — reagera på det tydligt. Låt det kännas.",
+  "- Om currentSet.failNote finns: användaren har sagt vad som stoppade setet. Bekräfta det direkt i svaret — det väger tyngre än setnumret.",
   "- Teknikcue bara när det hjälper: första setet, hårt set, eller shouldMentionTechniqueCue.",
   "- Vid smärta: lugn, kort, skyddande.",
   "",
