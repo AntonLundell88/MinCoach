@@ -748,9 +748,9 @@ useEffect(() => {
         document.body
       )}
       {(
-        <div className="flex gap-2 pt-0.5">
+        <div className={`space-y-2 pt-0.5 ${embedded ? "" : "flex gap-2 space-y-0"}`}>
           <button
-            className="workout-primary-action flex-1 rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98]"
+            className="workout-primary-action w-full rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98]"
             onClick={() => {
               if (weightWayTooHigh) {
                 setAwaitingWeightConfirm(true);
@@ -769,15 +769,17 @@ useEffect(() => {
             Lägg till set
           </button>
 
-          <button
-            className="rounded-2xl border border-white/[0.075] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/64 transition hover:bg-white/[0.07] hover:text-white"
-            onClick={removeLastSet}
-            title="Ta bort senaste set"
-          >
-            Ångra set
-          </button>
+          <div className={embedded ? "flex gap-2" : "contents"}>
+            <button
+              className="flex-1 rounded-2xl border border-white/[0.075] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/64 transition hover:bg-white/[0.07] hover:text-white"
+              onClick={removeLastSet}
+              title="Ta bort senaste set"
+            >
+              Ångra set
+            </button>
 
-          {nextExerciseButton}
+            {nextExerciseButton}
+          </div>
         </div>
       )}
     </div>

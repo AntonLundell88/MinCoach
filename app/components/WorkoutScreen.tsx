@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import ExerciseCard from "./ExerciseCard";
+import ExerciseInfoModal from "./ExerciseInfoModal";
 import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
 import ToggleSwitch from "./ToggleSwitch";
@@ -514,6 +515,7 @@ export default function WorkoutScreen({
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showOverflow, setShowOverflow] = useState(false);
   const [confirmSkipExercise, setConfirmSkipExercise] = useState(false);
+  const [showExerciseInfo, setShowExerciseInfo] = useState(false);
   const [chatFocusMode, setChatFocusMode] = useState(false);
   const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
@@ -899,20 +901,37 @@ useEffect(() => {
         </section>
       ) : (
         <>
-      <section className="workout-status-panel rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-3.5 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
+      <section className="workout-status-panel rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-4 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="workout-section-kicker text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
               Nu
             </p>
-            <h2 className="mt-1 truncate text-xl font-semibold tracking-tight text-white">
-              {currentExerciseName}
-            </h2>
+            <div className="mt-1 flex min-w-0 items-center gap-2">
+              <h2 className="truncate text-xl font-semibold tracking-tight text-white">
+                {currentExerciseName}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowExerciseInfo(true)}
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+                aria-label={`Visa info om ${currentExerciseName}`}
+              >
+                i
+              </button>
+            </div>
             <p className="mt-1 text-xs font-medium text-white/42">
               {passLabel} · {exerciseIndex + 1} av {activePlan.length}
             </p>
           </div>
+
+          {showExerciseInfo && (
+            <ExerciseInfoModal
+              exerciseName={currentExerciseName}
+              onClose={() => setShowExerciseInfo(false)}
+            />
+          )}
 
           <div className="flex shrink-0 items-center gap-2">
             <div
@@ -1075,7 +1094,7 @@ useEffect(() => {
           nextExerciseButton={
             <button
               type="button"
-              className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
+              className={`flex-1 rounded-2xl border px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
                 isLastExercise && currentExerciseReadyToFinish
                   ? "border-emerald-300/24 bg-emerald-400/[0.15] text-emerald-50 hover:bg-emerald-400/[0.20]"
                   : !currentExerciseReadyToFinish
@@ -1088,7 +1107,7 @@ useEffect(() => {
               {isLastExercise && currentExerciseReadyToFinish
                 ? "Passet klart"
                 : !currentExerciseReadyToFinish
-                ? "Fler set?"
+                ? "Logga klart"
                 : "Nästa övning"}
             </button>
           }
