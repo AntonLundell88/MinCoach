@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import ExerciseCard from "./ExerciseCard";
 import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
-import WorkoutNavigation from "./WorkoutNavigation";
 import ToggleSwitch from "./ToggleSwitch";
 import { CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import { getExerciseProfile, isBodyweightExercise, isTimedExercise } from "../lib/exercises";
@@ -513,6 +512,8 @@ export default function WorkoutScreen({
 }: Props) {
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
+  const [showOverflow, setShowOverflow] = useState(false);
+  const [confirmSkipExercise, setConfirmSkipExercise] = useState(false);
   const [chatFocusMode, setChatFocusMode] = useState(false);
   const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
@@ -899,6 +900,7 @@ useEffect(() => {
       ) : (
         <>
       <section className="workout-status-panel rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-3.5 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
+        {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="workout-section-kicker text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
@@ -912,17 +914,89 @@ useEffect(() => {
             </p>
           </div>
 
-          <div
-            className={`workout-state-pill shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
-              isLastExercise
-                ? "border-emerald-300/22 bg-emerald-400/[0.10] text-emerald-50"
-                : "border-blue-300/18 bg-white/[0.045] text-blue-50"
-            }`}
-          >
-            {isLastExercise ? "Sista" : "Pågår"}
+          <div className="flex shrink-0 items-center gap-2">
+            <div
+              className={`workout-state-pill rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                isLastExercise
+                  ? "border-emerald-300/22 bg-emerald-400/[0.10] text-emerald-50"
+                  : "border-blue-300/18 bg-white/[0.045] text-blue-50"
+              }`}
+            >
+              {isLastExercise ? "Sista" : "Pågår"}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowOverflow((v) => !v)}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.07] bg-white/[0.035] text-base font-semibold leading-none text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+              aria-label="Fler alternativ"
+            >
+              ···
+            </button>
           </div>
         </div>
 
+        {/* Overflow menu */}
+        {showOverflow && (
+          <div className="mt-2 overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03]">
+            {exerciseIndex > 0 && (
+              <button
+                type="button"
+                onClick={() => { prevExercise(); setShowOverflow(false); }}
+                className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
+              >
+                ← Föregående övning
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => { setShowAddExercise((v) => !v); setShowOverflow(false); }}
+              className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
+            >
+              {showAddExercise ? "Stäng lägg till" : "Lägg till övning"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setConfirmSkipExercise(true); setShowOverflow(false); }}
+              disabled={!canSkipCurrentExercise}
+              className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Hoppa över övning
+            </button>
+            <button
+              type="button"
+              onClick={() => { finishWorkout(); setShowOverflow(false); }}
+              className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
+            >
+              Spara och avsluta
+            </button>
+          </div>
+        )}
+
+        {/* Skip confirm */}
+        {confirmSkipExercise && (
+          <div className="mt-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 px-3 py-3">
+            <p className="text-sm font-semibold text-white">Hoppa över {currentExerciseName}?</p>
+            <p className="mt-0.5 text-xs text-white/50">Redan loggade set sparas.</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => { skipCurrentExercise(); setConfirmSkipExercise(false); }}
+                className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/[0.09]"
+              >
+                Ja, hoppa över
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmSkipExercise(false)}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+              >
+                Fortsätt övningen
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Nästa set + Vila */}
         <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
           <div className="workout-next-card rounded-2xl border border-white/[0.075] bg-white/[0.045] px-3 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/55">
@@ -966,8 +1040,63 @@ useEffect(() => {
           </div>
         </div>
 
+        {/* Set history for this session */}
+        <SetList currentSets={currentSets} onEditSet={updateSet} />
+
+        {/* Divider */}
+        <div className="my-3 h-px bg-white/[0.07]" />
+
+        {/* Inputs (embedded — no card wrapper, no header) */}
+        <ExerciseCard
+          embedded
+          currentExerciseName={currentExerciseName}
+          exerciseKey={exerciseKey}
+          weightInput={weightInput}
+          setWeightInput={setWeightInput}
+          repsInput={repsInput}
+          setRepsInput={setRepsInput}
+          durationSecondsInput={durationSecondsInput}
+          setDurationSecondsInput={setDurationSecondsInput}
+          rirInput={rirInput}
+          setRirInput={setRirInput}
+          didFailInput={didFailInput}
+          setDidFailInput={setDidFailInput}
+          failNoteInput={failNoteInput}
+          setFailNoteInput={setFailNoteInput}
+          addSet={addSet}
+          removeLastSet={removeLastSet}
+          onSkipExercise={skipCurrentExercise}
+          canSkipExercise={canSkipCurrentExercise}
+          skippedExerciseName={skippedExerciseName}
+          undoSkipExercise={undoSkipExercise}
+          personalRecords={personalRecords}
+          plannedWeightKg={plannedWeightKg}
+          plannedReps={plannedReps}
+          nextExerciseButton={
+            <button
+              type="button"
+              className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
+                isLastExercise && currentExerciseReadyToFinish
+                  ? "border-emerald-300/24 bg-emerald-400/[0.15] text-emerald-50 hover:bg-emerald-400/[0.20]"
+                  : !currentExerciseReadyToFinish
+                  ? "border-white/[0.075] bg-white/[0.045] text-white/42"
+                  : "border-blue-300/20 bg-blue-500/[0.14] text-blue-50 hover:bg-blue-500/[0.20]"
+              }`}
+              onClick={isLastExercise ? finishWorkout : nextExercise}
+              disabled={!currentExerciseReadyToFinish}
+            >
+              {isLastExercise && currentExerciseReadyToFinish
+                ? "Passet klart"
+                : !currentExerciseReadyToFinish
+                ? "Fler set?"
+                : "Nästa övning"}
+            </button>
+          }
+        />
+
+        {/* Förra gången */}
         {previousExerciseSets.length > 0 ? (
-          <div className="workout-history-card mt-2.5 rounded-2xl border border-white/[0.075] bg-white/[0.04] px-3 py-2.5">
+          <div className="workout-history-card mt-3 rounded-2xl border border-white/[0.075] bg-white/[0.04] px-3 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/55">
               Förra gången
             </p>
@@ -989,43 +1118,6 @@ useEffect(() => {
           </div>
         ) : null}
       </section>
-
-      <ExerciseCard
-        currentExerciseName={currentExerciseName}
-        exerciseKey={exerciseKey}
-        weightInput={weightInput}
-        setWeightInput={setWeightInput}
-        repsInput={repsInput}
-        setRepsInput={setRepsInput}
-        durationSecondsInput={durationSecondsInput}
-        setDurationSecondsInput={setDurationSecondsInput}
-        rirInput={rirInput}
-        setRirInput={setRirInput}
-        didFailInput={didFailInput}
-        setDidFailInput={setDidFailInput}
-        failNoteInput={failNoteInput}
-        setFailNoteInput={setFailNoteInput}
-        addSet={addSet}
-        removeLastSet={removeLastSet}
-        onSkipExercise={skipCurrentExercise}
-        canSkipExercise={canSkipCurrentExercise}
-        skippedExerciseName={skippedExerciseName}
-        undoSkipExercise={undoSkipExercise}
-        personalRecords={personalRecords}
-        plannedWeightKg={plannedWeightKg}
-        plannedReps={plannedReps}
-      />
-
-      <WorkoutNavigation
-        exerciseIndex={exerciseIndex}
-        activePlan={activePlan}
-        showAddExercise={showAddExercise}
-        toggleAddExercise={() => setShowAddExercise((value) => !value)}
-        prevExercise={prevExercise}
-        nextExercise={nextExercise}
-        finishWorkout={finishWorkout}
-        currentExerciseReadyToFinish={currentExerciseReadyToFinish}
-      />
 
       <div
         className={`rounded-[1.15rem] border border-white/[0.06] bg-white/[0.022] px-3 py-2 backdrop-blur-2xl ${
@@ -1151,8 +1243,6 @@ useEffect(() => {
           </div>
         ) : null}
       </div>
-
-      <SetList currentSets={currentSets} onEditSet={updateSet} />
 
       {showAddExercise ? (
         <div className="rounded-[1.15rem] border border-white/[0.06] bg-white/[0.018] px-3 py-2 backdrop-blur-2xl">

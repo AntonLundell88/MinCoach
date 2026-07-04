@@ -43,6 +43,8 @@ type Props = {
   personalRecords: PersonalRecords;
   plannedWeightKg?: number;
   plannedReps?: number;
+  embedded?: boolean;
+  nextExerciseButton?: React.ReactNode;
 };
 
 const CRAZY_WEIGHT_MESSAGES = [
@@ -106,6 +108,8 @@ export default function ExerciseCard({
   personalRecords,
   plannedWeightKg,
   plannedReps,
+  embedded = false,
+  nextExerciseButton,
 }: Props) {
   const [showRirInfo, setShowRirInfo] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
@@ -250,7 +254,7 @@ useEffect(() => {
 }, [durationSecondsInput, isDurationRunning, isTimed, setDurationSecondsInput]);
   
  return (
-  <div className="exercise-card-shell space-y-3 rounded-[1.6rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
+  <div className={embedded ? "exercise-card-shell space-y-3" : "exercise-card-shell space-y-3 rounded-[1.6rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"}>
     {skippedExerciseName ? (
       <div className="rounded-2xl border border-white/[0.07] bg-slate-950/14 px-3 py-3">
         <div className="flex items-center justify-between gap-3">
@@ -275,30 +279,32 @@ useEffect(() => {
     ) : null}
 
     <div>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="min-w-0 truncate text-xl font-semibold tracking-tight">
-            {currentExerciseName}
-          </p>
+      {!embedded && (
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="min-w-0 truncate text-xl font-semibold tracking-tight">
+              {currentExerciseName}
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowExerciseInfo(true)}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+              aria-label={`Visa info om ${currentExerciseName}`}
+            >
+              i
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={() => setShowExerciseInfo(true)}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
-            aria-label={`Visa info om ${currentExerciseName}`}
+            className="shrink-0 rounded-full border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+            onClick={() => setConfirmSkip(true)}
+            disabled={!canSkipExercise}
           >
-            i
+            Hoppa över övning
           </button>
         </div>
-
-        <button
-          type="button"
-          className="shrink-0 rounded-full border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
-          onClick={() => setConfirmSkip(true)}
-          disabled={!canSkipExercise}
-        >
-          Hoppa över övning
-        </button>
-      </div>
+      )}
 
       {showExerciseInfo ? (
         <ExerciseInfoModal
@@ -770,6 +776,8 @@ useEffect(() => {
           >
             Ångra set
           </button>
+
+          {nextExerciseButton}
         </div>
       )}
     </div>
