@@ -115,6 +115,8 @@ export default function ExerciseCard({
   const [awaitingRepsConfirm, setAwaitingRepsConfirm] = useState(false);
   const [confirmSkip, setConfirmSkip] = useState(false);
   const [crazyWeightMessageIndex] = useState(() => Math.floor(Math.random() * CRAZY_WEIGHT_MESSAGES.length));
+  const [awaitingDecimalConfirm, setAwaitingDecimalConfirm] = useState(false);
+  const [suggestedDecimalWeight, setSuggestedDecimalWeight] = useState<number | null>(null);
   const isBodyweight = isBodyweightExercise(currentExerciseName);
   const isTimed = isTimedExercise(currentExerciseName);
   const weightPlaceholder = getStablePlaceholder(
@@ -136,20 +138,43 @@ export default function ExerciseCard({
     enteredReps > plannedReps + 10;
 
   const enteredWeight = parseFloat(weightInput.trim().replace(",", "."));
+  const pbRecord = personalRecords[exerciseKey(currentExerciseName)];
+  const pbWeight = pbRecord?.weight ?? 0;
+  const hasPlan = plannedWeightKg != null && plannedWeightKg > 0;
+
   const weightWayTooHigh =
     showWeightInput &&
-    plannedWeightKg != null &&
-    plannedWeightKg > 0 &&
     Number.isFinite(enteredWeight) &&
-    enteredWeight > plannedWeightKg * 5;
+    (
+      (hasPlan && enteredWeight > (plannedWeightKg ?? 0) * 5) ||
+      (!hasPlan && pbWeight > 0 && enteredWeight > pbWeight * 5) ||
+      (!hasPlan && pbWeight <= 0 && enteredWeight > 300)
+    );
+
+  const decimalCandidate =
+    showWeightInput &&
+    !weightWayTooHigh &&
+    Number.isFinite(enteredWeight) &&
+    enteredWeight > 100 &&
+    pbWeight > 0
+      ? enteredWeight / 10
+      : null;
+  const decimalErrorSuggestion =
+    decimalCandidate !== null &&
+    Math.abs(decimalCandidate - pbWeight) / pbWeight < 0.1
+      ? decimalCandidate
+      : null;
+
   const weightDiffers =
     !weightWayTooHigh &&
+    decimalErrorSuggestion === null &&
     showWeightInput &&
-    plannedWeightKg != null &&
-    plannedWeightKg > 0 &&
     Number.isFinite(enteredWeight) &&
     enteredWeight > 0 &&
-    enteredWeight !== plannedWeightKg;
+    (
+      (hasPlan && enteredWeight !== (plannedWeightKg ?? 0)) ||
+      (!hasPlan && pbWeight > 0 && enteredWeight > pbWeight * 1.5)
+    );
   const adjustReps = (delta: number) => {
     const current = Number(repsInput);
     const next = Number.isFinite(current)
@@ -555,16 +580,23 @@ useEffect(() => {
               <>
                 <div className="space-y-1.5 text-center">
                   <p className="text-base font-semibold text-white">{CRAZY_WEIGHT_MESSAGES[crazyWeightMessageIndex]}</p>
-                  <p className="text-sm text-white/50">Du angav <span className="font-semibold text-white/80">{enteredWeight} kg</span> — planerat var <span className="font-semibold text-white/80">{plannedWeightKg} kg</span></p>
+                  <p className="text-sm text-white/50">
+                    Du angav <span className="font-semibold text-white/80">{enteredWeight} kg</span>
+                    {hasPlan
+                      ? <> — planerat var <span className="font-semibold text-white/80">{plannedWeightKg} kg</span></>
+                      : pbWeight > 0
+                      ? <> — ditt PB är <span className="font-semibold text-white/80">{pbWeight} kg</span></>
+                      : null}
+                  </p>
                 </div>
                 <button
                   className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
                   onClick={() => {
-                    setWeightInput(String(plannedWeightKg));
+                    setWeightInput(String(hasPlan ? plannedWeightKg : pbWeight > 0 ? pbWeight : ""));
                     setAwaitingWeightConfirm(false);
                   }}
                 >
-                  Okej, ändra till {plannedWeightKg} kg
+                  Okej, ändra till {hasPlan ? plannedWeightKg : pbWeight > 0 ? pbWeight : "?"} kg
                 </button>
               </>
             ) : (
@@ -574,8 +606,11 @@ useEffect(() => {
                   <p className="text-sm text-white/60">
                     Du angav{" "}
                     <span className="font-semibold text-white">{enteredWeight} kg</span>
-                    {" — "}planerat var{" "}
-                    <span className="font-semibold text-white">{plannedWeightKg} kg</span>
+                    {hasPlan
+                      ? <> — planerat var <span className="font-semibold text-white">{plannedWeightKg} kg</span></>
+                      : pbWeight > 0
+                      ? <> — ditt PB är <span className="font-semibold text-white">{pbWeight} kg</span></>
+                      : null}
                   </p>
                 </div>
                 <div className="flex flex-col gap-2">
@@ -588,15 +623,17 @@ useEffect(() => {
                   >
                     Ja, {enteredWeight} kg stämmer
                   </button>
-                  <button
-                    className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
-                    onClick={() => {
-                      setWeightInput(String(plannedWeightKg));
-                      setAwaitingWeightConfirm(false);
-                    }}
-                  >
-                    Ändra till {plannedWeightKg} kg
-                  </button>
+                  {(hasPlan || pbWeight > 0) && (
+                    <button
+                      className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
+                      onClick={() => {
+                        setWeightInput(String(hasPlan ? plannedWeightKg : pbWeight));
+                        setAwaitingWeightConfirm(false);
+                      }}
+                    >
+                      Ändra till {hasPlan ? plannedWeightKg : pbWeight} kg
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -641,6 +678,43 @@ useEffect(() => {
         </div>,
         document.body
       )}
+      {awaitingDecimalConfirm && suggestedDecimalWeight !== null && createPortal(
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
+          <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+            <div className="space-y-1.5 text-center">
+              <p className="text-base font-semibold text-white">Decimalfel?</p>
+              <p className="text-sm text-white/60">
+                Du angav <span className="font-semibold text-white">{enteredWeight} kg</span>
+                {" — "}menade du <span className="font-semibold text-white">{suggestedDecimalWeight} kg</span>?
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
+                onClick={() => {
+                  setWeightInput(String(suggestedDecimalWeight));
+                  setAwaitingDecimalConfirm(false);
+                  setSuggestedDecimalWeight(null);
+                }}
+              >
+                Ja, ändra till {suggestedDecimalWeight} kg
+              </button>
+              <button
+                className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98]"
+                onClick={() => {
+                  setAwaitingDecimalConfirm(false);
+                  setSuggestedDecimalWeight(null);
+                  addSet();
+                }}
+              >
+                Nej, {enteredWeight} kg stämmer
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       {confirmSkip && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
           <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
@@ -674,6 +748,9 @@ useEffect(() => {
             onClick={() => {
               if (weightWayTooHigh) {
                 setAwaitingWeightConfirm(true);
+              } else if (decimalErrorSuggestion !== null) {
+                setSuggestedDecimalWeight(decimalErrorSuggestion);
+                setAwaitingDecimalConfirm(true);
               } else if (weightDiffers) {
                 setAwaitingWeightConfirm(true);
               } else if (repsTooHigh) {

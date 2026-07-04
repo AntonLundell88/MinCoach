@@ -1,0 +1,26 @@
+{
+  "head": {
+    "intensity": 0,
+    "selected": false
+  },
+  "face": {
+    "intensity": 0,
+    "selected": false
+  },
+  "neck-right": {
+    "intensity": 0,
+    "selected": false
+  },
+  "neck-left": {
+    "intensity": 0,
+    "selected": false
+  },
+  "head-back": {
+    "intensity": 0,
+    "selected": false
+  },
+  "nape": {
+    "intensity": 0,
+    "selected": false
+  }
+}

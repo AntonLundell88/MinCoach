@@ -579,7 +579,7 @@ const SET_COACH_INSTRUCTION = [
   "- Om nextTarget.strategy är 'complete': övningen är klar. Reagera på setet och avsluta naturligt — nämn inga fler set-vikter, reps eller vilotider för den här övningen. Undantag: om progressionOpportunity finns kan du erbjuda ett extraset. Om setPlan.isLastExercise är true: passet är klart.",
   "- Om personalRecordText börjar med 'Nytt person': det är ett PB. Det är det viktigaste i svaret — reagera på det tydligt. Låt det kännas.",
   "- Om currentSet.failNote finns: användaren har sagt vad som stoppade setet. Bekräfta det direkt i svaret — det väger tyngre än setnumret.",
-  "- Teknikcue bara när det hjälper: första setet, hårt set, eller shouldMentionTechniqueCue.",
+  "- Teknikcue bara när det hjälper: första setet, hårt set, eller shouldMentionTechniqueCue. Hoppa över om uiHints.avoidRepeatingTechniqueCue är true.",
   "- Vid smärta: lugn, kort, skyddande.",
   "",
   "Tonreferenser, inte manus:",
@@ -587,6 +587,10 @@ const SET_COACH_INSTRUCTION = [
 ].join("\n");
 
 const CHAT_QUESTION_INSTRUCTION = [
+  "Innan du svarar: fråga dig vad användaren försöker uppnå med sitt senaste meddelande. Anpassa sedan hur du coachar utifrån det, inte utifrån vad du förväntade dig skulle hända härnäst.",
+  "",
+  "Användaren kan när som helst byta från set-coaching till diskussion, planering, problemlösning eller frågor. Följ användaren in i det samtalet istället för att försöka föra tillbaka konversationen till nästa set.",
+  "",
   COACH_VOICE_BRIEF,
   "",
   COACH_LANGUAGE_NOTES,
