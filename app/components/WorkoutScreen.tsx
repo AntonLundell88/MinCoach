@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import ExerciseCard from "./ExerciseCard";
 import ExerciseInfoModal from "./ExerciseInfoModal";
 import SetList from "./SetList";
@@ -516,6 +517,7 @@ export default function WorkoutScreen({
   const [showOverflow, setShowOverflow] = useState(false);
   const [confirmSkipExercise, setConfirmSkipExercise] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [chatFocusMode, setChatFocusMode] = useState(false);
   const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
@@ -983,7 +985,14 @@ useEffect(() => {
             </button>
             <button
               type="button"
-              onClick={() => { finishWorkout(); setShowOverflow(false); }}
+              onClick={() => {
+                setShowOverflow(false);
+                if (currentExerciseReadyToFinish) {
+                  finishWorkout();
+                } else {
+                  setShowSaveConfirm(true);
+                }
+              }}
               className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
             >
               Spara och avsluta
@@ -1106,8 +1115,6 @@ useEffect(() => {
             >
               {isLastExercise && currentExerciseReadyToFinish
                 ? "Passet klart"
-                : !currentExerciseReadyToFinish
-                ? "Logga klart"
                 : "Nästa övning"}
             </button>
           }
@@ -1137,6 +1144,49 @@ useEffect(() => {
           </div>
         ) : null}
       </section>
+
+      <button
+        type="button"
+        onClick={() => {
+          if (currentExerciseReadyToFinish) {
+            finishWorkout();
+          } else {
+            setShowSaveConfirm(true);
+          }
+        }}
+        className="w-full py-1 text-xs font-medium text-white/32 transition hover:text-white/55"
+      >
+        Spara och avsluta passet
+      </button>
+
+      {showSaveConfirm && createPortal(
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
+          <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" onClick={() => setShowSaveConfirm(false)} />
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+            <div className="space-y-1.5 text-center">
+              <p className="text-base font-semibold text-white">Avsluta passet?</p>
+              <p className="text-sm text-white/55">
+                Du är mitt i <span className="font-semibold text-white/80">{currentExerciseName}</span>. Redan loggade set sparas — resten av övningen hoppar vi över.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
+                onClick={() => { setShowSaveConfirm(false); }}
+              >
+                Fortsätt övningen
+              </button>
+              <button
+                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.08]"
+                onClick={() => { setShowSaveConfirm(false); finishWorkout(); }}
+              >
+                Avsluta ändå — spara det som loggats
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <div
         className={`rounded-[1.15rem] border border-white/[0.06] bg-white/[0.022] px-3 py-2 backdrop-blur-2xl ${
