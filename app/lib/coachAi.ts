@@ -25,6 +25,10 @@ export type CoachExerciseLibraryInfo = {
   easierAlternative?: string;
   techniqueCue: string;
   progressionRule: string;
+  category?: string;
+  primaryMuscle?: string;
+  movementPattern?: string;
+  techniqueFocus?: string[];
 };
 
 export type CoachSetContext = {
@@ -150,6 +154,7 @@ export type CoachChatContext = {
   warmupNote?: string;
   conditioningNote?: string;
   previousCoachReply?: string;
+  recentConversation?: string[];
 };
 
 export type CoachProgramContext = {
@@ -528,6 +533,12 @@ const WORKOUT_COACH_SYSTEM = [
   TRAINING_DECISION_PROTOCOL,
 ].join("\n");
 
+const REVIEW_COACH_SYSTEM = [
+  "Du är MinCoach: en erfaren träningscoach med perfekt minne om din elev.",
+  "",
+  TRAINING_DECISION_PROTOCOL,
+].join("\n");
+
 const SET_COACH_INSTRUCTION = [
   "Ditt uppdrag: förstå vad användaren faktiskt försöker uppnå. Hitta den minsta förändringen som löser situationen.",
   "",
@@ -583,6 +594,7 @@ const CHAT_QUESTION_INSTRUCTION = [
   COACH_SOUL_RULES,
   "",
   "Fri chat mitt i passet:",
+  "- Läs recentConversation INNAN du svarar — det är ditt korttidsminne. Vad har du redan föreslagit? Vad avvisade användaren?",
   "- Svara först på det användaren faktiskt skrev.",
   "- Det är okej att reagera innan du är nyttig.",
   "- Om användaren skämtar: möt tonen kort, men bli inte clown.",
@@ -597,6 +609,7 @@ const CHAT_QUESTION_INSTRUCTION = [
   "- Om aktuell övning är en tidsövning: prata om tid och position, inte reps eller RIR.",
   "- Vid smärta eller obehag: var kort, lugn och skyddande.",
   "- Om användaren ber om att hoppa över, byta eller lägga till: bekräfta vad du tror användaren menar och säg nästa tydliga steg. Ändra inte något själv om appen inte gör det.",
+  "- När en övning inte fungerar: tänk på träningsmålet, inte övningsnamnet. Ersätt syftet, inte etiketten. currentExerciseInfo.category, primaryMuscle och movementPattern är ditt facit för vad övningen försöker uppnå.",
   "",
   "Exempel:",
   "Användaren: sitsen är jättesvettig :P",
@@ -689,7 +702,7 @@ export function buildCoachWorkoutReviewPromptPayload(
   context: CoachWorkoutReviewContext
 ): CoachPromptPayload {
   return {
-    system: MINCOACH_AI_SYSTEM_RULES,
+    system: REVIEW_COACH_SYSTEM,
     context,
     instruction:
       `${NAME_USAGE_RULE}\n\nDu är en coach som just sett din elev avsluta sitt pass. Du minns deras historia. Du är genuint stolt och investerad i deras resa. Det ska synas i varje rad.\n\nReturnera ENDAST giltig JSON, inte markdown. Format: {"coachHeadline":"kort rad — det du säger direkt till dem nu","coachSummary":"1-3 meningar — vad det här passet betyder för deras resa, inte vad som hände","positives":["1-3 specifika saker du noterade och är stolt över"],"adjustments":["0-2 saker — bara om det verkligen behövs, annars tomt"],"nextFocus":["1-2 saker att bära med sig"],"coachMemoryTakeaway":["1-2 saker att minnas inför nästa pass"]}\n\ncoachHeadline är det du säger rakt till dem nu. Inte en rapport. Exempel: "Det här var ditt bästa A-pass hittills.", "Starkt jobbat idag. 👊", "Nu börjar det hända.", "Imponerande dag på bänken."\n\ncoachSummary svarar på: vad betyder det här passet för den här personen? Inte "du körde 14 set" utan "du etablerar en ny nivå på hantelpressen" eller "du hanterade tröttheten och körde ändå igenom — det är karaktär."\n\npositives ska vara specifika och äkta. Inte "bra jobbat". Utan "37.5 × 12 på hantelpress — ny topp. 🚀" eller "tre starka set på ryggen, stabil uppgång." Täck de övningar där något faktiskt hände. Om passet var starkt rakt igenom: fira det. Var inte balanserad för balansens skull.\n\nOm smärta, failure eller avbrott: lyft det som ett klokt beslut, aldrig som ett misslyckande.\n\nAnvänd 0-2 emojis (👊 🔥 💪 🚀 ✅ 📈) — bara vid riktig prestation, inte som dekoration.\n\nHitta inte på data. Allt ska komma från context.`,

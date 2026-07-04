@@ -113,6 +113,7 @@ export default function ExerciseCard({
   const [isDurationRunning, setIsDurationRunning] = useState(false);
   const [awaitingWeightConfirm, setAwaitingWeightConfirm] = useState(false);
   const [awaitingRepsConfirm, setAwaitingRepsConfirm] = useState(false);
+  const [confirmSkip, setConfirmSkip] = useState(false);
   const [crazyWeightMessageIndex] = useState(() => Math.floor(Math.random() * CRAZY_WEIGHT_MESSAGES.length));
   const isBodyweight = isBodyweightExercise(currentExerciseName);
   const isTimed = isTimedExercise(currentExerciseName);
@@ -267,7 +268,7 @@ useEffect(() => {
         <button
           type="button"
           className="shrink-0 rounded-full border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
-          onClick={onSkipExercise}
+          onClick={() => setConfirmSkip(true)}
           disabled={!canSkipExercise}
         >
           Hoppa över övning
@@ -634,6 +635,32 @@ useEffect(() => {
                 }}
               >
                 Ändra till {plannedReps} reps
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      {confirmSkip && createPortal(
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
+          <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+            <div className="space-y-1.5 text-center">
+              <p className="text-base font-semibold text-white">Hoppa över {currentExerciseName}?</p>
+              <p className="text-sm text-white/50">Redan loggade set sparas.</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
+                onClick={() => { setConfirmSkip(false); onSkipExercise(); }}
+              >
+                Ja, hoppa över
+              </button>
+              <button
+                className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98]"
+                onClick={() => setConfirmSkip(false)}
+              >
+                Fortsätt övningen
               </button>
             </div>
           </div>

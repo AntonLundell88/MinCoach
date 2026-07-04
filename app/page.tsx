@@ -412,7 +412,7 @@ type ActiveWorkoutDraft = {
     role: "you" | "coach";
     text: string;
     setNumber?: number;
-    aiStatus?: "fallback";
+    source?: "engine" | "llm" | "fallback";
   }[];
   chatInput: string;
   weightInput: string;
@@ -917,7 +917,7 @@ function buildProgressionPlan(args: {
       : undefined;
 
   if (topSetTooLight && dayForm !== "trött") {
-    const nextWeight = getNextAvailableWeight(topSet.weight, exerciseName, "up");
+    const nextWeight = scaledProgressionJump(topSet.weight, exerciseName, topSet.reps, targetReps, topSet.rir);
     const minReps = workingRepRange.min;
     const maxReps = Math.max(
       minReps,
@@ -2097,6 +2097,7 @@ function buildExerciseLibraryInfo(
   exerciseName: string
 ): CoachExerciseLibraryInfo {
   const info = getExerciseUserInfo(exerciseName);
+  const def = getExerciseDefinition(exerciseName);
 
   return {
     exerciseKey: info.exerciseKey || undefined,
@@ -2109,6 +2110,10 @@ function buildExerciseLibraryInfo(
     easierAlternative: info.easierAlternative || undefined,
     techniqueCue: info.techniqueCue,
     progressionRule: info.progressionRule,
+    category: def?.category,
+    primaryMuscle: def?.primaryMuscle,
+    movementPattern: def?.movementPattern,
+    techniqueFocus: def?.techniqueFocus,
   };
 }
 
@@ -2123,7 +2128,8 @@ function buildExerciseLibraryInfoList(exerciseNames: string[]) {
       seen.add(key);
       return true;
     })
-    .slice(0, 24);
+    .slice(0, 24)
+    .map(({ techniqueFocus: _tf, ...rest }) => rest);
 }
 
 const DEFAULT_TARGET_SETS = 3;
@@ -2176,6 +2182,26 @@ function isBarbellWeightExercise(exerciseName: string) {
 function getExerciseWeightStep(exerciseName: string) {
   if (isBarbellWeightExercise(exerciseName)) return BARBELL_WEIGHT_STEP;
   return PROGRESSION_STEP;
+}
+
+// Returns a scaled weight increase when the user was clearly underloaded.
+// Uses "could-have-done reps" (actual + RIR) vs target to estimate load deficit.
+function scaledProgressionJump(
+  weight: number,
+  exerciseName: string,
+  actualReps: number,
+  targetReps: number,
+  rir: number | null | undefined
+): number {
+  const baseStep = getExerciseWeightStep(exerciseName);
+  const couldHaveDone = actualReps + (typeof rir === "number" ? rir : 2);
+  const excessCapacity = Math.max(0, couldHaveDone - targetReps);
+  if (excessCapacity < 5) {
+    return normalizeSuggestedWeight(weight + baseStep, exerciseName, "nearest");
+  }
+  // ~2.5% load increase per rep of excess capacity, capped at 40%
+  const loadIncreasePct = Math.min(excessCapacity * 0.025, 0.40);
+  return normalizeSuggestedWeight(weight * (1 + loadIncreasePct), exerciseName, "nearest");
 }
 
 function getNextAvailableWeight(
@@ -4427,7 +4453,7 @@ function buildExerciseMemoryInsight(args: {
     return "Jag minns att du nådde gränsen här sist. Första setet visar hur nära vi ska gå idag.";
   }
 
-  return "Jag minns att det blev tufft här sist. Första setet visar oss var vi ligger idag.";
+  return "";
 }
 export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
@@ -4495,7 +4521,7 @@ const [chatLog, setChatLog] = useState<
     role: "you" | "coach";
     text: string;
     setNumber?: number;
-    aiStatus?: "fallback";
+    source?: "engine" | "llm" | "fallback";
   }[]
 >([]);
 const [coachPendingReply, setCoachPendingReply] = useState(false);
@@ -5288,7 +5314,7 @@ function getProgressionSuggestion(
 
     if (typeof last.rir === "number" && last.rir >= 3 && last.reps >= targetReps) {
     return {
-      targetWeight: getNextAvailableWeight(last.weight, currentExerciseName, "up"),
+      targetWeight: scaledProgressionJump(last.weight, currentExerciseName, last.reps, targetReps, last.rir),
       reason: "Senast hade du marginal kvar. Du kan testa att höja.",
     };
   }
@@ -5567,7 +5593,10 @@ function normalizeIntentText(text: string) {
 }
 
 function includesAnyIntent(text: string, terms: string[]) {
-  return terms.some((term) => text.includes(term));
+  return terms.some((term) => {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${escaped}\\b`).test(text);
+  });
 }
 
 function parseWorkoutChatIntent(args: {
@@ -5737,19 +5766,19 @@ async function sendChat() {
   setChatInput("");
   setCoachPendingReply(true);
 
-  const reply = (text: string, aiStatus?: "fallback") => {
+  const reply = (text: string, source: "engine" | "llm" | "fallback" = "engine") => {
     setCoachPendingReply(false);
     setChatLog((prev) => {
       const last = prev[prev.length - 1];
       if (last?.role === "coach" && last.text === text) return prev;
-      return [...prev, { role: "coach", text, aiStatus }];
+      return [...prev, { role: "coach", text, source }];
     });
   };
   const replyFromAi = (response: {
     mode?: "ai" | "fallback";
     text: string;
   }) => {
-    reply(response.text, response.mode === "ai" ? undefined : "fallback");
+    reply(response.text, response.mode === "ai" ? "llm" : "fallback");
   };
 
   const routedIntent = parseWorkoutChatIntent({
@@ -5881,6 +5910,10 @@ async function sendChat() {
         conditioningNote:
           overrides?.conditioningContext?.note ?? activeConditioningContext?.note,
         previousCoachReply: lastCoachMessage,
+        recentConversation: chatLog
+          .slice(-10)
+          .map((m) => `${m.role === "you" ? "Användaren" : "Coach"}: ${m.text}`)
+          .filter(Boolean),
       },
       fallbackReply,
     });
@@ -5901,12 +5934,12 @@ async function sendChat() {
     swapToInput &&
     includesAnyIntent(normalizeIntentText(msg), [
       "ja",
-      "bekrafta",
-      "byt",
+      "yes",
       "kor",
-      "ok",
-      "okej",
+      "byt",
+      "det blir bra",
       "stammer",
+      "bekrafta",
     ]);
 
   const namedPendingSwapReplacement =
@@ -6040,6 +6073,13 @@ async function sendChat() {
     }
 
     const targetExercise = workout.exercises[routedIntent.targetIndex];
+
+    if (swapFrom && exerciseKey(swapFrom) === exerciseKey(targetExercise.name)) {
+      const chatReply = await askAiCoach(`${targetExercise.name} är inte tillgänglig.`);
+      replyFromAi(chatReply);
+      return;
+    }
+
     const suggestion = suggestReplacementFor(targetExercise.name);
     if (suggestion) {
       setSwapFrom(targetExercise.name);
@@ -6458,6 +6498,7 @@ function replaceExerciseInCurrentWorkout(fromName: string, toNameRaw: string) {
     ...prev,
     {
       role: "coach",
+      source: "engine" as const,
       text: resetLoggedExercise
         ? `Bra, vi kör ${replacementName} istället. Jag sparar ${fromName} som avslutad så loggen blir rätt.`
         : `Bra, vi kör ${replacementName} istället.`,
@@ -8317,7 +8358,7 @@ async function addSet() {
       setChatLog((prev) => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage?.role === "coach" && lastMessage.text === missingInputMessage) return prev;
-        return [...prev, { role: "coach", text: missingInputMessage }];
+        return [...prev, { role: "coach", source: "engine" as const, text: missingInputMessage }];
       });
       return;
     }
@@ -8327,7 +8368,7 @@ async function addSet() {
       setChatLog((prev) => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage?.role === "coach" && lastMessage.text === durationWarningMessage) return prev;
-        return [...prev, { role: "coach", text: durationWarningMessage }];
+        return [...prev, { role: "coach", source: "engine" as const, text: durationWarningMessage }];
       });
       return;
     }
@@ -8372,6 +8413,7 @@ if (!timedExercise && reps > 200) {
       ...prev,
       {
         role: "coach",
+        source: "engine" as const,
         text: repsWarningMessage,
       },
     ];
@@ -8749,10 +8791,48 @@ setRirInput(nextSetRirInput);
     setChatLog((prev) => {
       const undoText = "Såg det — stryker det setet.";
       if (prev.length > 0 && prev[prev.length - 1].role === "coach") {
-        return [...prev.slice(0, -1), { role: "coach", text: undoText }];
+        return [...prev.slice(0, -1), { role: "coach", source: "engine" as const, text: undoText }];
       }
-      return [...prev, { role: "coach", text: undoText }];
+      return [...prev, { role: "coach", source: "engine" as const, text: undoText }];
     });
+  }
+
+  function updateSet(setIdx: number, newWeight: number, newReps: number, newRir: number) {
+    if (!workout) return;
+    const updated = structuredClone(workout);
+    const sets = updated.exercises[exerciseIndex].sets;
+    if (setIdx < 0 || setIdx >= sets.length) return;
+    const exerciseName = updated.exercises[exerciseIndex].name;
+    const key = exerciseKey(exerciseName);
+    sets[setIdx] = { ...sets[setIdx], weight: newWeight, reps: newReps, rir: newRir };
+    setWorkout(updated);
+
+    const workoutsForExercise = [updated, ...history];
+    const latest = getLatestLoggedSetForExercise(workoutsForExercise, exerciseName);
+    const nextLastByExercise = { ...lastByExercise };
+    if (latest) {
+      nextLastByExercise[key] = {
+        weight: latest.set.weight,
+        reps: latest.set.reps,
+        rir: latest.set.rir ?? null,
+        failNote: latest.set.failNote ?? null,
+        updatedAt: latest.set.createdAt,
+      };
+    } else {
+      delete nextLastByExercise[key];
+    }
+    setLastByExercise(nextLastByExercise);
+    saveJSON("lastByExercise", nextLastByExercise);
+
+    const bestRecord = getBestRecordForExercise(workoutsForExercise, exerciseName);
+    const nextPersonalRecords = { ...personalRecords };
+    if (bestRecord) {
+      nextPersonalRecords[key] = bestRecord;
+    } else {
+      delete nextPersonalRecords[key];
+    }
+    setPersonalRecords(nextPersonalRecords);
+    saveJSON("personalRecords", nextPersonalRecords);
   }
 
   function nextExercise() {
@@ -9852,6 +9932,7 @@ addCoachMessage={(text) =>
       ...prev,
       {
         role: "coach",
+        source: "engine" as const,
         text,
       },
     ];
@@ -9887,6 +9968,7 @@ addCoachMessage={(text) =>
         progressionPlan={progressionPlan}
         plannedWeightKg={systemSuggestedWeightRef.current}
         plannedReps={systemSuggestedRepsRef.current}
+        updateSet={updateSet}
         previousWorkoutSummary={getPreviousWorkoutSummaryLine(history) ?? undefined}
       />
       

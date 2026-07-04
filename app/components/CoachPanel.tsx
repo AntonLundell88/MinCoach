@@ -8,7 +8,7 @@ type ChatMessage = {
   role: "you" | "coach";
   text: string;
   setNumber?: number;
-  aiStatus?: "fallback";
+  source?: "engine" | "llm" | "fallback";
 };
 
 type CoachData = {
@@ -293,9 +293,20 @@ export default function CoachPanel({
                     {m.setNumber}
                   </div>
                 ) : null}
-                <p className="coach-message-label mb-1 text-[9px] uppercase tracking-[0.12em] text-white/36">
-                  {m.role === "coach" ? "Coach" : "Du"}
-                </p>
+                <div className="mb-1 flex items-center gap-1.5">
+                  {m.role === "coach" && m.source && (
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        m.source === "llm"
+                          ? "bg-blue-400/70"
+                          : "bg-yellow-400/70"
+                      }`}
+                    />
+                  )}
+                  <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/36">
+                    {m.role === "coach" ? "Coach" : "Du"}
+                  </p>
+                </div>
                 {m.role === "coach" ? (
                   <CoachText
                     text={

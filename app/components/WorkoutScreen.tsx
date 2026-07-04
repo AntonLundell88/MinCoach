@@ -5,7 +5,7 @@ import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
 import WorkoutNavigation from "./WorkoutNavigation";
 import ToggleSwitch from "./ToggleSwitch";
-import { CloseGlyph, DoubleChevronDownGlyph, PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
+import { CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import { getExerciseProfile, isBodyweightExercise, isTimedExercise } from "../lib/exercises";
 
 type Props = {
@@ -117,6 +117,7 @@ type Props = {
   >;
   plannedWeightKg?: number;
   plannedReps?: number;
+  updateSet: (setIdx: number, weight: number, reps: number, rir: number) => void;
   previousWorkoutSummary?: string;
 };
 
@@ -371,7 +372,7 @@ function buildExerciseIntroCoachText(args: {
   const pr = personalRecords[key];
   const introLine =
     exerciseIndex === 0
-      ? `${getWorkoutStartPepLine()}${previousWorkoutSummary ? `\n\n${previousWorkoutSummary}` : ""}\n\nFörst: ${exerciseName}.`
+      ? `${getWorkoutStartPepLine()}\n\nFörst: ${exerciseName}.`
       : exerciseIndex === exerciseCount - 1
       ? `Avslutar med ${exerciseName}.`
       : `Nu tar vi ${exerciseName}.`;
@@ -507,6 +508,7 @@ export default function WorkoutScreen({
   addCoachMessage,
   plannedWeightKg,
   plannedReps,
+  updateSet,
   previousWorkoutSummary,
 }: Props) {
   const [showRestTimer, setShowRestTimer] = useState(false);
@@ -598,15 +600,21 @@ export default function WorkoutScreen({
   }, [restStartedAt]);
 
   function startRestTimer() {
-    setRestStartedAt(Date.now());
+    // Resume from current elapsed if paused, otherwise start fresh
+    setRestStartedAt(Date.now() - restElapsed * 1000);
+    setShowRestTimer(true);
+  }
+
+  function restartRestTimer() {
     setRestElapsed(0);
+    setRestStartedAt(Date.now());
     setShowRestTimer(true);
   }
 
   function startManualRestTimer(seconds: number) {
     setManualRestTarget(getManualRestTarget(seconds));
-    setRestStartedAt(Date.now());
     setRestElapsed(0);
+    setRestStartedAt(Date.now());
     setShowRestTimer(true);
   }
 
@@ -616,9 +624,13 @@ export default function WorkoutScreen({
     setManualRestTarget(null);
   }
   
+const introSentForIndexRef = useRef<number | null>(null);
+
 /* eslint-disable react-hooks/exhaustive-deps */
 useEffect(() => {
   if (!currentExerciseName) return;
+  if (introSentForIndexRef.current === exerciseIndex) return;
+  introSentForIndexRef.current = exerciseIndex;
 
   addCoachMessage(
     buildExerciseIntroCoachText({
@@ -845,17 +857,10 @@ useEffect(() => {
                     <div className="mt-2 grid grid-cols-[1fr_1fr_auto] gap-1.5">
                 <button
                   type="button"
-                  onClick={startRestTimer}
+                  onClick={restStartedAt ? restartRestTimer : startRestTimer}
                   className="workout-ai-action rounded-lg border border-blue-400/18 bg-blue-500/[0.10] px-2 py-1.5 text-xs font-semibold text-blue-100"
                       >
                         {restStartedAt ? "Starta om" : "Starta"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={resetRestTimer}
-                        className="rounded-lg border border-white/[0.07] bg-white/[0.045] px-2 py-1.5 text-xs font-semibold text-white/58"
-                      >
-                        Nollställ
                       </button>
                       <button
                         type="button"
@@ -1046,7 +1051,7 @@ useEffect(() => {
 
           <button
             type="button"
-            onClick={startRestTimer}
+            onClick={restStartedAt ? restartRestTimer : startRestTimer}
             className="workout-ai-action inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-blue-400/18 bg-blue-500/[0.075] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.13]"
           >
             {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
@@ -1134,49 +1139,20 @@ useEffect(() => {
             <div className="mt-2.5 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={startRestTimer}
+                onClick={restStartedAt ? restartRestTimer : startRestTimer}
                 className="workout-ai-action inline-flex items-center gap-1.5 rounded-lg border border-blue-400/20 bg-blue-500/[0.10] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.16]"
               >
                 {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
                 {restStartedAt ? "Starta om" : "Starta"}
               </button>
 
-              <button
-                type="button"
-                onClick={resetRestTimer}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-xs font-semibold text-white/72 transition hover:bg-white/[0.08] hover:text-white"
-              >
-                {restStartedAt ? <PauseGlyph className="h-3.5 w-3.5" /> : <RotateGlyph className="h-3.5 w-3.5" />}
-                {restStartedAt ? "Stoppa" : "Nollställ"}
-              </button>
             </div>
 
-            <div className="mt-2 grid grid-cols-4 gap-1.5">
-              {[
-                [60, "1:00"],
-                [120, "2:00"],
-                [180, "3:00"],
-                [240, "4:00"],
-              ].map(([seconds, label]) => (
-                <button
-                  key={seconds}
-                  type="button"
-                  onClick={() => startManualRestTimer(Number(seconds))}
-                  className={`rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${
-                    manualRestTarget?.min === seconds
-                      ? "border-blue-400/30 bg-blue-500/[0.14] text-blue-100"
-                      : "border-white/[0.09] bg-white/[0.042] text-white/58 hover:bg-white/[0.07] hover:text-white"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
           </div>
         ) : null}
       </div>
 
-      <SetList currentSets={currentSets} />
+      <SetList currentSets={currentSets} onEditSet={updateSet} />
 
       {showAddExercise ? (
         <div className="rounded-[1.15rem] border border-white/[0.06] bg-white/[0.018] px-3 py-2 backdrop-blur-2xl">
@@ -1212,12 +1188,12 @@ useEffect(() => {
     {shouldShowRestDock ? (
       <div className="fixed inset-x-0 bottom-3 z-40 px-3 sm:bottom-5">
         <div
-          className={`mx-auto w-full max-w-[430px] rounded-[1.35rem] border p-3 shadow-[0_18px_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl transition ${
+          className={`mx-auto w-full max-w-[430px] rounded-[1.35rem] border p-3 backdrop-blur-2xl transition ${
             restTimerState === "over"
-              ? "border-orange-300/45 bg-[#2a1d12] shadow-[0_0_34px_rgba(251,146,60,0.24)]"
+              ? "border-orange-300/45 bg-[#2a1d12] shadow-[0_18px_60px_rgba(0,0,0,0.40),0_0_34px_rgba(251,146,60,0.24)]"
               : restTimerState === "ready"
-              ? "border-emerald-300/36 bg-[#10251d] shadow-[0_0_32px_rgba(52,211,153,0.20)]"
-              : "border-white/[0.11] bg-[#111a25]"
+              ? "border-emerald-300/36 bg-[#10251d] shadow-[0_18px_60px_rgba(0,0,0,0.40),0_0_32px_rgba(52,211,153,0.20)]"
+              : "border-blue-400/30 bg-[#162032] shadow-[0_-8px_30px_rgba(0,0,0,0.30),0_18px_50px_rgba(0,0,0,0.45),0_0_32px_rgba(96,165,250,0.10)]"
           }`}
         >
           <div className="flex items-center justify-between gap-3">
@@ -1260,19 +1236,11 @@ useEffect(() => {
             <div className="flex shrink-0 items-center gap-1.5">
               <button
                 type="button"
-                onClick={startRestTimer}
+                onClick={restStartedAt ? restartRestTimer : startRestTimer}
                 className="workout-ai-action inline-flex items-center gap-1.5 rounded-xl border border-blue-400/20 bg-blue-500/[0.14] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.18]"
               >
                 {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
                 {restStartedAt ? "Om" : "Starta"}
-              </button>
-              <button
-                type="button"
-                onClick={resetRestTimer}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.09] bg-white/[0.06] px-3 py-2 text-xs font-semibold text-white/72 transition hover:bg-white/[0.09] hover:text-white"
-              >
-                {restStartedAt ? <PauseGlyph className="h-3.5 w-3.5" /> : <RotateGlyph className="h-3.5 w-3.5" />}
-                {restStartedAt ? "Stoppa" : "Nollställ"}
               </button>
               <button
                 type="button"
@@ -1287,38 +1255,17 @@ useEffect(() => {
 
           <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/8">
             <div
-              className={`h-full rounded-full shadow-[0_0_18px_rgba(96,165,250,0.35)] transition-all duration-500 ${
+              className={`h-full rounded-full transition-all duration-500 ${
                 restTimerState === "over"
-                  ? "bg-orange-300"
+                  ? "bg-orange-300 shadow-[0_0_18px_rgba(251,146,60,0.35)]"
                   : restTimerState === "ready"
-                  ? "bg-emerald-400"
-                  : "bg-blue-400"
+                  ? "bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.35)]"
+                  : "bg-blue-400 shadow-[0_0_18px_rgba(96,165,250,0.35)]"
               }`}
               style={{ width: `${restProgress * 100}%` }}
             />
           </div>
 
-          <div className="mt-2 grid grid-cols-4 gap-1.5">
-            {[
-              [60, "1:00"],
-              [120, "2:00"],
-              [180, "3:00"],
-              [240, "4:00"],
-            ].map(([seconds, label]) => (
-              <button
-                key={seconds}
-                type="button"
-                onClick={() => startManualRestTimer(Number(seconds))}
-                className={`rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${
-                  manualRestTarget?.min === seconds
-                    ? "workout-rir-selected border-blue-400/30 bg-blue-500/[0.16] text-blue-100"
-                    : "border-white/[0.09] bg-white/[0.052] text-white/62 hover:bg-white/[0.08] hover:text-white"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     ) : null}

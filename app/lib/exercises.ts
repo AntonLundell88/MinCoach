@@ -84,6 +84,7 @@ export type ExerciseDefinition = {
   coachReason: string;
   userFacingWhy?: string;
   techniqueCue: string;
+  techniqueFocus?: string[];
   progressionRule: string;
   beginnerNote: string;
 };
@@ -114,6 +115,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Ger mycket bröstträning med låg teknisk tröskel och tydlig progression.",
     techniqueCue:
       "Tänk på att trycka jämnt, hålla skuldrorna stabila och utföra övningen kontrollerat.",
+    techniqueFocus: ["scapular stability", "even force distribution", "controlled eccentric"],
     progressionRule:
       "Höj när repsen sitter med samma kontroll och rimlig marginal.",
     beginnerNote:
@@ -143,6 +145,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Passar när användaren vill bygga styrka eller muskler och kan hålla tekniken stabil.",
     techniqueCue: "Fokus: jämn pressbana och kontrollerad vändning.",
+    techniqueFocus: ["scapular retraction", "leg drive", "controlled descent", "bar to lower chest"],
     progressionRule:
       "Höj när toppsetet sitter med rimlig marginal. Backoff efter tungt toppset.",
     beginnerNote:
@@ -172,6 +175,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger bra bröstarbete utan att låsa axlarna lika hårt som skivstång.",
     techniqueCue: "Fokus: stabil handled, kontrollerad sänkning, inga studs.",
+    techniqueFocus: ["wrist alignment", "scapular stability", "controlled descent"],
     progressionRule:
       "Prioritera stabilitet. Toppset plus backoff räcker ofta när det blir tungt.",
     beginnerNote:
@@ -201,6 +205,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra när coachen vill få in press utan att allt måste vara tung plan press.",
     techniqueCue: "Fokus: samma bänkvinkel, lugn botten och jämn press.",
+    techniqueFocus: ["scapular retraction", "controlled descent", "consistent incline angle"],
     progressionRule:
       "Höj när samma vinkel och samma kontroll går att upprepa.",
     beginnerNote:
@@ -230,6 +235,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ett bra hemma-alternativ när användaren saknar pressutrustning.",
     techniqueCue: "Fokus: rak kropp, lugn sänkning och smärtfria handleder.",
+    techniqueFocus: ["rigid plank position", "controlled descent", "full range of motion"],
     progressionRule:
       "Progression sker med fler rena reps, långsammare tempo eller extra vikt först när formen sitter.",
     beginnerNote:
@@ -259,6 +265,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Trygg ryggträning med enkel progression och låg teknisk tröskel.",
     techniqueCue: "Fokus: dra med kontroll och håll kontakt hela vägen ner.",
+    techniqueFocus: ["scapular depression", "elbow to hip", "controlled eccentric", "chest up"],
     progressionRule: "Bygg reps med bra ryggkontakt innan du höjer.",
     beginnerNote:
       "Stabil och tydlig variant. Bra förstaval för nybörjare när utrustningen finns.",
@@ -287,6 +294,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra ryggvolym med tydlig teknik och lätt belastningskontroll.",
     techniqueCue: "Fokus: strikt drag och ryggkontakt innan vi höjer.",
+    techniqueFocus: ["scapular retraction", "upright torso", "controlled return"],
     progressionRule:
       "Bygg strikt reps innan du höjer. Om det blir slarvigt: sänk.",
     beginnerNote:
@@ -316,6 +324,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ett starkt ryggval när kabel eller maskin saknas.",
     techniqueCue: "Fokus: dra armbågen bakåt och håll bålen stilla.",
+    techniqueFocus: ["elbow back to hip", "stable torso", "controlled return"],
     progressionRule:
       "Höj först när rörelsen är lika strikt från första till sista rep.",
     beginnerNote:
@@ -354,6 +363,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Stark ryggövning för vana användare när coachen vill ha ett tungt horisontellt drag.",
     techniqueCue: "Fokus: håll samma lutning och dra stången kontrollerat mot kroppen.",
+    techniqueFocus: ["stable hip hinge", "elbow back to hip", "scapular retraction"],
     progressionRule:
       "Höj först när ryggen håller positionen från första till sista rep.",
     beginnerNote:
@@ -383,6 +393,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Gör att ett hemmapass fortfarande får ett riktigt dragmoment.",
     techniqueCue: "Fokus: håll bandet spänt och dra med rygg, inte nacke.",
+    techniqueFocus: ["scapular retraction", "controlled return"],
     progressionRule:
       "Progression sker med mer bandspänning, fler kontrollerade reps eller långsammare tempo.",
     beginnerNote:
@@ -412,6 +423,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra steg mot chins när användaren har rätt utrustning och greppet känns bra.",
     techniqueCue: "Fokus: kontrollerat drag och lugn väg ner.",
+    techniqueFocus: ["scapular depression", "controlled eccentric", "full arm extension at bottom"],
     progressionRule:
       "Minska assistansen först när repsen är rena och axlarna känns trygga.",
     beginnerNote:
@@ -441,6 +453,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger mycket benträning med stabilitet och tydlig belastning.",
     techniqueCue: "Fokus: kontrollerat djup och samma fotplacering varje set.",
+    techniqueFocus: ["knee tracking", "controlled depth", "heel in platform"],
     progressionRule:
       "Höj när djup, kontroll och känsla matchar tidigare pass.",
     beginnerNote:
@@ -470,6 +483,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Stabil och lätt att dosera, särskilt för nya eller trötta ben.",
     techniqueCue: "Fokus: paus i toppen och kontakt innan vi höjer.",
+    techniqueFocus: ["quad contraction at top", "controlled eccentric", "full range"],
     progressionRule:
       "Kontakt styr. Om tungt blir slarvigt: sänk och pausa i toppen.",
     beginnerNote:
@@ -499,6 +513,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra när användaren har hantel eller kettlebell och behöver ett starkt benval hemma.",
     techniqueCue: "Fokus: bröstet högt, knäna stabila och jämnt djup.",
+    techniqueFocus: ["chest up", "knee tracking", "controlled descent"],
     progressionRule:
       "Höj när bottenläget är kontrollerat och samma rörelse kan upprepas.",
     beginnerNote:
@@ -528,6 +543,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Passar när användaren har vana, mål som kräver tydlig basstyrka och trygg teknik.",
     techniqueCue: "Fokus: stabil bål, jämnt djup och ingen stressad vändning.",
+    techniqueFocus: ["braced core", "knee tracking", "hip depth", "vertical bar path"],
     progressionRule:
       "Höj bara när djup och position håller genom hela setet.",
     beginnerNote:
@@ -557,6 +573,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Mycket träning för baksidan när tekniken är trygg och användaren har vana.",
     techniqueCue: "Fokus: höften bak, ryggen låst och ingen ful failure.",
+    techniqueFocus: ["hip hinge", "neutral spine", "bar close to body"],
     progressionRule:
       "Hellre 1 RIR än ful 0 RIR. Höj bara när ryggen håller positionen.",
     beginnerNote:
@@ -586,6 +603,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Trygg isolering för baksida lår och lätt att dosera.",
     techniqueCue: "Fokus: böj kontrollerat och håll höften stilla.",
+    techniqueFocus: ["hip stays neutral", "controlled eccentric", "full range of motion"],
     progressionRule:
       "Höj när repsen är rena utan ryck eller tappad position.",
     beginnerNote:
@@ -615,6 +633,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra sätesövning med tydlig progression när positionen känns bra.",
     techniqueCue: "Fokus: pausa i toppen och håll bålen stabil.",
+    techniqueFocus: ["full hip extension at top", "braced core", "chin tucked"],
     progressionRule:
       "Höj när toppen är stark utan att ländryggen tar över.",
     beginnerNote:
@@ -644,6 +663,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "En trygg tidsövning för lår när vikt eller maskin saknas.",
     techniqueCue: "Fokus: jämn andning, stabil knävinkel och ryggen mot väggen.",
+    techniqueFocus: ["stable knee angle", "even breathing", "upright torso"],
     progressionRule:
       "Progression sker främst med längre tid i samma position. Extra vikt först när tiden sitter.",
     beginnerNote:
@@ -673,6 +693,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra axelövning när användaren kan pressa smärtfritt.",
     techniqueCue: "Fokus: stabil axel och kontrollerad rörelse.",
+    techniqueFocus: ["scapular stability", "controlled descent", "neutral wrist"],
     progressionRule:
       "Progression sker med renare reps innan tyngre vikt om axeln känns osäker.",
     beginnerNote:
@@ -702,6 +723,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra komplettering för axlar med låg systemisk belastning.",
     techniqueCue: "Fokus: mjuk armbåge, lugn lyftbana och ingen sving.",
+    techniqueFocus: ["scapular depression", "slight elbow bend", "controlled return"],
     progressionRule:
       "Höj först när repsen är rena och axeln känns smärtfri.",
     beginnerNote:
@@ -731,6 +753,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger direkt armträning utan att störa resten av passet för mycket.",
     techniqueCue: "Fokus: ren curl, stilla armbågar och ingen sving.",
+    techniqueFocus: ["fixed upper arm", "controlled eccentric", "full range of motion"],
     progressionRule: "Höj bara när repsen är rena och smärtfria.",
     beginnerNote:
       "Enkel övning, men ska hållas lugn vid armbåge eller handled.",
@@ -759,6 +782,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra armval när neutralt grepp passar bättre.",
     techniqueCue: "Fokus: håll överarmen stilla och vikten kontrollerad.",
+    techniqueFocus: ["fixed upper arm", "neutral wrist", "controlled eccentric"],
     progressionRule:
       "Höj när greppet och armbågen känns lugna genom hela setet.",
     beginnerNote:
@@ -788,6 +812,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Lätt att dosera och bra när coachen vill ge tricepsarbete utan tung press.",
     techniqueCue: "Fokus: kontakt i triceps och smärtfritt grepp.",
+    techniqueFocus: ["elbow fixed at side", "full extension", "controlled return"],
     progressionRule:
       "Höj bara när kontakt och armbågar känns bra. Smärta styr före vikt.",
     beginnerNote:
@@ -817,6 +842,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "En enkel och tydlig bålövning som fungerar hemma och på gym.",
     techniqueCue: "Fokus: stabil position, jämn andning och ingen svankkollaps.",
+    techniqueFocus: ["neutral spine", "glutes engaged", "even breathing"],
     progressionRule:
       "Progression sker främst med längre tid i samma form. Extra vikt först när tiden sitter kontrollerat.",
     beginnerNote:
@@ -846,6 +872,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra komplement till vanlig planka när axeln känns trygg.",
     techniqueCue: "Fokus: rak linje, lugn andning och stabil axel.",
+    techniqueFocus: ["straight body line", "stable shoulder", "hip elevated"],
     progressionRule:
       "Progression sker med längre tid, bättre position eller extra vikt senare.",
     beginnerNote:
@@ -875,6 +902,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger progressiv magträning på gym, men hör inte hemma i ett vanligt hemmapass.",
     techniqueCue: "Fokus: kontrollerad böjning och mage före höft.",
+    techniqueFocus: ["spinal flexion not hip flexion", "controlled return", "abs initiate"],
     progressionRule:
       "Höj när rörelsen är ren och du kan upprepa samma bana.",
     beginnerNote:
@@ -904,6 +932,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "En enkel magövning när användaren vill logga reps utan redskap.",
     techniqueCue: "Fokus: kontrollerad bål och jämn rörelse.",
+    techniqueFocus: ["controlled movement", "abs initiate", "neutral neck"],
     progressionRule:
       "Progression sker med fler rena reps, långsammare tempo eller lutning.",
     beginnerNote:
@@ -933,6 +962,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Passar när användaren är van och vill ha tyngre bålträning.",
     techniqueCue: "Fokus: kontrollerad bål och ingen gungning.",
+    techniqueFocus: ["no swinging", "controlled eccentric", "abs initiate"],
     progressionRule:
       "Bygg rena reps innan du gör varianten tyngre.",
     beginnerNote:
@@ -963,6 +993,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger en trygg pressvariant utan redskap för nya användare eller begränsad hemmaträning.",
     techniqueCue: "Fokus: rak linje från knä till axel och lugn sänkning.",
+    techniqueFocus: ["rigid torso", "controlled descent", "full range of motion"],
     progressionRule:
       "Bygg rena reps först. Gå vidare till upphöjda eller vanliga armhävningar när kontrollen sitter.",
     beginnerNote:
@@ -993,6 +1024,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Gör armhävningar mer skalbara och passar bra när användaren saknar pressredskap.",
     techniqueCue: "Fokus: stabil upphöjning, rak kropp och kontrollerad vändning.",
+    techniqueFocus: ["scapular retraction", "controlled descent", "full range of motion"],
     progressionRule:
       "Sänk höjden gradvis eller bygg fler rena reps innan du går till golvet.",
     beginnerNote:
@@ -1023,6 +1055,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger ett riktigt horisontellt drag hemma utan kabel eller maskin.",
     techniqueCue: "Fokus: dra bröstet mot stången och håll kroppen stilla.",
+    techniqueFocus: ["scapular retraction", "rigid body line", "chest to bar"],
     progressionRule:
       "Gör övningen tyngre genom lägre kroppsvinkel, fler rena reps eller långsammare tempo.",
     beginnerNote:
@@ -1053,6 +1086,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra för vana användare som redan klarar kroppsviktsdrag med kontroll.",
     techniqueCue: "Fokus: starta kontrollerat, dra bröstet upp och sänk lugnt.",
+    techniqueFocus: ["scapular depression", "controlled eccentric", "full arm extension at bottom"],
     progressionRule:
       "Bygg rena reps innan extra vikt. Backa till assistans om formen faller.",
     beginnerNote:
@@ -1083,6 +1117,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger mycket benträning med lite utrustning och är lätt att göra tyngre med hantlar.",
     techniqueCue: "Fokus: stabil fot, kontrollerat djup och knä i lugn bana.",
+    techniqueFocus: ["front knee tracking", "upright torso", "controlled descent"],
     progressionRule:
       "Bygg kroppsviktskontroll först. Lägg till hantlar när balansen och knät känns trygga.",
     beginnerNote:
@@ -1113,6 +1148,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra benval hemma när coachen vill ha mer än statiska övningar men utan maskin.",
     techniqueCue: "Fokus: kliv bak lugnt och tryck upp genom främre foten.",
+    techniqueFocus: ["front knee tracking", "upright torso", "controlled step"],
     progressionRule:
       "Öka reps eller lägg till hantlar när samma steglängd och kontroll sitter.",
     beginnerNote:
@@ -1143,6 +1179,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Trygg sätesövning utan krav på bänk, maskin eller tung vikt.",
     techniqueCue: "Fokus: pausa i toppen och håll bålen stabil.",
+    techniqueFocus: ["full hip extension", "glute contraction at top", "stable upper back"],
     progressionRule:
       "Bygg reps och paus först. Lägg till hantel när säte, inte ländrygg, gör jobbet.",
     beginnerNote:
@@ -1173,6 +1210,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ett praktiskt benalternativ med lite utrustning och tydlig skalning.",
     techniqueCue: "Fokus: tryck genom hela foten på lådan och bromsa vägen ner.",
+    techniqueFocus: ["drive through heel", "knee tracking", "controlled return"],
     progressionRule:
       "Öka reps, höjd eller hantlar först när varje repetition ser likadan ut.",
     beginnerNote:
@@ -1203,6 +1241,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra komplettering till press och rodd utan att passet blir tungt.",
     techniqueCue: "Fokus: små kontrollerade lyft och avslappnad nacke.",
+    techniqueFocus: ["scapular retraction", "slight elbow bend", "controlled return"],
     progressionRule:
       "Höj bara när rörelsen är ren och axeln känns lugn.",
     beginnerNote:
@@ -1233,6 +1272,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra när användaren har stång och vill ha enkel armprogression.",
     techniqueCue: "Fokus: stilla överarmar och smärtfritt grepp.",
+    techniqueFocus: ["fixed upper arm", "controlled eccentric", "wrist neutral"],
     progressionRule:
       "Höj bara när repsen är rena utan sving eller armbågskänning.",
     beginnerNote:
@@ -1263,6 +1303,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger tricepsarbete utan kabel, men måste doseras försiktigt för armbågar.",
     techniqueCue: "Fokus: stabil överarm och smärtfri armbågsbana.",
+    techniqueFocus: ["elbow fixed", "full extension", "controlled return"],
     progressionRule:
       "Bygg reps med ren kontroll innan vikten höjs.",
     beginnerNote:
@@ -1293,6 +1334,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Passar vana användare som tål kroppsviktspress och vill ha tung tricepsträning.",
     techniqueCue: "Fokus: kontrollerat djup och axlar som känns stabila.",
+    techniqueFocus: ["slight forward lean", "controlled descent", "full arm extension at top"],
     progressionRule:
       "Bygg rena reps innan extra vikt. Backa direkt vid axel- eller armbågskänning.",
     beginnerNote:
@@ -1324,6 +1366,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Stabil och enkel bröstisolering, särskilt bra efter en huvudpress.",
     techniqueCue:
       "Tänk på att pressa ihop långsamt och jobba inte med axlarna.",
+    techniqueFocus: ["scapular retraction", "controlled return", "avoid forward shoulder roll"],
     progressionRule:
       "Höj när kontakten och rörelsebanan är samma genom hela setet.",
     beginnerNote:
@@ -1354,6 +1397,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra bröstkomplement på gym när användaren kan hålla axlarna lugna.",
     techniqueCue: "Fokus: lätt böjda armbågar och samma kabelhöjd varje gång.",
+    techniqueFocus: ["slight elbow bend", "controlled return", "chest leads not arms"],
     progressionRule:
       "Höj först när du kan hålla samma bana utan att axeln dras fram.",
     beginnerNote:
@@ -1384,6 +1428,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger bra ryggvolym med låg teknisk tröskel.",
     techniqueCue: "Fokus: dra armbågarna bakåt och pausa kort utan att rycka.",
+    techniqueFocus: ["scapular retraction", "elbow to hip", "controlled return"],
     progressionRule:
       "Bygg strikt reps innan du höjer. Om överkroppen gungar: sänk.",
     beginnerNote:
@@ -1414,6 +1459,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Starkt ryggval när coachen vill ha drag utan ländryggströtthet.",
     techniqueCue: "Fokus: bröstet kvar i stödet och kontrollerat drag.",
+    techniqueFocus: ["scapular retraction", "chest stays on pad", "controlled return"],
     progressionRule:
       "Höj när du kan pausa i toppläget utan att tappa position.",
     beginnerNote:
@@ -1444,6 +1490,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger tung ryggträning när användaren klarar positionen.",
     techniqueCue: "Fokus: fast bål, samma lutning och inget ryck från ländryggen.",
+    techniqueFocus: ["stable hip hinge", "elbow back", "controlled return"],
     progressionRule:
       "Höj bara när draget är strikt och positionen håller hela setet.",
     beginnerNote:
@@ -1474,6 +1521,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Tryggt vertikalt drag med bra stöd och enkel progression.",
     techniqueCue: "Fokus: dra ner och bak med armbågarna, inte med nacken.",
+    techniqueFocus: ["elbow wide and back", "scapular retraction", "controlled return"],
     progressionRule:
       "Bygg reps med bra ryggkontakt innan du höjer.",
     beginnerNote:
@@ -1504,6 +1552,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra förstaval för axelpress på gym, särskilt för nya användare.",
     techniqueCue: "Fokus: stabil rygg mot stödet och smärtfri pressbana.",
+    techniqueFocus: ["scapular stability", "controlled descent", "full range of motion"],
     progressionRule:
       "Höj när repsen sitter utan axelstress eller svank.",
     beginnerNote:
@@ -1534,6 +1583,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra axelkomplement på gym, särskilt när mycket press finns i programmet.",
     techniqueCue: "Fokus: låga axlar, kort paus bak och ingen sving.",
+    techniqueFocus: ["scapular retraction", "controlled return", "avoid shoulder elevation"],
     progressionRule:
       "Höj först när baksida axel gör jobbet utan nackspänning.",
     beginnerNote:
@@ -1564,6 +1614,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra för axelbalans när användaren klarar tekniken lugnt.",
     techniqueCue: "Fokus: dra repet mot ansiktet med låga axlar och mjuk kontroll.",
+    techniqueFocus: ["external rotation", "pull to face level", "controlled return"],
     progressionRule:
       "Höj inte om tekniken blir ryckig. Fler rena reps slår mer vikt här.",
     beginnerNote:
@@ -1594,6 +1645,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra gymalternativ när coachen vill ha mer knäböjsmönster utan fri skivstång.",
     techniqueCue: "Fokus: kontrollerat djup och knän som följer tåriktningen.",
+    techniqueFocus: ["knee tracking", "controlled depth", "heel placement"],
     progressionRule:
       "Höj när djup och knäkänsla är stabila från set till set.",
     beginnerNote:
@@ -1624,6 +1676,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Användbar när fri knäböj inte är rätt men användaren vill ha ett knäböjsmönster.",
     techniqueCue: "Fokus: hitta fotplacering där knä och höft känns naturliga.",
+    techniqueFocus: ["knee tracking", "controlled depth", "foot position"],
     progressionRule:
       "Höj bara när samma djup och position är smärtfri.",
     beginnerNote:
@@ -1654,6 +1707,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Trygg hamstringträning utan att belasta ländryggen.",
     techniqueCue: "Fokus: böj kontrollerat och håll höften stilla.",
+    techniqueFocus: ["controlled eccentric", "full range of motion", "hip stays neutral"],
     progressionRule:
       "Höj när repsen är rena utan ryck eller tappad position.",
     beginnerNote:
@@ -1684,6 +1738,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra hamstringisolering när coachen vill undvika höftfällning eller ländryggsbelastning.",
     techniqueCue: "Fokus: lugn curl, höften stilla och full kontroll ner.",
+    techniqueFocus: ["hip stays neutral", "controlled eccentric", "avoid hip rise"],
     progressionRule:
       "Höj när du kan hålla samma tempo och position genom setet.",
     beginnerNote:
@@ -1714,6 +1769,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra säteskomplement med låg tröskel och tydlig dosering.",
     techniqueCue: "Fokus: kontrollerad öppning och kort paus utan att gunga.",
+    techniqueFocus: ["controlled return", "avoid lateral torso lean"],
     progressionRule:
       "Höj först när du kan hålla kontroll i ytterläget.",
     beginnerNote:
@@ -1744,6 +1800,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Lätt komplement för insida lår, men sällan en nödvändig huvudövning.",
     techniqueCue: "Fokus: kontrollerad rörelse och ingen ryckig stretch.",
+    techniqueFocus: ["controlled return", "full range of motion"],
     progressionRule:
       "Höj först när rörelsen känns jämn och smärtfri.",
     beginnerNote:
@@ -1774,6 +1831,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra när användaren vill ha mer sätesvolym utan tung systembelastning.",
     techniqueCue: "Fokus: liten kontrollerad rörelse och säte före svank.",
+    techniqueFocus: ["hip extension not lumbar extension", "controlled return", "stable torso"],
     progressionRule:
       "Höj bara när kontakten sitter utan att ländryggen tar över.",
     beginnerNote:
@@ -1804,6 +1862,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Trygg bicepsövning med stabil belastning och enkel progression.",
     techniqueCue: "Fokus: stilla överarmar och full kontroll ner.",
+    techniqueFocus: ["fixed upper arm", "controlled eccentric", "full range of motion"],
     progressionRule:
       "Höj när repsen är rena utan sving eller handledskänning.",
     beginnerNote:
@@ -1834,6 +1893,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra strikt armövning när användaren tål bottenläget.",
     techniqueCue: "Fokus: kontroll ner och stoppa innan armbågen känns stressad.",
+    techniqueFocus: ["controlled eccentric", "full range of motion", "no swinging"],
     progressionRule:
       "Höj först när bottenläget är lugnt och repsen är rena.",
     beginnerNote:
@@ -1864,6 +1924,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Ger tricepsarbete i annan vinkel än pushdown när armbågarna känns bra.",
     techniqueCue: "Fokus: stabil överarm och smärtfri stretch.",
+    techniqueFocus: ["elbow fixed", "full extension at top", "controlled return"],
     progressionRule:
       "Höj bara när armbåge och axel känns lugna genom hela setet.",
     beginnerNote:
@@ -1894,6 +1955,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Bra kontrollerad baksideövning när användaren tål rörelsen.",
     techniqueCue: "Fokus: höften som gångjärn och kontrollerad topp utan översträckning.",
+    techniqueFocus: ["neutral spine throughout", "hip hinge", "controlled return"],
     progressionRule:
       "Bygg rena reps innan extra vikt. Stoppa om ländryggen känns fel.",
     beginnerNote:
@@ -1924,6 +1986,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "Trygg progressiv magövning på gym när maskinen passar kroppen.",
     techniqueCue: "Fokus: böj med magen och håll rörelsen kontrollerad.",
+    techniqueFocus: ["spinal flexion not hip flexion", "controlled return", "abs initiate"],
     progressionRule:
       "Höj när du kan upprepa samma bana utan att rycka.",
     beginnerNote:
@@ -1953,6 +2016,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     coachReason:
       "En enkel komplettering när vader ska få eget arbete.",
     techniqueCue: "Fokus: stretch i botten och paus i toppen.",
+    techniqueFocus: ["full range of motion", "controlled eccentric", "even weight distribution"],
     progressionRule:
       "Stretch och paus är viktigare än last. Höj först när repsen är rena.",
     beginnerNote:

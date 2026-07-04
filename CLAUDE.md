@@ -79,8 +79,8 @@ etablerad" för ofta, "marginalen håller" för ofta, "fint tryck där"
 typ "Där ja! ... Där ja!".
 
 Coachens ansvar: läsa setet, förstå vad det betyder, hålla passet i bra
-rytm, ge energi när det är förtjänt, inte anta teknikfel om användaren
-inte sagt det, inte låta besviken vid RIR 0 (kan vara bra stimulans),
+rytm, ge energi när det är förtjänt, ge proaktiva teknikcues som
+påminnelser inför nästa set — inte rättelser av det föregående, inte låta besviken vid RIR 0 (kan vara bra stimulans),
 reagera extra positivt på sista setet i en övning, och vid sista
 övningen tydligt säga att dagens pass är klart.
 
@@ -102,22 +102,19 @@ Problem → Ny regel → AI mer begränsad → Nytt problem → Ny regel → …
 Till slut följer AI:n regler istället för att resonera. Det får inte
 hända.
 
-### Fyra frågor innan du ändrar coachen
+### Tre frågor innan du ändrar coachen
 
-**1. Är detta ett enskilt exempel eller ett symptom på ett större
-problem?** Lös nästan alltid den bakomliggande orsaken.
-
-**2. Löser jag detta med bättre resonemang / kontext / uppdrag /
+**1. Löser jag detta med bättre resonemang / kontext / uppdrag /
 datastruktur — eller med en ny regel?** Regler är alltid sista
 alternativet.
 
-**3. Lär jag coachen ett exempel eller en princip?**
+**2. Lär jag coachen ett exempel eller en princip?**
 - Exempel (dåligt): "Om Cable Crunch-maskinen maxar på 50 kg…"
 - Princip (bra): "Om användaren beskriver en begränsning: försök
   uppnå samma träningsmål inom begränsningen innan planen ändras."
 Principen löser hundratals framtida problem. Exemplet löser ett.
 
-**4. Blir coachen friare eller mer låst efter denna ändring?**
+**3. Blir coachen friare eller mer låst efter denna ändring?**
 Om svaret är "mer låst" — ifrågasätt lösningen.
 
 ### Vad regler får användas till
@@ -148,19 +145,24 @@ fortfarande kan uppnås. Justera aldrig mer än nödvändigt.
 Coachen ska vara skeptisk. Om data verkar orimlig: ifrågasätt den —
 bygg inte vidare på den.
 
+### Misstro ny data och nya regler
+
+Misstro alltid nya regler, nya state-fält och ny metadata. Försök först
+göra coachen smartare med den information den redan har. Lägg bara till
+ny information när du kan visa att coachen saknar en avgörande del av
+verkligheten — inte bara för att förbättra ett enskilt exempel.
+
+Testet: **vilka fem problem löser detta?** Om du inte kan namnge fem,
+vänta.
+
 ### Kvalitetsmått
 
-Vi mäter inte kvalitet på hur många buggar som är stängda. Vi mäter
-kvalitet på hur **få nya regler** som behövdes för att stänga dem.
-
-Den bästa lösningen är inte den som fixar flest exempel. Den bästa
-lösningen är den som får coachen att resonera bättre även i situationer
-vi ännu inte har tänkt på.
+Vi mäter kvalitet på hur **få nya regler** som behövdes för att stänga
+problemen.
 
 **Prompten ska bli kortare med tiden, inte längre.**
 Ingen ny instruktion får läggas till utan att en gammal tas bort eller
-motiveras. Varje ny idé måste konkurrera med de gamla. Resultatet ska
-vara en prompt som långsamt blir skarpare — inte större.
+motiveras. Varje ny idé måste konkurrera med de gamla.
 
 ---
 
