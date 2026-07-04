@@ -1145,20 +1145,6 @@ useEffect(() => {
         ) : null}
       </section>
 
-      <button
-        type="button"
-        onClick={() => {
-          if (currentExerciseReadyToFinish) {
-            finishWorkout();
-          } else {
-            setShowSaveConfirm(true);
-          }
-        }}
-        className="w-full py-1 text-xs font-medium text-white/32 transition hover:text-white/55"
-      >
-        Spara och avsluta passet
-      </button>
-
       {showSaveConfirm && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
           <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" onClick={() => setShowSaveConfirm(false)} />
@@ -1341,6 +1327,20 @@ useEffect(() => {
           </div>
         </div>
       ) : null}
+
+      <button
+        type="button"
+        onClick={() => {
+          if (currentExerciseReadyToFinish) {
+            finishWorkout();
+          } else {
+            setShowSaveConfirm(true);
+          }
+        }}
+        className="mx-auto block rounded-2xl bg-red-700/70 px-10 py-3.5 text-base font-semibold text-white shadow-[0_4px_20px_rgba(185,28,28,0.20)] transition hover:bg-red-600/80 active:scale-[0.98]"
+      >
+        Spara och avsluta
+      </button>
         </>
       )}
     </div>
