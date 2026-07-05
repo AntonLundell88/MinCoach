@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 type LoggedSet = {
   weight: number;
@@ -36,10 +37,18 @@ type Workout = {
   summary?: WorkoutSummary;
 };
 
+type EditingSet = {
+  workoutId: string;
+  exerciseName: string;
+  setIdx: number;
+  isTimed: boolean;
+};
+
 type Props = {
   history: Workout[];
   onBack: () => void;
   onOpenExercise: (exerciseName: string) => void;
+  onEditSet?: (workoutId: string, exerciseName: string, setIdx: number, weight: number, reps: number, rir: number) => void;
 };
 
 function formatDate(value: string) {
@@ -109,12 +118,42 @@ export default function HistoryScreen({
   history,
   onBack,
   onOpenExercise,
+  onEditSet,
 }: Props) {
   const workouts = useMemo(() => history, [history]);
   const [selectedId, setSelectedId] = useState<string | null>(
     workouts[0]?.id ?? null
   );
   const [showWorkoutDetail, setShowWorkoutDetail] = useState(false);
+  const [editingSet, setEditingSet] = useState<EditingSet | null>(null);
+  const [editWeight, setEditWeight] = useState("");
+  const [editReps, setEditReps] = useState("");
+  const [editRir, setEditRir] = useState(2);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  function openEdit(workoutId: string, exerciseName: string, setIdx: number, set: LoggedSet) {
+    setEditWeight(set.weight > 0 ? String(set.weight) : "");
+    setEditReps(set.reps > 0 ? String(set.reps) : "");
+    setEditRir(set.rir ?? 2);
+    setEditError(null);
+    setEditingSet({
+      workoutId,
+      exerciseName,
+      setIdx,
+      isTimed: set.metricType === "time" || typeof set.durationSeconds === "number",
+    });
+  }
+
+  function saveEdit() {
+    if (!editingSet || !onEditSet) return;
+    const w = parseFloat(editWeight.replace(",", "."));
+    const r = parseInt(editReps, 10);
+    if (!Number.isFinite(w) || !Number.isFinite(r)) return;
+    if (w > 1000) { setEditError("Vikten verkar vara en felskrivning. Kontrollera och försök igen."); return; }
+    if (w > 500) { setEditError("Ovanligt hög vikt för ett gymset. Är du säker?"); return; }
+    onEditSet(editingSet.workoutId, editingSet.exerciseName, editingSet.setIdx, w, r, editRir);
+    setEditingSet(null);
+  }
   const selected =
     workouts.find((workout) => workout.id === selectedId) ?? workouts[0] ?? null;
   const bestSet = selected ? getBestSet(selected.exercises) : null;
@@ -279,7 +318,8 @@ export default function HistoryScreen({
                         {exercise.sets.map((set, index) => (
                           <div
                             key={`${set.createdAt}-${index}`}
-                            className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl bg-white/[0.032] px-3 py-1.5"
+                            onClick={() => onEditSet && openEdit(selected.id, exercise.name, index, set)}
+                            className={`grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl bg-white/[0.032] px-3 py-1.5 ${onEditSet ? "cursor-pointer active:bg-white/[0.06]" : ""}`}
                           >
                             <span className="text-xs font-semibold text-white/35">
                               {index + 1}
@@ -315,6 +355,85 @@ export default function HistoryScreen({
             När första passet är sparat syns det här.
           </h2>
         </section>
+      )}
+
+      {editingSet && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
+          <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" onClick={() => setEditingSet(null)} />
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+            <p className="text-center text-base font-semibold text-white">
+              Redigera set {editingSet.setIdx + 1}
+            </p>
+            <p className="text-center text-xs text-white/40">{editingSet.exerciseName}</p>
+
+            {!editingSet.isTimed && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-white/50">Vikt (kg)</label>
+                  <input
+                    className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
+                    inputMode="decimal"
+                    value={editWeight}
+                    onChange={(e) => { setEditWeight(e.target.value); setEditError(null); }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-white/50">Reps</label>
+                  <input
+                    className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
+                    inputMode="numeric"
+                    value={editReps}
+                    onChange={(e) => { setEditReps(e.target.value); setEditError(null); }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {!editingSet.isTimed && (
+              <div className="space-y-1.5">
+                <label className="text-xs text-white/50">RIR</label>
+                <div className="grid grid-cols-6 gap-1.5 rounded-2xl bg-white/[0.035] p-1">
+                  {[0, 1, 2, 3, 4, 5].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setEditRir(v)}
+                      className={`rounded-xl border px-2 py-1.5 text-sm font-semibold transition ${
+                        editRir === v
+                          ? "border-blue-400/25 bg-blue-500/[0.16] text-white"
+                          : "border-transparent bg-transparent text-white/64"
+                      }`}
+                    >
+                      {v === 5 ? "5+" : v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {editError && (
+              <p className="rounded-2xl border border-red-400/20 bg-red-900/20 px-3 py-2 text-sm text-red-300">
+                {editError}
+              </p>
+            )}
+
+            <div className="flex flex-col gap-2 pt-1">
+              <button
+                className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98]"
+                onClick={saveEdit}
+              >
+                Spara
+              </button>
+              <button
+                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/60 transition active:scale-[0.98]"
+                onClick={() => setEditingSet(null)}
+              >
+                Avbryt
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

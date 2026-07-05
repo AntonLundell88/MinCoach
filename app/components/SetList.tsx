@@ -15,6 +15,7 @@ type LoggedSet = {
 type Props = {
   currentSets: LoggedSet[];
   onEditSet?: (setIdx: number, weight: number, reps: number, rir: number) => void;
+  validateWeight?: (weight: number) => string | null;
 };
 
 function formatDuration(seconds = 0) {
@@ -40,12 +41,13 @@ function getEffortLabel(set: LoggedSet) {
   return `RIR ${set.rir}`;
 }
 
-export default function SetList({ currentSets, onEditSet }: Props) {
+export default function SetList({ currentSets, onEditSet, validateWeight }: Props) {
   const setListContainerRef = useRef<HTMLDivElement | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editWeight, setEditWeight] = useState("");
   const [editReps, setEditReps] = useState("");
   const [editRir, setEditRir] = useState(2);
+  const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentSets.length === 0) return;
@@ -59,6 +61,7 @@ export default function SetList({ currentSets, onEditSet }: Props) {
     setEditWeight(set.weight > 0 ? String(set.weight) : "");
     setEditReps(set.reps > 0 ? String(set.reps) : "");
     setEditRir(set.rir ?? 2);
+    setEditError(null);
     setEditingIndex(index);
   }
 
@@ -67,6 +70,10 @@ export default function SetList({ currentSets, onEditSet }: Props) {
     const w = parseFloat(editWeight.replace(",", "."));
     const r = parseInt(editReps, 10);
     if (!Number.isFinite(w) || !Number.isFinite(r)) return;
+    if (validateWeight) {
+      const err = validateWeight(w);
+      if (err) { setEditError(err); return; }
+    }
     onEditSet(editingIndex, w, r, editRir);
     setEditingIndex(null);
   }
@@ -151,6 +158,12 @@ export default function SetList({ currentSets, onEditSet }: Props) {
                   ))}
                 </div>
               </div>
+            )}
+
+            {editError && (
+              <p className="rounded-2xl border border-red-400/20 bg-red-900/20 px-3 py-2 text-sm text-red-300">
+                {editError}
+              </p>
             )}
 
             <div className="flex flex-col gap-2 pt-1">

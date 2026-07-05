@@ -119,6 +119,7 @@ type Props = {
   plannedWeightKg?: number;
   plannedReps?: number;
   updateSet: (setIdx: number, weight: number, reps: number, rir: number) => void;
+  validateSetWeight: (weight: number) => string | null;
   previousWorkoutSummary?: string;
 };
 
@@ -510,6 +511,7 @@ export default function WorkoutScreen({
   plannedWeightKg,
   plannedReps,
   updateSet,
+  validateSetWeight,
   previousWorkoutSummary,
 }: Props) {
   const [showRestTimer, setShowRestTimer] = useState(false);
@@ -1121,7 +1123,7 @@ useEffect(() => {
         ) : null}
 
         {/* Set history for this session */}
-        <SetList currentSets={currentSets} onEditSet={updateSet} />
+        <SetList currentSets={currentSets} onEditSet={updateSet} validateWeight={validateSetWeight} />
 
         {/* Divider */}
         <div className="my-3 h-px bg-white/[0.07]" />

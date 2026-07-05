@@ -8835,6 +8835,53 @@ setRirInput(nextSetRirInput);
     saveJSON("personalRecords", nextPersonalRecords);
   }
 
+  function updateHistorySet(
+    workoutId: string,
+    exerciseName: string,
+    setIdx: number,
+    newWeight: number,
+    newReps: number,
+    newRir: number
+  ) {
+    const updatedHistory = history.map((w) => {
+      if (w.id !== workoutId) return w;
+      const updated = structuredClone(w);
+      const ex = updated.exercises.find((e) => e.name === exerciseName);
+      if (!ex || setIdx < 0 || setIdx >= ex.sets.length) return w;
+      ex.sets[setIdx] = { ...ex.sets[setIdx], weight: newWeight, reps: newReps, rir: newRir };
+      return updated;
+    });
+
+    setHistory(updatedHistory);
+    saveJSON("workoutHistory", updatedHistory);
+
+    const allWorkouts = workout ? [workout, ...updatedHistory] : updatedHistory;
+    const key = exerciseKey(exerciseName);
+
+    const bestRecord = getBestRecordForExercise(allWorkouts, exerciseName);
+    const nextPersonalRecords = { ...personalRecords };
+    if (bestRecord) nextPersonalRecords[key] = bestRecord;
+    else delete nextPersonalRecords[key];
+    setPersonalRecords(nextPersonalRecords);
+    saveJSON("personalRecords", nextPersonalRecords);
+
+    const latest = getLatestLoggedSetForExercise(allWorkouts, exerciseName);
+    const nextLastByExercise = { ...lastByExercise };
+    if (latest) {
+      nextLastByExercise[key] = {
+        weight: latest.set.weight,
+        reps: latest.set.reps,
+        rir: latest.set.rir ?? null,
+        failNote: latest.set.failNote ?? null,
+        updatedAt: latest.set.createdAt,
+      };
+    } else {
+      delete nextLastByExercise[key];
+    }
+    setLastByExercise(nextLastByExercise);
+    saveJSON("lastByExercise", nextLastByExercise);
+  }
+
   function nextExercise() {
  if (exerciseIndex < activePlan.length - 1) {
     setExerciseIndex(exerciseIndex + 1);
@@ -9969,6 +10016,15 @@ addCoachMessage={(text) =>
         plannedWeightKg={systemSuggestedWeightRef.current}
         plannedReps={systemSuggestedRepsRef.current}
         updateSet={updateSet}
+        validateSetWeight={(weight) => {
+          if (isBodyweightExercise(currentExerciseName) || isTimedExercise(currentExerciseName)) return null;
+          return buildWeightInputWarningMessage({
+            weight,
+            previousSets: workout?.exercises[exerciseIndex]?.sets ?? [],
+            existingPR: personalRecords[exerciseKey(currentExerciseName)],
+            historicalBestSets: getExerciseBestSets(history, currentExerciseName, 6),
+          });
+        }}
         previousWorkoutSummary={getPreviousWorkoutSummaryLine(history) ?? undefined}
       />
       
@@ -10109,6 +10165,7 @@ addCoachMessage={(text) =>
       setShowHistory(false);
       setShowExerciseProgress(true);
     }}
+    onEditSet={updateHistorySet}
   />
 ) : showPersonalRecords ? (
   <PersonalRecordsScreen
