@@ -1359,7 +1359,7 @@ useEffect(() => {
       <button
         type="button"
         onClick={() => setShowSaveConfirm(true)}
-        className="mx-auto block rounded-2xl border border-white/[0.07] bg-white/[0.03] px-10 py-3 text-sm font-medium text-white/38 transition hover:border-red-400/20 hover:bg-red-900/20 hover:text-white/60 active:scale-[0.98]"
+        className="mx-auto block rounded-2xl border border-white/[0.12] bg-white/[0.05] px-10 py-3 text-sm font-semibold text-white/55 transition hover:border-red-400/25 hover:bg-red-900/25 hover:text-white/75 active:scale-[0.98]"
       >
         Spara och avsluta
       </button>
