@@ -70,6 +70,7 @@ export default function SetList({ currentSets, onEditSet, validateWeight }: Prop
     const w = parseFloat(editWeight.replace(",", "."));
     const r = parseInt(editReps, 10);
     if (!Number.isFinite(w) || !Number.isFinite(r)) return;
+    if (r > 200) { setEditError("Repsen ser ut som en felskrivning. Kontrollera och försök igen."); return; }
     if (validateWeight) {
       const err = validateWeight(w);
       if (err) { setEditError(err); return; }

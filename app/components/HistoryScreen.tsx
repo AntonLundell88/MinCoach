@@ -149,6 +149,7 @@ export default function HistoryScreen({
     const w = parseFloat(editWeight.replace(",", "."));
     const r = parseInt(editReps, 10);
     if (!Number.isFinite(w) || !Number.isFinite(r)) return;
+    if (r > 200) { setEditError("Repsen ser ut som en felskrivning. Kontrollera och försök igen."); return; }
     if (w > 1000) { setEditError("Vikten verkar vara en felskrivning. Kontrollera och försök igen."); return; }
     if (w > 500) { setEditError("Ovanligt hög vikt för ett gymset. Är du säker?"); return; }
     onEditSet(editingSet.workoutId, editingSet.exerciseName, editingSet.setIdx, w, r, editRir);
