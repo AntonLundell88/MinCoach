@@ -265,7 +265,9 @@ export default function StartScreen({
 
           <div className="grid grid-cols-[1fr_auto] gap-2">
             <button
-              className="rounded-xl bg-white/88 px-3 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-white"
+              type="button"
+              className="start-add-mode-button rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-semibold text-white/62 transition hover:bg-white/10 hover:text-white"
+              style={{ color: "rgba(255, 255, 255, 0.72)" }}
               onClick={() => {
                 addTodayExercise(nextPass, customExerciseInput);
                 setCustomExerciseInput("");
@@ -275,7 +277,8 @@ export default function StartScreen({
             </button>
 
             <button
-              className="rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-medium text-white/62 transition hover:bg-white/10 hover:text-white"
+              type="button"
+              className="start-add-mode-button rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-medium text-white/62 transition hover:bg-white/10 hover:text-white"
               onClick={() => {
                 addCustomExercise(nextPass, customExerciseInput);
                 setCustomExerciseInput("");

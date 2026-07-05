@@ -1336,3 +1336,15 @@ html[data-theme="light"],
 [data-theme="light"] .setup-blue-selected * {
   color: #ffffff !important;
 }
+
+.start-add-mode-button {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.start-add-mode-button:hover {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .start-add-mode-button {
+  color: #30343b !important;
+}
