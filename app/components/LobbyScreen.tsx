@@ -40,6 +40,11 @@ type PersonalRecord = {
   createdAt: string;
 };
 
+type StaleDraftInfo = {
+  startedAt: string;
+  displayName: string;
+};
+
 type Props = {
   name: string;
   nextPassLabel: string;
@@ -52,6 +57,9 @@ type Props = {
   };
   daysPerWeek: number;
   now: Date;
+  staleDraft?: StaleDraftInfo | null;
+  onResumeStaleDraft?: () => void;
+  onDiscardStaleDraft?: () => void;
   onStartWorkout: () => void;
   onOpenStatistics: () => void;
   onOpenHistory: () => void;
@@ -92,6 +100,20 @@ function formatRecord(record: PersonalRecord) {
   return `${record.weight} × ${record.reps}`;
 }
 
+function getStaleDraftLabel(startedAt: string, now: Date): string {
+  const d = new Date(startedAt);
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate()
+  ) {
+    return "från igår";
+  }
+  return `från ${d.getDate()} ${d.toLocaleString("sv-SE", { month: "long" })}`;
+}
+
 function getTimeGreeting(date: Date, personName: string) {
   const hour = date.getHours();
 
@@ -108,6 +130,9 @@ export default function LobbyScreen({
   weeklyStats,
   daysPerWeek,
   now,
+  staleDraft,
+  onResumeStaleDraft,
+  onDiscardStaleDraft,
   onStartWorkout,
   onOpenStatistics,
   onOpenHistory,
@@ -290,6 +315,38 @@ export default function LobbyScreen({
             </button>
           </div>
         </header>
+
+        {staleDraft && onResumeStaleDraft && onDiscardStaleDraft && (
+          <div className={`flex items-center justify-between gap-3 rounded-[1.25rem] px-4 py-3.5 ${isLight ? "border border-[#7a6548]/15 bg-white/56 shadow-[0_4px_16px_rgba(91,72,48,0.07)] backdrop-blur-xl" : "border border-white/[0.06] bg-white/[0.04] backdrop-blur-xl"}`}>
+            <div className="min-w-0">
+              <p className={`text-sm font-semibold ${titleClassName}`}>
+                Du har ett pågående pass{" "}
+                <span className={`font-normal ${bodyClassName}`}>
+                  {getStaleDraftLabel(staleDraft.startedAt, now)}
+                </span>
+              </p>
+              <p className={`mt-0.5 truncate text-xs ${bodyClassName}`}>
+                {staleDraft.displayName}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={onDiscardStaleDraft}
+                className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${isLight ? "text-[#665b4f] hover:bg-black/[0.05]" : "text-white/50 hover:text-white/70"}`}
+              >
+                Avbryt
+              </button>
+              <button
+                type="button"
+                onClick={onResumeStaleDraft}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition active:scale-[0.97]"
+              >
+                Fortsätt
+              </button>
+            </div>
+          </div>
+        )}
 
         <section className="grid gap-4 lg:grid-cols-[1.55fr_0.9fr]">
           <div

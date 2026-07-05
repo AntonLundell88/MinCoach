@@ -4460,6 +4460,7 @@ export default function Home() {
   const [hasLoadedLocalState, setHasLoadedLocalState] = useState(false);
   const [authGateCleared, setAuthGateCleared] = useState(false);
   const [started, setStarted] = useState(false);
+  const [staleDraft, setStaleDraft] = useState<ActiveWorkoutDraft | null>(null);
   const [workoutReview, setWorkoutReview] = useState<WorkoutReview | null>(null);
   const [workoutReviewLoading, setWorkoutReviewLoading] = useState(false);
   const [latestCompletedReview, setLatestCompletedReview] =
@@ -4674,22 +4675,33 @@ const activeWorkoutDraft = loadJSON<ActiveWorkoutDraft | null>(
 );
 
 if (activeWorkoutDraft?.workout) {
-  setWorkout(activeWorkoutDraft.workout);
-  setExerciseIndex(activeWorkoutDraft.exerciseIndex ?? 0);
-  setSkippedExercise(activeWorkoutDraft.skippedExercise ?? null);
-  setChatLog(activeWorkoutDraft.chatLog ?? []);
-  setChatInput(activeWorkoutDraft.chatInput ?? "");
-  setWeightInput(activeWorkoutDraft.weightInput ?? "");
-  setRepsInput(activeWorkoutDraft.repsInput ?? "");
-  setDurationSecondsInput(activeWorkoutDraft.durationSecondsInput ?? 0);
-  setRirInput(activeWorkoutDraft.rirInput ?? 2);
-  setDidFailInput(activeWorkoutDraft.didFailInput ?? false);
-  setFailNoteInput(activeWorkoutDraft.failNoteInput ?? "");
-  setDayForm(activeWorkoutDraft.dayForm ?? "normal");
-  setActiveWarmupContext(activeWorkoutDraft.activeWarmupContext ?? null);
-  setActiveConditioningContext(activeWorkoutDraft.activeConditioningContext ?? null);
-  setStarted(true);
-  setShowDailyPlan(false);
+  const draftDate = new Date(activeWorkoutDraft.workout.startedAt);
+  const today = new Date();
+  const isStale =
+    draftDate.getFullYear() !== today.getFullYear() ||
+    draftDate.getMonth() !== today.getMonth() ||
+    draftDate.getDate() !== today.getDate();
+
+  if (isStale) {
+    setStaleDraft(activeWorkoutDraft);
+  } else {
+    setWorkout(activeWorkoutDraft.workout);
+    setExerciseIndex(activeWorkoutDraft.exerciseIndex ?? 0);
+    setSkippedExercise(activeWorkoutDraft.skippedExercise ?? null);
+    setChatLog(activeWorkoutDraft.chatLog ?? []);
+    setChatInput(activeWorkoutDraft.chatInput ?? "");
+    setWeightInput(activeWorkoutDraft.weightInput ?? "");
+    setRepsInput(activeWorkoutDraft.repsInput ?? "");
+    setDurationSecondsInput(activeWorkoutDraft.durationSecondsInput ?? 0);
+    setRirInput(activeWorkoutDraft.rirInput ?? 2);
+    setDidFailInput(activeWorkoutDraft.didFailInput ?? false);
+    setFailNoteInput(activeWorkoutDraft.failNoteInput ?? "");
+    setDayForm(activeWorkoutDraft.dayForm ?? "normal");
+    setActiveWarmupContext(activeWorkoutDraft.activeWarmupContext ?? null);
+    setActiveConditioningContext(activeWorkoutDraft.activeConditioningContext ?? null);
+    setStarted(true);
+    setShowDailyPlan(false);
+  }
 }
 
 setHasLoadedLocalState(true);
@@ -10196,6 +10208,31 @@ addCoachMessage={(text) =>
     daysPerWeek={userProfile.daysPerWeek}
     now={now}
     theme={appTheme}
+    staleDraft={staleDraft ? { startedAt: staleDraft.workout.startedAt, displayName: staleDraft.workout.displayName } : null}
+    onResumeStaleDraft={() => {
+      if (!staleDraft) return;
+      setWorkout(staleDraft.workout);
+      setExerciseIndex(staleDraft.exerciseIndex ?? 0);
+      setSkippedExercise(staleDraft.skippedExercise ?? null);
+      setChatLog(staleDraft.chatLog ?? []);
+      setChatInput(staleDraft.chatInput ?? "");
+      setWeightInput(staleDraft.weightInput ?? "");
+      setRepsInput(staleDraft.repsInput ?? "");
+      setDurationSecondsInput(staleDraft.durationSecondsInput ?? 0);
+      setRirInput(staleDraft.rirInput ?? 2);
+      setDidFailInput(staleDraft.didFailInput ?? false);
+      setFailNoteInput(staleDraft.failNoteInput ?? "");
+      setDayForm(staleDraft.dayForm ?? "normal");
+      setActiveWarmupContext(staleDraft.activeWarmupContext ?? null);
+      setActiveConditioningContext(staleDraft.activeConditioningContext ?? null);
+      setStaleDraft(null);
+      setStarted(true);
+      setShowDailyPlan(false);
+    }}
+    onDiscardStaleDraft={() => {
+      setStaleDraft(null);
+      localStorage.removeItem(ACTIVE_WORKOUT_DRAFT_KEY);
+    }}
     onStartWorkout={() => {
       setShowExerciseProgress(false);
       setShowStatistics(false);
