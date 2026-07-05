@@ -518,6 +518,7 @@ export default function WorkoutScreen({
   const [confirmSkipExercise, setConfirmSkipExercise] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showForraGangen, setShowForraGangen] = useState(false);
   const [chatFocusMode, setChatFocusMode] = useState(false);
   const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
@@ -1068,6 +1069,29 @@ useEffect(() => {
           </div>
         </div>
 
+        {/* PB badge — right after Nästa set */}
+        {(() => {
+          const pr = personalRecords[exerciseKey(currentExerciseName)];
+          const label = pr
+            ? isBodyweightExercise(currentExerciseName) && pr.weight <= 0
+              ? `${pr.reps} reps`
+              : `${pr.weight} × ${pr.reps}`
+            : null;
+          return (
+            <div className="mt-2 flex">
+              {label ? (
+                <span className="rounded-full border border-amber-200/18 bg-amber-200/[0.08] px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_0_18px_rgba(251,191,36,0.06)]">
+                  Personbästa {label}
+                </span>
+              ) : (
+                <span className="rounded-full border border-white/[0.09] bg-white/[0.042] px-2.5 py-1 text-[11px] text-white/38">
+                  Personbästa –
+                </span>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Set history for this session */}
         <SetList currentSets={currentSets} onEditSet={updateSet} />
 
@@ -1120,27 +1144,38 @@ useEffect(() => {
           }
         />
 
-        {/* Förra gången */}
+        {/* Förra gången — collapsible */}
         {previousExerciseSets.length > 0 ? (
           <div className="workout-history-card mt-3 rounded-2xl border border-white/[0.075] bg-white/[0.04] px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/55">
-              Förra gången
-            </p>
-            <div className="mt-2 space-y-1.5">
-              {previousExerciseSets.map((set, index) => (
-                <div
-                  key={`${set.createdAt}-${index}`}
-                  className="flex items-center justify-between gap-3 text-sm"
-                >
-                  <span className="shrink-0 text-xs font-semibold text-white/38">
-                    Set {index + 1}
-                  </span>
-                  <span className="min-w-0 text-right font-semibold text-white/86">
-                    {formatPreviousSetLabel(currentExerciseName, set)}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowForraGangen((v) => !v)}
+              className="flex w-full items-center justify-between gap-2"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/55">
+                Förra gången
+              </p>
+              <span className={`text-[10px] text-white/38 transition-transform duration-200 ${showForraGangen ? "rotate-180" : ""}`}>
+                ▾
+              </span>
+            </button>
+            {showForraGangen && (
+              <div className="mt-2 space-y-1.5">
+                {previousExerciseSets.map((set, index) => (
+                  <div
+                    key={`${set.createdAt}-${index}`}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <span className="shrink-0 text-xs font-semibold text-white/38">
+                      Set {index + 1}
+                    </span>
+                    <span className="min-w-0 text-right font-semibold text-white/86">
+                      {formatPreviousSetLabel(currentExerciseName, set)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : null}
       </section>
@@ -1337,7 +1372,7 @@ useEffect(() => {
             setShowSaveConfirm(true);
           }
         }}
-        className="mx-auto block rounded-2xl bg-red-700/70 px-10 py-3.5 text-base font-semibold text-white shadow-[0_4px_20px_rgba(185,28,28,0.20)] transition hover:bg-red-600/80 active:scale-[0.98]"
+        className="mx-auto block rounded-2xl border border-white/[0.07] bg-white/[0.03] px-10 py-3 text-sm font-medium text-white/38 transition hover:border-red-400/20 hover:bg-red-900/20 hover:text-white/60 active:scale-[0.98]"
       >
         Spara och avsluta
       </button>

@@ -313,7 +313,7 @@ useEffect(() => {
         />
       ) : null}
 
-      {(() => {
+      {!embedded && (() => {
         const prForUI = personalRecords[exerciseKey(currentExerciseName)];
 
         return (
@@ -327,7 +327,6 @@ useEffect(() => {
                 Personbästa –
               </div>
             )}
-
           </div>
         );
       })()}
