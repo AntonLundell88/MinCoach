@@ -4523,6 +4523,7 @@ const [chatLog, setChatLog] = useState<
     text: string;
     setNumber?: number;
     source?: "engine" | "llm" | "fallback";
+    highlight?: boolean;
   }[]
 >([]);
 const [coachPendingReply, setCoachPendingReply] = useState(false);
@@ -8696,6 +8697,11 @@ if (coachReply.text) {
       )
     : coachReply.text;
 
+  const isHighlight =
+    isWorkoutFinished ||
+    personalRecordText !== "" ||
+    nextSetPlan.strategy === "complete";
+
   setChatLog((prev) => [
     ...prev,
     {
@@ -8703,6 +8709,7 @@ if (coachReply.text) {
       text: coachReplyText,
       setNumber,
       aiStatus: coachReply.mode === "ai" ? undefined : "fallback",
+      highlight: isHighlight || undefined,
     },
   ]);
 }

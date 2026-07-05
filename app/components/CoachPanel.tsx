@@ -9,6 +9,7 @@ type ChatMessage = {
   text: string;
   setNumber?: number;
   source?: "engine" | "llm" | "fallback";
+  highlight?: boolean;
 };
 
 type CoachData = {
@@ -279,9 +280,11 @@ export default function CoachPanel({
                 key={i}
                 className={
                   m.role === "coach"
-                    ? `coach-message animate-message-in relative rounded-[1.15rem] border border-white/[0.09] bg-slate-900/50 px-3 py-2 text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] sm:px-3.5 ${
-                        m.setNumber ? "pr-14" : ""
-                      }`
+                    ? `coach-message animate-message-in relative rounded-[1.15rem] border px-3 py-2 text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] sm:px-3.5 ${
+                        m.highlight
+                          ? "border-blue-400/30 bg-blue-950/40"
+                          : "border-white/[0.09] bg-slate-900/50"
+                      } ${m.setNumber ? "pr-14" : ""}`
                     : "user-message animate-message-in ml-8 rounded-[1.2rem] border border-white/[0.09] bg-white/5 px-3.5 py-2.5 text-white"
                 }
               >
