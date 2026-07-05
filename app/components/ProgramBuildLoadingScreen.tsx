@@ -84,7 +84,7 @@ export default function ProgramBuildLoadingScreen({ theme }: Props) {
           MinCoach
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">
-          Coachen bygger ditt upplägg
+          Jag bygger ditt schema
         </h1>
 
         <div className="mt-9 min-h-[92px]">

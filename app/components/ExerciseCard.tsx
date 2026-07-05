@@ -254,7 +254,7 @@ useEffect(() => {
 }, [durationSecondsInput, isDurationRunning, isTimed, setDurationSecondsInput]);
   
  return (
-  <div className={embedded ? "exercise-card-shell space-y-3" : "exercise-card-shell space-y-3 rounded-[1.6rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"}>
+  <div className={embedded ? "exercise-card-shell space-y-3 px-1" : "exercise-card-shell space-y-3 rounded-[1.6rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"}>
     {skippedExerciseName ? (
       <div className="rounded-2xl border border-white/[0.07] bg-slate-950/14 px-3 py-3">
         <div className="flex items-center justify-between gap-3">

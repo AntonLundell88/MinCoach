@@ -1085,6 +1085,41 @@ useEffect(() => {
           );
         })()}
 
+        {/* Förra gången — collapsible */}
+        {previousExerciseSets.length > 0 ? (
+          <div className="workout-history-card mt-2 rounded-2xl border border-white/[0.075] bg-white/[0.04] px-3 py-2.5">
+            <button
+              type="button"
+              onClick={() => setShowForraGangen((v) => !v)}
+              className="flex w-full items-center justify-between gap-2"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/55">
+                Förra gången
+              </p>
+              <span className={`text-[10px] text-white/38 transition-transform duration-200 ${showForraGangen ? "rotate-180" : ""}`}>
+                ▾
+              </span>
+            </button>
+            {showForraGangen && (
+              <div className="mt-2 space-y-1.5">
+                {previousExerciseSets.map((set, index) => (
+                  <div
+                    key={`${set.createdAt}-${index}`}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <span className="shrink-0 text-xs font-semibold text-white/38">
+                      Set {index + 1}
+                    </span>
+                    <span className="min-w-0 text-right font-semibold text-white/86">
+                      {formatPreviousSetLabel(currentExerciseName, set)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
+
         {/* Set history for this session */}
         <SetList currentSets={currentSets} onEditSet={updateSet} />
 
@@ -1137,40 +1172,6 @@ useEffect(() => {
           }
         />
 
-        {/* Förra gången — collapsible */}
-        {previousExerciseSets.length > 0 ? (
-          <div className="workout-history-card mt-3 rounded-2xl border border-white/[0.075] bg-white/[0.04] px-3 py-2.5">
-            <button
-              type="button"
-              onClick={() => setShowForraGangen((v) => !v)}
-              className="flex w-full items-center justify-between gap-2"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/55">
-                Förra gången
-              </p>
-              <span className={`text-[10px] text-white/38 transition-transform duration-200 ${showForraGangen ? "rotate-180" : ""}`}>
-                ▾
-              </span>
-            </button>
-            {showForraGangen && (
-              <div className="mt-2 space-y-1.5">
-                {previousExerciseSets.map((set, index) => (
-                  <div
-                    key={`${set.createdAt}-${index}`}
-                    className="flex items-center justify-between gap-3 text-sm"
-                  >
-                    <span className="shrink-0 text-xs font-semibold text-white/38">
-                      Set {index + 1}
-                    </span>
-                    <span className="min-w-0 text-right font-semibold text-white/86">
-                      {formatPreviousSetLabel(currentExerciseName, set)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : null}
       </section>
 
       {showSaveConfirm && createPortal(
@@ -1356,13 +1357,6 @@ useEffect(() => {
         </div>
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => setShowSaveConfirm(true)}
-        className="mx-auto block rounded-2xl border border-white/[0.12] bg-white/[0.05] px-10 py-3 text-sm font-semibold text-white/55 transition hover:border-red-400/25 hover:bg-red-900/25 hover:text-white/75 active:scale-[0.98]"
-      >
-        Spara och avsluta
-      </button>
         </>
       )}
     </div>

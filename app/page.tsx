@@ -9956,7 +9956,7 @@ addCoachMessage={(text) =>
         addSet={addSet}
         removeLastSet={removeLastSet}
         skipCurrentExercise={skipCurrentExercise}
-        canSkipCurrentExercise={(workout?.exercises?.[exerciseIndex]?.sets.length ?? 0) === 0}
+        canSkipCurrentExercise={true}
         skippedExerciseName={skippedExercise?.exercise.name ?? null}
         undoSkipExercise={undoSkipExercise}
         prevExercise={prevExercise}
