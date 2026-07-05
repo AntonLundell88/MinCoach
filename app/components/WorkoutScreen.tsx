@@ -986,14 +986,7 @@ useEffect(() => {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setShowOverflow(false);
-                if (currentExerciseReadyToFinish) {
-                  finishWorkout();
-                } else {
-                  setShowSaveConfirm(true);
-                }
-              }}
+              onClick={() => { setShowOverflow(false); setShowSaveConfirm(true); }}
               className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
             >
               Spara och avsluta
@@ -1365,13 +1358,7 @@ useEffect(() => {
 
       <button
         type="button"
-        onClick={() => {
-          if (currentExerciseReadyToFinish) {
-            finishWorkout();
-          } else {
-            setShowSaveConfirm(true);
-          }
-        }}
+        onClick={() => setShowSaveConfirm(true)}
         className="mx-auto block rounded-2xl border border-white/[0.07] bg-white/[0.03] px-10 py-3 text-sm font-medium text-white/38 transition hover:border-red-400/20 hover:bg-red-900/20 hover:text-white/60 active:scale-[0.98]"
       >
         Spara och avsluta
