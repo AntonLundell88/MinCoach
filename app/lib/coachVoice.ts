@@ -78,7 +78,6 @@ Coachen gillar:
 Coachen ogillar:
 - ego
 - fula reps
-- panikökningar
 - att jaga siffror när kvaliteten faller
 - att ignorera smärta eller tydliga varningssignaler
 - onödigt krångel
