@@ -1373,36 +1373,34 @@ useEffect(() => {
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">
                 Vila
               </p>
-              <div className="mt-0.5 flex items-baseline gap-2">
-                <p
-                  className={`text-2xl font-semibold tracking-tight ${
-                    restTimerState === "over"
-                      ? "text-orange-100"
-                      : restTimerState === "ready"
-                      ? "text-emerald-100"
-                      : "text-white"
-                  }`}
-                >
-                  {formatRestTimer(restElapsed)}
-                </p>
-                <p
-                  className={`truncate text-xs font-semibold ${
-                    restTimerState === "over"
-                      ? "text-orange-100/72"
-                      : restTimerState === "ready"
-                      ? "text-emerald-100/72"
-                      : "text-white/48"
-                  }`}
-                >
-                  {restTimerHint || (restTimerState === "over"
-                    ? "över målet"
+              <p
+                className={`mt-0.5 text-2xl font-semibold tracking-tight ${
+                  restTimerState === "over"
+                    ? "text-orange-100"
                     : restTimerState === "ready"
-                    ? "vilan är klar"
-                    : manualRestTarget
-                    ? `mål ${restTarget.label}`
-                    : `coach ${restTarget.label}`)}
-                </p>
-              </div>
+                    ? "text-emerald-100"
+                    : "text-white"
+                }`}
+              >
+                {formatRestTimer(restElapsed)}
+              </p>
+              <p
+                className={`mt-0.5 text-xs font-semibold ${
+                  restTimerState === "over"
+                    ? "text-orange-100/72"
+                    : restTimerState === "ready"
+                    ? "text-emerald-100/72"
+                    : "text-white/48"
+                }`}
+              >
+                {restTimerHint || (restTimerState === "over"
+                  ? "över målet"
+                  : restTimerState === "ready"
+                  ? "vilan är klar"
+                  : manualRestTarget
+                  ? `mål ${restTarget.label}`
+                  : `coach ${restTarget.label}`)}
+              </p>
             </div>
 
             <div className="flex shrink-0 items-center gap-1.5">
