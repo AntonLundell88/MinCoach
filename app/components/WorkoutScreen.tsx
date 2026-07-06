@@ -1365,12 +1365,12 @@ useEffect(() => {
     {shouldShowRestDock ? (
       <div className="fixed inset-x-0 bottom-3 z-40 px-3 sm:bottom-5">
         <div
-          className={`mx-auto w-full max-w-[430px] rounded-[1.35rem] border p-3 backdrop-blur-2xl transition ${
+          className={`mx-auto w-full max-w-[345px] rounded-[1.35rem] border p-3 backdrop-blur-2xl transition ${
             restTimerState === "over"
-              ? "border-orange-300/45 bg-[#2a1d12] shadow-[0_18px_60px_rgba(0,0,0,0.40),0_0_34px_rgba(251,146,60,0.24)]"
+              ? "border-orange-300/30 bg-[#2a1d12]/70 shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_18px_rgba(251,146,60,0.12)]"
               : restTimerState === "ready"
-              ? "border-emerald-300/36 bg-[#10251d] shadow-[0_18px_60px_rgba(0,0,0,0.40),0_0_32px_rgba(52,211,153,0.20)]"
-              : "border-blue-400/30 bg-[#162032] shadow-[0_-8px_30px_rgba(0,0,0,0.30),0_18px_50px_rgba(0,0,0,0.45),0_0_32px_rgba(96,165,250,0.10)]"
+              ? "border-emerald-300/25 bg-[#10251d]/70 shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_18px_rgba(52,211,153,0.10)]"
+              : "border-blue-400/20 bg-[#162032]/70 shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_16px_rgba(96,165,250,0.07)]"
           }`}
         >
           <div className="flex items-center justify-between gap-3">
@@ -1414,10 +1414,9 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={restStartedAt ? restartRestTimer : startRestTimer}
-                className="workout-ai-action inline-flex items-center gap-1.5 rounded-xl border border-blue-400/20 bg-blue-500/[0.14] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.18]"
+                className="workout-ai-action inline-flex items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/[0.14] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.18]"
               >
-                {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
-                {restStartedAt ? "Om" : "Starta"}
+                {restStartedAt ? <RotateGlyph className="h-5 w-5" /> : <><PlayGlyph className="h-5 w-5" /><span>Starta</span></>}
               </button>
               <button
                 type="button"
