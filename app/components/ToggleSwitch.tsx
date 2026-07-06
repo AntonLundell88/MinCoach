@@ -36,7 +36,7 @@ export default function ToggleSwitch({
     ? "translate-x-full bg-white shadow-[0_7px_16px_rgba(0,0,0,0.20)]"
     : isLight
     ? "translate-x-0 bg-white shadow-[0_6px_14px_rgba(92,70,45,0.16)]"
-    : "translate-x-0 bg-[#94add1] shadow-[0_0_14px_rgba(94,142,205,0.22),0_6px_14px_rgba(0,0,0,0.34)]";
+    : "translate-x-0 bg-white/40 shadow-[0_6px_14px_rgba(0,0,0,0.34)]";
 
   const labelClassName = isLight ? "text-[#2d251c]" : "text-white/86";
   const descriptionClassName = isLight ? "text-[#756655]" : "text-white/42";
