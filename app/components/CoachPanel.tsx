@@ -299,16 +299,16 @@ export default function CoachPanel({
                       }`}
                     />
                   )}
-                  <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/36">
+                  <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
                     {m.role === "coach" ? "Coach" : "Du"}
                   </p>
                   {m.role === "coach" && m.exerciseName && (
-                    <span className="text-[9px] uppercase tracking-[0.12em] text-white/25">
+                    <span className="text-[9px] uppercase tracking-[0.12em] text-white/50">
                       · {m.exerciseName}
                     </span>
                   )}
                   {m.role === "coach" && m.setNumber && (
-                    <span className="text-[9px] uppercase tracking-[0.12em] text-white/25">
+                    <span className="text-[9px] uppercase tracking-[0.12em] text-white/50">
                       · set {m.setNumber}
                     </span>
                   )}
