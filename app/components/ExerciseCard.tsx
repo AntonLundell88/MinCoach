@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
@@ -180,25 +180,41 @@ export default function ExerciseCard({
       (!hasPlan && pbWeight > 0 && enteredWeight > pbWeight * 1.5)
     );
   const adjustReps = (delta: number) => {
-    const current = Number(repsInput);
-    const next = Number.isFinite(current)
-      ? Math.max(0, current + delta)
-      : delta > 0
-      ? 1
-      : 0;
-
-    setRepsInput(String(next));
+    setRepsInput((prev) => {
+      const current = Number(prev);
+      const next = Number.isFinite(current)
+        ? Math.max(0, current + delta)
+        : delta > 0
+        ? 1
+        : 0;
+      return String(next);
+    });
   };
   const adjustWeight = (delta: number) => {
-    const current = Number(weightInput.trim().replace(",", "."));
-    const base = Number.isFinite(current) ? current : 0;
-    const next =
-      delta > 0
-        ? Math.ceil((base + 0.01) / 2.5) * 2.5
-        : Math.max(0, Math.floor((base - 0.01) / 2.5) * 2.5);
-
-    setWeightInput(next > 0 ? Number(next.toFixed(2)).toString() : "");
+    setWeightInput((prev) => {
+      const current = Number(prev.trim().replace(",", "."));
+      const base = Number.isFinite(current) ? current : 0;
+      const next =
+        delta > 0
+          ? Math.ceil((base + 0.01) / 2.5) * 2.5
+          : Math.max(0, Math.floor((base - 0.01) / 2.5) * 2.5);
+      return next > 0 ? Number(next.toFixed(2)).toString() : "";
+    });
   };
+
+  const holdRef = useRef<{ timeout: ReturnType<typeof setTimeout> | null; interval: ReturnType<typeof setInterval> | null }>({ timeout: null, interval: null });
+  const startHold = (fn: () => void) => {
+    holdRef.current.timeout = setTimeout(() => {
+      holdRef.current.interval = setInterval(fn, 80);
+    }, 400);
+  };
+  const stopHold = () => {
+    if (holdRef.current.timeout) clearTimeout(holdRef.current.timeout);
+    if (holdRef.current.interval) clearInterval(holdRef.current.interval);
+    holdRef.current.timeout = null;
+    holdRef.current.interval = null;
+  };
+
   const formatDuration = (seconds: number) => {
     const safeSeconds = Math.max(0, Math.round(seconds));
     const minutes = Math.floor(safeSeconds / 60);
@@ -363,6 +379,11 @@ useEffect(() => {
                 <button
                   type="button"
                   onClick={() => adjustWeight(-2.5)}
+                  onMouseDown={() => startHold(() => adjustWeight(-2.5))}
+                  onMouseUp={stopHold}
+                  onMouseLeave={stopHold}
+                  onTouchStart={() => startHold(() => adjustWeight(-2.5))}
+                  onTouchEnd={stopHold}
                   className="flex h-full items-center justify-center border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
                   aria-label="Sänk vikt"
                 >
@@ -379,6 +400,11 @@ useEffect(() => {
                 <button
                   type="button"
                   onClick={() => adjustWeight(2.5)}
+                  onMouseDown={() => startHold(() => adjustWeight(2.5))}
+                  onMouseUp={stopHold}
+                  onMouseLeave={stopHold}
+                  onTouchStart={() => startHold(() => adjustWeight(2.5))}
+                  onTouchEnd={stopHold}
                   className="flex h-full items-center justify-center border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
                   aria-label="Höj vikt"
                 >
@@ -437,6 +463,11 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => adjustReps(-1)}
+              onMouseDown={() => startHold(() => adjustReps(-1))}
+              onMouseUp={stopHold}
+              onMouseLeave={stopHold}
+              onTouchStart={() => startHold(() => adjustReps(-1))}
+              onTouchEnd={stopHold}
               className="flex h-full items-center justify-center border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
               aria-label="Minska reps"
             >
@@ -453,6 +484,11 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => adjustReps(1)}
+              onMouseDown={() => startHold(() => adjustReps(1))}
+              onMouseUp={stopHold}
+              onMouseLeave={stopHold}
+              onTouchStart={() => startHold(() => adjustReps(1))}
+              onTouchEnd={stopHold}
               className="flex h-full items-center justify-center border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
               aria-label="Öka reps"
             >
