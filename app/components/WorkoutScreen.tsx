@@ -623,15 +623,12 @@ export default function WorkoutScreen({
   }, [restStartedAt]);
 
   function startRestTimer() {
-    // Resume from current elapsed if paused, otherwise start fresh
     setRestStartedAt(Date.now() - restElapsed * 1000);
-    setShowRestTimer(true);
   }
 
   function restartRestTimer() {
     setRestElapsed(0);
     setRestStartedAt(Date.now());
-    setShowRestTimer(true);
   }
 
   function startManualRestTimer(seconds: number) {
@@ -1245,18 +1242,10 @@ useEffect(() => {
           <button
             type="button"
             onClick={restStartedAt ? restartRestTimer : startRestTimer}
-            className="workout-ai-action inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-blue-400/18 bg-blue-500/[0.075] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.13]"
+            className="workout-ai-action inline-flex shrink-0 items-center justify-center rounded-xl border border-blue-400/18 bg-blue-500/[0.075] p-2 text-blue-100 transition hover:bg-[#4f83ff]/[0.13]"
+            aria-label={restStartedAt ? "Starta om" : "Starta"}
           >
-            {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
-            {restStartedAt ? "Om" : "Starta"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowRestTimer(true)}
-            className="shrink-0 rounded-xl border border-white/[0.065] bg-white/[0.032] px-2.5 py-2 text-xs font-semibold text-white/52 transition hover:bg-white/[0.07] hover:text-white"
-          >
-            Visa timer
+            {restStartedAt ? <RotateGlyph className="h-4 w-4" /> : <PlayGlyph className="h-4 w-4" />}
           </button>
         </div>
 
