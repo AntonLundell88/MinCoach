@@ -4522,6 +4522,7 @@ const [chatLog, setChatLog] = useState<
     role: "you" | "coach";
     text: string;
     setNumber?: number;
+    exerciseName?: string;
     source?: "engine" | "llm" | "fallback";
     highlight?: boolean;
   }[]
@@ -8708,6 +8709,7 @@ if (coachReply.text) {
       role: "coach",
       text: coachReplyText,
       setNumber,
+      exerciseName: currentExerciseName || undefined,
       aiStatus: coachReply.mode === "ai" ? undefined : "fallback",
       highlight: isHighlight || undefined,
     },

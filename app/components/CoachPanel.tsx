@@ -8,6 +8,7 @@ type ChatMessage = {
   role: "you" | "coach";
   text: string;
   setNumber?: number;
+  exerciseName?: string;
   source?: "engine" | "llm" | "fallback";
   highlight?: boolean;
 };
@@ -284,18 +285,10 @@ export default function CoachPanel({
                         m.highlight
                           ? "border-blue-400/30 bg-blue-950/40"
                           : "border-white/[0.09] bg-slate-900/50"
-                      } ${m.setNumber ? "pr-14" : ""}`
+                      }`
                     : "user-message animate-message-in ml-8 rounded-[1.2rem] border border-white/[0.09] bg-white/5 px-3.5 py-2.5 text-white"
                 }
               >
-                {m.role === "coach" && m.setNumber ? (
-                  <div
-                    className="coach-set-marker absolute right-3 top-2 flex h-9 w-9 items-center justify-center rounded-full border border-blue-300/28 bg-blue-500/14 text-[15px] font-semibold text-blue-100 shadow-[0_8px_22px_rgba(37,99,235,0.18)]"
-                    aria-label={`Set ${m.setNumber}`}
-                  >
-                    {m.setNumber}
-                  </div>
-                ) : null}
                 <div className="mb-1 flex items-center gap-1.5">
                   {m.role === "coach" && m.source && (
                     <span
@@ -309,6 +302,16 @@ export default function CoachPanel({
                   <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/36">
                     {m.role === "coach" ? "Coach" : "Du"}
                   </p>
+                  {m.role === "coach" && m.exerciseName && (
+                    <span className="text-[9px] uppercase tracking-[0.12em] text-white/25">
+                      · {m.exerciseName}
+                    </span>
+                  )}
+                  {m.role === "coach" && m.setNumber && (
+                    <span className="text-[9px] uppercase tracking-[0.12em] text-white/25">
+                      · set {m.setNumber}
+                    </span>
+                  )}
                 </div>
                 {m.role === "coach" ? (
                   <CoachText
