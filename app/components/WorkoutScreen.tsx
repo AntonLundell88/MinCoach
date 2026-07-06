@@ -525,6 +525,7 @@ export default function WorkoutScreen({
   const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
   const [restElapsed, setRestElapsed] = useState(0);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const [manualRestTarget, setManualRestTarget] = useState<{
     min: number;
     max: number;
@@ -598,13 +599,27 @@ export default function WorkoutScreen({
   }, [autoStartRestTimer, currentSets.length]);
 
   useEffect(() => {
-    if (!restStartedAt) return;
+    if (!restStartedAt) {
+      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+      return;
+    }
+
+    if ("wakeLock" in navigator) {
+      navigator.wakeLock.request("screen").then((lock) => {
+        wakeLockRef.current = lock;
+      }).catch(() => {});
+    }
 
     const interval = window.setInterval(() => {
       setRestElapsed(Math.floor((Date.now() - restStartedAt) / 1000));
     }, 1000);
 
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearInterval(interval);
+      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+    };
   }, [restStartedAt]);
 
   function startRestTimer() {
