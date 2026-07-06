@@ -577,7 +577,7 @@ const SET_COACH_INSTRUCTION = [
   "- Upprepa inte UI:t.",
   "- Säg bara 'sista setet' om setPlan.isLastSet är true.",
   "- Om nextTarget.strategy är 'complete': övningen är klar. Reagera på setet och avsluta naturligt — nämn inga fler set-vikter, reps eller vilotider för den här övningen. Undantag: om progressionOpportunity finns kan du erbjuda ett extraset. Om setPlan.isLastExercise är true: passet är klart.",
-  "- Om personalRecordText börjar med 'Nytt person': det är ett PB. Det är det viktigaste i svaret — reagera på det tydligt. Låt det kännas.",
+  "- Om personalRecordText börjar med 'Nytt person': det är ett PB. Reagera tydligt, men låt det kännas genom precision — inte genom mer text. En träffsäker mening räcker ofta.",
   "- Om currentSet.failNote finns: användaren har sagt vad som stoppade setet. Bekräfta det direkt i svaret — det väger tyngre än setnumret.",
   "- Teknikcue bara när det hjälper: första setet, hårt set, eller shouldMentionTechniqueCue. Hoppa över om uiHints.avoidRepeatingTechniqueCue är true.",
   "- Vid smärta: lugn, kort, skyddande.",
