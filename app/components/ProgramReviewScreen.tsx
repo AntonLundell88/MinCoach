@@ -1255,7 +1255,7 @@ export default function ProgramReviewScreen({
     <>
     {termsHelpOverlay}
     {alternativesOverlay}
-    <main className="min-h-screen bg-[#0b1018] px-3 pb-5 pt-16 text-white sm:px-4">
+    <main className="min-h-screen bg-[#0b1018] px-3 pb-28 pt-16 text-white sm:px-4">
       <div className="mx-auto flex w-full max-w-[460px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
@@ -2645,6 +2645,34 @@ export default function ProgramReviewScreen({
         ) : null}
       </div>
     </main>
+    <div className="fixed bottom-0 left-0 right-0 z-30 px-3 pb-safe-or-4 pt-3 sm:px-4" style={{ background: "linear-gradient(to top, #0b1018 60%, transparent)" }}>
+      <div className="mx-auto max-w-[460px]">
+        {!canApproveProgram ? (
+          <p className="mb-2 text-center text-xs font-medium leading-5 text-white/44">
+            {totalExercises === 0
+              ? "Lägg till minst en övning i varje pass."
+              : missingPassText || "Lägg till övningar först."}
+          </p>
+        ) : null}
+        <button
+          className="w-full rounded-2xl bg-[#2f6df6] py-3.5 text-sm font-semibold text-white shadow-[0_0_26px_rgba(37,99,235,0.24)] transition hover:bg-[#4f83ff] disabled:bg-white/[0.07] disabled:text-white/32 disabled:shadow-none"
+          onClick={handleApprove}
+          disabled={!canApproveProgram}
+        >
+          {totalExercises === 0
+            ? isManualBuilder ? "Fyll passen först" : "Lägg till övningar först"
+            : missingPassText
+            ? "Fyll i saknade pass"
+            : hasCoachReviewSuggestions
+            ? "Godkänn utan fler ändringar"
+            : hasRunManualReview && isManualBuilder
+            ? "Godkänn schema"
+            : isManualBuilder
+            ? "Granska med coachen"
+            : "Godkänn upplägget"}
+        </button>
+      </div>
+    </div>
     </>
   );
 }

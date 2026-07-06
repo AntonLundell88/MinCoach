@@ -190,12 +190,6 @@ export default function StartScreen({
             Starta passet
           </button>
 
-          {!hasAcceptedTrainingSafety && (
-            <p className="px-1 text-center text-[12px] leading-5 text-white/42">
-              Coachen kan ha fel. Avbryt eller justera om något gör ont, känns
-              fel eller gör dig osäker.
-            </p>
-          )}
         </div>
       </div>
 
@@ -299,7 +293,7 @@ export default function StartScreen({
                 setCustomExerciseInput("");
               }}
             >
-              I upplägget
+              Spara i schemat
             </button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
@@ -4469,6 +4469,7 @@ export default function Home() {
   const [now, setNow] = useState<Date>(new Date());
   const [gym, setGym] = useState<string>("Sjöviksgymmet");
   const [lastPass, setLastPass] = useState<PassType | null>(null);
+  const [lobbyCoachText, setLobbyCoachText] = useState<string>(() => loadJSON<string>("lobbyCoachText", ""));
   const [coachMemory, setCoachMemory] = useState<CoachMemory>({ notes: [] });
 const [workoutComplete, setWorkoutComplete] = useState(false);
 const [showDailyPlan, setShowDailyPlan] = useState(false);
@@ -9518,6 +9519,12 @@ void requestAiWorkoutReview({
       ? applyReviewCoachParts(review, response.review)
       : review;
 
+  if (response.mode === "ai" && response.review.lobbyText) {
+    const text = response.review.lobbyText;
+    saveJSON("lobbyCoachText", text);
+    setLobbyCoachText(text);
+  }
+
   saveCoachNotes(makeCoachNotesFromReview(finalReview, workoutWithSummary));
   setWorkoutReview(finalReview);
   setLatestCompletedReview(finalReview);
@@ -10214,6 +10221,7 @@ addCoachMessage={(text) =>
     nextPassLabel={nextPassLabel}
     history={history}
     personalRecords={personalRecords}
+    lobbyCoachText={lobbyCoachText || undefined}
     weeklyStats={weeklyStats}
     daysPerWeek={userProfile.daysPerWeek}
     now={now}

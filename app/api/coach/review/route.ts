@@ -90,6 +90,9 @@ function parseReview(
         parsed.coachMemoryTakeaway,
         fallbackReview.coachMemoryTakeaway
       ),
+      lobbyText: typeof parsed.lobbyText === "string"
+        ? cleanText(parsed.lobbyText, "", 200)
+        : undefined,
     };
   } catch {
     return null;

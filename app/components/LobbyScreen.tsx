@@ -68,6 +68,7 @@ type Props = {
   onOpenSetup: () => void;
   onOpenSettings: () => void;
   theme: AppTheme;
+  lobbyCoachText?: string;
 };
 
 function getLatestPR(personalRecords: Record<string, PersonalRecord>) {
@@ -141,6 +142,7 @@ export default function LobbyScreen({
   onOpenSetup,
   onOpenSettings,
   theme,
+  lobbyCoachText,
 }: Props) {
   const isLight = theme === "light";
   const pageClassName = isLight
@@ -187,63 +189,58 @@ export default function LobbyScreen({
       ? "Du är igång"
       : "Redo för första steget";
 
-  const coachReflection = latestWorkout
-    ? `Välkommen tillbaka. Du har ${weeklyStats.passCount} pass registrerade den här veckan.`
-    : "Välkommen! Kul att du är här. Första passen hjälper oss hitta rätt vikt, reps och marginal.";
+  const coachReflection = lobbyCoachText
+    ?? (latestWorkout
+      ? `Välkommen tillbaka. Du har ${weeklyStats.passCount} pass registrerade den här veckan.`
+      : "Välkommen! Kul att du är här. Första passen hjälper oss hitta rätt vikt, reps och marginal.");
   const overviewActions = [
     { label: "Min utveckling", onClick: onOpenStatistics },
     { label: "Mina pass", onClick: onOpenHistory },
     { label: "Övningar", onClick: onOpenExercises },
     { label: "Personbästan", onClick: onOpenPersonalRecords },
   ];
-  const chartWorkouts = history.slice(0, 12).reverse();
-  const chartValues = chartWorkouts.map((workout) => {
-    const volume =
-      workout.exercises?.reduce(
-        (exerciseSum, exercise) =>
-          exerciseSum +
-          exercise.sets.reduce(
-            (setSum, set) => setSum + set.weight * set.reps,
-            0
-          ),
-        0
-      ) ?? 0;
+  const cutoff28 = new Date(now);
+  cutoff28.setDate(cutoff28.getDate() - 28);
+  const history28 = history.filter((w) => new Date(w.startedAt) >= cutoff28);
 
-    return volume > 0 ? volume : workout.summary?.totalSets ?? 0;
-  });
-  const chartMax = Math.max(...chartValues, 1);
-  const chartMin = Math.min(...chartValues, chartMax);
-  const chartRange = Math.max(chartMax - chartMin, 1);
-  const chartPoints =
-    chartValues.length > 0
-      ? chartValues.map((value, index) => {
-          const x =
-            chartValues.length === 1
-              ? 300
-              : 24 + (index / (chartValues.length - 1)) * 552;
-          const y = 124 - ((value - chartMin) / chartRange) * 88;
-          return { x, y, value };
-        })
-      : [
-          { x: 24, y: 124, value: 0 },
-          { x: 150, y: 112, value: 0 },
-          { x: 300, y: 82, value: 0 },
-          { x: 448, y: 70, value: 0 },
-          { x: 576, y: 42, value: 0 },
-        ];
-  const chartPath = chartPoints
-    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
-    .join(" ");
-  const latestChartValue = chartValues.at(-1) ?? 0;
-  const previousChartValue = chartValues.at(-2) ?? null;
-  const chartTrend =
-    previousChartValue === null
-      ? "Första passet ger startpunkten."
-      : latestChartValue > previousChartValue
-      ? "Senaste passet ökade."
-      : latestChartValue === previousChartValue
-      ? "Senaste passet låg jämnt."
-      : "Senaste passet var lättare.";
+  const passGoal = daysPerWeek * 4;
+  const passCount28 = history28.length;
+  const passProgress = Math.min(passCount28 / Math.max(passGoal, 1), 1);
+
+  const hours28 = Math.round(
+    (history28.reduce((sum, w) => sum + (w.summary?.durationMinutes ?? 0), 0) / 60) * 10
+  ) / 10;
+
+  const tons28 = Math.round(
+    (history28.reduce(
+      (sum, w) =>
+        sum +
+        (w.exercises?.reduce(
+          (es, e) => es + e.sets.reduce((ss, s) => ss + s.weight * s.reps, 0),
+          0
+        ) ?? 0),
+      0
+    ) / 1000) * 10
+  ) / 10;
+
+  let streak = 0;
+  for (let i = 0; i < 52; i++) {
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay() - i * 7);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+    const hasWorkout = history.some((w) => {
+      const d = new Date(w.startedAt);
+      return d >= weekStart && d < weekEnd;
+    });
+    if (hasWorkout) streak++;
+    else break;
+  }
+
+  const ringCircumference = (r: number) => 2 * Math.PI * r;
+  const ringOffset = (r: number, progress: number) =>
+    ringCircumference(r) * (1 - Math.min(progress, 1));
 
   return (
     <div className={pageClassName}>
@@ -370,109 +367,72 @@ export default function LobbyScreen({
               {coachReflection}
             </p>
           </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-            <div className={`rounded-[1.25rem] p-3.5 ${smallCardClassName}`}>
-              <p className={labelClassName}>
-                Senaste PR
-              </p>
-              {latestPR ? (
-                <>
-                  <p className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
-                    {formatRecord(latestPR)}
-                  </p>
-                  <p className={`mt-1 text-sm ${bodyClassName}`}>
-                    {latestPR.exerciseName}
-                  </p>
-                </>
-              ) : (
-                <p className={`mt-2 text-sm ${bodyClassName}`}>
-                  Inget PR loggat än
-                </p>
-              )}
-            </div>
-
-            <div className={`rounded-[1.25rem] p-3.5 ${smallCardClassName}`}>
-              <p className={labelClassName}>
-                Veckan
-              </p>
-              <p
-                className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}
-              >
-                {weeklyStats.passCount} / {daysPerWeek}
-              </p>
-              <p className={`mt-1 text-sm ${bodyClassName}`}>pass klara</p>
-            </div>
-          </div>
         </section>
 
         <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <p className={labelClassName}>
-                Progression
-              </p>
-              <h2
-                className={`mt-1.5 text-lg font-semibold tracking-[-0.03em] sm:text-xl ${titleClassName}`}
-              >
-                {progressTitle}
-              </h2>
-            </div>
+          <p className={labelClassName}>Framsteg</p>
+          <h2 className={`mt-1.5 text-lg font-semibold tracking-[-0.03em] sm:text-xl ${titleClassName}`}>
+            Senaste 28 dagarna
+          </h2>
 
-            <div className={passPillClassName}>
-              {history.length} pass
-            </div>
-          </div>
-
-          <div
-            className={`relative h-28 overflow-hidden rounded-[1.25rem] sm:h-32 ${
-              isLight
-                ? "border border-[#d8cfc0]/70 bg-white/48"
-                : "border border-white/8 bg-slate-950/20"
-            }`}
-          >
-            <svg viewBox="0 0 600 160" className="absolute inset-0 h-full w-full">
-              {[36, 66, 96, 126].map((y) => (
-                <line
-                  key={y}
-                  x1="22"
-                  x2="578"
-                  y1={y}
-                  y2={y}
-                  stroke={
-                    isLight ? "rgba(23,32,51,0.08)" : "rgba(255,255,255,0.06)"
-                  }
-                  strokeWidth="1"
-                />
-              ))}
-              <path
-                d={chartPath}
-                fill="none"
-                stroke="rgba(96,165,250,0.12)"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="9"
-              />
-              <path
-                d={chartPath}
-                fill="none"
-                stroke="rgba(96,165,250,0.92)"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="4"
-              />
-              {chartPoints.map((point, index) => (
-                <circle
-                  key={`${point.x}-${index}`}
-                  cx={point.x}
-                  cy={point.y}
-                  r="4"
-                  fill="rgba(191,219,254,0.94)"
-                />
-              ))}
+          <div className="mt-4 flex items-center gap-4">
+            <svg width="148" height="148" viewBox="0 0 220 220" className="shrink-0">
+              <circle cx="110" cy="110" r="100" fill="none" stroke={isLight ? "rgba(96,165,250,0.12)" : "rgba(96,165,250,0.10)"} strokeWidth="18"/>
+              <circle cx="110" cy="110" r="74"  fill="none" stroke={isLight ? "rgba(167,139,250,0.12)" : "rgba(167,139,250,0.10)"} strokeWidth="18"/>
+              <g transform="rotate(-90 110 110)">
+                <circle cx="110" cy="110" r="100" fill="none"
+                  stroke="#60a5fa" strokeWidth="18" strokeLinecap="round"
+                  strokeDasharray={ringCircumference(100)}
+                  strokeDashoffset={ringOffset(100, passProgress)}/>
+                <circle cx="110" cy="110" r="74" fill="none"
+                  stroke="#a78bfa" strokeWidth="18" strokeLinecap="round"
+                  strokeDasharray={ringCircumference(74)}
+                  strokeDashoffset={ringOffset(74, streak / 52)}/>
+              </g>
             </svg>
+
+            <div className="flex flex-1 flex-col gap-3">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-blue-400"/>
+                  <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${bodyClassName}`}>Pass</span>
+                </div>
+                <p className={`mt-0.5 text-xl font-semibold tracking-tight ${titleClassName}`}>
+                  {passCount28} <span className={`text-sm font-normal ${bodyClassName}`}>/ {passGoal} mål</span>
+                </p>
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-violet-400"/>
+                  <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${bodyClassName}`}>Streak</span>
+                </div>
+                <p className={`mt-0.5 text-xl font-semibold tracking-tight ${titleClassName}`}>
+                  {streak} <span className={`text-sm font-normal ${bodyClassName}`}>veckor i rad</span>
+                </p>
+              </div>
+            </div>
           </div>
-          <p className={`mt-3 text-sm ${bodyClassName}`}>{chartTrend}</p>
+
+          <div className={`mt-4 h-px ${isLight ? "bg-[#d8cfc0]/50" : "bg-white/[0.06]"}`}/>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className={`rounded-2xl p-3.5 ${isLight ? "bg-emerald-50/60 ring-1 ring-emerald-200/60" : "bg-emerald-400/[0.07] ring-1 ring-emerald-400/[0.14]"}`}>
+              <div className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>
+                <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isLight ? "text-emerald-700" : "text-emerald-300/60"}`}>Timmar</span>
+              </div>
+              <p className={`mt-1.5 text-2xl font-semibold tracking-tight ${titleClassName}`}>{hours28}</p>
+              <p className={`mt-0.5 text-xs ${bodyClassName}`}>i gymmet</p>
+            </div>
+            <div className={`rounded-2xl p-3.5 ${isLight ? "bg-orange-50/60 ring-1 ring-orange-200/60" : "bg-orange-400/[0.07] ring-1 ring-orange-400/[0.14]"}`}>
+              <div className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-400"/>
+                <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isLight ? "text-orange-700" : "text-orange-300/60"}`}>Lyft</span>
+              </div>
+              <p className={`mt-1.5 text-2xl font-semibold tracking-tight ${titleClassName}`}>{tons28} <span className={`text-base font-normal ${bodyClassName}`}>t</span></p>
+              <p className={`mt-0.5 text-xs ${bodyClassName}`}>ton lyft</p>
+            </div>
+          </div>
         </section>
 
         <section className="grid gap-4">

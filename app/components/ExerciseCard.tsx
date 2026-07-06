@@ -56,16 +56,7 @@ const CRAZY_WEIGHT_MESSAGES = [
   "Jag har inga ögon men kan ändå se att det blev fel där.",
 ];
 
-const weightPlaceholders = [
-  "t.ex. 40",
-  "t.ex. 50",
-  "t.ex. 62,5",
-  "t.ex. 70",
-  "t.ex. 75",
-  "t.ex. 85",
-  "t.ex. 100",
-  "t.ex. 120",
-];
+const weightPlaceholders = ["kg"];
 
 const addedWeightPlaceholders = [
   "t.ex. 2,5",
@@ -336,13 +327,9 @@ useEffect(() => {
 
         return (
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            {prForUI ? (
+            {prForUI && (
               <div className="rounded-full border border-amber-200/18 bg-amber-200/[0.08] px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_0_18px_rgba(251,191,36,0.06)]">
                 Personbästa {formatRecord(prForUI)}
-              </div>
-            ) : (
-              <div className="rounded-full border border-white/[0.09] bg-white/[0.042] px-2.5 py-1 text-[11px] text-white/38">
-                Personbästa –
               </div>
             )}
           </div>
