@@ -376,14 +376,20 @@ export default function LobbyScreen({
               <p className={labelClassName}>
                 Senaste PR
               </p>
-              <p
-                className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}
-              >
-                {latestPR ? formatRecord(latestPR) : "-"}
-              </p>
-              <p className={`mt-1 text-sm ${bodyClassName}`}>
-                {latestPR ? latestPR.exerciseName : "Inget PR än"}
-              </p>
+              {latestPR ? (
+                <>
+                  <p className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
+                    {formatRecord(latestPR)}
+                  </p>
+                  <p className={`mt-1 text-sm ${bodyClassName}`}>
+                    {latestPR.exerciseName}
+                  </p>
+                </>
+              ) : (
+                <p className={`mt-2 text-sm ${bodyClassName}`}>
+                  Inget PR loggat än
+                </p>
+              )}
             </div>
 
             <div className={`rounded-[1.25rem] p-3.5 ${smallCardClassName}`}>
