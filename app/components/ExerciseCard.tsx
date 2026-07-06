@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
+  getExerciseWeightStep,
   isBodyweightExercise,
   isTimedExercise,
 } from "../lib/exercises";
@@ -23,9 +24,9 @@ type Props = {
   currentExerciseName: string;
   exerciseKey: (name: string) => string;
   weightInput: string;
-  setWeightInput: (v: string) => void;
+  setWeightInput: Dispatch<SetStateAction<string>>;
   repsInput: string;
-  setRepsInput: (v: string) => void;
+  setRepsInput: Dispatch<SetStateAction<string>>;
   durationSecondsInput: number;
   setDurationSecondsInput: (v: number) => void;
   rirInput: number;
@@ -190,14 +191,15 @@ export default function ExerciseCard({
       return String(next);
     });
   };
+  const weightStep = getExerciseWeightStep(currentExerciseName);
   const adjustWeight = (delta: number) => {
     setWeightInput((prev) => {
       const current = Number(prev.trim().replace(",", "."));
       const base = Number.isFinite(current) ? current : 0;
       const next =
         delta > 0
-          ? Math.ceil((base + 0.01) / 2.5) * 2.5
-          : Math.max(0, Math.floor((base - 0.01) / 2.5) * 2.5);
+          ? Math.ceil((base + 0.01) / weightStep) * weightStep
+          : Math.max(0, Math.floor((base - 0.01) / weightStep) * weightStep);
       return next > 0 ? Number(next.toFixed(2)).toString() : "";
     });
   };
@@ -378,11 +380,11 @@ useEffect(() => {
               <div className="workout-input-stepper grid h-12 grid-cols-[2.55rem_minmax(0,1fr)_2.55rem] overflow-hidden rounded-2xl border border-white/[0.075] bg-slate-950/50 transition focus-within:border-blue-300/35">
                 <button
                   type="button"
-                  onClick={() => adjustWeight(-2.5)}
-                  onMouseDown={() => startHold(() => adjustWeight(-2.5))}
+                  onClick={() => adjustWeight(-weightStep)}
+                  onMouseDown={() => startHold(() => adjustWeight(-weightStep))}
                   onMouseUp={stopHold}
                   onMouseLeave={stopHold}
-                  onTouchStart={() => startHold(() => adjustWeight(-2.5))}
+                  onTouchStart={() => startHold(() => adjustWeight(-weightStep))}
                   onTouchEnd={stopHold}
                   className="flex h-full items-center justify-center border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
                   aria-label="Sänk vikt"
@@ -399,11 +401,11 @@ useEffect(() => {
                 />
                 <button
                   type="button"
-                  onClick={() => adjustWeight(2.5)}
-                  onMouseDown={() => startHold(() => adjustWeight(2.5))}
+                  onClick={() => adjustWeight(weightStep)}
+                  onMouseDown={() => startHold(() => adjustWeight(weightStep))}
                   onMouseUp={stopHold}
                   onMouseLeave={stopHold}
-                  onTouchStart={() => startHold(() => adjustWeight(2.5))}
+                  onTouchStart={() => startHold(() => adjustWeight(weightStep))}
                   onTouchEnd={stopHold}
                   className="flex h-full items-center justify-center border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
                   aria-label="Höj vikt"

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ExerciseCard from "./ExerciseCard";
 import ExerciseInfoModal from "./ExerciseInfoModal";
@@ -76,9 +76,9 @@ type Props = {
   >;
   exerciseKey: (name: string) => string;
   weightInput: string;
-  setWeightInput: (v: string) => void;
+  setWeightInput: Dispatch<SetStateAction<string>>;
   repsInput: string;
-  setRepsInput: (v: string) => void;
+  setRepsInput: Dispatch<SetStateAction<string>>;
   durationSecondsInput: number;
   setDurationSecondsInput: (v: number) => void;
   rirInput: number;

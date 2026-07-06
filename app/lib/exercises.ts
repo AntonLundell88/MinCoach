@@ -2672,6 +2672,27 @@ export function isTimedExercise(name: string) {
   ].some((timedKey) => key.includes(timedKey));
 }
 
+export function isBarbellExercise(name: string): boolean {
+  const lower = name.toLowerCase();
+  const definition = getExerciseDefinition(name);
+  const tags = definition?.equipmentTags ?? [];
+  const equipment = definition?.equipment.toLowerCase() ?? "";
+  const namedBarbell =
+    lower.includes("stång") ||
+    lower.includes("skivstång") ||
+    lower.includes("barbell");
+  const barbellOnly =
+    tags.includes("barbell") &&
+    !tags.includes("dumbbells") &&
+    !tags.includes("machines") &&
+    !tags.includes("cables");
+  return namedBarbell || barbellOnly || equipment === "skivstång";
+}
+
+export function getExerciseWeightStep(name: string): number {
+  return isBarbellExercise(name) ? 5 : 2.5;
+}
+
 function getCustomExerciseCue(category: string) {
   if (category === "ben") return "Fokus: kontrollerat, smärtfritt och samma rörelse varje gång.";
   if (category === "rygg") return "Fokus: ryggkontakt och ren dragbana.";
