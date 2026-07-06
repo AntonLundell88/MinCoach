@@ -1228,8 +1228,9 @@ useEffect(() => {
             onClick={() => setShowRestTimer((value) => !value)}
             className="min-w-0 flex-1 text-left"
           >
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/32">
+            <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/32">
               Vila
+              <DoubleChevronDownGlyph className="h-2.5 w-2.5 rotate-180 opacity-60" />
             </span>
             <span className="mt-0.5 flex items-center gap-2 text-sm font-semibold text-white/82">
               {formatRestTimer(restElapsed)}
