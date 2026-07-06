@@ -196,25 +196,7 @@ AI ska resonera fritt inom verkligheten, men aldrig hitta på fakta.
 - **Suget att "bara regex-fixa det här ena svaret"** — det suget byggde
   det gamla, robotiska systemet. Lös roten istället.
 
-## Kända problem just nu — högst prio
-
-**Akut: felinmatning och historik.** Exempel: användare skrev
-`6717.5 kg` av misstag. Appen sparade det rakt av, PB blev förstört,
-sammanfattningen visade 103 ton. Det här är systemlogik, inte
-AI-prompt-arbete.
-
-Prioritetsordning:
-1. Stoppa orimliga set innan de sparas (rimlighetskontroll: extremt hög
-   vikt sparas inte direkt; vikt flera gånger högre än tidigare PB →
-   fråga "menade du X?"; misstänkt decimalfel → föreslå korrigering;
-   orimliga set ska inte uppdatera PB/historik innan bekräftelse).
-2. Kunna ångra/redigera senaste set under passet.
-3. Kunna redigera set i historiken/lobbyn.
-4. När ett set ändras: räkna om PB, historik, coachens minne och
-   sammanfattningar.
-5. Coachen ska förstå korrigeringar och inte bygga vidare på fel data
-   (dvs den korrigerade datan ska vara det som skickas in i `context`
-   framåt, inte den felaktiga).
+## Kända problem och öppna saker
 
 ## Andra öppna UX-saker
 
@@ -268,9 +250,4 @@ Ingen "AI-floskel"-text.
 
 ## Just nu — nästa konkreta kodsteg
 
-1. Skydd mot orimliga set (rimlighetskontroll innan sparning).
-2. Redigering av set under pass och i historik.
-3. Omräkning av PB/historik efter ändring.
-
-(Coach-röst/prompt-arbetet, modellbyte och regex-saneringen ovan körs
-parallellt via Codex — se status i koden innan du dubblerar jobbet.)
+Inga akuta prioriteter just nu. Nästa steg bestäms i chatten.
