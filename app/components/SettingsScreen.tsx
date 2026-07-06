@@ -684,7 +684,7 @@ export default function SettingsScreen({
               Villkor och säkerhet
             </h2>
             <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
-              Beta-underlag för villkor, integritet och träningssäkerhet. Ska juristgranskas innan publik lansering.
+              Villkor, integritet och träningssäkerhet för betaperioden.
             </p>
             <div className={`mt-4 ${accountListClassName}`}>
               {LEGAL_DOCUMENTS.map((document) => (
@@ -735,7 +735,7 @@ export default function SettingsScreen({
               </button>
             </div>
             <p className={`mt-2 text-xs leading-5 ${bodyClassName}`}>
-              Vill du visa en bild kan du skicka screenshot separat till Anton.
+              Vill du bifoga en bild kan du skicka screenshot separat.
             </p>
             {feedbackSent ? (
               <p className="mt-2 rounded-xl bg-emerald-300/10 px-3 py-2 text-xs leading-5 text-emerald-100/85">

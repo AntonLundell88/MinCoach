@@ -373,6 +373,7 @@ useEffect(() => {
                   inputMode="decimal"
                   value={weightInput}
                   onChange={(e) => setWeightInput(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   placeholder={weightPlaceholder}
                 />
                 <button
@@ -446,6 +447,7 @@ useEffect(() => {
               inputMode="numeric"
               value={repsInput}
               onChange={(e) => setRepsInput(e.target.value)}
+              onFocus={(e) => e.target.select()}
               placeholder="t.ex. 5"
             />
             <button
@@ -749,7 +751,8 @@ useEffect(() => {
       {(
         <div className={`space-y-2 pt-0.5 ${embedded ? "" : "flex gap-2 space-y-0"}`}>
           <button
-            className="workout-primary-action w-full rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98]"
+            className="workout-primary-action w-full rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={showWeightInput && !weightInput.trim()}
             onClick={() => {
               if (weightWayTooHigh) {
                 setAwaitingWeightConfirm(true);

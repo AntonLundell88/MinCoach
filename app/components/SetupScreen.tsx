@@ -38,6 +38,7 @@ type Props = {
   programStartModeInput: ProgramStartMode;
   setProgramStartModeInput: (v: ProgramStartMode) => void;
   isEditing: boolean;
+  onCancel?: () => void;
   onSubmit: () => void;
   theme: "dark" | "light";
 };
@@ -161,6 +162,7 @@ export default function SetupScreen({
   programStartModeInput,
   setProgramStartModeInput,
   isEditing,
+  onCancel,
   onSubmit,
   theme,
 }: Props) {
@@ -206,7 +208,16 @@ export default function SetupScreen({
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.10),transparent_34%),linear-gradient(180deg,#080d14_0%,#0d1420_48%,#080d14_100%)]" />
 
       <div className="w-full max-w-none space-y-0 sm:max-w-md sm:space-y-3">
-        <div className="flex items-center justify-center py-3 sm:py-0">
+        <div className="relative flex items-center justify-center py-3 sm:py-0">
+          {isEditing && onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="absolute left-4 rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07] sm:left-0"
+            >
+              Tillbaka
+            </button>
+          )}
           <Image
             src={theme === "light" ? "/logo-light.png" : "/logo-dark.png"}
             alt="MinCoach"

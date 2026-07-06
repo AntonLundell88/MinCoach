@@ -9701,6 +9701,7 @@ if (!userProfile || editingProfile) {
       programStartModeInput={programStartModeInput}
       setProgramStartModeInput={setProgramStartModeInput}
       isEditing={editingProfile}
+      onCancel={editingProfile ? () => setEditingProfile(false) : undefined}
       onSubmit={() => {
 const parsedAge = Number(ageInput);
 const requestedDays = Number(daysPerWeekInput);
