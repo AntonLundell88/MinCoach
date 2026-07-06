@@ -1251,21 +1251,12 @@ useEffect(() => {
             {restStartedAt ? "Om" : "Starta"}
           </button>
 
-          <div className="flex shrink-0 items-center gap-2 rounded-xl border border-white/[0.055] bg-white/[0.026] px-2.5 py-1.5 text-xs font-semibold text-white/50 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025)]">
-            <span>Auto-vila</span>
-            <ToggleSwitch
-              checked={autoStartRestTimer}
-              onChange={setAutoStartRestTimer}
-              size="sm"
-            />
-          </div>
-
           <button
             type="button"
-            onClick={() => setShowRestTimer((value) => !value)}
+            onClick={() => setShowRestTimer(true)}
             className="shrink-0 rounded-xl border border-white/[0.065] bg-white/[0.032] px-2.5 py-2 text-xs font-semibold text-white/52 transition hover:bg-white/[0.07] hover:text-white"
           >
-            {showRestTimer ? "Dölj" : "Visa"}
+            Visa timer
           </button>
         </div>
 
@@ -1433,6 +1424,14 @@ useEffect(() => {
               >
                 {restStartedAt ? <RotateGlyph className="h-5 w-5" /> : <><PlayGlyph className="h-5 w-5" /><span>Starta</span></>}
               </button>
+              <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.055] bg-white/[0.026] px-2 py-1.5 text-[10px] font-semibold text-white/50">
+                <span>Autostart</span>
+                <ToggleSwitch
+                  checked={autoStartRestTimer}
+                  onChange={setAutoStartRestTimer}
+                  size="sm"
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => setShowRestTimer(false)}
