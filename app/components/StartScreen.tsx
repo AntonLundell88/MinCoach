@@ -190,10 +190,12 @@ export default function StartScreen({
             Starta passet
           </button>
 
-          <p className="px-1 text-center text-[12px] leading-5 text-white/42">
-            Coachen kan ha fel. Avbryt eller justera om något gör ont, känns
-            fel eller gör dig osäker.
-          </p>
+          {!hasAcceptedTrainingSafety && (
+            <p className="px-1 text-center text-[12px] leading-5 text-white/42">
+              Coachen kan ha fel. Avbryt eller justera om något gör ont, känns
+              fel eller gör dig osäker.
+            </p>
+          )}
         </div>
       </div>
 

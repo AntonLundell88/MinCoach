@@ -730,9 +730,11 @@ export default function SettingsScreen({
                 {!isSendingFeedback && !feedbackSent ? <SendGlyph className="h-4 w-4" /> : null}
                 <span>{isSendingFeedback ? "Skickar..." : feedbackSent ? "Skickat" : "Skicka"}</span>
               </button>
-              <button onClick={copyFeedback} disabled={!feedbackText.trim()} className={subtleButtonClassName}>
-                {feedbackCopied ? "Kopierat" : "Kopiera"}
-              </button>
+              {(feedbackError || feedbackCopied) && (
+                <button onClick={copyFeedback} disabled={!feedbackText.trim()} className={subtleButtonClassName}>
+                  {feedbackCopied ? "Kopierat" : "Kopiera text"}
+                </button>
+              )}
             </div>
             <p className={`mt-2 text-xs leading-5 ${bodyClassName}`}>
               Vill du bifoga en bild kan du skicka screenshot separat.
