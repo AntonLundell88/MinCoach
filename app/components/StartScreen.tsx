@@ -91,6 +91,7 @@ export default function StartScreen({
 }: Props) {
   const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [exerciseInfoName, setExerciseInfoName] = useState<string | null>(null);
+  const [isEditingExercises, setIsEditingExercises] = useState(false);
 
   const cleanNextPassLabel = nextPassLabel.replace(" 1", "").replace(" 2", "");
   const todayExercises = todayExercisesByPass[nextPass] ?? [];
@@ -197,6 +198,16 @@ export default function StartScreen({
       </div>
 
       <div className={cardClassName}>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-white/30">Övningar</p>
+          <button
+            type="button"
+            onClick={() => setIsEditingExercises((v) => !v)}
+            className="rounded-lg px-2.5 py-1 text-xs font-medium text-white/42 transition hover:bg-white/5 hover:text-white/78"
+          >
+            {isEditingExercises ? "Klar" : "Redigera"}
+          </button>
+        </div>
         <div className="space-y-2">
           {plan.map((ex, index) => (
             <div
@@ -221,12 +232,14 @@ export default function StartScreen({
                 >
                   i
                 </button>
-              <button
-  className={secondaryButtonClassName}
-  onClick={() => removePlannedExercise(ex)}
->
-  Ta bort
-</button>
+              {isEditingExercises && (
+                <button
+                  className={secondaryButtonClassName}
+                  onClick={() => removePlannedExercise(ex)}
+                >
+                  Ta bort
+                </button>
+              )}
               </div>
             </div>
           ))}
@@ -309,12 +322,14 @@ export default function StartScreen({
                   >
                     i
                   </button>
-                  <button
-                    className={secondaryButtonClassName}
-                    onClick={() => removeTodayExercise(nextPass, ex)}
-                  >
-                    Ta bort
-                  </button>
+                  {isEditingExercises && (
+                    <button
+                      className={secondaryButtonClassName}
+                      onClick={() => removeTodayExercise(nextPass, ex)}
+                    >
+                      Ta bort
+                    </button>
+                  )}
                 </div>
               </li>
             ))}
@@ -341,12 +356,14 @@ export default function StartScreen({
                   >
                     i
                   </button>
-                  <button
-                    className={secondaryButtonClassName}
-                    onClick={() => removeCustomExercise(nextPass, ex)}
-                  >
-                    Ta bort
-                  </button>
+                  {isEditingExercises && (
+                    <button
+                      className={secondaryButtonClassName}
+                      onClick={() => removeCustomExercise(nextPass, ex)}
+                    >
+                      Ta bort
+                    </button>
+                  )}
                 </div>
               </li>
             ))}
