@@ -42,46 +42,48 @@ function extractOutputText(data: unknown) {
     .join("\n");
 }
 
-type DiagFields = {
+type TimingFields = {
   route: string;
   timestamp: string;
-  durationMs: number;
-  errorType: string;
-  errorMessage?: string;
-  model: string;
-  effort: string;
-  verbosity: string;
+  promptBuildMs: number;
+  openAiRequestMs: number;
+  totalMs: number;
   promptSizeChars: number;
+  errorType?: string;
+  errorMessage?: string;
 };
 
-function logFallback(fields: DiagFields) {
-  console.error("[MinCoach chat fallback]", JSON.stringify(fields));
+function logTiming(fields: TimingFields) {
+  if (fields.errorType) {
+    console.error("[MinCoach chat fallback]", JSON.stringify(fields));
+  } else {
+    console.log("[MinCoach chat timing]", JSON.stringify(fields));
+  }
 }
 
 function fallbackResponse(
   fallbackReply: string,
-  reason: string,
-  diag: { startMs: number; promptSize: number } | null,
+  errorType: string,
+  diag: { startMs: number; promptBuildMs: number; openAiRequestMs: number; promptSize: number } | null,
   maxCharacters?: number,
   errorMessage?: string
 ) {
   if (diag) {
-    logFallback({
+    logTiming({
       route: "chat",
       timestamp: new Date().toISOString(),
-      durationMs: Date.now() - diag.startMs,
-      errorType: reason,
-      errorMessage: errorMessage?.slice(0, 200),
-      model: process.env.OPENAI_MODEL ?? "gpt-5.5",
-      effort: "medium",
-      verbosity: "medium",
+      promptBuildMs: diag.promptBuildMs,
+      openAiRequestMs: diag.openAiRequestMs,
+      totalMs: Date.now() - diag.startMs,
       promptSizeChars: diag.promptSize,
+      errorType,
+      errorMessage: errorMessage?.slice(0, 200),
     });
   }
 
   return NextResponse.json({
     mode: "fallback",
-    reason,
+    reason: errorType,
     text: sanitizeCoachReply(fallbackReply, fallbackReply, maxCharacters),
   });
 }
@@ -103,14 +105,15 @@ export async function POST(request: Request) {
     return fallbackResponse(fallbackReply, "invalid_context", null);
   }
 
+  const promptBuildStart = Date.now();
   const payload = buildCoachChatPromptPayload(context);
   const promptBody = JSON.stringify({
     context: payload.context,
     instruction: payload.instruction,
     maxCharacters: payload.maxCharacters,
   });
+  const promptBuildMs = Date.now() - promptBuildStart;
   const promptSize = promptBody.length;
-  const diag = { startMs, promptSize };
 
   const rateLimit = checkAiRateLimit(request, "chat");
 
@@ -118,7 +121,7 @@ export async function POST(request: Request) {
     return fallbackResponse(
       fallbackReply,
       "rate_limited",
-      diag,
+      { startMs, promptBuildMs, openAiRequestMs: 0, promptSize },
       payload.maxCharacters
     );
   }
@@ -129,13 +132,15 @@ export async function POST(request: Request) {
     return fallbackResponse(
       fallbackReply,
       "missing_api_key",
-      diag,
+      { startMs, promptBuildMs, openAiRequestMs: 0, promptSize },
       payload.maxCharacters
     );
   }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  const apiCallStart = Date.now();
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -165,6 +170,9 @@ export async function POST(request: Request) {
       signal: controller.signal,
     });
 
+    const openAiRequestMs = Date.now() - apiCallStart;
+    const diag = { startMs, promptBuildMs, openAiRequestMs, promptSize };
+
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
       return fallbackResponse(
@@ -185,19 +193,19 @@ export async function POST(request: Request) {
     );
 
     if (!aiText.trim()) {
-      logFallback({
+      const errorType = data?.status === "incomplete" ? "incomplete_empty_reply" : "empty_reply";
+      logTiming({
         route: "chat",
         timestamp: new Date().toISOString(),
-        durationMs: Date.now() - startMs,
-        errorType: data?.status === "incomplete" ? "incomplete_empty_reply" : "empty_reply",
-        model: process.env.OPENAI_MODEL ?? "gpt-5.5",
-        effort: "medium",
-        verbosity: "medium",
+        promptBuildMs,
+        openAiRequestMs,
+        totalMs: Date.now() - startMs,
         promptSizeChars: promptSize,
+        errorType,
       });
       return NextResponse.json({
         mode: "fallback",
-        reason: data?.status === "incomplete" ? "incomplete_empty_reply" : "empty_reply",
+        reason: errorType,
         text: fallbackText,
       });
     }
@@ -210,19 +218,16 @@ export async function POST(request: Request) {
     const usedSanitizedFallback =
       Boolean(aiText.trim()) && sanitizedText === fallbackText;
 
-    if (usedSanitizedFallback) {
-      logFallback({
-        route: "chat",
-        timestamp: new Date().toISOString(),
-        durationMs: Date.now() - startMs,
-        errorType: "sanitized_reply",
-        errorMessage: aiText.slice(0, 100),
-        model: process.env.OPENAI_MODEL ?? "gpt-5.5",
-        effort: "medium",
-        verbosity: "medium",
-        promptSizeChars: promptSize,
-      });
-    }
+    logTiming({
+      route: "chat",
+      timestamp: new Date().toISOString(),
+      promptBuildMs,
+      openAiRequestMs,
+      totalMs: Date.now() - startMs,
+      promptSizeChars: promptSize,
+      errorType: usedSanitizedFallback ? "sanitized_reply" : undefined,
+      errorMessage: usedSanitizedFallback ? aiText.slice(0, 100) : undefined,
+    });
 
     return NextResponse.json({
       mode: usedSanitizedFallback ? "fallback" : "ai",
@@ -237,7 +242,7 @@ export async function POST(request: Request) {
       error instanceof Error && error.name === "AbortError"
         ? "timeout"
         : "network_error",
-      diag,
+      { startMs, promptBuildMs, openAiRequestMs: Date.now() - apiCallStart, promptSize },
       payload.maxCharacters,
       message
     );

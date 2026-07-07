@@ -1218,109 +1218,7 @@ function buildLocalWorkoutChatFallback(args: {
     return buildExerciseSafetyReply(exerciseName);
   }
 
-  if (
-    hasCoachFreeText(normalized, [
-      "starkt",
-      "stark",
-      "bra vikt",
-      "bra set",
-      "ar det bra",
-      "är det bra",
-    ])
-  ) {
-    return shortCoach([
-      `Ja. ${askedSetText || setText || "Det där"} är starkt i din nivå.`,
-      latestSet?.rir !== undefined && latestSet.rir >= 2
-        ? "Extra bra: du hade fortfarande marginal kvar."
-        : "Det viktiga är att det sitter med kontroll.",
-      "Nästa steg är att bygga vidare utan att tappa formen.",
-    ]);
-  }
-
-  if (
-    hasCoachFreeText(normalized, [
-      "svett",
-      "flas",
-      "flås",
-      "puls",
-      "dryper",
-      "rinner",
-      "helt slut",
-    ])
-  ) {
-    return shortCoach([
-      "Haha ja, nu är du inne i passet ðŸ”¥",
-      "Bra. Håll huvudet kallt ändå.",
-      setText ? `Nästa set bygger vi vidare från ${setText}.` : "",
-      "Fokus på kontroll, inte stress.",
-    ]);
-  }
-
-  if (
-    hasCoachFreeText(normalized, [
-      "kul",
-      "skoj",
-      "kanon",
-      "gott",
-      "gött",
-      "nice",
-      "riktigt bra",
-      "kandes bra",
-      "kändes bra",
-      "stabilt",
-    ])
-  ) {
-    return shortCoach([
-      "Kanon. Det där vill jag höra ðŸ”¥",
-      setText
-        ? `${setText} med den känslan är ett väldigt bra tecken.`
-        : "När känslan är så där har vi något att bygga på.",
-      "Ta nästa set med samma kontroll.",
-    ]);
-  }
-
-  if (
-    hasCoachFreeText(normalized, [
-      "hoja",
-      "höja",
-      "mer vikt",
-      "oka",
-      "öka",
-      "tyngre",
-    ])
-  ) {
-    return shortCoach([
-      "Ja, men bara om kontrollen följer med.",
-      "Liten höjning är okej om du fortfarande kan hålla RIR 1-2.",
-      "Hellre en smart höjning än ett slarvigt maxförsök.",
-    ]);
-  }
-
-  if (args.dayForm === "stark") {
-    return shortCoach([
-      "Bra. Då kan vi vara lite mer offensiva idag ðŸ’ª",
-      "Första setet visar hur mycket vi vågar höja.",
-    ]);
-  }
-
-  if (args.dayForm === "trött") {
-    return shortCoach([
-      "Okej. Då öppnar vi lite smartare idag.",
-      "Vi jagar kvalitet först, vikten efter det.",
-    ]);
-  }
-
-  if (args.message.includes("?")) {
-    return shortCoach([
-      "Svårt att svara direkt just nu.",
-      setText ? `Ta nästa set — sedan pratar vi.` : "Vi tar det efter nästa set.",
-    ]);
-  }
-
-  return shortCoach([
-    "Okej.",
-    setText ? `Vi kör vidare.` : "Fortsätt.",
-  ]);
+  return shortCoach(["Coachen tänker fortfarande…"]);
 }
 
 function getStagnationInsight(
@@ -4473,6 +4371,7 @@ export default function Home() {
   const [latestCompletedReview, setLatestCompletedReview] =
   useState<WorkoutReview | null>(null);
   const exerciseInputKeyRef = useRef("");
+  const exerciseIndexRef = useRef(0);
   const [now, setNow] = useState<Date>(new Date());
   const [gym, setGym] = useState<string>("Sjöviksgymmet");
   const [lastPass, setLastPass] = useState<PassType | null>(null);
@@ -5424,6 +5323,8 @@ else if (!insight && progressionPlan.action === "deload") insight = progressionP
   removedExercisesForNextPass,
   coachMemory,
 ]);
+
+exerciseIndexRef.current = exerciseIndex;
 
 // När du byter övning: fyll i senaste vikt/reps om det finns
 useEffect(() => {
@@ -8353,6 +8254,7 @@ function checkWeightBeforeSavingSet({
 async function addSet() {
     if (!workout) return;
 
+    const capturedExerciseIndex = exerciseIndex;
     const exerciseBeingLogged = workout.exercises[exerciseIndex];
 
     const rawWeight = parseNumberInput(weightInput);
@@ -8737,16 +8639,19 @@ if (painFailure) {
 }
 
 if (nextSetPlan.strategy === "complete") {
-  const nextW = bodyweightExercise && !hasLoggedWeight ? "" : formatWeightInput(suggestedNextWeight);
-  setWeightInput(nextW);
-  systemSuggestedWeightRef.current = nextW ? suggestedNextWeight : undefined;
-  const completeReps = timedExercise ? "" : String(nextSetPlan.repsInput || reps);
-  setRepsInput(completeReps);
-  systemSuggestedRepsRef.current = completeReps ? parseInt(completeReps, 10) || undefined : undefined;
-  setDurationSecondsInput(timedExercise ? durationSeconds ?? 0 : 0);
-  setRirInput(nextSetPlan.rirInput ?? 2);
   setFailNoteInput("");
   setDidFailInput(false);
+  // Only update input fields if the user hasn't already advanced to the next exercise
+  if (exerciseIndexRef.current === capturedExerciseIndex) {
+    const nextW = bodyweightExercise && !hasLoggedWeight ? "" : formatWeightInput(suggestedNextWeight);
+    setWeightInput(nextW);
+    systemSuggestedWeightRef.current = nextW ? suggestedNextWeight : undefined;
+    const completeReps = timedExercise ? "" : String(nextSetPlan.repsInput || reps);
+    setRepsInput(completeReps);
+    systemSuggestedRepsRef.current = completeReps ? parseInt(completeReps, 10) || undefined : undefined;
+    setDurationSecondsInput(timedExercise ? durationSeconds ?? 0 : 0);
+    setRirInput(nextSetPlan.rirInput ?? 2);
+  }
   return;
 }
 
@@ -10000,9 +9905,7 @@ return (
         addExerciseDuringWorkout={addExerciseDuringWorkout}
 addCoachMessage={(text) =>
   setChatLog((prev) => {
-    const last = prev[prev.length - 1];
-
-    if (last?.role === "coach" && last.text === text) {
+    if (prev.some((m) => m.role === "coach" && m.source === "engine" && m.text === text)) {
       return prev;
     }
 

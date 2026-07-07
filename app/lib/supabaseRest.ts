@@ -406,7 +406,6 @@ export async function upsertStructuredProfile({
           minutes_per_session: numberOrNull(profile.minutesPerSession),
           training_location: stringOrNull(profile.location),
           equipment: arrayOrEmpty(profile.equipment),
-          exercise_preferences: arrayOrEmpty(profile.exercisePreferences),
           limitations: stringOrNull(profile.limitations),
           updated_at: now,
         },

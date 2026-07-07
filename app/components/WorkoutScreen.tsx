@@ -649,6 +649,7 @@ const introSentForIndexRef = useRef<number | null>(null);
 /* eslint-disable react-hooks/exhaustive-deps */
 useEffect(() => {
   if (!currentExerciseName) return;
+  if (isCoachThinking) return;
   if (introSentForIndexRef.current === exerciseIndex) return;
   introSentForIndexRef.current = exerciseIndex;
 
@@ -665,7 +666,7 @@ useEffect(() => {
       previousWorkoutSummary: exerciseIndex === 0 ? previousWorkoutSummary : undefined,
     })
   );
-}, [exerciseIndex]);
+}, [exerciseIndex, isCoachThinking]);
 /* eslint-enable react-hooks/exhaustive-deps */
 
   return (
