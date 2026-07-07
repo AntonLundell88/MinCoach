@@ -31,6 +31,7 @@ import {
   requestAiProgramReply,
   requestAiWorkoutReview,
   type BuiltWorkoutPlan,
+  type CoachChatContext,
   type CoachExerciseLibraryInfo,
   type CoachProgramSuggestion,
   type CoachProgramSuggestionAction,
@@ -1309,10 +1310,16 @@ function buildLocalWorkoutChatFallback(args: {
     ]);
   }
 
+  if (args.message.includes("?")) {
+    return shortCoach([
+      "Svårt att svara direkt just nu.",
+      setText ? `Ta nästa set — sedan pratar vi.` : "Vi tar det efter nästa set.",
+    ]);
+  }
+
   return shortCoach([
-    "Jag hör dig.",
-    "Jag tar med det i nästa beslut.",
-    "Fortsätt skriva så där under passet, det hjälper coachningen.",
+    "Okej.",
+    setText ? `Vi kör vidare.` : "Fortsätt.",
   ]);
 }
 
@@ -4691,7 +4698,7 @@ if (activeWorkoutDraft?.workout) {
     setWorkout(activeWorkoutDraft.workout);
     setExerciseIndex(activeWorkoutDraft.exerciseIndex ?? 0);
     setSkippedExercise(activeWorkoutDraft.skippedExercise ?? null);
-    setChatLog(activeWorkoutDraft.chatLog ?? []);
+    setChatLog((activeWorkoutDraft.chatLog ?? []).filter((m) => m.source !== "fallback"));
     setChatInput(activeWorkoutDraft.chatInput ?? "");
     setWeightInput(activeWorkoutDraft.weightInput ?? "");
     setRepsInput(activeWorkoutDraft.repsInput ?? "");
@@ -5817,119 +5824,110 @@ async function sendChat() {
     dayForm,
     currentSets: currentWorkoutExercise?.sets ?? [],
   });
+  // Slimmad kontext för fria chattfrågor — set-coachen får sin egna fullständiga kontext separat.
+  // Borttaget: activePlan, activePlanExerciseInfo, uiHints.
+  // Slimmat: currentExerciseInfo (5 fält), currentCoachDecision (strategy + reason).
+  const buildSlimChatContext = (overrides?: {
+    dayForm?: DayForm | null;
+    warmupContext?: WarmupContext | null;
+    conditioningContext?: ConditioningContext | null;
+  }): CoachChatContext => {
+    const slimExerciseInfo = currentExerciseName
+      ? (() => {
+          const full = buildExerciseLibraryInfo(currentExerciseName);
+          return {
+            name: full.name,
+            trains: full.trains,
+            techniqueCue: full.techniqueCue,
+            keepInMind: full.keepInMind,
+            easierAlternative: full.easierAlternative,
+          } as CoachExerciseLibraryInfo;
+        })()
+      : undefined;
+
+    const slimDecision =
+      currentWorkoutExercise && currentWorkoutExercise.sets.length > 0
+        ? (() => {
+            if (currentWorkoutExercise.completed) {
+              return {
+                strategy: "complete" as const,
+                reason: "Övningen är klar. Prata om nästa gång eller nästa övning, inte nästa set.",
+              };
+            }
+            const latestSet =
+              currentWorkoutExercise.sets[currentWorkoutExercise.sets.length - 1];
+            const decision = getNextSetPlan({
+              weight: latestSet.weight,
+              reps: latestSet.reps,
+              rir: latestSet.rir ?? 2,
+              failNote: latestSet.failNote,
+              setNumber: currentWorkoutExercise.sets.length,
+              plannedSetCount: currentWorkoutExercise.plannedSets,
+              targetReps: goalTargets.targetReps,
+              exerciseName: currentExerciseName,
+              previousSets: currentWorkoutExercise.sets.slice(0, -1),
+            });
+            return { strategy: decision.strategy, reason: decision.reason };
+          })()
+        : undefined;
+
+    return {
+      kind: "workout_chat",
+      userName: profileName,
+      userMessage: msg,
+      goalPrimary: userProfile?.goalPrimary ?? "styrka",
+      passLabel: currentPassLabel,
+      dayForm: overrides?.dayForm ?? dayForm,
+      currentExerciseName,
+      currentExerciseCategory: currentExerciseName
+        ? getExerciseProfile(currentExerciseName).category
+        : undefined,
+      currentExerciseInfo: slimExerciseInfo,
+      memoryInsight: currentExerciseName
+        ? buildExerciseMemoryInsight({ coachMemory, exerciseName: currentExerciseName })
+        : undefined,
+      exerciseIndex: workout ? exerciseIndex + 1 : undefined,
+      exerciseCount: workout?.exercises.length,
+      currentExerciseCompleted: Boolean(currentWorkoutExercise?.completed),
+      currentSets: currentWorkoutExercise?.sets.map((set) => ({
+        weight: set.weight,
+        reps: set.reps,
+        durationSeconds: set.durationSeconds,
+        metricType: set.metricType,
+        rir: set.rir,
+        failNote: set.failNote,
+      })),
+      currentCoachDecision: slimDecision,
+      progressionOpportunity: progressionPlan.opportunity
+        ? {
+            type: progressionPlan.opportunity.type,
+            confidence: progressionPlan.opportunity.confidence,
+            suggestedLoadText: `${progressionPlan.opportunity.suggestedWeight} kg`,
+            reason: progressionPlan.opportunity.reason,
+            tone: progressionPlan.opportunity.tone,
+          }
+        : undefined,
+      warmupNote: overrides?.warmupContext?.note ?? activeWarmupContext?.note,
+      conditioningNote: overrides?.conditioningContext?.note ?? activeConditioningContext?.note,
+      previousCoachReply: lastCoachMessage,
+      recentConversation: chatLog
+        .slice(-10)
+        .filter((m, i, arr) =>
+          !(m.role === "coach" && m.source === "fallback") &&
+          !(m.role === "you" && arr[i + 1]?.role === "coach" && arr[i + 1]?.source === "fallback")
+        )
+        .map((m) => `${m.role === "you" ? "Användaren" : "Coach"}: ${m.text}`)
+        .filter(Boolean),
+    };
+  };
+
   const askAiCoach = async (fallbackReply: string, overrides?: {
     dayForm?: DayForm | null;
     warmupContext?: WarmupContext | null;
     conditioningContext?: ConditioningContext | null;
   }) => {
     const response = await requestAiCoachChatReply({
-      context: {
-        kind: "workout_chat",
-        userName: profileName,
-        userMessage: msg,
-        goalPrimary: userProfile?.goalPrimary ?? "styrka",
-        passLabel: currentPassLabel,
-        dayForm: overrides?.dayForm ?? dayForm,
-        currentExerciseName,
-        currentExerciseCategory: currentExerciseName
-          ? getExerciseProfile(currentExerciseName).category
-          : undefined,
-        currentExerciseInfo: currentExerciseName
-          ? buildExerciseLibraryInfo(currentExerciseName)
-          : undefined,
-        memoryInsight: currentExerciseName
-          ? buildExerciseMemoryInsight({
-              coachMemory,
-              exerciseName: currentExerciseName,
-            })
-          : undefined,
-        exerciseIndex: workout ? exerciseIndex + 1 : undefined,
-        exerciseCount: workout?.exercises.length,
-        currentExerciseCompleted: Boolean(currentWorkoutExercise?.completed),
-        currentSets: currentWorkoutExercise?.sets.map((set) => ({
-          weight: set.weight,
-          reps: set.reps,
-          durationSeconds: set.durationSeconds,
-          metricType: set.metricType,
-          rir: set.rir,
-          failNote: set.failNote,
-        })),
-        currentCoachDecision:
-          currentWorkoutExercise && currentWorkoutExercise.sets.length > 0
-            ? (() => {
-                if (currentWorkoutExercise.completed) {
-                  return {
-                    strategy: "complete" as const,
-                    reason: "Övningen är klar. Prata om nästa gång eller nästa övning, inte nästa set.",
-                  };
-                }
-
-                const latestSet =
-                  currentWorkoutExercise.sets[
-                    currentWorkoutExercise.sets.length - 1
-                  ];
-                const decision = getNextSetPlan({
-                  weight: latestSet.weight,
-                  reps: latestSet.reps,
-                  rir: latestSet.rir ?? 2,
-                  failNote: latestSet.failNote,
-                  setNumber: currentWorkoutExercise.sets.length,
-                  plannedSetCount: currentWorkoutExercise.plannedSets,
-                  targetReps: goalTargets.targetReps,
-                  exerciseName: currentExerciseName,
-                  previousSets: currentWorkoutExercise.sets.slice(0, -1),
-                });
-
-                return {
-                  strategy: decision.strategy,
-                  reason: decision.reason,
-                  nextWeight:
-                    decision.strategy === "complete"
-                      ? undefined
-                      : `${formatWeightInput(decision.weight)} kg`,
-                  targetReps:
-                    decision.strategy === "complete"
-                      ? undefined
-                      : decision.repsText,
-                  targetRir:
-                    decision.strategy === "complete"
-                      ? undefined
-                      : decision.rirText,
-                  restText: decision.restText,
-                  techniqueCue: decision.techniqueCue,
-                };
-              })()
-            : undefined,
-        progressionOpportunity: progressionPlan.opportunity
-          ? {
-              type: progressionPlan.opportunity.type,
-              confidence: progressionPlan.opportunity.confidence,
-              suggestedLoadText: `${progressionPlan.opportunity.suggestedWeight} kg`,
-              reason: progressionPlan.opportunity.reason,
-              tone: progressionPlan.opportunity.tone,
-            }
-          : undefined,
-        uiHints:
-          currentWorkoutExercise && currentWorkoutExercise.sets.length > 0
-            ? {
-                nextSetCardShowsPlan: true,
-                avoidRepeatingFullPlan: true,
-                avoidRepeatingRest: true,
-                avoidRepeatingTechniqueCue: true,
-              }
-            : undefined,
-        activePlan,
-        activePlanExerciseInfo: buildExerciseLibraryInfoList(activePlan),
-        warmupNote:
-          overrides?.warmupContext?.note ?? activeWarmupContext?.note,
-        conditioningNote:
-          overrides?.conditioningContext?.note ?? activeConditioningContext?.note,
-        previousCoachReply: lastCoachMessage,
-        recentConversation: chatLog
-          .slice(-10)
-          .map((m) => `${m.role === "you" ? "Användaren" : "Coach"}: ${m.text}`)
-          .filter(Boolean),
-      },
+      context: buildSlimChatContext(overrides),
       fallbackReply,
     });
 
@@ -8645,6 +8643,10 @@ const coachSetContext = buildCoachSetContext({
 });
 const recentConversation = chatLog
   .slice(-8)
+  .filter((m, i, arr) =>
+    !(m.role === "coach" && m.source === "fallback") &&
+    !(m.role === "you" && arr[i + 1]?.role === "coach" && arr[i + 1]?.source === "fallback")
+  )
   .map((m) => `${m.role === "you" ? "Användaren" : "Coach"}: ${m.text}`)
   .filter(Boolean);
 if (recentConversation.length > 0) {
@@ -10232,7 +10234,7 @@ addCoachMessage={(text) =>
       setWorkout(staleDraft.workout);
       setExerciseIndex(staleDraft.exerciseIndex ?? 0);
       setSkippedExercise(staleDraft.skippedExercise ?? null);
-      setChatLog(staleDraft.chatLog ?? []);
+      setChatLog((staleDraft.chatLog ?? []).filter((m) => m.source !== "fallback"));
       setChatInput(staleDraft.chatInput ?? "");
       setWeightInput(staleDraft.weightInput ?? "");
       setRepsInput(staleDraft.repsInput ?? "");

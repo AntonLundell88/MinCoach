@@ -42,46 +42,83 @@ function extractOutputText(data: unknown) {
     .join("\n");
 }
 
+type DiagFields = {
+  route: string;
+  timestamp: string;
+  durationMs: number;
+  errorType: string;
+  errorMessage?: string;
+  model: string;
+  effort: string;
+  verbosity: string;
+  promptSizeChars: number;
+};
+
+function logFallback(fields: DiagFields) {
+  console.error("[MinCoach chat fallback]", JSON.stringify(fields));
+}
+
 function fallbackResponse(
   fallbackReply: string,
   reason: string,
+  diag: { startMs: number; promptSize: number } | null,
   maxCharacters?: number,
-  debug?: string
+  errorMessage?: string
 ) {
+  if (diag) {
+    logFallback({
+      route: "chat",
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - diag.startMs,
+      errorType: reason,
+      errorMessage: errorMessage?.slice(0, 200),
+      model: process.env.OPENAI_MODEL ?? "gpt-5.5",
+      effort: "medium",
+      verbosity: "medium",
+      promptSizeChars: diag.promptSize,
+    });
+  }
+
   return NextResponse.json({
     mode: "fallback",
     reason,
-    debug:
-      process.env.NODE_ENV !== "production" && debug
-        ? debug.slice(0, 700)
-        : undefined,
     text: sanitizeCoachReply(fallbackReply, fallbackReply, maxCharacters),
   });
 }
 
 export async function POST(request: Request) {
+  const startMs = Date.now();
   let body: CoachChatRequest;
 
   try {
     body = (await request.json()) as CoachChatRequest;
   } catch {
-    return fallbackResponse("", "invalid_json");
+    return fallbackResponse("", "invalid_json", null);
   }
 
   const context = body.context;
   const fallbackReply = body.fallbackReply ?? "";
 
   if (!context || context.kind !== "workout_chat") {
-    return fallbackResponse(fallbackReply, "invalid_context");
+    return fallbackResponse(fallbackReply, "invalid_context", null);
   }
 
   const payload = buildCoachChatPromptPayload(context);
+  const promptBody = JSON.stringify({
+    context: payload.context,
+    instruction: payload.instruction,
+    maxCharacters: payload.maxCharacters,
+  });
+  const promptSize = promptBody.length;
+  const diag = { startMs, promptSize };
+
   const rateLimit = checkAiRateLimit(request, "chat");
 
   if (!rateLimit.allowed) {
     return fallbackResponse(
       fallbackReply,
       "rate_limited",
+      diag,
       payload.maxCharacters
     );
   }
@@ -92,6 +129,7 @@ export async function POST(request: Request) {
     return fallbackResponse(
       fallbackReply,
       "missing_api_key",
+      diag,
       payload.maxCharacters
     );
   }
@@ -117,11 +155,7 @@ export async function POST(request: Request) {
             content: [
               {
                 type: "input_text",
-                text: JSON.stringify({
-                  context: payload.context,
-                  instruction: payload.instruction,
-                  maxCharacters: payload.maxCharacters,
-                }),
+                text: promptBody,
               },
             ],
           },
@@ -133,14 +167,10 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
-      console.error("OpenAI coach chat failed", {
-        status: response.status,
-        body: errorText.slice(0, 500),
-      });
-
       return fallbackResponse(
         fallbackReply,
         `api_error_${response.status}`,
+        diag,
         payload.maxCharacters,
         errorText
       );
@@ -155,6 +185,16 @@ export async function POST(request: Request) {
     );
 
     if (!aiText.trim()) {
+      logFallback({
+        route: "chat",
+        timestamp: new Date().toISOString(),
+        durationMs: Date.now() - startMs,
+        errorType: data?.status === "incomplete" ? "incomplete_empty_reply" : "empty_reply",
+        model: process.env.OPENAI_MODEL ?? "gpt-5.5",
+        effort: "medium",
+        verbosity: "medium",
+        promptSizeChars: promptSize,
+      });
       return NextResponse.json({
         mode: "fallback",
         reason: data?.status === "incomplete" ? "incomplete_empty_reply" : "empty_reply",
@@ -170,14 +210,17 @@ export async function POST(request: Request) {
     const usedSanitizedFallback =
       Boolean(aiText.trim()) && sanitizedText === fallbackText;
 
-    if (
-      process.env.NODE_ENV !== "production" &&
-      usedSanitizedFallback
-    ) {
-      console.warn("OpenAI coach chat sanitized fallback", {
-        userMessage: context.userMessage,
-        aiText: aiText.slice(0, 500),
-        fallbackReply,
+    if (usedSanitizedFallback) {
+      logFallback({
+        route: "chat",
+        timestamp: new Date().toISOString(),
+        durationMs: Date.now() - startMs,
+        errorType: "sanitized_reply",
+        errorMessage: aiText.slice(0, 100),
+        model: process.env.OPENAI_MODEL ?? "gpt-5.5",
+        effort: "medium",
+        verbosity: "medium",
+        promptSizeChars: promptSize,
       });
     }
 
@@ -188,10 +231,13 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Unknown OpenAI request error";
+      error instanceof Error ? error.message : "Unknown error";
     return fallbackResponse(
       fallbackReply,
-      "api_error",
+      error instanceof Error && error.name === "AbortError"
+        ? "timeout"
+        : "network_error",
+      diag,
       payload.maxCharacters,
       message
     );
