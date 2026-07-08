@@ -4432,6 +4432,7 @@ const [chatLog, setChatLog] = useState<
     exerciseName?: string;
     source?: "engine" | "llm" | "fallback";
     highlight?: boolean;
+    eventKey?: string;
   }[]
 >([]);
 const [coachPendingReply, setCoachPendingReply] = useState(false);
@@ -9903,9 +9904,9 @@ return (
         workoutExerciseInput={workoutExerciseInput}
         setWorkoutExerciseInput={setWorkoutExerciseInput}
         addExerciseDuringWorkout={addExerciseDuringWorkout}
-addCoachMessage={(text) =>
+addCoachMessage={(text, eventKey) =>
   setChatLog((prev) => {
-    if (prev.some((m) => m.role === "coach" && m.source === "engine" && m.text === text)) {
+    if (eventKey && prev.some((m) => m.eventKey === eventKey)) {
       return prev;
     }
 
@@ -9915,6 +9916,7 @@ addCoachMessage={(text) =>
         role: "coach",
         source: "engine" as const,
         text,
+        eventKey,
       },
     ];
   })

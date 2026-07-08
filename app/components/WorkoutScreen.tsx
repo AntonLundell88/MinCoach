@@ -52,10 +52,11 @@ type Props = {
     text: string;
     setNumber?: number;
     aiStatus?: "fallback";
+    eventKey?: string;
   }[];
   chatInput: string;
   setChatInput: (v: string) => void;
-  addCoachMessage: (text: string) => void;
+  addCoachMessage: (text: string, eventKey?: string) => void;
   sendChat: () => void;
   isCoachThinking?: boolean;
   workoutExerciseInput: string;
@@ -653,6 +654,7 @@ useEffect(() => {
   if (introSentForIndexRef.current === exerciseIndex) return;
   introSentForIndexRef.current = exerciseIndex;
 
+  const eventKey = `exercise_intro:${exerciseIndex}`;
   addCoachMessage(
     buildExerciseIntroCoachText({
       exerciseName: currentExerciseName,
@@ -664,7 +666,8 @@ useEffect(() => {
       exerciseKey,
       personalRecords,
       previousWorkoutSummary: exerciseIndex === 0 ? previousWorkoutSummary : undefined,
-    })
+    }),
+    eventKey
   );
 }, [exerciseIndex, isCoachThinking]);
 /* eslint-enable react-hooks/exhaustive-deps */
