@@ -391,10 +391,18 @@ function applyReviewCoachParts(
   };
 }
 
+type Gym = {
+  id: string;
+  name: string;
+  createdAt: string;
+  exerciseOverrides?: Record<string, string>;
+};
+
 type Workout = {
   id: string;
   startedAt: string;
   gym: string;
+  gymId?: string;
   pass: PassType;
   displayName: string;
   planTitle?: string;
@@ -557,21 +565,6 @@ function buildWarmupContext(input: string): WarmupContext | null {
 }
 
 
-function getPainCoachReply(warmup: WarmupContext | null) {
-  if (!warmup || warmup.status === "unknown") {
-    return "Bra att du säger till. Vi tar ingen risk här. Lämna den övningen eller byt till något som känns helt smärtfritt.";
-  }
-
-  if (warmup.status === "skipped") {
-    return "Bra att du säger till. Vi stoppar den övningen här. Nästa gång värmer vi upp lättare innan första arbetssetet.";
-  }
-
-  return "Bra att du säger till. Du värmde upp, så vi chansar inte vidare. Lämna den övningen eller byt till något som känns helt smärtfritt.";
-}
-
-function getPainCoachActionText(warmup: WarmupContext | null) {
-  return `${getPainCoachReply(warmup)} Tryck Hoppa över om du vill lämna den.`;
-}
 
 function getPainCoachContextText(warmup: WarmupContext | null) {
   if (!warmup || warmup.status === "unknown") {
@@ -3419,6 +3412,66 @@ function getRestTextForRir(rir: number, exerciseName = "") {
   return "2â€“3 minuter";
 }
 
+function buildGymComparison(args: {
+  history: Workout[];
+  currentGymId: string | null;
+  currentGymName: string;
+  gyms: Gym[];
+}): CoachSetContext["gymComparison"] {
+  const { history: hist, currentGymId, currentGymName, gyms } = args;
+  if (!currentGymId || gyms.length <= 1) return undefined;
+
+  const hasHistoryAtCurrentGym = hist.some((w) => w.gymId === currentGymId);
+  const mostRecent = [...hist].sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
+  const differentFromLastSession = mostRecent ? mostRecent.gymId !== currentGymId : false;
+
+  return { currentGymName, hasHistoryAtCurrentGym, differentFromLastSession };
+}
+
+function buildRecoveryContext(args: {
+  exerciseName: string;
+  history: Workout[];
+}): CoachSetContext["recoveryContext"] {
+  const { exerciseName, history } = args;
+  if (history.length === 0) return undefined;
+
+  const key = exerciseKey(exerciseName);
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const sorted = [...history].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+
+  const daysDiff = (isoStr: string) =>
+    Math.round((now.getTime() - new Date(isoStr).getTime()) / 86400000);
+
+  let exerciseLastTrainedDays: number | null = null;
+  for (const w of sorted) {
+    if (w.startedAt.slice(0, 10) === todayStr) continue;
+    if (w.exercises.some((e) => exerciseKey(e.name) === key)) {
+      exerciseLastTrainedDays = daysDiff(w.startedAt);
+      break;
+    }
+  }
+
+  const prevSession = sorted.find((w) => w.startedAt.slice(0, 10) !== todayStr);
+  if (!prevSession && exerciseLastTrainedDays === null) return undefined;
+
+  let previousSession: NonNullable<CoachSetContext["recoveryContext"]>["previousSession"];
+  if (prevSession) {
+    const totalSets = prevSession.exercises.reduce((s, e) => s + e.sets.length, 0);
+    const anyRirZero = prevSession.exercises.some((e) =>
+      e.sets.some((s) => typeof s.rir === "number" && s.rir <= 0)
+    );
+    const anyFail = prevSession.exercises.some((e) => e.sets.some((s) => s.failNote));
+    previousSession = {
+      daysAgo: daysDiff(prevSession.startedAt),
+      exercises: prevSession.exercises.map((e) => e.name).slice(0, 4),
+      wasHard: totalSets >= 12 || anyRirZero || anyFail,
+    };
+  }
+
+  return { exerciseLastTrainedDays, previousSession };
+}
+
 function buildCoachSetContext(args: {
   userName?: string;
   goalPrimary: UserProfile["goalPrimary"];
@@ -3447,6 +3500,8 @@ function buildCoachSetContext(args: {
   memoryInsight?: string;
   warmupContext: WarmupContext | null;
   conditioningContext: ConditioningContext | null;
+  gymComparison?: CoachSetContext["gymComparison"];
+  recoveryContext?: CoachSetContext["recoveryContext"];
 }): CoachSetContext {
   const previousSet = args.previousSets[args.previousSets.length - 1];
   const isTimedSet = args.metricType === "time" || isTimedExercise(args.exerciseName);
@@ -3732,6 +3787,8 @@ function buildCoachSetContext(args: {
     conditioningNote: args.conditioningContext?.note,
     previousCoachReply: args.lastCoachMessage?.trim() || undefined,
     computedSignals: signals,
+    gymComparison: args.gymComparison,
+    recoveryContext: args.recoveryContext,
   };
 }
 
@@ -4374,6 +4431,8 @@ export default function Home() {
   const exerciseIndexRef = useRef(0);
   const [now, setNow] = useState<Date>(new Date());
   const [gym, setGym] = useState<string>("Sjöviksgymmet");
+  const [gyms, setGyms] = useState<Gym[]>([]);
+  const [activeGymId, setActiveGymId] = useState<string | null>(null);
   const [lastPass, setLastPass] = useState<PassType | null>(null);
   const [lobbyCoachText, setLobbyCoachText] = useState<string>(() => loadJSON<string>("lobbyCoachText", ""));
   const [coachMemory, setCoachMemory] = useState<CoachMemory>({ notes: [] });
@@ -4544,6 +4603,19 @@ if (savedLastPass && ALL_PASS_KEYS.includes(savedLastPass)) {
 }
     
     if (savedGym) setGym(savedGym);
+
+    const savedGyms = loadJSON<Gym[]>("gyms", []);
+    if (savedGyms.length > 0) {
+      setGyms(savedGyms);
+      const savedActiveGymId = localStorage.getItem("lastGymId");
+      setActiveGymId(savedActiveGymId ?? savedGyms[0].id);
+    } else if (savedGym) {
+      const migratedGym: Gym = { id: crypto.randomUUID(), name: savedGym, createdAt: new Date().toISOString() };
+      setGyms([migratedGym]);
+      setActiveGymId(migratedGym.id);
+      localStorage.setItem("gyms", JSON.stringify([migratedGym]));
+      localStorage.setItem("lastGymId", migratedGym.id);
+    }
 
     setHistory(loadJSON<Workout[]>("workoutHistory", []));
     setLastByExercise(loadJSON<LastByExercise>("lastByExercise", {}));
@@ -5076,8 +5148,14 @@ function getProgressionHistoryForExercise(
   return [prWorkout, ...baseHistory];
 }
 
+const gymFilteredHistory = useMemo(() => {
+  if (!activeGymId) return history;
+  const gymHistory = history.filter((w) => w.gymId === activeGymId);
+  return gymHistory.length > 0 ? gymHistory : history;
+}, [history, activeGymId]);
+
 const progressionHistory = useMemo(() => {
-  const baseHistory = workout ? [workout, ...history] : history;
+  const baseHistory = workout ? [workout, ...gymFilteredHistory] : gymFilteredHistory;
   if (!currentExerciseName) return baseHistory;
 
   const pr = personalRecords[exerciseKey(currentExerciseName)];
@@ -5116,7 +5194,7 @@ const progressionHistory = useMemo(() => {
   };
 
   return [prWorkout, ...baseHistory];
-}, [currentExerciseName, history, nextPass, personalRecords, workout]);
+}, [currentExerciseName, gymFilteredHistory, nextPass, personalRecords, workout]);
 
 const stagnationInsight = useMemo(() => {
   if (!currentExerciseName) return "";
@@ -5346,7 +5424,42 @@ useEffect(() => {
 }, [currentExerciseName, started, adjustedSuggestion.weight, adjustedSuggestion.reps]);
 
 
-function startWorkout() {
+function addGym(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const newGym: Gym = { id: crypto.randomUUID(), name: trimmed, createdAt: new Date().toISOString() };
+    const updated = [...gyms, newGym];
+    setGyms(updated);
+    setActiveGymId(newGym.id);
+    setGym(newGym.name);
+    localStorage.setItem("gyms", JSON.stringify(updated));
+    localStorage.setItem("lastGymId", newGym.id);
+  }
+
+  function selectGym(id: string) {
+    const found = gyms.find((g) => g.id === id);
+    if (!found) return;
+    setActiveGymId(id);
+    setGym(found.name);
+    localStorage.setItem("lastGymId", id);
+  }
+
+  function updateGymOverride(gymId: string, originalName: string, overrideName: string) {
+    const updated = gyms.map((g) => {
+      if (g.id !== gymId) return g;
+      const overrides = { ...(g.exerciseOverrides ?? {}) };
+      if (overrideName.trim()) {
+        overrides[originalName] = overrideName.trim();
+      } else {
+        delete overrides[originalName];
+      }
+      return { ...g, exerciseOverrides: overrides };
+    });
+    setGyms(updated);
+    localStorage.setItem("gyms", JSON.stringify(updated));
+  }
+
+  function startWorkout() {
   if (!nextPlannedPass || !workoutPlan) return;
   const warmupContext = null;
   const conditioningContext = null;
@@ -5356,18 +5469,21 @@ const w: Workout = {
   id: crypto.randomUUID(),
   startedAt: startedAt.toISOString(),
   gym,
+  gymId: activeGymId ?? undefined,
   pass: nextPass,
   displayName: cleanPassDisplayLabel(
     nextPlannedPass?.displayName ?? `Pass ${nextPass}`
   ),
   planTitle: workoutPlan?.title,
   exercises: plan.map((name: string) => {
+    const activeGym = gyms.find((g) => g.id === activeGymId);
+    const resolvedName = activeGym?.exerciseOverrides?.[name] ?? name;
     const plannedExercise = nextPlannedPass.exercises.find(
       (exercise) => exerciseKey(exercise.name) === exerciseKey(name)
     );
 
     return {
-      name,
+      name: resolvedName,
       plannedSets: parsePlannedSetCount(plannedExercise?.sets) ?? undefined,
       plannedReps: plannedExercise?.reps,
       plannedRir: plannedExercise?.rir,
@@ -5392,7 +5508,7 @@ const w: Workout = {
 const firstExerciseName = plan[0] ?? "";
 const firstExercisePlan = firstExerciseName
   ? buildProgressionPlan({
-      history: getProgressionHistoryForExercise(firstExerciseName, history, {
+      history: getProgressionHistoryForExercise(firstExerciseName, gymFilteredHistory, {
         gym,
         pass: nextPass,
         displayName: nextPassLabel,
@@ -5491,7 +5607,6 @@ function extractExerciseNameAfterNormalized(message: string, triggers: string[])
 
 type WorkoutChatIntent = {
   topic:
-    | "pain"
     | "equipment"
     | "skip"
     | "swap"
@@ -5547,23 +5662,6 @@ function parseWorkoutChatIntent(args: {
     swapTo: "",
   };
 
-  if (
-    includesAnyIntent(lower, [
-      "gjorde ont",
-      "gor ont",
-      "ont",
-      "smarta",
-      "kanning",
-      "kanner av",
-    ])
-  ) {
-    return {
-      ...base,
-      topic: "pain",
-      tense: includesAnyIntent(lower, ["gjorde", "fick", "kande"]) ? "past" : "present",
-      targetIndex: workout ? resolvedTargetIndex : null,
-    };
-  }
 
   if (
     includesAnyIntent(lower, [
@@ -5906,80 +6004,6 @@ async function sendChat() {
     return;
   }
 
-  if (routedIntent.topic === "pain") {
-    const nextWarmupContext = routedWarmupContext ?? activeWarmupContext;
-    const painExerciseName =
-      workout && routedIntent.targetIndex !== null
-        ? workout.exercises[routedIntent.targetIndex]?.name ?? currentExerciseName
-        : currentExerciseName;
-
-    if (routedWarmupContext) {
-      setActiveWarmupContext(routedWarmupContext);
-      setWorkout((current) =>
-        current ? { ...current, warmupContext: routedWarmupContext } : current
-      );
-    }
-
-    if (workout) {
-      savePainCoachMemory(painExerciseName, msg);
-
-      const targetIndex = routedIntent.targetIndex ?? exerciseIndex;
-      const painExercise = workout.exercises[targetIndex];
-      if (painExercise) {
-        const shouldFinishExercise = shouldCompleteExerciseAfterPain(painExercise);
-
-        if (shouldFinishExercise) {
-          setWorkout((current) => {
-            if (!current) return current;
-
-            return addWorkoutEventToWorkout(
-              {
-                ...current,
-                exercises: current.exercises.map((exercise, index) =>
-                  index === targetIndex ? { ...exercise, completed: true } : exercise
-                ),
-              },
-              {
-                type: "exercise_completed_early",
-                exerciseName: painExercise.name,
-                note: `Avslutades efter smärta/känning: ${msg}`,
-                setCount: painExercise.sets.length,
-              }
-            );
-          });
-
-          if (targetIndex === exerciseIndex) {
-            resetWorkoutInputs();
-          }
-
-          reply(
-            `Okej. Då stänger vi ${painExercise.name} här. Du har redan fått in jobbet, och smärta går före planen. Gå vidare när du är redo.`
-          );
-          return;
-        }
-
-        setWorkout((current) =>
-          current
-            ? addWorkoutEventToWorkout(current, {
-                type: "pain",
-                exerciseName: painExercise.name,
-                note: msg,
-                setCount: painExercise.sets.length,
-              })
-            : current
-        );
-      }
-    }
-
-    const chatReply = await askAiCoach(
-      workout
-        ? getPainCoachActionText(nextWarmupContext)
-        : getPainCoachReply(nextWarmupContext),
-      { warmupContext: nextWarmupContext }
-    );
-    replyFromAi(chatReply);
-    return;
-  }
 
   if (routedIntent.topic === "equipment") {
     if (!workout || routedIntent.targetIndex === null) {
@@ -6220,12 +6244,6 @@ function getPlannedSetCountForLoggedExercise(exercise: LoggedExercise) {
   );
 }
 
-function shouldCompleteExerciseAfterPain(exercise: LoggedExercise) {
-  const setCount = exercise.sets.length;
-  const plannedSetCount = getPlannedSetCountForLoggedExercise(exercise);
-
-  return setCount >= Math.max(2, plannedSetCount - 1);
-}
 
 function addWorkoutEventToWorkout(
   current: Workout,
@@ -6518,24 +6536,6 @@ function undoSkipExercise() {
   setSkippedExercise(null);
 }
 
-function savePainCoachMemory(exerciseName: string, note: string) {
-  if (!workout) return;
-
-  const painNote: CoachNote = {
-    createdAt: new Date().toISOString(),
-    pass: workout.pass,
-    gym: workout.gym,
-    exerciseName,
-    text: `${exerciseName}: användaren kände smärta/känning. ${note}`,
-  };
-  const nextMemory: CoachMemory = {
-    notes: [painNote, ...coachMemory.notes].slice(0, 50),
-  };
-
-  setCoachMemory(nextMemory);
-  saveJSON("coachMemory", nextMemory);
-  void syncBetaCoachMemory(nextMemory.notes);
-}
 
 
 function removeCustomExercise(pass: PassType, nameToRemove: string) {
@@ -8342,7 +8342,7 @@ if (!bodyweightExercise && !timedExercise) {
     weight,
     previousSets: exerciseBeingLogged?.sets ?? [],
     existingPR,
-    historicalBestSets: getExerciseBestSets(history, exerciseName, 6),
+    historicalBestSets: getExerciseBestSets(gymFilteredHistory, exerciseName, 6),
   });
 
   if (!weightCheck.ok) {
@@ -8543,6 +8543,16 @@ const coachSetContext = buildCoachSetContext({
   }),
   warmupContext: activeWarmupContext,
   conditioningContext: activeConditioningContext,
+  gymComparison: buildGymComparison({
+    history,
+    currentGymId: activeGymId,
+    currentGymName: gym,
+    gyms,
+  }),
+  recoveryContext: buildRecoveryContext({
+    exerciseName: currentExerciseName,
+    history,
+  }),
 });
 const recentConversation = chatLog
   .slice(-8)
@@ -8629,8 +8639,6 @@ void syncBetaSnapshotNow({
 });
 
 if (painFailure) {
-  savePainCoachMemory(currentExerciseName, failNoteInput);
-
   setWeightInput("");
   setRepsInput("");
   setFailNoteInput("");
@@ -9455,6 +9463,8 @@ setStarted(false);
   function resetAll() {
     localStorage.removeItem("lastPass");
     localStorage.removeItem("lastGym");
+    localStorage.removeItem("lastGymId");
+    localStorage.removeItem("gyms");
     localStorage.removeItem("workoutHistory");
     localStorage.removeItem("lastByExercise");
     localStorage.removeItem("userProfile");
@@ -9958,7 +9968,7 @@ addCoachMessage={(text, eventKey) =>
             weight,
             previousSets: workout?.exercises[exerciseIndex]?.sets ?? [],
             existingPR: personalRecords[exerciseKey(currentExerciseName)],
-            historicalBestSets: getExerciseBestSets(history, currentExerciseName, 6),
+            historicalBestSets: getExerciseBestSets(gymFilteredHistory, currentExerciseName, 6),
           });
         }}
         previousWorkoutSummary={getPreviousWorkoutSummaryLine(history) ?? undefined}
@@ -10081,6 +10091,16 @@ addCoachMessage={(text, eventKey) =>
     }}
     setEditingProfile={setEditingProfile}
     name={profileName}
+    gyms={gyms}
+    activeGymId={activeGymId}
+    onSelectGym={selectGym}
+    onAddGym={addGym}
+    onUpdateGymOverride={updateGymOverride}
+    allProgramExercises={workoutPlan?.passes.map((p: WorkoutPass) => ({
+      passKey: p.key,
+      passName: p.displayName,
+      exercises: p.exercises.map((e: PlannedExercise) => e.name),
+    })) ?? []}
   />
 ) : showStatistics ? (
   <StatisticsScreen

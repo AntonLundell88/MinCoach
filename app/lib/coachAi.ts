@@ -103,6 +103,19 @@ export type CoachSetContext = {
   previousCoachReply?: string;
   recentConversation?: string[];
   computedSignals: string[];
+  gymComparison?: {
+    currentGymName: string;
+    hasHistoryAtCurrentGym: boolean;
+    differentFromLastSession: boolean;
+  };
+  recoveryContext?: {
+    exerciseLastTrainedDays: number | null;
+    previousSession?: {
+      daysAgo: number;
+      exercises: string[];
+      wasHard: boolean;
+    };
+  };
 };
 
 export type CoachChatContext = {
@@ -570,6 +583,8 @@ const SET_COACH_INSTRUCTION = [
   "- personalRecordText: PB — reagera",
   "- computedSignals / decisionFacts: maskintolkade mönster — underlag, inte sanning",
   "- memoryInsight: din historia med användaren",
+  "- gymComparison är intern signal. Om hasHistoryAtCurrentGym är false kan vikterna behöva kalibreras på detta gym. Nämn det bara om det hjälper användaren förstå dagens startvikt. Om differentFromLastSession är true: resonera tyst om att viktreferenser kan skilja sig mellan gym.",
+  "- recoveryContext är intern träningskontext. Använd den bara när den rimligen förklarar dagens prestation eller påverkar nästa beslut. Nämn den inte rutinmässigt.",
   "- progressionOpportunity: om användaren har mer att ge",
   "- recentConversation: de senaste meddelandena från BÅDA sidor — ditt korttidsminne. Läs innan du agerar.",
   "",
