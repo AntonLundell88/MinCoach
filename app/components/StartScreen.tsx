@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import ExerciseInfoModal from "./ExerciseInfoModal";
-import { getExerciseDefinition, normalizeExerciseSearchText, KNOWN_EXERCISE_NAMES, getProgramExercisePool } from "../lib/exercises";
 
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 
@@ -65,8 +64,6 @@ type Props = {
   activeGymId: string | null;
   onSelectGym: (id: string) => void;
   onAddGym: (name: string) => void;
-  onUpdateGymOverride: (gymId: string, originalName: string, overrideName: string) => void;
-  allProgramExercises: { passKey: string; passName: string; exercises: string[] }[];
 };
 
 const cardClassName =
@@ -106,38 +103,15 @@ export default function StartScreen({
   activeGymId,
   onSelectGym,
   onAddGym,
-  onUpdateGymOverride,
-  allProgramExercises,
 }: Props) {
   const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [showGymPicker, setShowGymPicker] = useState(false);
   const [addGymInput, setAddGymInput] = useState("");
   const [showAddGymInput, setShowAddGymInput] = useState(false);
-  const [customizingGymId, setCustomizingGymId] = useState<string | null>(null);
-  const [pickingForExercise, setPickingForExercise] = useState<string | null>(null);
-  const [overrideSearch, setOverrideSearch] = useState("");
-  const [browsingForExercise, setBrowsingForExercise] = useState<string | null>(null);
-  const [browseSearch, setBrowseSearch] = useState("");
-  const [browseCategory, setBrowseCategory] = useState("alla");
   const [exerciseInfoName, setExerciseInfoName] = useState<string | null>(null);
   const [isEditingExercises, setIsEditingExercises] = useState(false);
-
-  const BROWSE_CATEGORIES = ["alla", "bröst", "rygg", "ben", "axlar", "armar", "mage"] as const;
-  const gymLibrary = useMemo(() => getProgramExercisePool({ location: "gym", limit: 200 }), []);
-  const normalizedBrowseSearch = normalizeExerciseSearchText(browseSearch);
-  const filteredBrowseExercises = useMemo(
-    () =>
-      gymLibrary.filter((ex) => {
-        const matchCat = browseCategory === "alla" || ex.category === browseCategory;
-        const matchSearch =
-          !normalizedBrowseSearch ||
-          normalizeExerciseSearchText(`${ex.name} ${ex.primaryMuscle} ${ex.equipment}`).includes(
-            normalizedBrowseSearch
-          );
-        return matchCat && matchSearch;
-      }),
-    [gymLibrary, browseCategory, normalizedBrowseSearch]
-  );
+  const [showNewGymModal, setShowNewGymModal] = useState(false);
+  const [pendingNewGymName, setPendingNewGymName] = useState("");
 
   const cleanNextPassLabel = nextPassLabel.replace(" 1", "").replace(" 2", "");
   const todayExercises = todayExercisesByPass[nextPass] ?? [];
@@ -250,7 +224,6 @@ export default function StartScreen({
                         onClick={() => {
                           onSelectGym(g.id);
                           setShowGymPicker(false);
-                          setCustomizingGymId(null);
                         }}
                       >
                         <span className={g.id === activeGymId ? "text-white/90 font-medium" : "text-white/55"}>
@@ -258,163 +231,7 @@ export default function StartScreen({
                         </span>
                         {g.id === activeGymId && <span className="text-[#2f6df6] text-xs">✓</span>}
                       </button>
-                      <button
-                        type="button"
-                        className="ml-2 shrink-0 text-xs text-white/30 transition hover:text-white/55"
-                        onClick={() => setCustomizingGymId(customizingGymId === g.id ? null : g.id)}
-                      >
-                        {customizingGymId === g.id ? "Stäng" : "Anpassa"}
-                      </button>
                     </div>
-
-                    {customizingGymId === g.id && allProgramExercises.length > 0 && (
-                      <div className="mx-3 mb-2 rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
-                        <p className="mb-2 text-xs text-white/45">
-                          Saknas en övning på det här gymmet? Byt ut den mot något som tränar samma muskel. Ju mer schemat liknar originalet, desto bättre kan coachen följa din utveckling.
-                        </p>
-                        <div className="space-y-3">
-                          {allProgramExercises.map((passGroup) => (
-                            <div key={passGroup.passKey}>
-                              <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-white/30">
-                                {passGroup.passName}
-                              </p>
-                              <div className="space-y-1.5 border-l border-white/[0.08] pl-3">
-                                {(passGroup.exercises ?? []).map((exName) => {
-                                  const override = g.exerciseOverrides?.[exName];
-                                  const isPicking = pickingForExercise === exName && customizingGymId === g.id;
-                                  const suggestions = getExerciseDefinition(exName)?.substitutions ?? [];
-                                  const searchResults = overrideSearch.trim()
-                                    ? KNOWN_EXERCISE_NAMES.filter((n) =>
-                                        normalizeExerciseSearchText(n).includes(
-                                          normalizeExerciseSearchText(overrideSearch)
-                                        ) && n !== exName
-                                      ).slice(0, 6)
-                                    : [];
-
-                                  return (
-                                    <div key={exName}>
-                                      <div className="flex items-center gap-2">
-                                        <span className="w-28 shrink-0 truncate text-xs text-white/50">{exName}</span>
-                                        <span className="text-xs text-white/25">→</span>
-                                        <button
-                                          type="button"
-                                          className={`min-w-0 flex-1 rounded-lg border px-2 py-1.5 text-left text-xs transition ${
-                                            isPicking
-                                              ? "border-white/25 bg-white/[0.08] text-white"
-                                              : override
-                                              ? "border-white/10 bg-white/[0.06] text-white/80"
-                                              : "border-white/10 bg-white/[0.04] text-white/25"
-                                          }`}
-                                          onClick={() => {
-                                            if (isPicking) {
-                                              setPickingForExercise(null);
-                                              setOverrideSearch("");
-                                            } else {
-                                              setPickingForExercise(exName);
-                                              setOverrideSearch("");
-                                            }
-                                          }}
-                                        >
-                                          {override || exName}
-                                        </button>
-                                        {override && (
-                                          <button
-                                            type="button"
-                                            className="shrink-0 text-xs text-white/25 hover:text-white/50"
-                                            onClick={() => onUpdateGymOverride(g.id, exName, "")}
-                                          >
-                                            ✕
-                                          </button>
-                                        )}
-                                      </div>
-
-                                      {isPicking && (
-                                        <div className="mt-1.5 rounded-xl border border-white/10 bg-black/30 p-2">
-                                          <input
-                                            type="text"
-                                            autoFocus
-                                            value={overrideSearch}
-                                            onChange={(e) => setOverrideSearch(e.target.value)}
-                                            placeholder="Sök övning..."
-                                            className="mb-2 w-full rounded-lg border border-white/10 bg-white/[0.06] px-2 py-1.5 text-xs text-white placeholder-white/25 outline-none focus:border-white/20"
-                                          />
-                                          {overrideSearch.trim() === "" && suggestions.length > 0 && (
-                                            <div>
-                                              <p className="mb-1 px-1 text-[10px] text-white/30">Liknande övningar</p>
-                                              <div className="flex flex-wrap gap-1">
-                                                {suggestions.map((s) => (
-                                                  <div key={s} className="flex items-center gap-0.5">
-                                                    <button
-                                                      type="button"
-                                                      className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-1 text-xs text-white/70 transition hover:bg-white/10 hover:text-white/90"
-                                                      onClick={() => {
-                                                        onUpdateGymOverride(g.id, exName, s);
-                                                        setPickingForExercise(null);
-                                                        setOverrideSearch("");
-                                                      }}
-                                                    >
-                                                      {s}
-                                                    </button>
-                                                    <button
-                                                      type="button"
-                                                      className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] text-white/25 transition hover:text-white/55"
-                                                      onClick={() => setExerciseInfoName(s)}
-                                                    >
-                                                      i
-                                                    </button>
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          )}
-                                          {searchResults.length > 0 && (
-                                            <div className="mt-1 space-y-0.5">
-                                              {searchResults.map((s) => (
-                                                <div key={s} className="flex items-center gap-1">
-                                                  <button
-                                                    type="button"
-                                                    className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-left text-xs text-white/70 transition hover:bg-white/[0.06] hover:text-white/90"
-                                                    onClick={() => {
-                                                      onUpdateGymOverride(g.id, exName, s);
-                                                      setPickingForExercise(null);
-                                                      setOverrideSearch("");
-                                                    }}
-                                                  >
-                                                    {s}
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] text-white/25 transition hover:text-white/55"
-                                                    onClick={() => setExerciseInfoName(s)}
-                                                  >
-                                                    i
-                                                  </button>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          )}
-                                          <button
-                                            type="button"
-                                            className="mt-2 w-full rounded-lg border border-white/[0.08] bg-white/[0.035] px-2 py-1.5 text-xs text-white/45 transition hover:bg-white/[0.07] hover:text-white/68"
-                                            onClick={() => {
-                                              setBrowsingForExercise(exName);
-                                              setBrowseSearch(overrideSearch);
-                                              setBrowseCategory("alla");
-                                            }}
-                                          >
-                                            Bläddra i övningsbiblioteket
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
 
@@ -433,10 +250,17 @@ export default function StartScreen({
                         onChange={(e) => setAddGymInput(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && addGymInput.trim()) {
-                            onAddGym(addGymInput.trim());
-                            setAddGymInput("");
-                            setShowAddGymInput(false);
-                            setShowGymPicker(false);
+                            const isFirst = gyms.length === 0;
+                            if (isFirst) {
+                              onAddGym(addGymInput.trim());
+                              setAddGymInput("");
+                            } else {
+                              setPendingNewGymName(addGymInput.trim());
+                              setAddGymInput("");
+                              setShowAddGymInput(false);
+                              setShowGymPicker(false);
+                              setShowNewGymModal(true);
+                            }
                           }
                           if (e.key === "Escape") {
                             setShowAddGymInput(false);
@@ -452,10 +276,17 @@ export default function StartScreen({
                         className="rounded-xl bg-[#2f6df6] px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
                         onClick={() => {
                           if (addGymInput.trim()) {
-                            onAddGym(addGymInput.trim());
-                            setAddGymInput("");
-                            setShowAddGymInput(false);
-                            setShowGymPicker(false);
+                            const isFirst = gyms.length === 0;
+                            if (isFirst) {
+                              onAddGym(addGymInput.trim());
+                              setAddGymInput("");
+                            } else {
+                              setPendingNewGymName(addGymInput.trim());
+                              setAddGymInput("");
+                              setShowAddGymInput(false);
+                              setShowGymPicker(false);
+                              setShowNewGymModal(true);
+                            }
                           }
                         }}
                       >
@@ -750,100 +581,44 @@ export default function StartScreen({
           onClose={() => setExerciseInfoName(null)}
         />
       ) : null}
-      {browsingForExercise ? (
-        <div className="fixed inset-0 z-[70] flex flex-col bg-[#0e1520]">
-          <div className="border-b border-white/[0.07] p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
-                  Övningsbibliotek
-                </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
-                  Välj ersättning för {browsingForExercise}
-                </h2>
-              </div>
-              <button
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
-                onClick={() => setBrowsingForExercise(null)}
-                aria-label="Stäng"
-              >
-                ✕
-              </button>
+      {showNewGymModal ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/72 px-4 py-4 backdrop-blur-sm">
+          <div className="w-full max-w-[430px] rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+              Nytt gym
+            </p>
+            <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
+              {pendingNewGymName}
+            </h2>
+
+            <div className="mt-4 space-y-3 text-sm leading-6 text-white/68">
+              <p>
+                Ditt nya gym kanske inte har exakt samma maskiner som ditt vanliga. Det är helt okej.
+              </p>
+              <p>
+                Om en övning saknas kan du enkelt byta ut den direkt under passet. Bytet sparas automatiskt för <span className="font-medium text-white/88">{pendingNewGymName}</span>, så nästa gång används rätt övning direkt.
+              </p>
+              <p>
+                Försök välja en övning som tränar samma muskel och har ungefär samma syfte. Ju mer den liknar originalövningen, desto bättre kan coachen följa din utveckling.
+              </p>
+              <p>
+                Olika gym och maskiner kan kännas tyngre eller lättare trots att vikten visar samma siffra. Det är helt normalt – MinCoach håller isär historiken mellan dina gym och anpassar coachningen därefter.
+              </p>
+              <p>
+                Du behöver inte göra några ändringar nu. Om en övning saknas hjälper MinCoach dig att lösa det när det behövs.
+              </p>
             </div>
 
-            <input
-              className="mt-4 w-full rounded-xl border border-white/[0.09] bg-slate-950/45 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/45"
-              value={browseSearch}
-              onChange={(e) => setBrowseSearch(e.target.value)}
-              autoFocus
-              placeholder="Sök övning, muskel eller redskap"
-            />
-
-            <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
-              {BROWSE_CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setBrowseCategory(cat)}
-                  className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold capitalize transition ${
-                    browseCategory === cat
-                      ? "border-blue-300/45 bg-blue-500/[0.18] text-white"
-                      : "border-white/[0.08] bg-white/[0.035] text-white/50 hover:bg-white/[0.07] hover:text-white/72"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-3">
-            <div className="grid gap-2">
-              {filteredBrowseExercises.map((ex) => (
-                <div
-                  key={ex.exerciseKey}
-                  className="rounded-2xl border border-white/[0.07] bg-slate-950/22 p-3"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-sm font-semibold text-white">{ex.name}</h3>
-                      <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/38">
-                        {ex.category} · {ex.equipment}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <button
-                        type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs text-white/55 transition hover:bg-white/[0.08] hover:text-white"
-                        onClick={() => setExerciseInfoName(ex.name)}
-                        aria-label={`Info om ${ex.name}`}
-                      >
-                        i
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-xl bg-[#2f6df6] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#4f83ff]"
-                        onClick={() => {
-                          if (customizingGymId) {
-                            onUpdateGymOverride(customizingGymId, browsingForExercise, ex.name);
-                          }
-                          setBrowsingForExercise(null);
-                          setPickingForExercise(null);
-                          setOverrideSearch("");
-                        }}
-                      >
-                        Välj
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {filteredBrowseExercises.length === 0 && (
-                <p className="rounded-2xl border border-white/[0.07] bg-slate-950/22 p-4 text-sm text-white/58">
-                  Inga övningar matchar. Prova en annan sökning.
-                </p>
-              )}
-            </div>
+            <button
+              className="mt-5 w-full rounded-2xl bg-[#2f6df6] py-3.5 text-sm font-semibold text-white transition hover:bg-[#4f83ff]"
+              onClick={() => {
+                onAddGym(pendingNewGymName);
+                setShowNewGymModal(false);
+                setPendingNewGymName("");
+              }}
+            >
+              Jag förstår
+            </button>
           </div>
         </div>
       ) : null}

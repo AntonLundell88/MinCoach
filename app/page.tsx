@@ -48,6 +48,7 @@ import {
   normalizeExerciseSearchText,
   resolveExerciseName,
 } from "./lib/exercises";
+import { repairMojibake } from "./lib/textEncoding";
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 type ProgramStartMode = "coach" | "manual";
 type AppTheme = "dark" | "light";
@@ -4601,16 +4602,21 @@ if (savedLastPass && ALL_PASS_KEYS.includes(savedLastPass)) {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   setLastPass(savedLastPass);
 }
-    
-    if (savedGym) setGym(savedGym);
+
+    if (savedGym) setGym(repairMojibake(savedGym));
 
     const savedGyms = loadJSON<Gym[]>("gyms", []);
     if (savedGyms.length > 0) {
-      setGyms(savedGyms);
+      const repairedGyms = savedGyms.map((g) => ({ ...g, name: repairMojibake(g.name) }));
+      setGyms(repairedGyms);
+      if (repairedGyms.some((g, i) => g.name !== savedGyms[i].name)) {
+        localStorage.setItem("gyms", JSON.stringify(repairedGyms));
+      }
       const savedActiveGymId = localStorage.getItem("lastGymId");
-      setActiveGymId(savedActiveGymId ?? savedGyms[0].id);
+      setActiveGymId(savedActiveGymId ?? repairedGyms[0].id);
     } else if (savedGym) {
-      const migratedGym: Gym = { id: crypto.randomUUID(), name: savedGym, createdAt: new Date().toISOString() };
+      const repairedGym = repairMojibake(savedGym);
+      const migratedGym: Gym = { id: crypto.randomUUID(), name: repairedGym, createdAt: new Date().toISOString() };
       setGyms([migratedGym]);
       setActiveGymId(migratedGym.id);
       localStorage.setItem("gyms", JSON.stringify([migratedGym]));
@@ -10095,12 +10101,6 @@ addCoachMessage={(text, eventKey) =>
     activeGymId={activeGymId}
     onSelectGym={selectGym}
     onAddGym={addGym}
-    onUpdateGymOverride={updateGymOverride}
-    allProgramExercises={workoutPlan?.passes.map((p: WorkoutPass) => ({
-      passKey: p.key,
-      passName: p.displayName,
-      exercises: p.exercises.map((e: PlannedExercise) => e.name),
-    })) ?? []}
   />
 ) : showStatistics ? (
   <StatisticsScreen
