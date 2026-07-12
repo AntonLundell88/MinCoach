@@ -1080,7 +1080,57 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* PB badge — right after Nästa set */}
+        {/* Inputs (embedded — no card wrapper, no header) */}
+        <ExerciseCard
+          embedded
+          currentExerciseName={currentExerciseName}
+          exerciseKey={exerciseKey}
+          weightInput={weightInput}
+          setWeightInput={setWeightInput}
+          repsInput={repsInput}
+          setRepsInput={setRepsInput}
+          durationSecondsInput={durationSecondsInput}
+          setDurationSecondsInput={setDurationSecondsInput}
+          rirInput={rirInput}
+          setRirInput={setRirInput}
+          didFailInput={didFailInput}
+          setDidFailInput={setDidFailInput}
+          failNoteInput={failNoteInput}
+          setFailNoteInput={setFailNoteInput}
+          addSet={addSet}
+          removeLastSet={removeLastSet}
+          onSkipExercise={skipCurrentExercise}
+          canSkipExercise={canSkipCurrentExercise}
+          skippedExerciseName={skippedExerciseName}
+          undoSkipExercise={undoSkipExercise}
+          personalRecords={personalRecords}
+          plannedWeightKg={plannedWeightKg}
+          plannedReps={plannedReps}
+          nextExerciseButton={
+            <button
+              type="button"
+              className={`workout-primary-action flex h-14 w-full items-center justify-center rounded-2xl border text-base font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30 ${
+                isLastExercise && currentExerciseReadyToFinish
+                  ? "border-emerald-300/25 bg-emerald-400/[0.13] text-emerald-50 hover:bg-emerald-400/[0.18]"
+                  : !currentExerciseReadyToFinish
+                  ? "border-white/[0.06] bg-white/[0.03] text-white/30"
+                  : "border-blue-300/20 bg-blue-500/[0.13] text-blue-50 hover:bg-blue-500/[0.20]"
+              }`}
+              onClick={isLastExercise ? finishWorkout : nextExercise}
+              disabled={!currentExerciseReadyToFinish}
+            >
+              {isLastExercise && currentExerciseReadyToFinish
+                ? "Passet klart"
+                : "Nästa övning"}
+            </button>
+          }
+        />
+
+        {/* Divider */}
+        <div className="my-3 h-px bg-white/[0.07]" />
+
+        {/* Reference zone — PB, history, previous session */}
+        {/* PB badge */}
         {(() => {
           const pr = personalRecords[exerciseKey(currentExerciseName)];
           const label = pr
@@ -1089,7 +1139,7 @@ useEffect(() => {
               : `${pr.weight} × ${pr.reps}`
             : null;
           return (
-            <div className="mt-2 flex">
+            <div className="flex">
               {label ? (
                 <span className="rounded-full border border-amber-200/18 bg-amber-200/[0.08] px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_0_18px_rgba(251,191,36,0.06)]">
                   Personbästa {label}
@@ -1140,55 +1190,6 @@ useEffect(() => {
 
         {/* Set history for this session */}
         <SetList currentSets={currentSets} onEditSet={updateSet} validateWeight={validateSetWeight} />
-
-        {/* Divider */}
-        <div className="my-3 h-px bg-white/[0.07]" />
-
-        {/* Inputs (embedded — no card wrapper, no header) */}
-        <ExerciseCard
-          embedded
-          currentExerciseName={currentExerciseName}
-          exerciseKey={exerciseKey}
-          weightInput={weightInput}
-          setWeightInput={setWeightInput}
-          repsInput={repsInput}
-          setRepsInput={setRepsInput}
-          durationSecondsInput={durationSecondsInput}
-          setDurationSecondsInput={setDurationSecondsInput}
-          rirInput={rirInput}
-          setRirInput={setRirInput}
-          didFailInput={didFailInput}
-          setDidFailInput={setDidFailInput}
-          failNoteInput={failNoteInput}
-          setFailNoteInput={setFailNoteInput}
-          addSet={addSet}
-          removeLastSet={removeLastSet}
-          onSkipExercise={skipCurrentExercise}
-          canSkipExercise={canSkipCurrentExercise}
-          skippedExerciseName={skippedExerciseName}
-          undoSkipExercise={undoSkipExercise}
-          personalRecords={personalRecords}
-          plannedWeightKg={plannedWeightKg}
-          plannedReps={plannedReps}
-          nextExerciseButton={
-            <button
-              type="button"
-              className={`flex-1 rounded-2xl border px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
-                isLastExercise && currentExerciseReadyToFinish
-                  ? "border-emerald-300/24 bg-emerald-400/[0.15] text-emerald-50 hover:bg-emerald-400/[0.20]"
-                  : !currentExerciseReadyToFinish
-                  ? "border-white/[0.075] bg-white/[0.045] text-white/42"
-                  : "border-blue-300/20 bg-blue-500/[0.14] text-blue-50 hover:bg-blue-500/[0.20]"
-              }`}
-              onClick={isLastExercise ? finishWorkout : nextExercise}
-              disabled={!currentExerciseReadyToFinish}
-            >
-              {isLastExercise && currentExerciseReadyToFinish
-                ? "Passet klart"
-                : "Nästa övning"}
-            </button>
-          }
-        />
 
       </section>
 

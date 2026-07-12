@@ -796,17 +796,29 @@ useEffect(() => {
             Lägg till set
           </button>
 
-          <div className={embedded ? "flex gap-2" : "contents"}>
-            <button
-              className="flex-1 rounded-2xl border border-white/[0.075] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/64 transition hover:bg-white/[0.07] hover:text-white"
-              onClick={removeLastSet}
-              title="Ta bort senaste set"
-            >
-              Ångra set
-            </button>
-
-            {nextExerciseButton}
-          </div>
+          {embedded ? (
+            <>
+              {nextExerciseButton}
+              <button
+                className="w-full rounded-xl border border-white/[0.04] bg-transparent px-4 py-2 text-sm font-medium text-white/36 transition hover:bg-white/[0.05] hover:text-white/58"
+                onClick={removeLastSet}
+                title="Ta bort senaste set"
+              >
+                Ångra set
+              </button>
+            </>
+          ) : (
+            <div className="contents">
+              <button
+                className="flex-1 rounded-2xl border border-white/[0.075] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/64 transition hover:bg-white/[0.07] hover:text-white"
+                onClick={removeLastSet}
+                title="Ta bort senaste set"
+              >
+                Ångra set
+              </button>
+              {nextExerciseButton}
+            </div>
+          )}
         </div>
       )}
     </div>
