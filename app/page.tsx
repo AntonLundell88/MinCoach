@@ -5450,6 +5450,15 @@ function addGym(name: string) {
     localStorage.setItem("lastGymId", id);
   }
 
+  function renameGym(id: string, newName: string) {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const updated = gyms.map((g) => g.id === id ? { ...g, name: trimmed } : g);
+    setGyms(updated);
+    localStorage.setItem("gyms", JSON.stringify(updated));
+    if (id === activeGymId) setGym(trimmed);
+  }
+
   function updateGymOverride(gymId: string, originalName: string, overrideName: string) {
     const updated = gyms.map((g) => {
       if (g.id !== gymId) return g;
@@ -10101,6 +10110,7 @@ addCoachMessage={(text, eventKey) =>
     activeGymId={activeGymId}
     onSelectGym={selectGym}
     onAddGym={addGym}
+    onRenameGym={renameGym}
   />
 ) : showStatistics ? (
   <StatisticsScreen

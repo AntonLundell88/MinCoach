@@ -64,6 +64,7 @@ type Props = {
   activeGymId: string | null;
   onSelectGym: (id: string) => void;
   onAddGym: (name: string) => void;
+  onRenameGym: (id: string, newName: string) => void;
 };
 
 const cardClassName =
@@ -103,11 +104,14 @@ export default function StartScreen({
   activeGymId,
   onSelectGym,
   onAddGym,
+  onRenameGym,
 }: Props) {
   const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [showGymPicker, setShowGymPicker] = useState(false);
   const [addGymInput, setAddGymInput] = useState("");
   const [showAddGymInput, setShowAddGymInput] = useState(false);
+  const [editingGymId, setEditingGymId] = useState<string | null>(null);
+  const [editingGymName, setEditingGymName] = useState("");
   const [exerciseInfoName, setExerciseInfoName] = useState<string | null>(null);
   const [isEditingExercises, setIsEditingExercises] = useState(false);
   const [showNewGymModal, setShowNewGymModal] = useState(false);
@@ -217,21 +221,70 @@ export default function StartScreen({
               <div className="mt-3 space-y-1 border-t border-white/[0.07] pt-3">
                 {gyms.map((g) => (
                   <div key={g.id}>
-                    <div className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition hover:bg-white/[0.06]">
-                      <button
-                        type="button"
-                        className="flex flex-1 items-center gap-2 text-left"
-                        onClick={() => {
-                          onSelectGym(g.id);
-                          setShowGymPicker(false);
-                        }}
-                      >
-                        <span className={g.id === activeGymId ? "text-white/90 font-medium" : "text-white/55"}>
-                          {g.name}
-                        </span>
-                        {g.id === activeGymId && <span className="text-[#2f6df6] text-xs">✓</span>}
-                      </button>
-                    </div>
+                    {editingGymId === g.id ? (
+                      <div className="flex gap-2 px-1 py-1">
+                        <input
+                          autoFocus
+                          value={editingGymName}
+                          onChange={(e) => setEditingGymName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && editingGymName.trim()) {
+                              onRenameGym(g.id, editingGymName.trim());
+                              setEditingGymId(null);
+                            }
+                            if (e.key === "Escape") setEditingGymId(null);
+                          }}
+                          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white placeholder-white/25 outline-none focus:border-white/20"
+                        />
+                        <button
+                          type="button"
+                          disabled={!editingGymName.trim()}
+                          onClick={() => {
+                            if (editingGymName.trim()) {
+                              onRenameGym(g.id, editingGymName.trim());
+                              setEditingGymId(null);
+                            }
+                          }}
+                          className="rounded-xl bg-[#2f6df6] px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
+                        >
+                          Spara
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingGymId(null)}
+                          className="rounded-xl border border-white/10 px-3 py-2 text-sm text-white/50"
+                        >
+                          Avbryt
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition hover:bg-white/[0.06]">
+                        <button
+                          type="button"
+                          className="flex flex-1 items-center gap-2 text-left"
+                          onClick={() => {
+                            onSelectGym(g.id);
+                            setShowGymPicker(false);
+                          }}
+                        >
+                          <span className={g.id === activeGymId ? "text-white/90 font-medium" : "text-white/55"}>
+                            {g.name}
+                          </span>
+                          {g.id === activeGymId && <span className="text-[#2f6df6] text-xs">✓</span>}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingGymId(g.id);
+                            setEditingGymName(g.name);
+                          }}
+                          className="ml-2 shrink-0 rounded-lg px-2 py-1 text-xs text-white/28 transition hover:bg-white/[0.06] hover:text-white/60"
+                          aria-label={`Byt namn på ${g.name}`}
+                        >
+                          Byt namn
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
 
