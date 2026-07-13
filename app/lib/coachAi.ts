@@ -1,6 +1,5 @@
 import {
   containsUnsafeCoachPhrase,
-  MINCOACH_AI_SYSTEM_RULES,
   PROGRAM_DESIGN_PROTOCOL,
   TRAINING_DECISION_PROTOCOL,
 } from "./coachRules";
@@ -359,7 +358,7 @@ export type CoachPromptPayload = {
 };
 
 const MAX_COACH_REPLY_CHARACTERS = 620;
-const MAX_CHAT_REPLY_CHARACTERS = 800;
+const MAX_CHAT_REPLY_CHARACTERS = 500;
 const NAME_USAGE_RULE =
   "Använd användarens namn mycket sparsamt. Skriv inte namnet i vanliga svar som \"Bra fråga\" eller \"Okej\". Namnet får användas vid start, stora milstolpar eller när extra närvaro behövs, men högst undantagsvis. Om du är osäker: använd inte namnet.";
 
@@ -547,11 +546,26 @@ const WORKOUT_COACH_SYSTEM = [
   TRAINING_DECISION_PROTOCOL,
 ].join("\n");
 
+const PROGRAM_COACH_SYSTEM = [
+  COACH_HARD_GUARDRAILS,
+  "",
+  COACH_VOICE_BRIEF,
+  "",
+  COACH_LANGUAGE_NOTES,
+  "",
+  COACH_SOUL_RULES,
+  "",
+  TRAINING_DECISION_PROTOCOL,
+].join("\n");
+
 const REVIEW_COACH_SYSTEM = [
   "Du är MinCoach: en erfaren träningscoach med perfekt minne om din elev.",
   "",
   TRAINING_DECISION_PROTOCOL,
 ].join("\n");
+
+const MEMORY_PRECEDENCE_RULE =
+  "Om recentConversation motsäger memoryInsight eller en tidigare notering — t.ex. användaren säger att något som var ett problem förra gången inte längre är det: lita på recentConversation. Färsk information från den här sessionen vinner alltid över äldre minnesnoteringar.";
 
 const SET_COACH_INSTRUCTION = [
   "Ditt uppdrag: förstå vad användaren faktiskt försöker uppnå. Hitta den minsta förändringen som löser situationen.",
@@ -587,6 +601,7 @@ const SET_COACH_INSTRUCTION = [
   "- recoveryContext är intern träningskontext. Använd den bara när den rimligen förklarar dagens prestation eller påverkar nästa beslut. Nämn den inte rutinmässigt.",
   "- progressionOpportunity: om användaren har mer att ge",
   "- recentConversation: de senaste meddelandena från BÅDA sidor — ditt korttidsminne. Läs innan du agerar.",
+  "- " + MEMORY_PRECEDENCE_RULE,
   "",
   "Hårda gränser:",
   "- Hitta inte på fakta.",
@@ -595,7 +610,7 @@ const SET_COACH_INSTRUCTION = [
   "- Om nextTarget.strategy är 'complete': övningen är klar. Reagera på setet och avsluta naturligt — nämn inga fler set-vikter, reps eller vilotider för den här övningen. Undantag: om progressionOpportunity finns kan du erbjuda ett extraset. Om setPlan.isLastExercise är true: passet är klart.",
   "- Om personalRecordText börjar med 'Nytt person': det är ett PB. Reagera tydligt, men låt det kännas genom precision — inte genom mer text. En träffsäker mening räcker ofta.",
   "- Om currentSet.failNote finns: användaren har sagt vad som stoppade setet. Bekräfta det direkt i svaret — det väger tyngre än setnumret.",
-  "- Teknikcue bara när det hjälper: första setet, hårt set, eller shouldMentionTechniqueCue. Hoppa över om uiHints.avoidRepeatingTechniqueCue är true.",
+  "- Teknikcue bara när det hjälper: första setet, hårt set, eller shouldMentionTechniqueCue. Hoppa över om uiHints.avoidRepeatingTechniqueCue är true — även om previousCoachReply råkar innehålla den. previousCoachReply är minne att förhålla dig till, inte ett manus att upprepa.",
   "- Vid smärta: lugn, kort, skyddande.",
   "",
   "Tonreferenser, inte manus:",
@@ -621,7 +636,9 @@ const CHAT_QUESTION_INSTRUCTION = [
   COACH_SOUL_RULES,
   "",
   "Fri chat mitt i passet:",
+  "- Svara bara på det som faktiskt frågades. Lägg inte till angränsande tips, alternativ eller \"bra att veta\" om användaren inte bad om det eller det är säkerhetskritiskt. En fråga, en sak.",
   "- Läs recentConversation INNAN du svarar — det är ditt korttidsminne. Vad har du redan föreslagit? Vad avvisade användaren?",
+  "- " + MEMORY_PRECEDENCE_RULE,
   "- Svara först på det användaren faktiskt skrev.",
   "- Det är okej att reagera innan du är nyttig.",
   "- Om användaren skämtar: möt tonen kort, men bli inte clown.",
@@ -650,6 +667,13 @@ const CHAT_QUESTION_INSTRUCTION = [
   "1-2 sekunder räcker.",
   "Lås inte fast dig där.",
   "Kontroll upp, lugnt ner.",
+  "",
+  "Användaren: vad är krokgrepp?",
+  "Bra svar:",
+  "Det är ett grepp där du lägger tummen runt stången och sedan låser den med fingrarna.",
+  "Greppet blir mycket starkare, men tummen brukar protestera i början.",
+  "Jag tycker faktiskt du kan vänta med det tills greppet börjar begränsa dig. 👊",
+  "(Inte: en lista med varför det är bättre än mixat grepp, plus separata punkter om att tummen kan göra ont, plus råd för en annan övning. En fråga, ett svar.)",
 ].join("\n");
 
 export function buildCoachPromptPayload(
@@ -681,7 +705,7 @@ export function buildCoachProgramPromptPayload(
     'Svara på användarens input om träningsupplägget. Returnera JSON, inte markdown. Format: {"text":"kort coachsvar","suggestion":null eller {"summary":"kort sammanfattning","actions":[...]}}. Tillåtna actions: add_exercise {type, exerciseName, passKey?, passName?, reason?}, remove_exercise {type, exerciseName, reason?}, replace_exercise {type, fromExerciseName, toExerciseName, reason?}, rename_pass {type, passKey, displayName, reason?}. Föreslå bara actions när användaren tydligt vill ändra upplägget. Tolka naturligt språk brett: "hatar X", "X är sämst", "jag vill byta X", "X känns dålig", "får ont av X", "X funkar inte" och liknande betyder att användaren vill ändra övningen. Om användaren ogillar en övning, vill byta den eller får obehag av den: föreslå i första hand replace_exercise med ett konkret alternativ från exerciseLibrary/easierAlternative. Föreslå remove_exercise bara om användaren uttryckligen vill ta bort utan ersättning, om ingen rimlig ersättning finns, eller om säkerheten talar för paus. Föreslå aldrig vaga övningsnamn som "närmsta liknande övning", "liknande övning", "alternativ" eller "annan övning". Om övningen är oklar: suggestion ska vara null och du frågar vilken övning användaren menar. Påstå aldrig att ändringen redan är gjord; skriv att du föreslår den och att användaren kan godkänna. Om användaren bara ställer en fråga eller vill förstå upplägget utan att be om ändring: suggestion ska vara null. Svara tryggt, enkelt och coachigt utan att ändra schemat. Om exerciseLibrary finns och användaren frågar varför en övning ligger i upplägget, vad den tränar, hur den loggas, risker eller alternativ: använd exerciseLibrary som facit och svara användarvänligt. Vid ålder, rädsla, farligt, skada, smärta eller osäkerhet: var extra försiktig, säg att smärta/obehag går före planen och föreslå ändring om användaren kopplar obehaget till en specifik övning. Ge inte medicinska garantier. Vid frågor om fettminskning: förklara kort att styrketräning hjälper formen, musklerna och kroppen under viktnedgång, men att kosten också spelar stor roll. Om du behöver mer information, suggestion ska vara null och du frågar en enda kort följdfråga. Språkkrav: enkel svenska som en trött användare på gymmet fattar direkt. Använd inte slang eller oklara ord som "kötta", "köttade", "köttigt", "mangla" eller "brutal". Hitta inte på kroppsord; skriv "vid handledsbesvär" eller "om handlederna känns ömma". Om du föreslår passnamn ska de vara rena utan parenteser eller volymtaggar. Skriv som en coach, inte som support. Avsluta gärna med tydlig riktning, t.ex. "Vill du kan jag göra upplägget lugnare."';
 
   return {
-    system: `${MINCOACH_AI_SYSTEM_RULES}\n\n${PROGRAM_DESIGN_PROTOCOL}`,
+    system: `${PROGRAM_COACH_SYSTEM}\n\n${PROGRAM_DESIGN_PROTOCOL}`,
     context,
     instruction,
     maxCharacters: MAX_CHAT_REPLY_CHARACTERS,
@@ -718,7 +742,7 @@ Hårda krav:
 - Om något är osäkert: välj tryggare variant och säg varför.`;
 
   return {
-    system: `${MINCOACH_AI_SYSTEM_RULES}\n\n${PROGRAM_DESIGN_PROTOCOL}`,
+    system: `${PROGRAM_COACH_SYSTEM}\n\n${PROGRAM_DESIGN_PROTOCOL}`,
     context,
     instruction: programInstruction,
     maxCharacters: 3200,

@@ -2010,7 +2010,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     popularity: 7,
     trainingValue: "medel",
     risks: "Kontakt och rörelseutslag är viktigare än tung vikt.",
-    substitutions: ["Benpress", "Goblet squat"],
+    substitutions: ["Tåhävningar med hantlar", "Stående vadpress"],
     detail:
       "Vadpress tränar vader. Maskin är standard på gym, men hantlar kan fungera hemma.",
     coachReason:

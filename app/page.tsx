@@ -6038,17 +6038,19 @@ async function sendChat() {
     if (suggestion) {
       setSwapFrom(targetExercise.name);
       setSwapToInput(suggestion);
-      reply(
+      const chatReply = await askAiCoach(
         `Okej. Då löser vi det.\n\n${targetExercise.name} funkar inte nu. Jag föreslår ${suggestion} istället. Skriv ja om du vill byta.`
       );
+      replyFromAi(chatReply);
       return;
     }
 
     setSwapFrom(null);
     setSwapToInput("");
-    reply(
+    const chatReply = await askAiCoach(
       `Okej. Då lämnar vi ${targetExercise.name} just nu.\n\nJag hittar ingen självklar ersättare här. Skriv vilken övning du vill ta istället, eller gå vidare.`
     );
+    replyFromAi(chatReply);
     return;
   }
 
