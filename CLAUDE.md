@@ -185,14 +185,30 @@ AI ska resonera fritt inom verkligheten, men aldrig hitta på fakta.
 2. ~15–20 regex-baserade sanitize-funktioner i `app/lib/coachAi.ts` →
    borttagna. Kvar: whitespace-trim, längdcap, `containsUnsafeCoachPhrase`
    (bara för säkerhetskritiska fraser — inte för stil).
+3. (juli 2026) Chattens prompt hade svällt till ~9 000 tecken statisk
+   instruktion med samma regler upprepade 3–4 gånger på olika ställen
+   (smärta, "upprepa inte UI:t", tidsövningar, teknikcue) plus en
+   självmotsägelse (nextTarget beskrevs både som "facit" och "inte en
+   order"). `COACH_SOUL_RULES` och `COACH_VOICE_EXAMPLES` togs bort ur
+   `app/lib/coachVoice.ts` — deras unika innehåll flyttades in i
+   `COACH_VOICE_BRIEF`, resten var dubbletter av
+   `COACH_HARD_GUARDRAILS`/`SET_COACH_INSTRUCTION`. Alla systemlogik-regler
+   (smärta, UI-repetition, tidsövningar, teknikcue-gating, fakta-vs-
+   strategi) finns nu på exakt ett ställe: `COACH_HARD_GUARDRAILS`. Lägg
+   inte tillbaka dem i fler filer "för säkerhets skull" — det är precis
+   den utspädningen som gjorde att en redan existerande regel ("blanda
+   aldrig ihop rörelsetyp") drunknade och coachen blandade ihop två
+   övningar i en chatt.
 
 ### Om coachen säger fel sak igen
 
 - **Sakfel** (fel övningsnamn, hittar på siffror)? → Gör fakta tydligare
   i `context`/instruktionen. Lägg inte till regex.
-- **Stilpreferens** (inte felaktigt, bara fel ton)? → Lägg till ett
-  exempel i `COACH_VOICE_EXAMPLES` i `app/lib/coachVoice.ts`. Regler
-  generaliserar sämre än exempel.
+- **Stilpreferens** (inte felaktigt, bara fel ton)? → Justera principen i
+  `COACH_VOICE_BRIEF` i `app/lib/coachVoice.ts`. Principer generaliserar
+  bättre än exempel eller regler — och prompten har redan en gång
+  svällt av staplade specialfall (juli 2026), så nya tillägg måste
+  konkurrera ut något gammalt, inte bara läggas på.
 - **Suget att "bara regex-fixa det här ena svaret"** — det suget byggde
   det gamla, robotiska systemet. Lös roten istället.
 

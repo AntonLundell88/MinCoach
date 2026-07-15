@@ -204,7 +204,7 @@ export default function SetupScreen({
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-stretch justify-start overflow-y-auto bg-[#080d14] px-0 py-0 text-white sm:items-center sm:justify-center sm:px-6 sm:py-4">
+    <main data-theme={theme} className="flex min-h-screen flex-col items-stretch justify-start overflow-y-auto bg-[#080d14] px-0 py-0 text-white sm:items-center sm:justify-center sm:px-6 sm:py-4">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.10),transparent_34%),linear-gradient(180deg,#080d14_0%,#0d1420_48%,#080d14_100%)]" />
 
       <div className="w-full max-w-none space-y-0 sm:max-w-md sm:space-y-3">

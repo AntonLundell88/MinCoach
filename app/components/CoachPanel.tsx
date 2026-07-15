@@ -63,6 +63,22 @@ function getRandomCoachPlaceholder(current?: string) {
   return options[Math.floor(Math.random() * options.length)] ?? coachInputPlaceholders[0];
 }
 
+const coachThinkingWords = [
+  "skriver",
+  "tänker",
+  "funderar",
+  "begrundar",
+  "grubblar",
+  "kontemplerar",
+  "överväger",
+  "klurar",
+];
+
+function getRandomThinkingWord(current?: string) {
+  const options = coachThinkingWords.filter((item) => item !== current);
+  return options[Math.floor(Math.random() * options.length)] ?? coachThinkingWords[0];
+}
+
 function useTypewriter(text: string, speed = 20, delay = 500) {
   const [displayed, setDisplayed] = React.useState("");
   const [isThinking, setIsThinking] = React.useState(true);
@@ -189,6 +205,19 @@ export default function CoachPanel({
       () => getRandomCoachPlaceholder()
     );
     const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
+    const [thinkingWord, setThinkingWord] = React.useState(() => getRandomThinkingWord());
+    const wasThinkingRef = useRef(false);
+
+    useEffect(() => {
+      setIsHistoryOpen(isExpanded);
+    }, [isExpanded]);
+
+    useEffect(() => {
+      if (isCoachThinking && !wasThinkingRef.current) {
+        setThinkingWord((current) => getRandomThinkingWord(current));
+      }
+      wasThinkingRef.current = isCoachThinking;
+    }, [isCoachThinking]);
     const lastCoachIndex = chatLog.reduce(
       (latest, message, index) => (message.role === "coach" ? index : latest),
       -1
@@ -306,7 +335,7 @@ export default function CoachPanel({
                           ? "border-blue-400/30 bg-blue-950/40"
                           : "border-white/[0.09] bg-slate-900/50"
                       }`
-                    : "user-message animate-message-in ml-8 rounded-[1.2rem] border border-white/[0.09] bg-white/5 px-3.5 py-2.5 text-white"
+                    : "user-message animate-message-in ml-auto w-fit max-w-[85%] rounded-[1.2rem] border border-white/[0.16] bg-white/[0.1] px-3.5 py-2.5 text-white"
                 }
               >
                 <div className="mb-1 flex items-center gap-1.5">
@@ -355,7 +384,7 @@ export default function CoachPanel({
                 Coach
               </p>
               <div className="flex items-center gap-2 text-sm text-white/68">
-                <span>Coachen skriver</span>
+                <span>Coachen {thinkingWord}</span>
                 {thinkingDots}
               </div>
             </div>
@@ -376,7 +405,7 @@ export default function CoachPanel({
           </div>
           {isCoachThinking ? (
             <div className="flex items-center gap-2 text-sm text-white/68">
-              <span>Coachen skriver</span>
+              <span>Coachen {thinkingWord}</span>
               {thinkingDots}
             </div>
           ) : chatLog.length === 0 ? (

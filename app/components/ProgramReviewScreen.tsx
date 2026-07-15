@@ -121,6 +121,7 @@ type Props = {
   onRemoveExercise: (passKey: PassType, exerciseName: string) => void;
   onApprove: () => void;
   onEditProfile: () => void;
+  theme?: "dark" | "light";
 };
 
 const PROGRAM_COPY_REPLACEMENTS: Array<[RegExp, string]> = [
@@ -762,6 +763,7 @@ export default function ProgramReviewScreen({
   onRemoveExercise,
   onApprove,
   onEditProfile,
+  theme,
 }: Props) {
   const [infoPass, setInfoPass] = useState<WorkoutPass | null>(null);
   const [libraryPassKey, setLibraryPassKey] = useState<PassType | null>(null);
@@ -1255,7 +1257,7 @@ export default function ProgramReviewScreen({
     <>
     {termsHelpOverlay}
     {alternativesOverlay}
-    <main className="min-h-screen bg-[#0b1018] px-3 pb-28 pt-16 text-white sm:px-4">
+    <main data-theme={theme} className="min-h-screen bg-[#0b1018] px-3 pb-28 pt-16 text-white sm:px-4">
       <div className="mx-auto flex w-full max-w-[460px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
@@ -2599,7 +2601,16 @@ export default function ProgramReviewScreen({
         ) : null}
       </div>
     </main>
-    <div className="fixed bottom-0 left-0 right-0 z-30 px-3 pb-safe-or-4 pt-3 sm:px-4" style={{ background: "linear-gradient(to top, #0b1018 60%, transparent)" }}>
+    <div
+      className="fixed bottom-0 left-0 right-0 z-30 px-3 pt-3 sm:px-4"
+      style={{
+        paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
+        background:
+          theme === "light"
+            ? "linear-gradient(to top, #efe7da 60%, transparent)"
+            : "linear-gradient(to top, #0b1018 60%, transparent)",
+      }}
+    >
       <div className="mx-auto max-w-[460px]">
         {!canApproveProgram ? (
           <p className="mb-2 text-center text-xs font-medium leading-5 text-white/44">

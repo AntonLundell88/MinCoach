@@ -527,6 +527,14 @@ html[data-theme="light"],
   box-shadow: var(--mc-shadow) !important;
 }
 
+[data-theme="light"] [class*="bg-[#162032]"] {
+  background-color: var(--mc-blue-soft) !important;
+}
+
+[data-theme="light"] [class*="bg-[#10251d]"] {
+  background-color: rgba(224, 247, 237, 0.88) !important;
+}
+
 [data-theme="light"] .user-message,
 [data-theme="light"] .coach-empty-message,
 [data-theme="light"] .workout-next-card {

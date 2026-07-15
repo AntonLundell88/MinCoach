@@ -9725,6 +9725,7 @@ if (userProfile && workoutPlan && showProgramReview) {
     <>
     {globalAppControls}
     <ProgramReviewScreen
+      theme={appTheme}
       profile={userProfile}
       workoutPlan={workoutPlan}
       preferenceInput={programPreferenceInput}
