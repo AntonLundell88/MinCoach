@@ -2577,30 +2577,6 @@ export default function ProgramReviewScreen({
           ) : null}
 
           <div className="mt-4 grid gap-2.5">
-            {!canApproveProgram ? (
-              <p className="text-center text-xs font-medium leading-5 text-white/44">
-                {totalExercises === 0
-                  ? "Lägg till minst en övning."
-                  : missingPassText || "Lägg till övningar först."}
-              </p>
-            ) : null}
-            <button
-              className="w-full rounded-2xl bg-[#2f6df6] py-4 text-[15px] font-semibold text-white shadow-[0_0_34px_rgba(37,99,235,0.30)] transition hover:bg-[#4f83ff] disabled:bg-white/[0.07] disabled:text-white/32 disabled:shadow-none"
-              onClick={handleApprove}
-              disabled={!canApproveProgram}
-            >
-              {totalExercises === 0
-                ? "Lägg till övningar först"
-                : missingPassText
-                ? "Fyll i saknade pass"
-                : hasCoachReviewSuggestions
-                ? "Godkänn utan fler ändringar"
-                : hasRunManualReview && isManualBuilder
-                ? "Godkänn schema"
-                : isManualBuilder
-                ? "Granska med coachen"
-                : "Godkänn upplägget"}
-            </button>
             <button
               className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.035] py-3 text-sm font-medium text-white/54 transition hover:bg-white/[0.065] hover:text-white/78"
               onClick={onEditProfile}
@@ -2612,28 +2588,6 @@ export default function ProgramReviewScreen({
         ) : isManualBuilder ? (
           <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-3.5 backdrop-blur-xl">
             <div className="mt-1 grid gap-2">
-              {!canApproveProgram ? (
-                <p className="text-center text-xs font-medium leading-5 text-white/44">
-                  {totalExercises === 0
-                    ? "Lägg till minst en övning i varje pass."
-                    : missingPassText || "Lägg till övningar först."}
-                </p>
-              ) : null}
-              <button
-                className="w-full rounded-2xl bg-[#2f6df6] py-3.5 text-sm font-semibold text-white shadow-[0_0_26px_rgba(37,99,235,0.24)] transition hover:bg-[#4f83ff] disabled:bg-white/[0.07] disabled:text-white/32 disabled:shadow-none"
-                onClick={handleApprove}
-                disabled={!canApproveProgram}
-              >
-                  {totalExercises === 0
-                  ? "Fyll passen först"
-                  : missingPassText
-                  ? "Fyll i saknade pass"
-                  : hasCoachReviewSuggestions
-                  ? "Godkänn utan fler ändringar"
-                  : hasRunManualReview
-                  ? "Godkänn schema"
-                  : "Granska med coachen"}
-              </button>
               <button
                 className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.048] py-3 text-sm font-medium text-white/62 transition hover:bg-white/[0.07] hover:text-white"
                 onClick={onEditProfile}

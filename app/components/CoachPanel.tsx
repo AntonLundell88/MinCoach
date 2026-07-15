@@ -188,6 +188,7 @@ export default function CoachPanel({
     const [coachInputPlaceholder, setCoachInputPlaceholder] = React.useState(
       () => getRandomCoachPlaceholder()
     );
+    const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
     const lastCoachIndex = chatLog.reduce(
       (latest, message, index) => (message.role === "coach" ? index : latest),
       -1
@@ -223,6 +224,7 @@ export default function CoachPanel({
 
     if (forceScrollForUserMessage) {
       shouldStickToBottomRef.current = true;
+      setIsHistoryOpen(true);
     }
 
     if (!shouldStickToBottomRef.current) return;
@@ -235,7 +237,11 @@ export default function CoachPanel({
     });
 
     return () => window.cancelAnimationFrame(scrollFrame);
-  }, [chatLog, coachData, typedLastCoachMessage, isThinkingLastCoach, isCoachThinking]);
+    // typedLastCoachMessage/isThinkingLastCoach excluded on purpose — scrolling on every
+    // typewriter tick pushes the start of the message out of view as it types.
+    // Scroll once when the message begins, then let it type in place.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatLog, coachData, isCoachThinking]);
 
   useEffect(() => {
     if (chatInput.trim()) return;
@@ -257,11 +263,17 @@ export default function CoachPanel({
     return () => window.clearInterval(interval);
   }, [chatInput]);
 
-  return (
-    <div className="space-y-4">
-    
+  const thinkingDots = (
+    <span className="flex items-end gap-1" aria-hidden="true">
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-300/80 [animation-duration:900ms]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-300/80 [animation-delay:150ms] [animation-duration:900ms]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-300/80 [animation-delay:300ms] [animation-duration:900ms]" />
+    </span>
+  );
 
-      <div className="coach-panel-shell space-y-2.5 rounded-[1.35rem] border border-white/[0.09] bg-white/[0.05] p-2.5 shadow-[0_16px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl sm:p-3">
+  return (
+      <div className="coach-panel-shell sticky top-2 z-30 space-y-2.5 rounded-[1.35rem] border border-white/[0.09] bg-[#0d1520] p-2.5 shadow-[0_16px_44px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-3">
+        {isHistoryOpen ? (
         <div
           ref={chatScrollRef}
           onScroll={updateStickToBottom}
@@ -271,6 +283,14 @@ export default function CoachPanel({
               : "max-h-[42vh] min-h-[210px] sm:min-h-[260px]"
           }`}
         >
+          <button
+            type="button"
+            onClick={() => setIsHistoryOpen(false)}
+            className="sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-lg bg-[#0d1520] py-1 text-[10px] uppercase tracking-[0.14em] text-white/38 transition hover:bg-white/[0.05] hover:text-white/64"
+          >
+            Dölj historik
+            <span className="rotate-180 text-white/50">▾</span>
+          </button>
           {chatLog.length === 0 ? (
             <p className="coach-empty-message rounded-2xl border border-white/[0.09] bg-white/[0.042] px-3 py-2 text-sm leading-5 text-white/62">
               Skriv till coachen när något känns tungt, lätt eller annorlunda.
@@ -336,17 +356,44 @@ export default function CoachPanel({
               </p>
               <div className="flex items-center gap-2 text-sm text-white/68">
                 <span>Coachen skriver</span>
-                <span className="flex gap-1" aria-hidden="true">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-300/70" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-300/70 [animation-delay:120ms]" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-300/70 [animation-delay:240ms]" />
-                </span>
+                {thinkingDots}
               </div>
             </div>
           ) : null}
-          
+
           <div ref={chatEndRef} />
         </div>
+        ) : (
+        <button
+          type="button"
+          onClick={() => setIsHistoryOpen(true)}
+          className="coach-message w-full rounded-[1.15rem] border border-blue-300/[0.18] bg-slate-900/50 px-3 py-2 text-left text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] transition hover:border-blue-300/30 hover:bg-slate-900/70 active:scale-[0.99] sm:px-3.5"
+        >
+          <div className="mb-1 flex items-center gap-1.5">
+            <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
+              Coach
+            </p>
+          </div>
+          {isCoachThinking ? (
+            <div className="flex items-center gap-2 text-sm text-white/68">
+              <span>Coachen skriver</span>
+              {thinkingDots}
+            </div>
+          ) : chatLog.length === 0 ? (
+            <p className="text-sm leading-5 text-white/62">
+              Skriv till coachen när något känns tungt, lätt eller annorlunda.
+            </p>
+          ) : (
+            <div className="line-clamp-3">
+              <CoachText text={isThinkingLastCoach ? "..." : typedLastCoachMessage} />
+            </div>
+          )}
+          <div className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-blue-300/85">
+            <span>Visa hela chatten</span>
+            <span aria-hidden="true">▾</span>
+          </div>
+        </button>
+        )}
 
         <div className="flex gap-2">
           <input
@@ -368,8 +415,5 @@ export default function CoachPanel({
           </button>
         </div>
       </div>
-
-      
-    </div>
   );
 }

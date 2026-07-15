@@ -62,6 +62,9 @@ type Props = {
   workoutExerciseInput: string;
   setWorkoutExerciseInput: (v: string) => void;
   addExerciseDuringWorkout: () => void;
+  swapExerciseInput: string;
+  setSwapExerciseInput: (v: string) => void;
+  swapCurrentExerciseDuringWorkout: () => void;
   currentExerciseName: string;
   lastByExercise: Record<
     string,
@@ -479,6 +482,9 @@ export default function WorkoutScreen({
   workoutExerciseInput,
   setWorkoutExerciseInput,
   addExerciseDuringWorkout,
+  swapExerciseInput,
+  setSwapExerciseInput,
+  swapCurrentExerciseDuringWorkout,
   currentExerciseName,
   lastByExercise,
   exerciseKey,
@@ -517,6 +523,7 @@ export default function WorkoutScreen({
 }: Props) {
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
+  const [showSwapExercise, setShowSwapExercise] = useState(false);
   const [showOverflow, setShowOverflow] = useState(false);
   const [confirmSkipExercise, setConfirmSkipExercise] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
@@ -996,6 +1003,13 @@ useEffect(() => {
             </button>
             <button
               type="button"
+              onClick={() => { setShowSwapExercise((v) => !v); setShowOverflow(false); }}
+              className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
+            >
+              {showSwapExercise ? "Stäng byt övning" : "Byt övning"}
+            </button>
+            <button
+              type="button"
               onClick={() => { setConfirmSkipExercise(true); setShowOverflow(false); }}
               disabled={!canSkipCurrentExercise}
               className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
@@ -1355,6 +1369,38 @@ useEffect(() => {
               }}
             >
               Lägg till
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {showSwapExercise ? (
+        <div className="rounded-[1.15rem] border border-white/[0.06] bg-white/[0.018] px-3 py-2 backdrop-blur-2xl">
+          <p className="mb-1.5 px-1 text-xs text-white/42">
+            Byt {currentExerciseName} mot:
+          </p>
+          <div className="flex gap-2">
+            <input
+              className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/38 px-3 py-2 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
+              value={swapExerciseInput}
+              onChange={(e) => setSwapExerciseInput(e.target.value)}
+              placeholder='t.ex. "Hantelrodd"'
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  swapCurrentExerciseDuringWorkout();
+                  setShowSwapExercise(false);
+                }
+              }}
+            />
+
+            <button
+              className="workout-ai-action rounded-xl border border-blue-400/18 bg-blue-500/[0.09] px-4 text-sm font-semibold text-white transition hover:bg-[#4f83ff]/[0.14]"
+              onClick={() => {
+                swapCurrentExerciseDuringWorkout();
+                setShowSwapExercise(false);
+              }}
+            >
+              Byt
             </button>
           </div>
         </div>

@@ -345,6 +345,12 @@ export type CoachProgramSuggestion = {
   actions: CoachProgramSuggestionAction[];
 };
 
+export type CoachChatAction = {
+  type: "replace_exercise";
+  fromExerciseName: string;
+  toExerciseName: string;
+};
+
 export type CoachPromptPayload = {
   system: string;
   context:
@@ -676,6 +682,14 @@ const CHAT_QUESTION_INSTRUCTION = [
   "(Inte: en lista med varför det är bättre än mixat grepp, plus separata punkter om att tummen kan göra ont, plus råd för en annan övning. En fråga, ett svar.)",
 ].join("\n");
 
+const CHAT_ACTION_INSTRUCTION = [
+  'Returnera JSON, inte markdown. Format: {"text":"ditt vanliga coachsvar","action":null eller {"type":"replace_exercise","fromExerciseName":"...","toExerciseName":"..."}}.',
+  "text-fältet är exakt samma fria, naturliga svar du annars skulle skriva enligt allt ovan — JSON-formatet ska inte göra svaret kortare, längre, mer formellt eller mindre naturligt.",
+  "Sätt action bara när användaren just nu tydligt bytt eller vill byta den aktuella övningen mot en annan — oavsett hur de uttrycker det: \"jag kör X istället\", \"byter till X\", \"X funkar bättre för mig\", \"kan inte göra det, provar X\" och liknande. Använd currentExerciseInfo för att bedöma om X är en rimlig övning för samma syfte.",
+  "Sätt inte action vid frågor, skämt, funderingar eller om användaren bara beskriver ett problem utan att säga vad de gör istället. Då svarar du bara i text, som vanligt — inget action.",
+  "fromExerciseName ska vara currentExerciseName. toExerciseName ska vara övningen användaren namngav eller tydligt syftade på.",
+].join("\n");
+
 export function buildCoachPromptPayload(
   context: CoachSetContext
 ): CoachPromptPayload {
@@ -693,7 +707,7 @@ export function buildCoachChatPromptPayload(
   return {
     system: WORKOUT_COACH_SYSTEM,
     context,
-    instruction: `${NAME_USAGE_RULE}\n\n${CHAT_QUESTION_INSTRUCTION}`,
+    instruction: `${NAME_USAGE_RULE}\n\n${CHAT_QUESTION_INSTRUCTION}\n\n${CHAT_ACTION_INSTRUCTION}`,
     maxCharacters: MAX_CHAT_REPLY_CHARACTERS,
   };
 }
@@ -865,6 +879,7 @@ export async function requestAiCoachChatReply(args: {
         mode: "fallback" as const,
         reason: "request_failed",
         text: fallbackText,
+        action: null,
       };
     }
 
@@ -872,6 +887,7 @@ export async function requestAiCoachChatReply(args: {
       mode?: "ai" | "fallback";
       reason?: string;
       text?: string;
+      action?: CoachChatAction | null;
     };
 
     return {
@@ -883,12 +899,14 @@ export async function requestAiCoachChatReply(args: {
         fallbackText,
         payload.maxCharacters
       ),
+      action: data.action ?? null,
     };
   } catch {
     return {
       mode: "fallback" as const,
       reason: "network_error",
       text: fallbackText,
+      action: null,
     };
   }
 }

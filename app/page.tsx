@@ -31,6 +31,7 @@ import {
   requestAiProgramReply,
   requestAiWorkoutReview,
   type BuiltWorkoutPlan,
+  type CoachChatAction,
   type CoachChatContext,
   type CoachExerciseLibraryInfo,
   type CoachProgramSuggestion,
@@ -4534,6 +4535,7 @@ const [swapToInput, setSwapToInput] = useState("");
 
 const [customExerciseInput, setCustomExerciseInput] = useState("");
 const [workoutExerciseInput, setWorkoutExerciseInput] = useState("");
+const [swapExerciseInput, setSwapExerciseInput] = useState("");
 const [showProgramReview, setShowProgramReview] = useState(false);
 const [programPreferenceInput, setProgramPreferenceInput] = useState("");
 const [programPreferenceReply, setProgramPreferenceReply] = useState("");
@@ -5516,6 +5518,8 @@ const w: Workout = {
     setStarted(true);
     setSelectedStartPass(null);
     setChatInput("");
+    setSwapFrom(null);
+    setSwapToInput("");
     setDayForm("normal");
     setActiveWarmupContext(warmupContext);
     setActiveConditioningContext(conditioningContext);
@@ -5814,8 +5818,21 @@ async function sendChat() {
   const replyFromAi = (response: {
     mode?: "ai" | "fallback";
     text: string;
+    action?: CoachChatAction | null;
   }) => {
     reply(response.text, response.mode === "ai" ? "llm" : "fallback");
+
+    if (
+      response.mode === "ai" &&
+      response.action?.type === "replace_exercise" &&
+      exerciseKey(response.action.fromExerciseName) === exerciseKey(currentExerciseName) &&
+      exerciseKey(response.action.toExerciseName) !== exerciseKey(currentExerciseName)
+    ) {
+      replaceExerciseInCurrentWorkout(
+        response.action.fromExerciseName,
+        response.action.toExerciseName
+      );
+    }
   };
 
   const routedIntent = parseWorkoutChatIntent({
@@ -6028,25 +6045,15 @@ async function sendChat() {
 
     const targetExercise = workout.exercises[routedIntent.targetIndex];
 
-    if (swapFrom && exerciseKey(swapFrom) === exerciseKey(targetExercise.name)) {
-      const chatReply = await askAiCoach(`${targetExercise.name} är inte tillgänglig.`);
-      replyFromAi(chatReply);
-      return;
-    }
-
     const suggestion = suggestReplacementFor(targetExercise.name);
     if (suggestion) {
-      setSwapFrom(targetExercise.name);
-      setSwapToInput(suggestion);
       const chatReply = await askAiCoach(
-        `Okej. Då löser vi det.\n\n${targetExercise.name} funkar inte nu. Jag föreslår ${suggestion} istället. Skriv ja om du vill byta.`
+        `Okej. Då löser vi det.\n\n${targetExercise.name} funkar inte nu. Jag föreslår ${suggestion} istället. Säg till om du vill köra det, eller något annat.`
       );
       replyFromAi(chatReply);
       return;
     }
 
-    setSwapFrom(null);
-    setSwapToInput("");
     const chatReply = await askAiCoach(
       `Okej. Då lämnar vi ${targetExercise.name} just nu.\n\nJag hittar ingen självklar ersättare här. Skriv vilken övning du vill ta istället, eller gå vidare.`
     );
@@ -6067,15 +6074,15 @@ async function sendChat() {
 
   if (routedIntent.topic === "swap") {
     if (routedIntent.swapFrom && routedIntent.swapTo) {
-      setSwapFrom(routedIntent.swapFrom);
-      setSwapToInput(routedIntent.swapTo);
-      reply(
+      const chatReply = await askAiCoach(
         `Jag kan byta ${routedIntent.swapFrom} mot ${routedIntent.swapTo}. Bekräfta om du vill göra bytet.`
       );
+      replyFromAi(chatReply);
       return;
     }
 
-    reply("Vilken övning vill du byta ut?");
+    const chatReply = await askAiCoach("Vilken övning vill du byta ut?");
+    replyFromAi(chatReply);
     return;
   }
 
@@ -6458,6 +6465,12 @@ function replaceExerciseInCurrentWorkout(fromName: string, toNameRaw: string) {
 
 function addExerciseDuringWorkout() {
   addExerciseToCurrentWorkout(workoutExerciseInput);
+}
+
+function swapCurrentExerciseDuringWorkout() {
+  if (!swapExerciseInput.trim()) return;
+  replaceExerciseInCurrentWorkout(currentExerciseName, swapExerciseInput);
+  setSwapExerciseInput("");
 }
 
 function resetWorkoutInputs() {
@@ -9931,6 +9944,9 @@ return (
         workoutExerciseInput={workoutExerciseInput}
         setWorkoutExerciseInput={setWorkoutExerciseInput}
         addExerciseDuringWorkout={addExerciseDuringWorkout}
+        swapExerciseInput={swapExerciseInput}
+        setSwapExerciseInput={setSwapExerciseInput}
+        swapCurrentExerciseDuringWorkout={swapCurrentExerciseDuringWorkout}
 addCoachMessage={(text, eventKey) =>
   setChatLog((prev) => {
     if (eventKey && prev.some((m) => m.eventKey === eventKey)) {

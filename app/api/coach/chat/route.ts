@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   buildCoachChatPromptPayload,
   sanitizeCoachReply,
+  type CoachChatAction,
   type CoachChatContext,
 } from "../../../lib/coachAi";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
@@ -10,6 +11,48 @@ type CoachChatRequest = {
   context?: CoachChatContext;
   fallbackReply?: string;
 };
+
+function cleanText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeChatAction(value: unknown): CoachChatAction | null {
+  if (!value || typeof value !== "object") return null;
+
+  const action = value as Record<string, unknown>;
+  if (action.type !== "replace_exercise") return null;
+
+  const fromExerciseName = cleanText(action.fromExerciseName);
+  const toExerciseName = cleanText(action.toExerciseName);
+  if (!fromExerciseName || !toExerciseName) return null;
+
+  return { type: "replace_exercise", fromExerciseName, toExerciseName };
+}
+
+function parseChatAiResponse(rawText: string): {
+  text: string;
+  action: CoachChatAction | null;
+} {
+  const compact = rawText.trim();
+  if (!compact) return { text: "", action: null };
+
+  const jsonText =
+    compact.startsWith("{") && compact.endsWith("}")
+      ? compact
+      : compact.match(/\{[\s\S]*\}/)?.[0] ?? "";
+
+  if (!jsonText) return { text: compact, action: null };
+
+  try {
+    const parsed = JSON.parse(jsonText) as { text?: unknown; action?: unknown };
+    return {
+      text: cleanText(parsed.text) || compact,
+      action: normalizeChatAction(parsed.action),
+    };
+  } catch {
+    return { text: compact, action: null };
+  }
+}
 
 function extractOutputText(data: unknown) {
   if (!data || typeof data !== "object") return "";
@@ -210,8 +253,9 @@ export async function POST(request: Request) {
       });
     }
 
+    const parsed = parseChatAiResponse(aiText);
     const sanitizedText = sanitizeCoachReply(
-      aiText,
+      parsed.text,
       fallbackReply,
       payload.maxCharacters
     );
@@ -233,6 +277,7 @@ export async function POST(request: Request) {
       mode: usedSanitizedFallback ? "fallback" : "ai",
       reason: usedSanitizedFallback ? "sanitized_reply" : undefined,
       text: sanitizedText,
+      action: usedSanitizedFallback ? null : parsed.action,
     });
   } catch (error) {
     const message =
