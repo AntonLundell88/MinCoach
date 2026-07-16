@@ -379,7 +379,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Träningsband",
     environment: "hemma",
     exerciseType: "basövning",
-    logType: "weight_reps_rir",
+    logType: "bodyweight_reps_rir",
     difficulty: "enkel",
     beginnerFit: "bra",
     stability: "medel",

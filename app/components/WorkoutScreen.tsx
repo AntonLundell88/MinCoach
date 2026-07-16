@@ -954,11 +954,12 @@ useEffect(() => {
             </p>
           </div>
 
-          {showExerciseInfo && (
+          {showExerciseInfo && createPortal(
             <ExerciseInfoModal
               exerciseName={currentExerciseName}
               onClose={() => setShowExerciseInfo(false)}
-            />
+            />,
+            document.body
           )}
 
           <div className="flex shrink-0 items-center gap-2">

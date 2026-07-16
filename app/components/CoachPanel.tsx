@@ -64,7 +64,6 @@ function getRandomCoachPlaceholder(current?: string) {
 }
 
 const coachThinkingWords = [
-  "skriver",
   "tänker",
   "funderar",
   "begrundar",
@@ -308,8 +307,8 @@ export default function CoachPanel({
           onScroll={updateStickToBottom}
           className={`overflow-auto space-y-2 pr-1 transition-[max-height,min-height] duration-200 ease-out ${
             isExpanded
-              ? "max-h-[62vh] min-h-[52vh]"
-              : "max-h-[42vh] min-h-[210px] sm:min-h-[260px]"
+              ? "max-h-[36dvh] min-h-[120px]"
+              : "max-h-[32dvh] min-h-[170px] sm:min-h-[220px]"
           }`}
         >
           <button
