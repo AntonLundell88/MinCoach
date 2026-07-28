@@ -7,7 +7,139 @@ import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
 import ToggleSwitch from "./ToggleSwitch";
 import { CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
-import { getExerciseProfile, isBodyweightExercise, isTimedExercise } from "../lib/exercises";
+import {
+  getExerciseProfile,
+  isBodyweightExercise,
+  isTimedExercise,
+  normalizeExerciseSearchText,
+} from "../lib/exercises";
+
+const LIBRARY_CATEGORIES = [
+  "alla",
+  "bröst",
+  "rygg",
+  "ben",
+  "axlar",
+  "armar",
+  "mage",
+] as const;
+
+const CUSTOM_EXERCISE_CATEGORIES = [
+  "ben",
+  "rygg",
+  "bröst",
+  "axlar",
+  "armar",
+  "mage",
+] as const;
+
+type LibraryExercise = {
+  exerciseKey: string;
+  name: string;
+  category: string;
+  equipment: string;
+  primaryMuscle: string;
+  logType?: string;
+};
+
+type ExerciseActionResult = { handled: boolean; message?: string };
+
+function LibraryBrowser({
+  title,
+  search,
+  setSearch,
+  category,
+  setCategory,
+  exercises,
+  onClose,
+  onPick,
+  onUseManual,
+}: {
+  title: string;
+  search: string;
+  setSearch: (v: string) => void;
+  category: (typeof LIBRARY_CATEGORIES)[number];
+  setCategory: (v: (typeof LIBRARY_CATEGORIES)[number]) => void;
+  exercises: LibraryExercise[];
+  onClose: () => void;
+  onPick: (name: string) => void;
+  onUseManual: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-base font-semibold text-white">{title}</p>
+        <button
+          type="button"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+          onClick={onClose}
+          aria-label="Stäng"
+        >
+          <CloseGlyph className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <p className="text-xs leading-5 text-white/48">
+        Finns inte övningen du letar efter i mitt bibliotek? Ingen fara!{" "}
+        <button
+          type="button"
+          onClick={onUseManual}
+          className="font-semibold text-blue-300/85 transition hover:text-blue-200"
+        >
+          Lägg till den manuellt
+        </button>
+        .
+      </p>
+
+      <input
+        autoFocus
+        className="w-full rounded-xl border border-white/[0.09] bg-slate-950/50 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Sök övning, muskel eller redskap"
+      />
+
+      <div className="flex flex-wrap gap-1.5">
+        {LIBRARY_CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setCategory(cat)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold capitalize transition ${
+              category === cat
+                ? "border-blue-300/45 bg-blue-500/[0.18] text-white"
+                : "border-white/[0.08] bg-white/[0.035] text-white/50 hover:bg-white/[0.07] hover:text-white/72"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      <div className="max-h-[42vh] space-y-2 overflow-y-auto">
+        {exercises.map((exercise) => (
+          <button
+            key={exercise.exerciseKey}
+            type="button"
+            onClick={() => onPick(exercise.name)}
+            className="w-full rounded-2xl border border-white/[0.07] bg-slate-950/22 p-3 text-left transition hover:border-blue-300/24 hover:bg-white/[0.045]"
+          >
+            <p className="truncate text-sm font-semibold text-white">{exercise.name}</p>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/38">
+              {exercise.category} · {exercise.equipment}
+            </p>
+          </button>
+        ))}
+
+        {exercises.length === 0 ? (
+          <div className="rounded-2xl border border-white/[0.07] bg-slate-950/22 p-4">
+            <p className="text-sm leading-6 text-white/58">Ingen övning matchar. Testa en annan sökning.</p>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 type Props = {
   progression: { weight: number; reps: number; rir?: number | null; failNote?: string | null }[];
@@ -61,10 +193,15 @@ type Props = {
   isCoachThinking?: boolean;
   workoutExerciseInput: string;
   setWorkoutExerciseInput: (v: string) => void;
-  addExerciseDuringWorkout: () => void;
+  addExerciseDuringWorkout: () => ExerciseActionResult;
   swapExerciseInput: string;
   setSwapExerciseInput: (v: string) => void;
-  swapCurrentExerciseDuringWorkout: () => void;
+  swapCurrentExerciseDuringWorkout: () => ExerciseActionResult;
+  libraryExercises: LibraryExercise[];
+  pickExerciseForAdd: (name: string) => ExerciseActionResult;
+  pickExerciseForSwap: (name: string) => ExerciseActionResult;
+  pickCustomExerciseForAdd: (name: string, category: string) => ExerciseActionResult;
+  pickCustomExerciseForSwap: (name: string, category: string) => ExerciseActionResult;
   currentExerciseName: string;
   lastByExercise: Record<
     string,
@@ -485,6 +622,11 @@ export default function WorkoutScreen({
   swapExerciseInput,
   setSwapExerciseInput,
   swapCurrentExerciseDuringWorkout,
+  libraryExercises,
+  pickExerciseForAdd,
+  pickExerciseForSwap,
+  pickCustomExerciseForAdd,
+  pickCustomExerciseForSwap,
   currentExerciseName,
   lastByExercise,
   exerciseKey,
@@ -524,6 +666,15 @@ export default function WorkoutScreen({
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showSwapExercise, setShowSwapExercise] = useState(false);
+  const [addManualMode, setAddManualMode] = useState(false);
+  const [swapManualMode, setSwapManualMode] = useState(false);
+  const [addShowCustomCategories, setAddShowCustomCategories] = useState(false);
+  const [swapShowCustomCategories, setSwapShowCustomCategories] = useState(false);
+  const [addExerciseFeedback, setAddExerciseFeedback] = useState<string | null>(null);
+  const [swapExerciseFeedback, setSwapExerciseFeedback] = useState<string | null>(null);
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryCategory, setLibraryCategory] =
+    useState<(typeof LIBRARY_CATEGORIES)[number]>("alla");
   const [showOverflow, setShowOverflow] = useState(false);
   const [confirmSkipExercise, setConfirmSkipExercise] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
@@ -592,6 +743,37 @@ export default function WorkoutScreen({
     (Boolean(nextWeightLabel) ||
       Boolean(currentMetricLabel) ||
       Boolean(nextRirLabel));
+
+  const normalizedLibrarySearch = normalizeExerciseSearchText(librarySearch);
+  const filteredLibraryExercises = libraryExercises.filter((exercise) => {
+    const matchesCategory =
+      libraryCategory === "alla" || exercise.category === libraryCategory;
+    const matchesSearch =
+      !normalizedLibrarySearch ||
+      normalizeExerciseSearchText(
+        `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment}`
+      ).includes(normalizedLibrarySearch);
+
+    return matchesCategory && matchesSearch;
+  });
+
+  function closeAddModal() {
+    setShowAddExercise(false);
+    setAddManualMode(false);
+    setAddShowCustomCategories(false);
+    setLibrarySearch("");
+    setLibraryCategory("alla");
+    setAddExerciseFeedback(null);
+  }
+
+  function closeSwapModal() {
+    setShowSwapExercise(false);
+    setSwapManualMode(false);
+    setSwapShowCustomCategories(false);
+    setLibrarySearch("");
+    setLibraryCategory("alla");
+    setSwapExerciseFeedback(null);
+  }
 
   useEffect(() => {
     if (currentSets.length > previousSetCountRef.current) {
@@ -681,7 +863,8 @@ useEffect(() => {
 
   return (
     <>
-    <div className={`workout-screen-shell w-full max-w-none space-y-2.5 sm:max-w-xl sm:space-y-3 ${shouldShowRestDock ? "pb-44" : ""}`}>
+    <div className={`workout-screen-shell w-full max-w-none space-y-2 sm:max-w-xl sm:space-y-2.5 ${shouldShowRestDock ? "pb-44" : ""}`}>
+<div className="sticky top-2 z-30">
 <CoachPanel
   coachData={coachData}
   dayForm={dayForm}
@@ -706,6 +889,7 @@ useEffect(() => {
           }`}
         />
       </button>
+</div>
 
       {chatFocusMode ? (
         <section className="workout-focus-card animate-message-in rounded-[1.35rem] border border-blue-300/14 bg-[linear-gradient(180deg,rgba(37,99,235,0.105),rgba(15,23,42,0.38))] p-3 shadow-[0_16px_46px_rgba(0,0,0,0.20),0_0_30px_rgba(37,99,235,0.08),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl">
@@ -929,7 +1113,7 @@ useEffect(() => {
         </section>
       ) : (
         <>
-      <section className="workout-status-panel rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-4 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
+      <section className="workout-status-panel rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-3.5 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -1052,8 +1236,8 @@ useEffect(() => {
         )}
 
         {/* Nästa set + Vila */}
-        <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
-          <div className="workout-next-card rounded-2xl border border-white/[0.075] bg-white/[0.045] px-3 py-2.5">
+        <div className="mt-2.5 grid grid-cols-[1fr_auto] gap-2">
+          <div className="workout-next-card rounded-2xl border border-white/[0.075] bg-white/[0.045] px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/55">
               {currentExerciseReadyToFinish ? "Klar" : "Nästa set"}
             </p>
@@ -1085,7 +1269,7 @@ useEffect(() => {
               </p>
             )}
           </div>
-          <div className="workout-rest-card min-w-[5.8rem] rounded-2xl border border-white/[0.06] bg-slate-950/18 px-3 py-2.5 text-right">
+          <div className="workout-rest-card min-w-[5.8rem] rounded-2xl border border-white/[0.06] bg-slate-950/18 px-3 py-2 text-right">
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/34">
               Vila
             </p>
@@ -1142,7 +1326,7 @@ useEffect(() => {
         />
 
         {/* Divider */}
-        <div className="my-3 h-px bg-white/[0.07]" />
+        <div className="my-2.5 h-px bg-white/[0.07]" />
 
         {/* Reference zone — PB, history, previous session */}
         {/* PB badge */}
@@ -1346,70 +1530,267 @@ useEffect(() => {
         ) : null}
       </div>
 
-      {showAddExercise ? (
-        <div className="rounded-[1.15rem] border border-white/[0.06] bg-white/[0.018] px-3 py-2 backdrop-blur-2xl">
-          <div className="flex gap-2">
-            <input
-              className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/38 px-3 py-2 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
-              value={workoutExerciseInput}
-              onChange={(e) => setWorkoutExerciseInput(e.target.value)}
-              placeholder='t.ex. "Chins"'
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  addExerciseDuringWorkout();
-                  setShowAddExercise(false);
-                }
-              }}
-            />
-
-            <button
-              className="workout-ai-action rounded-xl border border-blue-400/18 bg-blue-500/[0.09] px-4 text-sm font-semibold text-white transition hover:bg-[#4f83ff]/[0.14]"
-              onClick={() => {
-                addExerciseDuringWorkout();
-                setShowAddExercise(false);
-              }}
-            >
-              Lägg till
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {showSwapExercise ? (
-        <div className="rounded-[1.15rem] border border-white/[0.06] bg-white/[0.018] px-3 py-2 backdrop-blur-2xl">
-          <p className="mb-1.5 px-1 text-xs text-white/42">
-            Byt {currentExerciseName} mot:
-          </p>
-          <div className="flex gap-2">
-            <input
-              className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/38 px-3 py-2 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
-              value={swapExerciseInput}
-              onChange={(e) => setSwapExerciseInput(e.target.value)}
-              placeholder='t.ex. "Hantelrodd"'
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  swapCurrentExerciseDuringWorkout();
-                  setShowSwapExercise(false);
-                }
-              }}
-            />
-
-            <button
-              className="workout-ai-action rounded-xl border border-blue-400/18 bg-blue-500/[0.09] px-4 text-sm font-semibold text-white transition hover:bg-[#4f83ff]/[0.14]"
-              onClick={() => {
-                swapCurrentExerciseDuringWorkout();
-                setShowSwapExercise(false);
-              }}
-            >
-              Byt
-            </button>
-          </div>
-        </div>
-      ) : null}
-
         </>
       )}
     </div>
+
+    {showAddExercise && createPortal(
+      <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
+        <div className="absolute inset-0 bg-black/10 backdrop-blur-[3px]" onClick={closeAddModal} />
+        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          {addManualMode ? (
+            <>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-base font-semibold text-white">Lägg till övning</p>
+                <button
+                  type="button"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                  onClick={() => {
+                    setAddManualMode(false);
+                    setAddShowCustomCategories(false);
+                  }}
+                  aria-label="Tillbaka till biblioteket"
+                >
+                  <CloseGlyph className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <input
+                autoFocus
+                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/50 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
+                value={workoutExerciseInput}
+                onChange={(e) => {
+                  setWorkoutExerciseInput(e.target.value);
+                  setAddExerciseFeedback(null);
+                  setAddShowCustomCategories(false);
+                }}
+                placeholder='t.ex. "Chins"'
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const result = addExerciseDuringWorkout();
+                    if (result.handled) {
+                      closeAddModal();
+                    } else {
+                      setAddExerciseFeedback(result.message ?? null);
+                    }
+                  }
+                }}
+              />
+              {addExerciseFeedback ? (
+                <p className="text-sm leading-5 text-amber-200/85">{addExerciseFeedback}</p>
+              ) : null}
+              {workoutExerciseInput.trim() ? (
+                addShowCustomCategories ? (
+                  <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3">
+                    <p className="text-xs font-medium text-white/50">Vad tränar den främst?</p>
+                    <div className="mt-2 grid grid-cols-3 gap-1.5">
+                      {CUSTOM_EXERCISE_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => {
+                            const result = pickCustomExerciseForAdd(workoutExerciseInput, cat);
+                            if (result.handled) closeAddModal();
+                          }}
+                          className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:bg-blue-500/[0.10] hover:text-white"
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-blue-300/85 transition hover:text-blue-200"
+                    onClick={() => setAddShowCustomCategories(true)}
+                  >
+                    Lägg in som egen övning
+                  </button>
+                )
+              ) : null}
+              <div className="flex flex-col gap-2">
+                <button
+                  className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
+                  onClick={() => {
+                    const result = addExerciseDuringWorkout();
+                    if (result.handled) {
+                      closeAddModal();
+                    } else {
+                      setAddExerciseFeedback(result.message ?? null);
+                    }
+                  }}
+                >
+                  Lägg till
+                </button>
+                <button
+                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-sm font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.08]"
+                  onClick={closeAddModal}
+                >
+                  Avbryt
+                </button>
+              </div>
+            </>
+          ) : (
+            <LibraryBrowser
+              title="Lägg till övning"
+              search={librarySearch}
+              setSearch={setLibrarySearch}
+              category={libraryCategory}
+              setCategory={setLibraryCategory}
+              exercises={filteredLibraryExercises}
+              onClose={closeAddModal}
+              onPick={(name) => {
+                const result = pickExerciseForAdd(name);
+                if (result.handled) {
+                  closeAddModal();
+                } else {
+                  setWorkoutExerciseInput(name);
+                  setAddExerciseFeedback(result.message ?? null);
+                  setAddShowCustomCategories(false);
+                  setAddManualMode(true);
+                }
+              }}
+              onUseManual={() => {
+                setWorkoutExerciseInput(librarySearch);
+                setAddExerciseFeedback(null);
+                setAddShowCustomCategories(false);
+                setAddManualMode(true);
+              }}
+            />
+          )}
+        </div>
+      </div>,
+      document.body
+    )}
+
+    {showSwapExercise && createPortal(
+      <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
+        <div className="absolute inset-0 bg-black/10 backdrop-blur-[3px]" onClick={closeSwapModal} />
+        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          {swapManualMode ? (
+            <>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-base font-semibold text-white">Byt {currentExerciseName} mot</p>
+                <button
+                  type="button"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                  onClick={() => {
+                    setSwapManualMode(false);
+                    setSwapShowCustomCategories(false);
+                  }}
+                  aria-label="Tillbaka till biblioteket"
+                >
+                  <CloseGlyph className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <input
+                autoFocus
+                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/50 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
+                value={swapExerciseInput}
+                onChange={(e) => {
+                  setSwapExerciseInput(e.target.value);
+                  setSwapExerciseFeedback(null);
+                  setSwapShowCustomCategories(false);
+                }}
+                placeholder='t.ex. "Hantelrodd"'
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const result = swapCurrentExerciseDuringWorkout();
+                    if (result.handled) {
+                      closeSwapModal();
+                    } else {
+                      setSwapExerciseFeedback(result.message ?? null);
+                    }
+                  }
+                }}
+              />
+              {swapExerciseFeedback ? (
+                <p className="text-sm leading-5 text-amber-200/85">{swapExerciseFeedback}</p>
+              ) : null}
+              {swapExerciseInput.trim() ? (
+                swapShowCustomCategories ? (
+                  <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3">
+                    <p className="text-xs font-medium text-white/50">Vad tränar den främst?</p>
+                    <div className="mt-2 grid grid-cols-3 gap-1.5">
+                      {CUSTOM_EXERCISE_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => {
+                            const result = pickCustomExerciseForSwap(swapExerciseInput, cat);
+                            if (result.handled) closeSwapModal();
+                          }}
+                          className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:bg-blue-500/[0.10] hover:text-white"
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-blue-300/85 transition hover:text-blue-200"
+                    onClick={() => setSwapShowCustomCategories(true)}
+                  >
+                    Lägg in som egen övning
+                  </button>
+                )
+              ) : null}
+              <div className="flex flex-col gap-2">
+                <button
+                  className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
+                  onClick={() => {
+                    const result = swapCurrentExerciseDuringWorkout();
+                    if (result.handled) {
+                      closeSwapModal();
+                    } else {
+                      setSwapExerciseFeedback(result.message ?? null);
+                    }
+                  }}
+                >
+                  Byt
+                </button>
+                <button
+                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-sm font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.08]"
+                  onClick={closeSwapModal}
+                >
+                  Avbryt
+                </button>
+              </div>
+            </>
+          ) : (
+            <LibraryBrowser
+              title={`Byt ${currentExerciseName} mot`}
+              search={librarySearch}
+              setSearch={setLibrarySearch}
+              category={libraryCategory}
+              setCategory={setLibraryCategory}
+              exercises={filteredLibraryExercises}
+              onClose={closeSwapModal}
+              onPick={(name) => {
+                const result = pickExerciseForSwap(name);
+                if (result.handled) {
+                  closeSwapModal();
+                } else {
+                  setSwapExerciseInput(name);
+                  setSwapExerciseFeedback(result.message ?? null);
+                  setSwapShowCustomCategories(false);
+                  setSwapManualMode(true);
+                }
+              }}
+              onUseManual={() => {
+                setSwapExerciseInput(librarySearch);
+                setSwapExerciseFeedback(null);
+                setSwapShowCustomCategories(false);
+                setSwapManualMode(true);
+              }}
+            />
+          )}
+        </div>
+      </div>,
+      document.body
+    )}
     {shouldShowRestDock ? (
       <div className="fixed inset-x-0 bottom-3 z-40 px-3 sm:bottom-5">
         <div

@@ -384,6 +384,7 @@ export default function ExerciseProgressScreen({
   const [exercisePeriod, setExercisePeriod] =
     useState<ExercisePeriod>("halfYear");
   const [infoExerciseName, setInfoExerciseName] = useState<string | null>(null);
+  const [showTrendInfo, setShowTrendInfo] = useState(false);
   const infoExercise = infoExerciseName
     ? getExerciseProfile(infoExerciseName)
     : null;
@@ -602,15 +603,31 @@ export default function ExerciseProgressScreen({
                 </div>
 
                 <div className="rounded-xl border border-white/[0.09] bg-slate-950/18 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/32">
-                    Trend
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/32">
+                      Trend
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowTrendInfo(!showTrendInfo)}
+                      className="flex h-4 w-4 items-center justify-center rounded-full border border-white/20 text-[10px] text-white/50 hover:bg-white/10"
+                    >
+                      i
+                    </button>
+                  </div>
                   <p className="mt-1.5 text-lg font-semibold tracking-[-0.04em] text-white sm:text-xl">
                     {trend.value}
                   </p>
                   <p className="mt-1 text-xs text-white/48">{trend.helper}</p>
                 </div>
               </div>
+
+              {showTrendInfo ? (
+                <div className="mt-2.5 rounded-xl border border-white/[0.09] bg-slate-950/40 p-3 text-xs text-white/60">
+                  Jämför ditt bästa set (vikt × reps) i det första passet med
+                  bästa set i det senaste passet, inom vald period.
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl sm:p-5">

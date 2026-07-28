@@ -95,6 +95,9 @@ export type CoachSetContext = {
   };
   restText?: string;
   memoryInsight?: string;
+  limitations?: string;
+  recentHealthNotes?: string[];
+  recentWorkingWeights?: string[];
   warmupNote?: string;
   conditioningNote?: string;
   previousCoachReply?: string;
@@ -126,6 +129,9 @@ export type CoachChatContext = {
   currentExerciseCategory?: string;
   currentExerciseInfo?: CoachExerciseLibraryInfo;
   memoryInsight?: string;
+  limitations?: string;
+  recentHealthNotes?: string[];
+  recentWorkingWeights?: string[];
   exerciseIndex?: number;
   exerciseCount?: number;
   currentExerciseCompleted?: boolean;
@@ -179,6 +185,7 @@ export type CoachProgramContext = {
   equipment: string[];
   exercisePreferences?: string[];
   limitations?: string;
+  recentHealthNotes?: string[];
   workoutPlan: {
     title: string;
     passes: Array<{
@@ -230,6 +237,7 @@ export type CoachProgramBuildContext = {
     coachReason?: string;
   }>;
   existingPreferences: string[];
+  recentHealthNotes?: string[];
 };
 
 export type CoachWorkoutReviewContext = {
@@ -343,11 +351,16 @@ export type CoachProgramSuggestion = {
   actions: CoachProgramSuggestionAction[];
 };
 
-export type CoachChatAction = {
-  type: "replace_exercise";
-  fromExerciseName: string;
-  toExerciseName: string;
-};
+export type CoachChatAction =
+  | {
+      type: "replace_exercise";
+      fromExerciseName: string;
+      toExerciseName: string;
+    }
+  | {
+      type: "note_limitation";
+      text: string;
+    };
 
 export type CoachPromptPayload = {
   system: string;
@@ -569,6 +582,12 @@ const REVIEW_COACH_SYSTEM = [
 const MEMORY_PRECEDENCE_RULE =
   "Om recentConversation motsäger memoryInsight eller en tidigare notering — t.ex. användaren säger att något som var ett problem förra gången inte längre är det: lita på recentConversation. Färsk information från den här sessionen vinner alltid över äldre minnesnoteringar.";
 
+const HEALTH_NOTES_PRECEDENCE_RULE =
+  "limitations är vad användaren angav vid start (skador, begränsningar, oro) och kan vara gammal. recentHealthNotes är skador eller besvär nämnda senare, i tidsordning (äldst först). Om de säger emot varandra vinner alltid det senaste — säger den sista raden att ett besvär är bättre eller helt borta, lita på det och sluta vara försiktig eller bygga runt det av gammal vana.";
+
+const RECENT_WORKING_WEIGHTS_NOTE =
+  "recentWorkingWeights visar de faktiska arbetsvikterna från senaste passen på den här övningen, i tidsordning (äldst först).";
+
 const SET_COACH_INSTRUCTION = [
   "Ditt uppdrag: förstå vad användaren faktiskt försöker uppnå. Hitta den minsta förändringen som löser situationen.",
   "",
@@ -595,6 +614,8 @@ const SET_COACH_INSTRUCTION = [
   "- personalRecordText: PB — reagera",
   "- computedSignals / decisionFacts: maskintolkade mönster — underlag, inte sanning",
   "- memoryInsight: din historia med användaren",
+  "- " + HEALTH_NOTES_PRECEDENCE_RULE,
+  "- " + RECENT_WORKING_WEIGHTS_NOTE,
   "- gymComparison är intern signal. Om hasHistoryAtCurrentGym är false kan vikterna behöva kalibreras på detta gym. Nämn det bara om det hjälper användaren förstå dagens startvikt. Om differentFromLastSession är true: resonera tyst om att viktreferenser kan skilja sig mellan gym.",
   "- recoveryContext är intern träningskontext. Använd den bara när den rimligen förklarar dagens prestation eller påverkar nästa beslut. Nämn den inte rutinmässigt.",
   "- progressionOpportunity: om användaren har mer att ge",
@@ -603,7 +624,7 @@ const SET_COACH_INSTRUCTION = [
   "",
   "Utöver hårda gränser (systeminstruktion), specifikt för set-svar:",
   "- Säg bara 'sista setet' om setPlan.isLastSet är true.",
-  "- Om nextTarget.strategy är 'complete': övningen är klar. Reagera på setet och avsluta naturligt — nämn inga fler set-vikter, reps eller vilotider för den här övningen. Undantag: om progressionOpportunity finns kan du erbjuda ett extraset. Om setPlan.isLastExercise är true: passet är klart.",
+  "- Om nextTarget.strategy är 'complete': övningen är klar. Reagera på setet och avsluta naturligt — nämn inga fler set-vikter, reps eller vilotider för den här övningen. Namnge aldrig vilken övning som kommer härnäst — den informationen finns inte i din kontext här, appen visar den separat. Undantag: om progressionOpportunity finns kan du erbjuda ett extraset. Om setPlan.isLastExercise är true: passet är klart.",
   "- Om personalRecordText börjar med 'Nytt person': det är ett PB. Reagera tydligt, men låt det kännas genom precision — inte genom mer text. En träffsäker mening räcker ofta.",
   "- Om currentSet.failNote finns: användaren har sagt vad som stoppade setet. Bekräfta det direkt i svaret — det väger tyngre än setnumret.",
 ].join("\n");
@@ -628,6 +649,8 @@ const CHAT_QUESTION_INSTRUCTION = [
   "- Svara bara på det som faktiskt frågades. Lägg inte till angränsande tips, alternativ eller \"bra att veta\" om användaren inte bad om det eller det är säkerhetskritiskt. En fråga, en sak.",
   "- Läs recentConversation INNAN du svarar — det är ditt korttidsminne. Vad har du redan föreslagit? Vad avvisade användaren?",
   "- " + MEMORY_PRECEDENCE_RULE,
+  "- " + HEALTH_NOTES_PRECEDENCE_RULE,
+  "- " + RECENT_WORKING_WEIGHTS_NOTE,
   "- Om användaren frågar om att höja och context.progressionOpportunity finns: använd den som facit.",
   "- Om context.currentExerciseCompleted är true: övningen är redan klar. Prata om nästa gång, inte nästa set. Be aldrig användaren köra ett set till om appen inte uttryckligen har ett nästa set.",
   "- Om currentExerciseInfo finns och användaren frågar om övningen: använd den som facit, men svara som coach, inte lexikon.",
@@ -651,11 +674,12 @@ const CHAT_QUESTION_INSTRUCTION = [
 ].join("\n");
 
 const CHAT_ACTION_INSTRUCTION = [
-  'Returnera JSON, inte markdown. Format: {"text":"ditt vanliga coachsvar","action":null eller {"type":"replace_exercise","fromExerciseName":"...","toExerciseName":"..."}}.',
+  'Returnera JSON, inte markdown. Format: {"text":"ditt vanliga coachsvar","action":null eller {"type":"replace_exercise","fromExerciseName":"...","toExerciseName":"..."} eller {"type":"note_limitation","text":"..."}}.',
   "text-fältet är exakt samma fria, naturliga svar du annars skulle skriva enligt allt ovan — JSON-formatet ska inte göra svaret kortare, längre, mer formellt eller mindre naturligt.",
-  "Sätt action bara när användaren just nu tydligt bytt eller vill byta den aktuella övningen mot en annan — oavsett hur de uttrycker det: \"jag kör X istället\", \"byter till X\", \"X funkar bättre för mig\", \"kan inte göra det, provar X\" och liknande. Använd currentExerciseInfo för att bedöma om X är en rimlig övning för samma syfte.",
-  "Sätt inte action vid frågor, skämt, funderingar eller om användaren bara beskriver ett problem utan att säga vad de gör istället. Då svarar du bara i text, som vanligt — inget action.",
+  "replace_exercise: sätt bara när användaren just nu tydligt bytt eller vill byta den aktuella övningen mot en annan — oavsett hur de uttrycker det: \"jag kör X istället\", \"byter till X\", \"X funkar bättre för mig\", \"kan inte göra det, provar X\" och liknande. Använd currentExerciseInfo för att bedöma om X är en rimlig övning för samma syfte.",
+  "Sätt inte replace_exercise vid frågor, skämt, funderingar eller om användaren bara beskriver ett problem utan att säga vad de gör istället. Då svarar du bara i text, som vanligt.",
   "fromExerciseName ska vara currentExerciseName. toExerciseName ska vara övningen användaren namngav eller tydligt syftade på.",
+  "note_limitation: sätt när användaren nämner något som låter som en verklig skada eller ett ihållande kroppsligt besvär — nytt, förbättrat eller helt borta. Inte vanlig träningsutmattning eller överdrift (\"benen är helt slut\", \"armarna dog\" är inte skador). text ska vara en kort, saklig sammanfattning av vad som sades, i tredje person, t.ex. \"Ont i höger fot efter vridning, nämnt under pass.\" eller \"Ländryggsvärk som nämndes tidigare är nu helt borta.\" Sätt bara en av de två actions per svar — välj den som är tydligast om båda skulle kunna passa.",
 ].join("\n");
 
 export function buildCoachPromptPayload(
@@ -684,7 +708,7 @@ export function buildCoachProgramPromptPayload(
   context: CoachProgramContext
 ): CoachPromptPayload {
   const instruction =
-    'Svara på användarens input om träningsupplägget. Returnera JSON, inte markdown. Format: {"text":"kort coachsvar","suggestion":null eller {"summary":"kort sammanfattning","actions":[...]}}. Tillåtna actions: add_exercise {type, exerciseName, passKey?, passName?, reason?}, remove_exercise {type, exerciseName, reason?}, replace_exercise {type, fromExerciseName, toExerciseName, reason?}, rename_pass {type, passKey, displayName, reason?}. Föreslå bara actions när användaren tydligt vill ändra upplägget. Tolka naturligt språk brett: "hatar X", "X är sämst", "jag vill byta X", "X känns dålig", "får ont av X", "X funkar inte" och liknande betyder att användaren vill ändra övningen. Om användaren ogillar en övning, vill byta den eller får obehag av den: föreslå i första hand replace_exercise med ett konkret alternativ från exerciseLibrary/easierAlternative. Föreslå remove_exercise bara om användaren uttryckligen vill ta bort utan ersättning, om ingen rimlig ersättning finns, eller om säkerheten talar för paus. Föreslå aldrig vaga övningsnamn som "närmsta liknande övning", "liknande övning", "alternativ" eller "annan övning". Om övningen är oklar: suggestion ska vara null och du frågar vilken övning användaren menar. Påstå aldrig att ändringen redan är gjord; skriv att du föreslår den och att användaren kan godkänna. Om användaren bara ställer en fråga eller vill förstå upplägget utan att be om ändring: suggestion ska vara null. Svara tryggt, enkelt och coachigt utan att ändra schemat. Om exerciseLibrary finns och användaren frågar varför en övning ligger i upplägget, vad den tränar, hur den loggas, risker eller alternativ: använd exerciseLibrary som facit och svara användarvänligt. Vid ålder, rädsla, farligt, skada, smärta eller osäkerhet: var extra försiktig, säg att smärta/obehag går före planen och föreslå ändring om användaren kopplar obehaget till en specifik övning. Ge inte medicinska garantier. Vid frågor om fettminskning: förklara kort att styrketräning hjälper formen, musklerna och kroppen under viktnedgång, men att kosten också spelar stor roll. Om du behöver mer information, suggestion ska vara null och du frågar en enda kort följdfråga. Språkkrav: enkel svenska som en trött användare på gymmet fattar direkt. Använd inte slang eller oklara ord som "kötta", "köttade", "köttigt", "mangla" eller "brutal". Hitta inte på kroppsord; skriv "vid handledsbesvär" eller "om handlederna känns ömma". Om du föreslår passnamn ska de vara rena utan parenteser eller volymtaggar. Skriv som en coach, inte som support. Avsluta gärna med tydlig riktning, t.ex. "Vill du kan jag göra upplägget lugnare."';
+    `Svara på det användaren faktiskt frågade eller oroar sig för — det kommer alltid först, som en erfaren coach som lyssnat på precis det. Skriv naturlig text — ingen JSON, ingen markdown, inga rubriker. Börja aldrig svaret med att peka ut ett pass eller en övning som "bäst" om det inte var det som frågades; det läser som att du svarar på fel fråga. Om ditt resonemang landar i att en specifik övning bör bytas ut, tas bort eller behållas: säg det naturligt, och lägg till en kort pekare i slutet till var i appen det görs — knapparna vid varje övning i respektive pass, till exempel "Krysset vid vadpress i Pass C gör jobbet." Om frågan bara är informativ, t.ex. varför en övning ligger i upplägget, vad den tränar, hur den loggas eller vilka risker den har: svara bara på det, använd exerciseLibrary som facit, ingen uppmaning att ändra behövs. Vid ålder, rädsla, farligt, skada, smärta eller osäkerhet: var extra försiktig, säg att smärta/obehag går före planen. Om frågan eller besvärsbeskrivningen är tvetydig — t.ex. oklart vilken rörelse som gör ont, hur länge det pågått, eller vad som redan provats — ställ en kort, konkret följdfråga istället för att gissa. En fråga i taget. ${HEALTH_NOTES_PRECEDENCE_RULE} Detsamma gäller om användarens senaste meddelande eller existingPreferences säger att något är bättre — då kan övningar som tidigare valts bort eller anpassats av den anledningen läggas tillbaka. Skriv som en coach, inte som support. Håll svaret kort och konkret.`;
 
   return {
     system: `${PROGRAM_COACH_SYSTEM}\n\n${PROGRAM_DESIGN_PROTOCOL}`,
@@ -698,7 +722,7 @@ export function buildCoachProgramBuildPromptPayload(
   context: CoachProgramBuildContext
 ): CoachPromptPayload {
   const instruction =
-    'Du är MinCoach programcoach. Bygg ett komplett träningsupplägg från användarens mål, tid, träningsvana, utrustning, övningspreferenser och begränsningar. Returnera ENDAST giltig JSON, inte markdown, inte kodblock, inte förklaring runt JSON. Format: {"title":"kort titel","coachSummary":"varm kort coachförklaring","planReason":"varför detta passar målet","structureReason":"varför passen är uppdelade så här","safetyNotes":["kort notis"],"passes":[{"key":"A","displayName":"Passnamn","intent":"vad passet ska göra","exercises":[{"name":"övningsnamn","purpose":"varför den finns med","sets":"2-4","reps":"6-12","rir":"1-3","caution":"kort vid behov","alternatives":["namn"]}]}]}. Alla fält ska vara strängar eller listor enligt formatet. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer återhämtningsvänliga, särskilt för nybörjare. Varje pass ska ha 3-5 övningar. Använd främst övningar från availableExercises och svenska tydliga namn. Välj inte övningar som kräver utrustning användaren saknar. Använd availableExercises.difficulty, beginnerFit, stability och beginnerNote aktivt. För trainingExperience nyborjare: prioritera beginnerFit bra, difficulty enkel/medel och stability hog/medel. Välj inte beginnerFit undvik_som_standard om det finns stabilare alternativ. Om du ändå väljer en tekniskt svårare övning till en ny användare ska syftet vara tydligt och alternatives innehålla en enklare variant. Goblet squat är inte automatiskt en enkel standardövning; på gym är benpress eller benspark ofta tryggare start för en helt ny eller osäker användare. Om location är hemma: håll dig till equipment. Respektera exercisePreferences som en stark mjuk preferens: prioritera valda typer när de passar mål, säkerhet och utrustning. Om användaren inte valt kroppsvikt ska du inte bygga runt armhävningar, planka eller liknande om bättre alternativ finns. Om användaren valt maskiner/kablar/hantlar/fria vikter ska det synas i övningsvalen. Om användaren har begränsningar, bygg runt dem och skriv safetyNotes. Detta kräver faktisk coachkompetens: välj övningar, volym och struktur som passar målet. För styrka: färre tydliga basövningar, mer vila och mätbar progression. För muskler: jämn volym, kontrollerade basövningar plus isolationsarbete. För fettförlust: håll passet enkelt, repeterbart och effektivt utan att låtsas att styrketräning ensam styr vikten. Undvik att trycka in för mycket. Hellre färre bra övningar än ett stökigt pass. Skriv som en trygg coach som förklarar enkelt. Använd enkel svenska. Undvik slang och oklara ord som "kötta", "köttade", "köttigt", "mangla" och "brutal". Hitta aldrig på sammansatta kroppsord; skriv "om handlederna känns ömma" eller "vid handledsbesvär". Passnamn ska vara rena och snygga utan parenteser eller volymtaggar: skriv "Pass B — Ben och bål", inte "Pass B — Ben & Bål (Medelvolym)". Om volym eller fokus behöver förklaras gör du det i intent, inte i passnamnet. Påstå inte medicinska garantier. Om något är osäkert, välj lugnare variant och säg varför.';
+    'Du är MinCoach programcoach. Bygg ett komplett träningsupplägg från användarens mål, tid, träningsvana, utrustning, övningspreferenser och begränsningar. Returnera ENDAST giltig JSON, inte markdown, inte kodblock, inte förklaring runt JSON. Format: {"title":"kort titel","coachSummary":"varm kort coachförklaring","planReason":"varför detta passar målet","structureReason":"varför passen är uppdelade så här","safetyNotes":["kort notis"],"passes":[{"key":"A","displayName":"Passnamn","intent":"vad passet ska göra","exercises":[{"name":"övningsnamn","purpose":"varför den finns med","sets":"2-4","reps":"6-12","rir":"1-3","caution":"kort vid behov","alternatives":["namn"]}]}]}. Alla fält ska vara strängar eller listor enligt formatet. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer återhämtningsvänliga, särskilt för nybörjare. Varje pass ska ha 3-5 övningar. Använd främst övningar från availableExercises och svenska tydliga namn. Välj inte övningar som kräver utrustning användaren saknar. Använd availableExercises.difficulty, beginnerFit, stability och beginnerNote aktivt. För trainingExperience nyborjare: prioritera beginnerFit bra, difficulty enkel/medel och stability hog/medel. Välj inte beginnerFit undvik_som_standard om det finns stabilare alternativ. Om du ändå väljer en tekniskt svårare övning till en ny användare ska syftet vara tydligt och alternatives innehålla en enklare variant. Om location är hemma: håll dig till equipment. Respektera exercisePreferences som en stark mjuk preferens: prioritera valda typer när de passar mål, säkerhet och utrustning. Om användaren inte valt kroppsvikt ska du inte bygga runt armhävningar, planka eller liknande om bättre alternativ finns. Om användaren valt maskiner/kablar/hantlar/fria vikter ska det synas i övningsvalen. Om användaren har begränsningar, bygg runt dem och skriv safetyNotes. Detta kräver faktisk coachkompetens: välj övningar, volym och struktur som passar målet. För styrka: färre tydliga basövningar, mer vila och mätbar progression. För muskler: jämn volym, kontrollerade basövningar plus isolationsarbete. För fettförlust: håll passet enkelt, repeterbart och effektivt utan att låtsas att styrketräning ensam styr vikten. Undvik att trycka in för mycket. Hellre färre bra övningar än ett stökigt pass. Skriv som en trygg coach som förklarar enkelt. Passnamn ska vara rena och snygga utan parenteser eller volymtaggar: skriv "Pass B — Ben och bål", inte "Pass B — Ben & Bål (Medelvolym)". Om volym eller fokus behöver förklaras gör du det i intent, inte i passnamnet. Om något är osäkert, välj lugnare variant och säg varför.';
 
   const programInstruction = `${instruction}
 
@@ -710,7 +734,7 @@ Måste väga in varje gång:
 - daysPerWeek och minutesPerSession: styr split, antal övningar och total volym.
 - location och equipment: välj bara övningar som användaren faktiskt kan göra.
 - exercisePreferences: prioritera de övningstyper användaren gillar. Det är inte ett absolut förbud mot annat, men programmet ska kännas anpassat efter preferensen.
-- limitations: ska väga tungt. Bygg runt smärta, skador och oro.
+- limitations och recentHealthNotes: bygg programmet runt smärta, skador och oro. ${HEALTH_NOTES_PRECEDENCE_RULE}
 - existingPreferences: respektera användarens önskemål om de inte krockar med säkerhet eller upplägg.
 
 Hårda krav:
@@ -718,7 +742,8 @@ Hårda krav:
 - Sets/reps/RIR ska passa övning, mål, ålder, träningsvana och begränsningar.
 - Varje övning ska ha ett tydligt syfte. Lägg inte in övningar bara för att fylla passet.
 - CoachSummary, planReason och structureReason ska kännas som att coachen faktiskt har tänkt.
-- Om något är osäkert: välj tryggare variant och säg varför.`;
+- Om något är osäkert: välj tryggare variant och säg varför.
+- Om en begränsning är vag eller kan tolkas på flera sätt: bygg det säkraste rimliga alternativet, men säg uttryckligen i coachSummary eller safetyNotes vad du är osäker på. Gissa inte blint på en specifik skada eller rörelse du inte fått bekräftad — flagga osäkerheten istället, så användaren kan förtydliga i chatten efteråt.`;
 
   return {
     system: `${PROGRAM_COACH_SYSTEM}\n\n${PROGRAM_DESIGN_PROTOCOL}`,
@@ -907,7 +932,6 @@ export async function requestAiProgramReply(args: {
         mode: "fallback" as const,
         reason: "request_failed",
         text: fallbackText,
-        suggestion: null,
       };
     }
 
@@ -915,7 +939,6 @@ export async function requestAiProgramReply(args: {
       mode?: "ai" | "fallback";
       reason?: string;
       text?: string;
-      suggestion?: CoachProgramSuggestion | null;
     };
 
     return {
@@ -926,14 +949,12 @@ export async function requestAiProgramReply(args: {
         fallbackText,
         payload.maxCharacters
       ),
-      suggestion: data.suggestion ?? null,
     };
   } catch {
     return {
       mode: "fallback" as const,
       reason: "network_error",
       text: fallbackText,
-      suggestion: null,
     };
   }
 }

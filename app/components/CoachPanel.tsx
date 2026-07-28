@@ -38,7 +38,7 @@ type Props = {
 
 const coachInputPlaceholders = [
   "Skriv till coachen...",
-  't.ex. "det kändes lätt"',
+  't.ex. "det känns för lätt"',
   't.ex. "jag är helt slut"',
   't.ex. "kan jag höja sen?"',
   't.ex. "det där satt fint"',
@@ -54,8 +54,11 @@ const coachInputPlaceholders = [
   't.ex. "jag vill testa tyngre"',
   't.ex. "jag tappade tekniken"',
   't.ex. "finns det ett alternativ?"',
-  't.ex. "det känns för lätt"',
-  't.ex. "jag orkar nog ett set till"',
+  "Fråga mig vad som helst",
+  "Hur känns kroppen idag?",
+  't.ex. "har du ett tekniktips?"',
+  "Vad tänker du om passet hittills?",
+  't.ex. "allt känns bra idag"',
 ];
 
 function getRandomCoachPlaceholder(current?: string) {
@@ -300,14 +303,14 @@ export default function CoachPanel({
   );
 
   return (
-      <div className="coach-panel-shell sticky top-2 z-30 space-y-2.5 rounded-[1.35rem] border border-white/[0.09] bg-[#0d1520] p-2.5 shadow-[0_16px_44px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-3">
+      <div className="coach-panel-shell space-y-2.5 rounded-[1.35rem] border border-white/[0.09] bg-[#0d1520] p-2.5 shadow-[0_16px_44px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-3">
         {isHistoryOpen ? (
         <div
           ref={chatScrollRef}
           onScroll={updateStickToBottom}
           className={`overflow-auto space-y-2 pr-1 transition-[max-height,min-height] duration-200 ease-out ${
             isExpanded
-              ? "max-h-[36dvh] min-h-[120px]"
+              ? "max-h-[56dvh] min-h-[220px]"
               : "max-h-[32dvh] min-h-[170px] sm:min-h-[220px]"
           }`}
         >

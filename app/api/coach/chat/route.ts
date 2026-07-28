@@ -20,13 +20,23 @@ function normalizeChatAction(value: unknown): CoachChatAction | null {
   if (!value || typeof value !== "object") return null;
 
   const action = value as Record<string, unknown>;
-  if (action.type !== "replace_exercise") return null;
 
-  const fromExerciseName = cleanText(action.fromExerciseName);
-  const toExerciseName = cleanText(action.toExerciseName);
-  if (!fromExerciseName || !toExerciseName) return null;
+  if (action.type === "replace_exercise") {
+    const fromExerciseName = cleanText(action.fromExerciseName);
+    const toExerciseName = cleanText(action.toExerciseName);
+    if (!fromExerciseName || !toExerciseName) return null;
 
-  return { type: "replace_exercise", fromExerciseName, toExerciseName };
+    return { type: "replace_exercise", fromExerciseName, toExerciseName };
+  }
+
+  if (action.type === "note_limitation") {
+    const text = cleanText(action.text);
+    if (!text) return null;
+
+    return { type: "note_limitation", text };
+  }
+
+  return null;
 }
 
 function parseChatAiResponse(rawText: string): {

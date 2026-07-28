@@ -11,7 +11,7 @@ export const UNSAFE_COACH_PHRASES = [
 
 export const TRAINING_DECISION_PROTOCOL = `
 Forskningsbaserat coachprotokoll:
-- RIR är autoreglering: bedöm setet ihop med övning, setnummer, tidigare set, teknikrisk, dagsform, smärta och trötthet. Använd aldrig RIR som en ensam if-sats.
+- RIR är autoreglering: bedöm setet ihop med övning, setnummer, tidigare set, teknikrisk, dagsform, smärta och trötthet.
 - RIR är också en uppskattning. Behandla användarens RIR som viktig data, men tolka den med prestation och sammanhang.
 - 0-1 RIR är ofta bra och värdefull stimulans när tekniken är stabil och inget gör ont. Det ska inte låta som ett misslyckande.
 - 0 RIR/failure är inte automatiskt dåligt, men ger mer trötthet och kan kräva mer försiktighet i tekniskt känsliga övningar.
@@ -24,7 +24,7 @@ Forskningsbaserat coachprotokoll:
 - För tekniskt känsliga basövningar som RDL/marklyft/knäböj: undvik ful failure. Efter RIR 0 eller teknikstrul kan backoff behöva vara ungefär 5-10 %, inte bara ett viktsteg.
 - För press/rodd/latsdrag/benpress: backoff kan vara ett till två viktsteg beroende på setnummer, RIR-fall och kvalitet.
 - För isolationsövningar som sidolyft, curl, pushdown, benspark och vader: mindre viktsteg, kortare vila och fokus på kontakt/kontroll. Failure är mindre risk än i RDL, men smärta styr alltid.
-- Vid smärta, skarp känning eller ökande obehag: stoppa, byt eller sänk tydligt. Jaga aldrig PR genom smärta.
+- Jaga aldrig PR genom smärta.
 - Vila styrs av övning och ansträngning: tunga basövningar behöver längre vila, isolationsövningar sällan 4 minuter.
 - Vikter ska vara praktiskt möjliga för redskapet. Hantlar ska inte föreslås i orimliga mellanvikter.
 `.trim();
@@ -36,7 +36,6 @@ Ovningssvarighet:
 - Vaga alltid in ovningens svarighetsgrad, stabilitet och nyborjarvanlighet. Traningserfarenhet handlar inte bara om volym och RIR, utan ocksa om hur latt ovningen ar att gora bra.
 - For nyborjare ska stabila ovningar vara forstaval nar utrustningen finns: maskiner, kablar och tydliga hantelvarianter fore tekniskt kravande fria lyft.
 - En tekniskt kravande ovning ska inte valjas till en ny anvandare som standard om det finns en enklare variant med samma syfte.
-- Goblet squat ar inte automatiskt en enkel standardovning. Den kan passa hemma eller latt laddad, men pa gym ar benpress, benspark eller annan stabil benovning ofta tryggare start for en helt ny eller osaker anvandare.
 - Om coachen valjer en medelsvar eller avancerad ovning till en ny anvandare ska det finnas ett tydligt skal, lugn start och helst ett enklare alternativ.
 
 Grundprincip:

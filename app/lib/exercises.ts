@@ -2061,6 +2061,19 @@ export function getExerciseKey(name: string) {
   return normalizeExerciseSearchText(name).replace(/\s+/g, "_");
 }
 
+export function exerciseKey(name: string) {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function parsePlannedSetCount(sets?: string | null) {
+  if (!sets) return null;
+
+  const numbers = sets.match(/\d+/g)?.map(Number).filter(Number.isFinite) ?? [];
+  if (numbers.length === 0) return null;
+
+  return Math.max(1, Math.min(...numbers));
+}
+
 export function getExerciseDefinition(identifier: string) {
   const normalized = normalizeExerciseSearchText(identifier);
   const byKey = EXERCISE_DEFINITIONS_BY_KEY.get(normalized.replace(/\s+/g, "_"));

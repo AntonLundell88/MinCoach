@@ -16,10 +16,6 @@ import {
   getReviewedExerciseMuscleMap,
   type ReviewedMuscleMap,
 } from "../lib/muscleMapRules";
-import type {
-  CoachProgramSuggestion,
-  CoachProgramSuggestionAction,
-} from "../lib/coachAi";
 import { reviewManualProgram } from "../lib/programReview";
 import type { ManualProgramReviewSuggestion } from "../lib/programReview";
 import { repairMojibake } from "../lib/textEncoding";
@@ -102,14 +98,11 @@ const LIBRARY_CATEGORIES = [
 type Props = {
   profile: UserProfile;
   workoutPlan: WorkoutPlan;
-  preferenceInput: string;
-  setPreferenceInput: (value: string) => void;
-  preferenceReply: string;
-  pendingProgramSuggestion: CoachProgramSuggestion | null;
   programBuildStatus: "idle" | "building" | "ready" | "fallback";
-  onSavePreference: () => void | Promise<void>;
-  onApproveProgramSuggestion: () => void;
-  onDismissProgramSuggestion: () => void;
+  chatInput: string;
+  setChatInput: (value: string) => void;
+  chatLog: { role: "you" | "coach"; text: string }[];
+  onSendChat: (message: string) => void | Promise<void>;
   onRebuildProgram: () => void;
   onRenamePass: (passKey: PassType, displayName: string) => void;
   onAddExercise: (passKey: PassType, exerciseName: string) => AddExerciseResult;
@@ -336,28 +329,6 @@ function buildLimitationsAcknowledgement(
       "Upplägget väljer hellre stabila varianter och kontrollerad progression än att chansa.",
     "Om något ger skarp smärta byter vi övning direkt.",
   ];
-}
-
-function actionLabel(action: CoachProgramSuggestionAction) {
-  if (action.type === "add_exercise") {
-    const exerciseName = cleanProgramCopy(action.exerciseName);
-    const target = action.passName
-      ? cleanPassNameForDisplay(action.passName)
-      : action.passKey;
-    return target
-      ? `Lägg till ${exerciseName} i ${target}`
-      : `Lägg till ${exerciseName}`;
-  }
-
-  if (action.type === "remove_exercise") {
-    return `Ta bort ${cleanProgramCopy(action.exerciseName)}`;
-  }
-
-  if (action.type === "replace_exercise") {
-    return `Byt ${cleanProgramCopy(action.fromExerciseName)} mot ${cleanProgramCopy(action.toExerciseName)}`;
-  }
-
-  return `Döp pass ${action.passKey} till ${cleanPassNameForDisplay(action.displayName)}`;
 }
 
 type BodyMapRegion =
@@ -748,14 +719,11 @@ function cleanSafetyLine(value: string) {
 export default function ProgramReviewScreen({
   profile,
   workoutPlan,
-  preferenceInput,
-  setPreferenceInput,
-  preferenceReply,
-  pendingProgramSuggestion,
   programBuildStatus,
-  onSavePreference,
-  onApproveProgramSuggestion,
-  onDismissProgramSuggestion,
+  chatInput,
+  setChatInput,
+  chatLog,
+  onSendChat,
   onRebuildProgram,
   onRenamePass,
   onAddExercise,
@@ -773,10 +741,10 @@ export default function ProgramReviewScreen({
   const [librarySearch, setLibrarySearch] = useState("");
   const [libraryCategory, setLibraryCategory] =
     useState<(typeof LIBRARY_CATEGORIES)[number]>("alla");
-  const [showInputHelp, setShowInputHelp] = useState(false);
   const [showCoachDetails, setShowCoachDetails] = useState(false);
   const [showTermsHelp, setShowTermsHelp] = useState(false);
-  const [isPreferenceSubmitting, setIsPreferenceSubmitting] = useState(false);
+  const [showInputHelp, setShowInputHelp] = useState(false);
+  const [isChatSubmitting, setIsChatSubmitting] = useState(false);
   const [editingPassKey, setEditingPassKey] = useState<PassType | null>(null);
   const [passNameInput, setPassNameInput] = useState("");
   const [focusedPassKey, setFocusedPassKey] = useState<PassType | null>(null);
@@ -802,14 +770,22 @@ export default function ProgramReviewScreen({
   const [hasRunManualReview, setHasRunManualReview] = useState(false);
   const [isManualReviewing, setIsManualReviewing] = useState(false);
   const [manualReviewSummary, setManualReviewSummary] = useState("");
-  async function submitPreference() {
-    if (!preferenceInput.trim() || isPreferenceSubmitting) return;
+  const chatLogEndRef = useRef<HTMLDivElement | null>(null);
 
-    setIsPreferenceSubmitting(true);
+  useEffect(() => {
+    chatLogEndRef.current?.scrollIntoView({ block: "end" });
+  }, [chatLog.length]);
+
+  async function submitChat() {
+    const message = chatInput.trim();
+    if (!message || isChatSubmitting) return;
+
+    setChatInput("");
+    setIsChatSubmitting(true);
     try {
-      await onSavePreference();
+      await onSendChat(message);
     } finally {
-      setIsPreferenceSubmitting(false);
+      setIsChatSubmitting(false);
     }
   }
 
@@ -1483,7 +1459,7 @@ export default function ProgramReviewScreen({
                 Behöver något justeras?
               </p>
               <p className="mt-1 text-sm leading-5 text-white/66">
-                Prata med coachen längst ner. Du får se förslaget innan upplägget ändras.
+                Prata med coachen längst ner. Den pekar på rätt övning — du gör ändringen själv med knapparna i passen.
               </p>
             </div>
           ) : null}
@@ -2368,110 +2344,87 @@ export default function ProgramReviewScreen({
           </div>
         ) : null}
 
-        {!isManualBuilder ? (
-        <section className={`program-coach-dialog rounded-[1.5rem] border border-white/[0.08] backdrop-blur-xl ${
-          isManualBuilder ? "bg-white/[0.026] p-3" : "bg-white/[0.04] p-3.5"
-        }`}>
+        {isManualBuilder ? (
+          <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-3.5 backdrop-blur-xl">
+            <div className="mt-1 grid gap-2">
+              <button
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.048] py-3 text-sm font-medium text-white/62 transition hover:bg-white/[0.07] hover:text-white"
+                onClick={onEditProfile}
+              >
+                Ändra mina svar
+              </button>
+            </div>
+          </section>
+        ) : (
+        <section className="program-coach-dialog rounded-[1.5rem] border border-white/[0.08] bg-white/[0.04] p-3.5 backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
-                {isManualBuilder ? "Fråga coachen" : "Prata med coachen"}
+                Prata med coachen
               </p>
-              <p className={`${isManualBuilder ? "mt-1 text-xs" : "mt-2 text-sm"} leading-6 text-white/66`}>
-                {isManualBuilder
-                  ? "Behöver du hjälp att välja, byta eller förstå en övning?"
-                  : "Fråga, säg om något känns fel eller be mig justera upplägget."}
+              <p className="mt-2 text-sm leading-6 text-white/66">
+                Fråga om upplägget eller berätta om något känns fel. Coachen svarar och pekar på var du gör ändringen — du trycker själv på knappen vid övningen.
               </p>
-              {!isManualBuilder ? (
-                <p className="mt-1 text-xs leading-5 text-white/42">
-                  Du godkänner alltid ändringar innan de läggs in.
-                </p>
-              ) : hasCoachReviewSuggestions ? (
-                <p className="text-center text-xs font-medium leading-5 text-blue-100/54">
-                  Coachens förslag visas dimmat i passen. Tryck + för att lägga till.
-                </p>
-              ) : hasCoachReviewSuggestions ? (
-                <p className="text-center text-xs font-medium leading-5 text-blue-100/54">
-                  Coachens förslag syns i passen. Blå rader kan läggas till, röda kan tas bort.
-                </p>
-              ) : manualReviewSummary ? (
-                <p className="text-center text-xs font-medium leading-5 text-white/48">
-                  {manualReviewSummary}
-                </p>
-              ) : null}
             </div>
-
             <button
               type="button"
               onClick={() => setShowInputHelp(true)}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-xs font-semibold text-white/48 transition hover:bg-white/[0.075] hover:text-white"
-              aria-label="Visa exempel på vad du kan ändra"
+              aria-label="Visa exempel på vad du kan fråga"
             >
               i
             </button>
           </div>
 
-          <div
-            className={`program-coach-input-panel mt-3 rounded-2xl border transition ${
-              preferenceReply || pendingProgramSuggestion
-                ? "border-blue-300/10 bg-blue-400/[0.022] p-2.5 shadow-[inset_0_0_0_1px_rgba(147,197,253,0.035)]"
-                : "border-white/[0.06] bg-slate-950/18 p-2"
-            }`}
-          >
-            {preferenceReply || pendingProgramSuggestion ? (
-              <div className="mb-2 flex items-center justify-between gap-3 px-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/52">
-                  Skriv vidare här
-                </p>
-                <p className="text-[11px] font-medium text-white/38">
-                  Samma samtal
-                </p>
-              </div>
-            ) : null}
-
-            <div className="flex gap-2">
-              <input
-                className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/26 focus:border-blue-300/34 focus:bg-slate-950/42"
-                value={preferenceInput}
-                onChange={(event) => setPreferenceInput(event.target.value)}
-                disabled={isPreferenceSubmitting}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    submitPreference();
+          {chatLog.length > 0 ? (
+            <div className="mt-3 max-h-[42vh] space-y-2 overflow-y-auto rounded-2xl border border-white/[0.06] bg-slate-950/18 p-2.5">
+              {chatLog.map((entry, index) => (
+                <div
+                  key={index}
+                  className={
+                    entry.role === "coach"
+                      ? "rounded-xl border border-white/8 bg-slate-950/30 px-3 py-2 text-sm leading-6 text-white/78"
+                      : "ml-auto w-fit max-w-[85%] rounded-xl border border-white/[0.12] bg-white/[0.08] px-3 py-2 text-sm leading-6 text-white"
                   }
-                }}
-                placeholder={
-                  preferenceReply || pendingProgramSuggestion
-                    ? "Svara coachen eller skriv en ny ändring..."
-                    : 't.ex. "ont i bröstet", "mer rygg", "byt marklyft"'
-                }
-              />
-              <button
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-300/12 bg-blue-400/[0.12] text-blue-50/80 transition hover:bg-blue-400/[0.18] hover:text-white disabled:border-white/[0.06] disabled:bg-white/[0.045] disabled:text-white/24"
-                disabled={!preferenceInput.trim() || isPreferenceSubmitting}
-                onClick={submitPreference}
-                aria-label={isPreferenceSubmitting ? "Skickar" : "Skicka"}
-              >
-                <SendGlyph className="h-4 w-4" />
-                <span className="sr-only">
-                  {isPreferenceSubmitting ? "Skickar" : "Skicka"}
-                </span>
-              </button>
+                >
+                  <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                    {entry.role === "coach" ? "Coach" : "Du"}
+                  </p>
+                  {cleanProgramCopy(entry.text)}
+                </div>
+              ))}
+              {isChatSubmitting ? (
+                <div className="rounded-xl border border-white/8 bg-slate-950/30 px-3 py-2 text-sm text-white/50">
+                  Coachen tänker...
+                </div>
+              ) : null}
+              <div ref={chatLogEndRef} />
             </div>
+          ) : null}
 
-            {isPreferenceSubmitting ? (
-              <div className="mt-2 flex items-center gap-2 px-1 text-xs font-medium leading-5 text-blue-100/58">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-[#2f6df6] shadow-[0_0_14px_rgba(47,109,246,0.65)]" />
-                Coachen skriver...
-              </div>
-            ) : null}
-
-            {preferenceReply || pendingProgramSuggestion ? (
-              <p className="mt-2 px-1 text-xs leading-5 text-white/44">
-                Om coachen föreslår en ändring godkänner du den med knappen nedan.
-              </p>
-            ) : null}
+          <div className="mt-3 flex gap-2">
+            <input
+              className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/26 focus:border-blue-300/34 focus:bg-slate-950/42"
+              value={chatInput}
+              onChange={(event) => setChatInput(event.target.value)}
+              disabled={isChatSubmitting}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  submitChat();
+                }
+              }}
+              placeholder='t.ex. "jag har ont i knät", "varför ligger benpress med?"'
+            />
+            <button
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-300/12 bg-blue-400/[0.12] text-blue-50/80 transition hover:bg-blue-400/[0.18] hover:text-white disabled:border-white/[0.06] disabled:bg-white/[0.045] disabled:text-white/24"
+              disabled={!chatInput.trim() || isChatSubmitting}
+              onClick={submitChat}
+              aria-label={isChatSubmitting ? "Skickar" : "Skicka"}
+            >
+              <SendGlyph className="h-4 w-4" />
+              <span className="sr-only">{isChatSubmitting ? "Skickar" : "Skicka"}</span>
+            </button>
           </div>
 
           {showInputHelp ? (
@@ -2483,7 +2436,7 @@ export default function ProgramReviewScreen({
                       Exempel
                     </p>
                     <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
-                      Vad kan jag säga?
+                      Vad kan jag fråga?
                     </h2>
                   </div>
                   <button
@@ -2498,18 +2451,16 @@ export default function ProgramReviewScreen({
 
                 <div className="mt-4 grid gap-2.5">
                   {[
-                    "lägg till knäböj men ta bort marklyft",
+                    "jag har ont i knät, vad ska jag göra?",
                     "jag gillar inte vadpress",
-                    "jag vill ha mer bröst",
-                    "jag har ont i knät",
-                    "Dag 1: bänkpress, hantelpress. Dag 2: latsdrag, rodd.",
-                    "lägg till egen ben: benspark med z-stång",
+                    "varför ligger benpress med i upplägget?",
+                    "jag vill ha mer rygg",
                   ].map((example) => (
                     <button
                       key={example}
                       type="button"
                       onClick={() => {
-                        setPreferenceInput(example);
+                        setChatInput(example);
                         setShowInputHelp(false);
                       }}
                       className="rounded-2xl border border-white/8 bg-slate-950/20 px-3 py-2.5 text-left text-sm font-semibold leading-5 text-white/76 transition hover:bg-white/[0.07] hover:text-white"
@@ -2520,60 +2471,8 @@ export default function ProgramReviewScreen({
                 </div>
 
                 <p className="mt-4 text-xs leading-5 text-white/46">
-                  Coachen föreslår ändringar. Du godkänner innan upplägget blir ditt.
+                  Coachen svarar och pekar på rätt övning — du gör ändringen själv med knapparna i passen ovan.
                 </p>
-              </div>
-            </div>
-          ) : null}
-
-          {preferenceReply ? (
-            <div className="mt-3 rounded-2xl border border-blue-300/14 bg-slate-950/22 p-3 text-sm leading-6 text-white/72">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/48">
-                {pendingProgramSuggestion ? "Coachens kommentar" : "Coachens svar"}
-              </p>
-              <p>{cleanProgramCopy(preferenceReply)}</p>
-              <p className="mt-2 border-t border-white/[0.06] pt-2 text-xs font-medium leading-5 text-white/42">
-                Skriv vidare i rutan ovan.
-              </p>
-            </div>
-          ) : null}
-
-          {pendingProgramSuggestion ? (
-            <div className="program-coach-suggestion-card mt-3 rounded-2xl p-3.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/52">
-                Coachens förslag
-              </p>
-              <p className="mt-2 text-sm leading-6 text-white/78">
-                {cleanProgramCopy(pendingProgramSuggestion.summary)}
-              </p>
-              <div className="mt-3 grid gap-1.5">
-                {pendingProgramSuggestion.actions.map((action, index) => (
-                  <div
-                    key={`${action.type}-${index}`}
-                    className="rounded-xl border border-white/8 bg-slate-950/20 px-3 py-2 text-sm font-semibold text-white/76"
-                  >
-                    {actionLabel(action)}
-                    {action.reason ? (
-                      <p className="mt-1 text-xs font-medium leading-5 text-white/48">
-                        {cleanProgramCopy(action.reason)}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <button
-                  className="rounded-xl bg-[#2f6df6] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4f83ff]"
-                  onClick={onApproveProgramSuggestion}
-                >
-                  Gör ändringen
-                </button>
-                <button
-                  className="rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2.5 text-sm font-semibold text-white/62 transition hover:bg-white/[0.07] hover:text-white"
-                  onClick={onDismissProgramSuggestion}
-                >
-                  Behåll som det är
-                </button>
               </div>
             </div>
           ) : null}
@@ -2587,18 +2486,7 @@ export default function ProgramReviewScreen({
             </button>
           </div>
         </section>
-        ) : isManualBuilder ? (
-          <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-3.5 backdrop-blur-xl">
-            <div className="mt-1 grid gap-2">
-              <button
-                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.048] py-3 text-sm font-medium text-white/62 transition hover:bg-white/[0.07] hover:text-white"
-                onClick={onEditProfile}
-              >
-                Ändra mina svar
-              </button>
-            </div>
-          </section>
-        ) : null}
+        )}
       </div>
     </main>
     <div

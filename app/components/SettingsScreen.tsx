@@ -35,6 +35,7 @@ type Props = {
   onThemeChange: (theme: AppTheme) => void;
   onBack: () => void;
   onOpenProgram?: () => void;
+  onOpenProfileSetup?: () => void;
   onResetAll: () => void;
 };
 
@@ -113,6 +114,7 @@ export default function SettingsScreen({
   onThemeChange,
   onBack,
   onOpenProgram,
+  onOpenProfileSetup,
   onResetAll,
 }: Props) {
   const [feedbackText, setFeedbackText] = useState("");
@@ -672,9 +674,16 @@ export default function SettingsScreen({
               <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
                 Öppna coachens uppläggssteg om du vill lägga in ett eget schema eller justera övningar.
               </p>
-              <button onClick={onOpenProgram} className={`mt-4 ${subtleButtonClassName}`}>
-                Öppna upplägg
-              </button>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button onClick={onOpenProgram} className={subtleButtonClassName}>
+                  Öppna upplägg
+                </button>
+                {onOpenProfileSetup ? (
+                  <button onClick={onOpenProfileSetup} className={subtleButtonClassName}>
+                    Ändra mina grunduppgifter
+                  </button>
+                ) : null}
+              </div>
             </section>
           ) : null}
 

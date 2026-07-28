@@ -263,7 +263,7 @@ useEffect(() => {
 }, [durationSecondsInput, isDurationRunning, isTimed, setDurationSecondsInput]);
   
  return (
-  <div className={embedded ? "exercise-card-shell space-y-3 px-1" : "exercise-card-shell space-y-3 rounded-[1.6rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"}>
+  <div className={embedded ? "exercise-card-shell space-y-2.5 px-1" : "exercise-card-shell space-y-3 rounded-[1.6rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"}>
     {skippedExerciseName ? (
       <div className="rounded-2xl border border-white/[0.07] bg-slate-950/14 px-3 py-3">
         <div className="flex items-center justify-between gap-3">
@@ -287,8 +287,8 @@ useEffect(() => {
       </div>
     ) : null}
 
+    {!embedded && (
     <div>
-      {!embedded && (
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <p className="min-w-0 truncate text-xl font-semibold tracking-tight">
@@ -313,7 +313,6 @@ useEffect(() => {
             Hoppa över övning
           </button>
         </div>
-      )}
 
       {showExerciseInfo ? (
         <ExerciseInfoModal
@@ -322,7 +321,7 @@ useEffect(() => {
         />
       ) : null}
 
-      {!embedded && (() => {
+      {(() => {
         const prForUI = personalRecords[exerciseKey(currentExerciseName)];
 
         return (
@@ -336,6 +335,7 @@ useEffect(() => {
         );
       })()}
       </div>
+    )}
 
       <div className="grid grid-cols-2 items-end gap-3">
         <div className="min-w-0 space-y-1">
@@ -774,7 +774,7 @@ useEffect(() => {
         document.body
       )}
       {(
-        <div className={`space-y-2 pt-0.5 ${embedded ? "" : "flex gap-2 space-y-0"}`}>
+        <div className={`space-y-2 ${embedded ? "" : "flex gap-2 space-y-0"}`}>
           <button
             className="workout-primary-action w-full rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
             disabled={showWeightInput && !weightInput.trim()}

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ProfileGlyph, SettingsGlyph } from "./IconGlyphs";
+import { SettingsGlyph } from "./IconGlyphs";
 
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 type AppTheme = "dark" | "light";
@@ -65,7 +65,6 @@ type Props = {
   onOpenHistory: () => void;
   onOpenExercises: () => void;
   onOpenPersonalRecords: () => void;
-  onOpenSetup: () => void;
   onOpenSettings: () => void;
   theme: AppTheme;
   lobbyCoachText?: string;
@@ -139,7 +138,6 @@ export default function LobbyScreen({
   onOpenHistory,
   onOpenExercises,
   onOpenPersonalRecords,
-  onOpenSetup,
   onOpenSettings,
   theme,
   lobbyCoachText,
@@ -279,22 +277,6 @@ export default function LobbyScreen({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={onOpenSetup}
-              className={buttonSubtleClassName}
-              aria-label="Profil"
-            >
-              <ProfileGlyph
-                className={`h-4 w-4 ${
-                  isLight
-                    ? "drop-shadow-[0_0_9px_rgba(47,109,246,0.18)]"
-                    : "drop-shadow-[0_0_10px_rgba(47,109,246,0.38)]"
-                }`}
-              />
-              <span>Profil</span>
-            </button>
-
             <button
               type="button"
               onClick={onOpenSettings}

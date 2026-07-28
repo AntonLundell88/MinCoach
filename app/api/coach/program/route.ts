@@ -4,8 +4,6 @@ import {
   buildCoachProgramPromptPayload,
   sanitizeCoachReply,
   type CoachProgramContext,
-  type CoachProgramSuggestion,
-  type CoachProgramSuggestionAction,
 } from "../../../lib/coachAi";
 
 type CoachProgramRequest = {
@@ -53,155 +51,7 @@ function fallbackResponse(
     mode: "fallback",
     reason,
     text: sanitizeCoachReply(fallbackReply, fallbackReply, maxCharacters),
-    suggestion: null,
   });
-}
-
-function isPassKey(value: unknown): value is "A" | "B" | "C" | "D" {
-  return value === "A" || value === "B" || value === "C" || value === "D";
-}
-
-function cleanText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function normalizeText(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9åäö\s]/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function isVagueExerciseName(value: string) {
-  const key = normalizeText(value);
-  return (
-    !key ||
-    key.includes("narmsta liknande") ||
-    key.includes("liknande ovning") ||
-    key === "alternativ" ||
-    key === "ersattning" ||
-    key === "annan ovning" ||
-    key === "nagot annat"
-  );
-}
-
-function normalizeSuggestionAction(value: unknown): CoachProgramSuggestionAction | null {
-  if (!value || typeof value !== "object") return null;
-
-  const action = value as Record<string, unknown>;
-  const type = action.type;
-
-  if (type === "add_exercise") {
-    const exerciseName = cleanText(action.exerciseName);
-    if (!exerciseName || isVagueExerciseName(exerciseName)) return null;
-
-    return {
-      type,
-      exerciseName,
-      passKey: isPassKey(action.passKey) ? action.passKey : undefined,
-      passName: cleanText(action.passName) || undefined,
-      reason: cleanText(action.reason) || undefined,
-    };
-  }
-
-  if (type === "remove_exercise") {
-    const exerciseName = cleanText(action.exerciseName);
-    if (!exerciseName || isVagueExerciseName(exerciseName)) return null;
-
-    return {
-      type,
-      exerciseName,
-      reason: cleanText(action.reason) || undefined,
-    };
-  }
-
-  if (type === "replace_exercise") {
-    const fromExerciseName = cleanText(action.fromExerciseName);
-    const toExerciseName = cleanText(action.toExerciseName);
-    if (
-      !fromExerciseName ||
-      !toExerciseName ||
-      isVagueExerciseName(fromExerciseName) ||
-      isVagueExerciseName(toExerciseName)
-    ) {
-      return null;
-    }
-
-    return {
-      type,
-      fromExerciseName,
-      toExerciseName,
-      reason: cleanText(action.reason) || undefined,
-    };
-  }
-
-  if (type === "rename_pass") {
-    const displayName = cleanText(action.displayName);
-    if (!isPassKey(action.passKey) || !displayName) return null;
-
-    return {
-      type,
-      passKey: action.passKey,
-      displayName,
-      reason: cleanText(action.reason) || undefined,
-    };
-  }
-
-  return null;
-}
-
-function parseProgramAiResponse(rawText: string): {
-  text: string;
-  suggestion: CoachProgramSuggestion | null;
-} {
-  const compact = rawText.trim();
-  if (!compact) return { text: "", suggestion: null };
-
-  const jsonText =
-    compact.startsWith("{") && compact.endsWith("}")
-      ? compact
-      : compact.match(/\{[\s\S]*\}/)?.[0] ?? "";
-
-  if (!jsonText) return { text: compact, suggestion: null };
-
-  try {
-    const parsed = JSON.parse(jsonText) as {
-      text?: unknown;
-      suggestion?: unknown;
-    };
-    const actionsRaw =
-      parsed.suggestion &&
-      typeof parsed.suggestion === "object" &&
-      Array.isArray((parsed.suggestion as { actions?: unknown }).actions)
-        ? ((parsed.suggestion as { actions: unknown[] }).actions)
-        : [];
-    const actions = actionsRaw
-      .map(normalizeSuggestionAction)
-      .filter((action): action is CoachProgramSuggestionAction =>
-        Boolean(action)
-      )
-      .slice(0, 4);
-    const summary =
-      parsed.suggestion && typeof parsed.suggestion === "object"
-        ? cleanText((parsed.suggestion as { summary?: unknown }).summary)
-        : "";
-
-    return {
-      text: cleanText(parsed.text) || compact,
-      suggestion:
-        actions.length > 0
-          ? {
-              summary: summary || "Jag har ett konkret förslag.",
-              actions,
-            }
-          : null,
-    };
-  } catch {
-    return { text: compact, suggestion: null };
-  }
 }
 
 export async function POST(request: Request) {
@@ -291,9 +141,9 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    const aiText = extractOutputText(data);
+    const aiText = extractOutputText(data).trim();
 
-    if (!aiText.trim()) {
+    if (!aiText) {
       return fallbackResponse(
         fallbackReply,
         data?.status === "incomplete" ? "incomplete_empty_reply" : "empty_reply",
@@ -301,14 +151,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsed = parseProgramAiResponse(aiText);
     const fallbackText = sanitizeCoachReply(
       fallbackReply,
       fallbackReply,
       payload.maxCharacters
     );
     const sanitizedText = sanitizeCoachReply(
-      parsed.text,
+      aiText,
       fallbackReply,
       payload.maxCharacters
     );
@@ -318,7 +167,6 @@ export async function POST(request: Request) {
       mode: usedSanitizedFallback ? "fallback" : "ai",
       reason: usedSanitizedFallback ? "sanitized_reply" : undefined,
       text: sanitizedText,
-      suggestion: parsed.suggestion,
     });
   } catch {
     return fallbackResponse(fallbackReply, "api_error", payload.maxCharacters);

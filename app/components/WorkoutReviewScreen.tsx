@@ -222,7 +222,6 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
     : "Bra jobbat idag.";
 
   const takeaways = uniqueItems(review.positives).slice(0, 3);
-  const memoryItems = uniqueItems(review.coachMemoryTakeaway).slice(0, 2);
   const nextTime = uniqueItems(
     review.nextFocus.length > 0 ? review.nextFocus : review.adjustments
   ).slice(0, 2);
@@ -281,8 +280,6 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
           )}
         </section>
       )}
-
-      <SimpleList title="Sparat till coachen" items={memoryItems} />
 
       <section className="rounded-[1.45rem] border border-white/[0.06] bg-white/[0.032] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-white/35">
