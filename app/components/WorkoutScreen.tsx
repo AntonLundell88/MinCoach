@@ -116,7 +116,7 @@ function LibraryBrowser({
         ))}
       </div>
 
-      <div className="max-h-[42vh] space-y-2 overflow-y-auto">
+      <div className="max-h-[42vh] space-y-2 overflow-y-auto overscroll-contain">
         {exercises.map((exercise) => (
           <button
             key={exercise.exerciseKey}
@@ -684,6 +684,8 @@ export default function WorkoutScreen({
   const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
   const [restElapsed, setRestElapsed] = useState(0);
+  const [isInlineRestWidgetVisible, setIsInlineRestWidgetVisible] = useState(true);
+  const inlineRestWidgetRef = useRef<HTMLDivElement | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const [manualRestTarget, setManualRestTarget] = useState<{
     min: number;
@@ -717,7 +719,7 @@ export default function WorkoutScreen({
       : restTimerState === "ready"
       ? `Redo · ${restTarget.label}`
       : `Redo om ${formatRestTimer(restSecondsUntilReady)}`;
-  const shouldShowRestDock = showRestTimer && !chatFocusMode;
+  const shouldShowRestDock = showRestTimer && !chatFocusMode && !isInlineRestWidgetVisible;
   const isLastExercise = exerciseIndex === activePlan.length - 1;
   const currentExerciseReadyToFinish = Boolean(currentExerciseCompleted);
   const isTimedCurrentExercise = isTimedExercise(currentExerciseName);
@@ -811,6 +813,19 @@ export default function WorkoutScreen({
       wakeLockRef.current = null;
     };
   }, [restStartedAt]);
+
+  useEffect(() => {
+    const el = inlineRestWidgetRef.current;
+    if (!el || !showRestTimer) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInlineRestWidgetVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, [showRestTimer]);
 
   function startRestTimer() {
     setRestStartedAt(Date.now() - restElapsed * 1000);
@@ -1269,7 +1284,10 @@ useEffect(() => {
               </p>
             )}
           </div>
-          <div className="workout-rest-card min-w-[5.8rem] rounded-2xl border border-white/[0.06] bg-slate-950/18 px-3 py-2 text-right">
+          <div
+            ref={inlineRestWidgetRef}
+            className="workout-rest-card min-w-[5.8rem] rounded-2xl border border-white/[0.06] bg-slate-950/18 px-3 py-2 text-right"
+          >
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/34">
               Vila
             </p>

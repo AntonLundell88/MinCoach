@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import ToggleSwitch from "./ToggleSwitch";
 
@@ -168,6 +169,7 @@ export default function SetupScreen({
 }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acceptedAiNotice, setAcceptedAiNotice] = useState(isEditing);
+  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(!isEditing);
   const selectedExperienceDescription =
     experienceDescriptions[trainingExperienceInput];
 
@@ -204,6 +206,40 @@ export default function SetupScreen({
   }
 
   return (
+    <>
+    {showWelcomeOverlay && typeof document !== "undefined" && createPortal(
+      <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
+        <div className="absolute inset-0 bg-black/10 backdrop-blur-[3px]" />
+        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
+              Coachen
+            </p>
+            <h1 className="text-xl font-semibold text-white">Hej!</h1>
+          </div>
+          <p className="text-sm leading-6 text-white/70">
+            Välkommen till MinCoach.
+          </p>
+          <p className="text-sm leading-6 text-white/70">
+            Nu ska vi sätta ihop ett upplägg som passar dig och dina mål.
+          </p>
+          <p className="text-sm leading-6 text-white/70">
+            Först behöver jag lära känna dig lite bättre – hur du tränar idag, vad du vill uppnå och vilka förutsättningar du har.
+          </p>
+          <p className="text-sm leading-6 text-white/70">
+            Utifrån det bygger jag ett träningsupplägg som vi sedan utvecklar tillsammans. Vill du hellre skapa schemat själv går det förstås också bra.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowWelcomeOverlay(false)}
+            className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
+          >
+            Bygg mitt schema
+          </button>
+        </div>
+      </div>,
+      document.body
+    )}
     <main data-theme={theme} className="flex min-h-screen flex-col items-stretch justify-start overflow-y-auto bg-[#080d14] px-0 py-0 text-white sm:items-center sm:justify-center sm:px-6 sm:py-4">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.10),transparent_34%),linear-gradient(180deg,#080d14_0%,#0d1420_48%,#080d14_100%)]" />
 
@@ -637,5 +673,6 @@ export default function SetupScreen({
         </section>
       </div>
     </main>
+    </>
   );
 }

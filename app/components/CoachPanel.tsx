@@ -308,7 +308,7 @@ export default function CoachPanel({
         <div
           ref={chatScrollRef}
           onScroll={updateStickToBottom}
-          className={`overflow-auto space-y-2 pr-1 transition-[max-height,min-height] duration-200 ease-out ${
+          className={`overflow-auto overscroll-contain space-y-2 pr-1 transition-[max-height,min-height] duration-200 ease-out ${
             isExpanded
               ? "max-h-[56dvh] min-h-[220px]"
               : "max-h-[32dvh] min-h-[170px] sm:min-h-[220px]"
@@ -317,7 +317,7 @@ export default function CoachPanel({
           <button
             type="button"
             onClick={() => setIsHistoryOpen(false)}
-            className="sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-lg bg-[#0d1520] py-1 text-[10px] uppercase tracking-[0.14em] text-white/38 transition hover:bg-white/[0.05] hover:text-white/64"
+            className="sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-lg bg-[#0d1520] py-1 text-[10px] uppercase tracking-[0.14em] text-white/38 transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white/64"
           >
             Dölj historik
             <span className="rotate-180 text-white/50">▾</span>
@@ -400,23 +400,55 @@ export default function CoachPanel({
           onClick={() => setIsHistoryOpen(true)}
           className="coach-message w-full rounded-[1.15rem] border border-blue-300/[0.18] bg-slate-900/50 px-3 py-2 text-left text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] transition hover:border-blue-300/30 hover:bg-slate-900/70 active:scale-[0.99] sm:px-3.5"
         >
-          <div className="mb-1 flex items-center gap-1.5">
-            <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
-              Coach
-            </p>
-          </div>
           {isCoachThinking ? (
-            <div className="flex items-center gap-2 text-sm text-white/68">
-              <span>Coachen {thinkingWord}</span>
-              {thinkingDots}
-            </div>
+            <>
+              <div className="mb-1 flex items-center gap-1.5">
+                <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
+                  Coach
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-white/68">
+                <span>Coachen {thinkingWord}</span>
+                {thinkingDots}
+              </div>
+            </>
           ) : chatLog.length === 0 ? (
-            <p className="text-sm leading-5 text-white/62">
-              Skriv till coachen när något känns tungt, lätt eller annorlunda.
-            </p>
+            <>
+              <div className="mb-1 flex items-center gap-1.5">
+                <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
+                  Coach
+                </p>
+              </div>
+              <p className="text-sm leading-5 text-white/62">
+                Skriv till coachen när något känns tungt, lätt eller annorlunda.
+              </p>
+            </>
           ) : (
-            <div className="line-clamp-3">
-              <CoachText text={isThinkingLastCoach ? "..." : typedLastCoachMessage} />
+            <div className="space-y-1.5">
+              {chatLog.slice(-2).map((m, i, arr) => {
+                const originalIndex = chatLog.length - arr.length + i;
+                const isLastCoach = originalIndex === lastCoachIndex;
+                const text = isLastCoach
+                  ? isThinkingLastCoach
+                    ? "..."
+                    : typedLastCoachMessage
+                  : normalizeCoachDisplayText(m.text);
+
+                return (
+                  <div key={originalIndex}>
+                    <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
+                      {m.role === "coach" ? "Coach" : "Du"}
+                    </p>
+                    <div className="line-clamp-2">
+                      {m.role === "coach" ? (
+                        <CoachText text={text} />
+                      ) : (
+                        <p className="text-sm leading-5 text-white/86">{text}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
           <div className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-blue-300/85">

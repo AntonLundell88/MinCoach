@@ -30,6 +30,8 @@ export function useExerciseSwapActions(args: {
   resetWorkoutInputs: () => void;
   setSwapFrom: Dispatch<SetStateAction<string | null>>;
   setSwapToInput: Dispatch<SetStateAction<string>>;
+  skippedExercise: { exercise: { name: string } } | null;
+  setSkippedExercise: (value: null) => void;
 }) {
   const {
     workout,
@@ -42,6 +44,8 @@ export function useExerciseSwapActions(args: {
     resetWorkoutInputs,
     setSwapFrom,
     setSwapToInput,
+    skippedExercise,
+    setSkippedExercise,
   } = args;
 
   const [workoutExerciseInput, setWorkoutExerciseInput] = useState("");
@@ -100,6 +104,9 @@ export function useExerciseSwapActions(args: {
       ...workout,
       exercises: [...workout.exercises, { name, sets: [] }],
     });
+    if (skippedExercise && exerciseKey(skippedExercise.exercise.name) === key) {
+      setSkippedExercise(null);
+    }
     setWorkoutExerciseInput("");
     setChatLog((prev) => [
       ...prev,

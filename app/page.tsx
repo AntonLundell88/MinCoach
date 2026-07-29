@@ -4943,6 +4943,14 @@ useEffect(() => {
       customWorkoutPlan.profileSignature !== profileSignature
     ) {
       localStorage.removeItem("customWorkoutPlan");
+      setCustomExercisesByPass(createEmptyPassStringMap());
+      setRemovedExercisesByPass(createEmptyPassStringMap());
+      setExerciseOverridesByPass(createEmptyPassOverrideMap());
+      setPassDisplayNamesByPass({});
+      saveJSON("customExercisesByPass", createEmptyPassStringMap());
+      saveJSON("removedExercisesByPass", createEmptyPassStringMap());
+      saveJSON("exerciseOverridesByPass", createEmptyPassOverrideMap());
+      saveJSON("passDisplayNamesByPass", {});
       const resetFrame = window.setTimeout(() => {
         setCustomWorkoutPlan(null);
       }, 0);
@@ -6352,6 +6360,8 @@ const {
   resetWorkoutInputs,
   setSwapFrom,
   setSwapToInput,
+  skippedExercise,
+  setSkippedExercise,
 });
 
 function resetWorkoutInputs() {
@@ -6426,6 +6436,15 @@ function skipCurrentExercise() {
 
 function undoSkipExercise() {
   if (!workout || !skippedExercise) return;
+
+  const alreadyReAdded = workout.exercises.some(
+    (exercise) => exerciseKey(exercise.name) === exerciseKey(skippedExercise.exercise.name)
+  );
+
+  if (alreadyReAdded) {
+    setSkippedExercise(null);
+    return;
+  }
 
   const insertIndex = Math.min(skippedExercise.index, workout.exercises.length);
   const nextExercises = [...workout.exercises];

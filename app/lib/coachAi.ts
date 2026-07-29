@@ -588,6 +588,9 @@ const HEALTH_NOTES_PRECEDENCE_RULE =
 const RECENT_WORKING_WEIGHTS_NOTE =
   "recentWorkingWeights visar de faktiska arbetsvikterna från senaste passen på den här övningen, i tidsordning (äldst först).";
 
+const RECOVERY_CONTEXT_NOTE =
+  "recoveryContext.exerciseLastTrainedDays gäller bara den aktuella övningen. Om den är null finns ingen tidigare logg av just den övningen i historiken — det betyder INTE att det varit ett uppehåll, det kan lika gärna vara första gången du ser den. Nämn aldrig hur länge sen en övning kördes om inte exerciseLastTrainedDays faktiskt har ett tal. recoveryContext.previousSession beskriver hela förra passet oavsett övning — blanda inte ihop det med hur ofta just den aktuella övningen körs.";
+
 const SET_COACH_INSTRUCTION = [
   "Ditt uppdrag: förstå vad användaren faktiskt försöker uppnå. Hitta den minsta förändringen som löser situationen.",
   "",
@@ -617,7 +620,7 @@ const SET_COACH_INSTRUCTION = [
   "- " + HEALTH_NOTES_PRECEDENCE_RULE,
   "- " + RECENT_WORKING_WEIGHTS_NOTE,
   "- gymComparison är intern signal. Om hasHistoryAtCurrentGym är false kan vikterna behöva kalibreras på detta gym. Nämn det bara om det hjälper användaren förstå dagens startvikt. Om differentFromLastSession är true: resonera tyst om att viktreferenser kan skilja sig mellan gym.",
-  "- recoveryContext är intern träningskontext. Använd den bara när den rimligen förklarar dagens prestation eller påverkar nästa beslut. Nämn den inte rutinmässigt.",
+  "- " + RECOVERY_CONTEXT_NOTE + " Använd recoveryContext bara när den rimligen förklarar dagens prestation eller påverkar nästa beslut — nämn den inte rutinmässigt.",
   "- progressionOpportunity: om användaren har mer att ge",
   "- recentConversation: de senaste meddelandena från BÅDA sidor — ditt korttidsminne. Läs innan du agerar.",
   "- " + MEMORY_PRECEDENCE_RULE,
