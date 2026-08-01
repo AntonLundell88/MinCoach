@@ -450,7 +450,7 @@ export default function ExerciseProgressScreen({
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Sök övning"
-                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-blue-400/30 focus:bg-white/[0.06]"
+                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 px-3.5 py-2.5 text-base text-white outline-none transition placeholder:text-white/32 focus:border-blue-400/30 focus:bg-white/[0.06] sm:text-sm"
               />
 
               <div className="grid grid-cols-3 gap-2">

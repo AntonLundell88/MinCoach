@@ -161,7 +161,7 @@ function SetRow({
           <div>
             <p className="mb-1 text-[10px] text-white/40">Vikt (kg)</p>
             <input
-              className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-sm font-semibold text-white outline-none focus:border-blue-400/40"
+              className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
               inputMode="decimal"
               value={values.weight}
               onChange={(e) => setValues((v) => ({ ...v, weight: e.target.value }))}
@@ -170,7 +170,7 @@ function SetRow({
           <div>
             <p className="mb-1 text-[10px] text-white/40">Reps</p>
             <input
-              className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-sm font-semibold text-white outline-none focus:border-blue-400/40"
+              className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
               inputMode="numeric"
               value={values.reps}
               onChange={(e) => setValues((v) => ({ ...v, reps: e.target.value }))}
@@ -179,7 +179,7 @@ function SetRow({
           <div>
             <p className="mb-1 text-[10px] text-white/40">RIR</p>
             <input
-              className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-sm font-semibold text-white outline-none focus:border-blue-400/40"
+              className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
               inputMode="numeric"
               value={values.rir}
               onChange={(e) => setValues((v) => ({ ...v, rir: e.target.value }))}

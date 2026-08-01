@@ -148,7 +148,7 @@ export default function AuthStartScreen({
             <label className="block text-[13px] font-medium text-white/76">
               E-post
               <input
-                className="mt-1.5 w-full rounded-2xl border border-white/[0.07] bg-slate-950/32 px-3.5 py-3 text-[15px] text-white outline-none transition placeholder:text-white/28 focus:border-blue-300/35 focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1.5 w-full rounded-2xl border border-white/[0.07] bg-slate-950/32 px-3.5 py-3 text-base text-white outline-none transition placeholder:text-white/28 focus:border-blue-300/35 focus:ring-2 focus:ring-blue-500/20 sm:text-[15px]"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="namn@example.com"

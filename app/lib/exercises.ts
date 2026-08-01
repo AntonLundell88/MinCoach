@@ -2703,7 +2703,18 @@ export function isBarbellExercise(name: string): boolean {
 }
 
 export function getExerciseWeightStep(name: string): number {
-  return isBarbellExercise(name) ? 5 : 2.5;
+  if (isBarbellExercise(name)) return 5;
+
+  const tags = getExerciseDefinition(name)?.equipmentTags ?? [];
+  const isDumbbellOnly =
+    tags.includes("dumbbells") &&
+    !tags.includes("machines") &&
+    !tags.includes("cables") &&
+    !tags.includes("barbell");
+
+  if (isDumbbellOnly || isBodyweightExercise(name)) return 2.5;
+
+  return 5;
 }
 
 function getCustomExerciseCue(category: string) {

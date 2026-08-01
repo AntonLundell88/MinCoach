@@ -594,7 +594,7 @@ useEffect(() => {
         <div className="min-w-0 space-y-1">
           <label className="text-sm text-gray-300">Vad hände? (valfritt)</label>
           <input
-            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/55 p-2.5 text-sm text-white outline-none focus:border-blue-300/35"
+            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/55 p-2.5 text-base text-white outline-none focus:border-blue-300/35 sm:text-sm"
             value={failNoteInput}
             onChange={(e) => setFailNoteInput(e.target.value)}
             placeholder='t.ex. "tappade greppet" eller "ont i handleden"'

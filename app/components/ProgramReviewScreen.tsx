@@ -1579,7 +1579,7 @@ export default function ProgramReviewScreen({
                   {editingPassKey === pass.key ? (
                     <div className="flex min-w-0 flex-1 gap-2">
                       <input
-                        className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/45 px-3 py-2 text-sm font-semibold text-white outline-none placeholder:text-white/28 focus:border-blue-300/45"
+                        className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/45 px-3 py-2 text-base font-semibold text-white outline-none placeholder:text-white/28 focus:border-blue-300/45 sm:text-sm"
                         value={passNameInput}
                         onFocus={() => setFocusedPassKey(pass.key)}
                         onBlur={(event) => {
@@ -2113,7 +2113,7 @@ export default function ProgramReviewScreen({
                 </div>
 
                 <input
-                  className="mt-4 w-full rounded-xl border border-white/[0.09] bg-slate-950/45 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/45"
+                  className="mt-4 w-full rounded-xl border border-white/[0.09] bg-slate-950/45 px-3 py-3 text-base text-white outline-none placeholder:text-white/28 focus:border-blue-300/45 sm:text-sm"
                   value={librarySearch}
                   onChange={(event) => setLibrarySearch(event.target.value)}
                   placeholder="Sök övning, muskel eller redskap"
@@ -2404,7 +2404,7 @@ export default function ProgramReviewScreen({
 
           <div className="mt-3 flex gap-2">
             <input
-              className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/26 focus:border-blue-300/34 focus:bg-slate-950/42"
+              className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/30 px-3 py-2.5 text-base text-white outline-none placeholder:text-white/26 focus:border-blue-300/34 focus:bg-slate-950/42 sm:text-sm"
               value={chatInput}
               onChange={(event) => setChatInput(event.target.value)}
               disabled={isChatSubmitting}

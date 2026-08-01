@@ -234,7 +234,7 @@ export default function StartScreen({
                             }
                             if (e.key === "Escape") setEditingGymId(null);
                           }}
-                          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white placeholder-white/25 outline-none focus:border-white/20"
+                          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-base text-white placeholder-white/25 outline-none focus:border-white/20 sm:text-sm"
                         />
                         <button
                           type="button"
@@ -321,7 +321,7 @@ export default function StartScreen({
                           }
                         }}
                         placeholder="Gymnamn"
-                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white placeholder-white/25 outline-none focus:border-white/20"
+                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-base text-white placeholder-white/25 outline-none focus:border-white/20 sm:text-sm"
                       />
                       <button
                         type="button"
@@ -451,7 +451,7 @@ export default function StartScreen({
 
         <div className="mt-3 space-y-2">
           <input
-            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 p-2.5 text-sm text-white placeholder:text-white/25 outline-none"
+            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 p-2.5 text-base text-white placeholder:text-white/25 outline-none sm:text-sm"
             value={customExerciseInput}
             onChange={(e) => setCustomExerciseInput(e.target.value)}
             placeholder='t.ex. "Chins"'
@@ -567,7 +567,7 @@ export default function StartScreen({
 
           <div className="flex gap-2">
             <input
-              className="flex-1 rounded-xl border border-white/[0.09] bg-slate-950/18 p-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-blue-400/30"
+              className="flex-1 rounded-xl border border-white/[0.09] bg-slate-950/18 p-3 text-base text-white placeholder:text-white/30 outline-none transition focus:border-blue-400/30 sm:text-sm"
               value={swapToInput}
               onChange={(e) => setSwapToInput(e.target.value)}
               placeholder='t.ex. "Hip thrust"'

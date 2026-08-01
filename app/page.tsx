@@ -862,6 +862,29 @@ function buildProgressionPlan(args: {
   const { history, exerciseName, targetReps, dayForm } = args;
   const recentBestSets = getExerciseBestSets(history, exerciseName, 6);
 
+  if (isTimedExercise(exerciseName)) {
+    const lastDuration = recentBestSets[0]?.durationSeconds;
+
+    return {
+      action: "start",
+      weight: "",
+      reps: "0",
+      repsText:
+        typeof lastDuration === "number" && lastDuration > 0
+          ? getTimedTargetText(lastDuration)
+          : "",
+      rirText: "",
+      note:
+        recentBestSets.length === 0
+          ? "Första setet visar oss var vi ligger."
+          : "",
+      reason:
+        recentBestSets.length === 0
+          ? "Ingen historik än."
+          : "Senaste bästa tid.",
+    } satisfies ExerciseProgressionPlan;
+  }
+
   if (recentBestSets.length === 0) {
     return {
       action: "start",

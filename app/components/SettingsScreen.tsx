@@ -629,7 +629,7 @@ export default function SettingsScreen({
                   autoComplete="email"
                   value={authEmail}
                   onChange={(event) => setAuthEmail(event.target.value)}
-                  className={`h-12 w-full rounded-2xl px-4 text-sm outline-none transition focus:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.55)] ${feedbackFieldClassName}`}
+                  className={`h-12 w-full rounded-2xl px-4 text-base outline-none transition focus:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.55)] sm:text-sm ${feedbackFieldClassName}`}
                   placeholder="din@email.se"
                 />
                 <button
@@ -727,7 +727,7 @@ export default function SettingsScreen({
               value={feedbackText}
               onChange={(event) => setFeedbackText(event.target.value)}
               rows={4}
-              className={`mt-4 w-full resize-none rounded-2xl px-4 py-3 text-sm leading-6 outline-none transition focus:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.55)] ${feedbackFieldClassName}`}
+              className={`mt-4 w-full resize-none rounded-2xl px-4 py-3 text-base leading-6 outline-none transition focus:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.55)] sm:text-sm ${feedbackFieldClassName}`}
               placeholder={'t.ex. "Coachen missförstod mig efter set 2"'}
             />
             <div className="mt-3 grid grid-cols-2 gap-2">

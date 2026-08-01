@@ -216,21 +216,14 @@ AI ska resonera fritt inom verkligheten, men aldrig hitta på fakta.
 
 ## Andra öppna UX-saker
 
-- Timer ska fortsätta efter sista setet och in i nästa övning.
-- Timern bör visa coachens vilomål, t.ex. "coach 1:00–1:30" eller
-  "redo om 0:10".
-- "Nästa övning" ska inte vara lätt att råka trycka på om coachen
-  fortfarande räknar med fler set. Avbryt-flödet ska heta
-  "Hoppa över övning", och redan gjorda set ska sparas.
-- Smärta efter första setet → byte kan vara rimligt. Smärta efter 2 av
-  3 set → coachen bör ofta hellre avsluta övningen än byta.
-  Smärta/byte/avbruten övning måste synas i passgenomgången.
-- Tidsövningar (planka m.m.) ska inte ha RIR — bara tid, ev. belastning.
-  Timer/input ska vara logiskt (inte förvirrande +15/+30-steg), och
-  "nästa set" ska inte ändras bara för att timern tickar.
-- Viktsteg beror på övning/utrustning: stångövningar ofta 5 kg-steg,
-  maskiner/hantlar kan ha andra steg. Udda vikter (21.25 kg) måste gå
-  att skriva in och spara.
+- Revidera hårdkodad skade/smärta-logik: efter att vi löste
+  bröstpress-återförslagsbuggen genom en resoneringsprincip (inte en ny
+  regel) misstänker vi att det finns fler ställen i koden — särskilt
+  runt skador/smärta — som är hårdkodade if/then-regler men som AI:n
+  egentligen kan resonera sig fram till själv med rätt data. Gå igenom
+  smärta/skaderelaterad kod (page.tsx, coachAi.ts) och identifiera vad
+  som kan tas bort till förmån för bättre resonemang, i linje med
+  AI-konstitutionen ovan.
 
 ## Ljust tema
 

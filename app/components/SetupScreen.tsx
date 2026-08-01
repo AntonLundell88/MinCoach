@@ -45,7 +45,7 @@ type Props = {
 };
 
 const fieldClassName =
-  "w-full rounded-2xl border border-white/[0.045] bg-slate-950/35 px-3.5 py-3 text-[15px] text-white outline-none transition focus:border-blue-300/35 focus:bg-slate-950/50 focus:ring-2 focus:ring-blue-500/20";
+  "w-full rounded-2xl border border-white/[0.045] bg-slate-950/35 px-3.5 py-3 text-base text-white outline-none transition focus:border-blue-300/35 focus:bg-slate-950/50 focus:ring-2 focus:ring-blue-500/20 sm:text-[15px]";
 
 const labelClassName = "block text-[13px] font-medium text-white/76";
 

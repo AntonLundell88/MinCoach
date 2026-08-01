@@ -460,7 +460,7 @@ export default function CoachPanel({
 
         <div className="flex gap-2">
           <input
-            className="coach-input min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/52 px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-blue-300/35 focus:bg-slate-950/65"
+            className="coach-input min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/52 px-3 py-2 text-base text-white outline-none transition placeholder:text-white/32 focus:border-blue-300/35 focus:bg-slate-950/65 sm:text-sm"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             placeholder={coachInputPlaceholder}

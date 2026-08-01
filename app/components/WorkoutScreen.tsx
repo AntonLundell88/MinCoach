@@ -93,7 +93,7 @@ function LibraryBrowser({
 
       <input
         autoFocus
-        className="w-full rounded-xl border border-white/[0.09] bg-slate-950/50 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
+        className="w-full rounded-xl border border-white/[0.09] bg-slate-950/50 px-3 py-3 text-base text-white outline-none placeholder:text-white/28 focus:border-blue-300/35 sm:text-sm"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Sök övning, muskel eller redskap"
@@ -1263,7 +1263,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => setConfirmSkipExercise(false)}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+                className="workout-primary-action rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
               >
                 Fortsätt övningen
               </button>
@@ -1443,7 +1443,7 @@ useEffect(() => {
             </div>
             <div className="flex flex-col gap-2">
               <button
-                className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
+                className="workout-primary-action w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
                 onClick={() => { setShowSaveConfirm(false); }}
               >
                 Fortsätt övningen
@@ -1656,7 +1656,7 @@ useEffect(() => {
               onReorderExercises(reorderDraft);
               setShowReorderExercises(false);
             }}
-            className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
+            className="workout-primary-action w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
           >
             Klar
           </button>
@@ -1687,7 +1687,7 @@ useEffect(() => {
               </div>
               <input
                 autoFocus
-                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/50 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
+                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/50 px-3 py-3 text-base text-white outline-none placeholder:text-white/28 focus:border-blue-300/35 sm:text-sm"
                 value={workoutExerciseInput}
                 onChange={(e) => {
                   setWorkoutExerciseInput(e.target.value);
@@ -1741,7 +1741,7 @@ useEffect(() => {
               ) : null}
               <div className="flex flex-col gap-2">
                 <button
-                  className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
+                  className="workout-primary-action w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
                   onClick={() => {
                     const result = addExerciseDuringWorkout();
                     if (result.handled) {
@@ -1816,7 +1816,7 @@ useEffect(() => {
               </div>
               <input
                 autoFocus
-                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/50 px-3 py-3 text-sm text-white outline-none placeholder:text-white/28 focus:border-blue-300/35"
+                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/50 px-3 py-3 text-base text-white outline-none placeholder:text-white/28 focus:border-blue-300/35 sm:text-sm"
                 value={swapExerciseInput}
                 onChange={(e) => {
                   setSwapExerciseInput(e.target.value);
@@ -1870,7 +1870,7 @@ useEffect(() => {
               ) : null}
               <div className="flex flex-col gap-2">
                 <button
-                  className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
+                  className="workout-primary-action w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
                   onClick={() => {
                     const result = swapCurrentExerciseDuringWorkout();
                     if (result.handled) {
