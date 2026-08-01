@@ -6380,11 +6380,26 @@ function skipExerciseAtIndex(targetIndex: number, coachText?: string | null) {
   if (!exercise) return;
 
   if (exercise.sets.length > 0) {
+    if (targetIndex >= workout.exercises.length - 1) {
+      setChatLog((prev) => [
+        ...prev,
+        {
+          role: "coach",
+          text: "Det här är sista övningen. Redan loggade set är sparade — du kan avsluta passet när du är redo.",
+        },
+      ]);
+      return;
+    }
+
+    setExerciseIndex(targetIndex + 1);
+    resetWorkoutInputs();
     setChatLog((prev) => [
       ...prev,
       {
         role: "coach",
-        text: "Du har redan loggat set här. Vi lämnar den kvar.",
+        text:
+          coachText ??
+          `Okej, vi lämnar ${exercise.name} här. De ${exercise.sets.length} set du loggat sparas.`,
       },
     ]);
     return;
@@ -6432,6 +6447,32 @@ function skipExerciseAtIndex(targetIndex: number, coachText?: string | null) {
 
 function skipCurrentExercise() {
   skipExerciseAtIndex(exerciseIndex);
+}
+
+function commitExerciseReorder(orderedRemainingNames: string[]) {
+  if (!workout) return;
+
+  const doneExercises = workout.exercises.filter((e) => e.sets.length > 0);
+  const remainingByKey = new Map(
+    workout.exercises
+      .filter((e) => e.sets.length === 0)
+      .map((e) => [exerciseKey(e.name), e])
+  );
+  const reorderedRemaining = orderedRemainingNames
+    .map((name) => remainingByKey.get(exerciseKey(name)))
+    .filter((e): e is Workout["exercises"][number] => Boolean(e));
+
+  if (reorderedRemaining.length !== remainingByKey.size) return;
+
+  const currentExercise = workout.exercises[exerciseIndex];
+  const nextExercises = [...doneExercises, ...reorderedRemaining];
+
+  setWorkout({ ...workout, exercises: nextExercises });
+
+  const newIndexForCurrent = nextExercises.indexOf(currentExercise);
+  if (newIndexForCurrent !== -1 && newIndexForCurrent !== exerciseIndex) {
+    setExerciseIndex(newIndexForCurrent);
+  }
 }
 
 function undoSkipExercise() {
@@ -8600,6 +8641,11 @@ return (
       <WorkoutScreen
         exerciseIndex={exerciseIndex}
         activePlan={activePlan}
+        exerciseOrderList={workout.exercises.map((e) => ({
+          name: e.name,
+          hasSets: e.sets.length > 0,
+        }))}
+        onReorderExercises={commitExerciseReorder}
         passLabel={currentPassLabel}
         coachData={coachData}
         dayForm={dayForm}

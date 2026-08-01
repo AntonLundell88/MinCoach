@@ -166,6 +166,8 @@ type Props = {
   };
   exerciseIndex: number;
   activePlan: string[];
+  exerciseOrderList: { name: string; hasSets: boolean }[];
+  onReorderExercises: (orderedRemainingNames: string[]) => void;
   passLabel: string;
   coachData: {
     intro: string;
@@ -607,6 +609,8 @@ export default function WorkoutScreen({
   personalRecords,
   exerciseIndex,
   activePlan,
+  exerciseOrderList,
+  onReorderExercises,
   passLabel,
   coachData,
   dayForm,
@@ -676,6 +680,8 @@ export default function WorkoutScreen({
   const [libraryCategory, setLibraryCategory] =
     useState<(typeof LIBRARY_CATEGORIES)[number]>("alla");
   const [showOverflow, setShowOverflow] = useState(false);
+  const [showReorderExercises, setShowReorderExercises] = useState(false);
+  const [reorderDraft, setReorderDraft] = useState<string[]>([]);
   const [confirmSkipExercise, setConfirmSkipExercise] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
@@ -1210,11 +1216,22 @@ useEffect(() => {
             </button>
             <button
               type="button"
+              onClick={() => {
+                setReorderDraft(exerciseOrderList.filter((e) => !e.hasSets).map((e) => e.name));
+                setShowReorderExercises(true);
+                setShowOverflow(false);
+              }}
+              className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
+            >
+              Byt ordning på övningar
+            </button>
+            <button
+              type="button"
               onClick={() => { setConfirmSkipExercise(true); setShowOverflow(false); }}
               disabled={!canSkipCurrentExercise}
               className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
-              Hoppa över övning
+              Klar med övningen
             </button>
             <button
               type="button"
@@ -1229,15 +1246,19 @@ useEffect(() => {
         {/* Skip confirm */}
         {confirmSkipExercise && (
           <div className="mt-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 px-3 py-3">
-            <p className="text-sm font-semibold text-white">Hoppa över {currentExerciseName}?</p>
-            <p className="mt-0.5 text-xs text-white/50">Redan loggade set sparas.</p>
+            <p className="text-sm font-semibold text-white">Klar med {currentExerciseName}?</p>
+            <p className="mt-0.5 text-xs text-white/50">
+              {currentSets.length > 0
+                ? `De ${currentSets.length} set du loggat sparas — inget försvinner. Resten av övningen hoppar du över.`
+                : "Inga set är loggade än på den här övningen. Du går vidare till nästa."}
+            </p>
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
                 onClick={() => { skipCurrentExercise(); setConfirmSkipExercise(false); }}
                 className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/[0.09]"
               >
-                Ja, hoppa över
+                Ja, klar
               </button>
               <button
                 type="button"
@@ -1551,6 +1572,98 @@ useEffect(() => {
         </>
       )}
     </div>
+
+    {showReorderExercises && createPortal(
+      <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
+        <div className="absolute inset-0 bg-black/10 backdrop-blur-[3px]" onClick={() => setShowReorderExercises(false)} />
+        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-base font-semibold text-white">Byt ordning på övningar</p>
+              <p className="mt-0.5 text-xs text-white/50">
+                Redan klara övningar ligger fast. Flytta de återstående med pilarna.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+              onClick={() => setShowReorderExercises(false)}
+              aria-label="Stäng"
+            >
+              <CloseGlyph className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            {exerciseOrderList
+              .filter((e) => e.hasSets)
+              .map((exercise, i) => (
+                <div
+                  key={`done-${exercise.name}-${i}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.04] bg-white/[0.015] px-3 py-2.5 opacity-50"
+                >
+                  <span className="text-sm font-medium text-white/86">{exercise.name}</span>
+                  <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/32">
+                    Klar
+                  </span>
+                </div>
+              ))}
+            {reorderDraft.map((name, position) => (
+              <div
+                key={`draft-${name}`}
+                className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.045] px-3 py-2.5"
+              >
+                <span className="text-sm font-medium text-white/86">{name}</span>
+                <div className="flex shrink-0 gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setReorderDraft((prev) => {
+                        if (position === 0) return prev;
+                        const next = [...prev];
+                        [next[position - 1], next[position]] = [next[position], next[position - 1]];
+                        return next;
+                      })
+                    }
+                    disabled={position === 0}
+                    aria-label={`Flytta ${name} uppåt`}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.04] text-white/70 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setReorderDraft((prev) => {
+                        if (position === prev.length - 1) return prev;
+                        const next = [...prev];
+                        [next[position], next[position + 1]] = [next[position + 1], next[position]];
+                        return next;
+                      })
+                    }
+                    disabled={position === reorderDraft.length - 1}
+                    aria-label={`Flytta ${name} nedåt`}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.04] text-white/70 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              onReorderExercises(reorderDraft);
+              setShowReorderExercises(false);
+            }}
+            className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
+          >
+            Klar
+          </button>
+        </div>
+      </div>,
+      document.body
+    )}
 
     {showAddExercise && createPortal(
       <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
