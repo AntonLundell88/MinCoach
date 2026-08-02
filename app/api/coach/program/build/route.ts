@@ -56,7 +56,6 @@ Principer:
 - Nybörjare/äldre/osäkra användare: färre övningar, stabila varianter, RIR 2-3 och trygg start.
 - Vana/erfarna: mer specifik struktur och RIR 1-3 där det passar.
 - Begränsningar väger tungt. Bygg runt smärta, tidigare skador och oro. Ge inga medicinska garantier.
-- Vid armbåge/handled/axel: välj smärtfritt grepp, stabila varianter och undvik onödig stress från curls, pushdowns och pressar.
 - Varje övning ska ha ett tydligt syfte. Hellre 3-5 bra övningar än ett stökigt pass, särskilt hemma eller vid lite utrustning.
 - Om availableExercises är begränsad får samma trygga övning återkomma i flera pass med olika syfte eller dosering. Fyll aldrig ut med otillåtna övningar.
 - Lägg aldrig samma exerciseKey två gånger i samma pass. Välj hellre en annan kompletterande övning eller färre övningar.

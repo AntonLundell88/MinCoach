@@ -87,10 +87,7 @@ Volym och intensitet:
 
 Begränsningar och skador:
 - Begränsningar ska väga tungt. Bygg runt smärta, tidigare skador, osäkerhet och utrustningsbrist.
-- Ge inga medicinska garantier. Vid skarp, ökande eller oroande smärta: avbryt, välj smärtfri variant och rekommendera professionell bedömning vid behov.
-- Om användaren har ryggbesvär: var försiktig med tunga hinge-övningar och ful failure.
-- Om användaren har knäbesvär: välj kontrollerade benövningar, rimligt rörelseomfång och stabil progression.
-- Om användaren har axel/handled/armbåge: pressar, curl och triceps ska väljas med smärtfritt grepp och stabilitet först.
+- Ge inga medicinska garantier. Rekommendera professionell bedömning vid behov.
 
 Utrustning och plats:
 - Gym: maskiner, kablar, fria vikter och hantlar kan kombineras.
@@ -116,58 +113,6 @@ Output:
 - Skriv inte som en studie eller manual. Ge känslan av att coachen gjort ett riktigt val.
 - Lägg inte in övningar bara för att fylla listan.
 - Om användarens önskemål krockar med begränsningar eller säkerhet: säg det varmt och föreslå en tryggare lösning.
-`.trim();
-
-export const MANUAL_PROGRAM_REVIEW_PROTOCOL = `
-Regelbaserad granskning av användarens eget schema:
-
-Syfte:
-- Granskningen ska hitta tydliga problem i schemat innan användaren startar.
-- Den ska vara praktisk, inte akademisk. Fånga uppenbar obalans, saknade muskelgrupper, för mycket skräpvolym och saker som krockar med begränsningar.
-- AI kan användas för språk och tolkning senare, men själva grunddomen ska kunna göras med regler.
-
-Granskningsnivåer:
-- Röd: tydligt problem som coachen bör föreslå att ändra innan start. Exempel: stor muskelgrupp saknas, press dominerar helt utan drag, pass är extremt ojämna, eller övningar krockar med smärta/begränsning.
-- Gul: fungerar men kan bli bättre. Exempel: lite tunn volym, svag passbalans eller tveksam övningsordning.
-- Blå: konkret coachförslag som användaren kan acceptera eller ignorera.
-
-Veckobalans:
-- Räkna muskelgrupper: bröst, rygg, axlar, armar, quads, hamstrings/säte, vader och bål.
-- Räkna rörelsemönster: horisontell press, vertikal press, horisontellt drag, vertikalt drag, knädominant, höftdominant, hamstring-isolering, armböjning, armsträckning, bål och vader.
-- Bedöm vad övningarna gör, inte bara vad de heter.
-
-Passstorlek:
-- 30 min: normalt 3-4 övningar.
-- 45 min: normalt 4-5 övningar.
-- 60 min: normalt 4-6 övningar.
-- 75+ min: 5-7 övningar kan fungera för vana användare.
-- 0 övningar kan inte godkännas.
-- 1-2 övningar är normalt för tunt om det inte är en tydlig liten accessoardag.
-- 7+ övningar är normalt för mycket, särskilt för nybörjare eller 60-minuterspass.
-
-Överkropp:
-- Press och drag ska vara rimligt balanserat.
-- Om ett pass har flera bröstpressar och lite rygg: föreslå att ta bort lägst värde-dubblett, ofta flyes eller extra bröstpress, och lägg till rodd eller latsdrag.
-- Tre eller fler bröstövningar i samma pass är bara rimligt om rygg/drag och totalvolym fortfarande är balanserade.
-- Armar är bra komplement, men ska inte lösa en saknad ryggbalans.
-
-Underkropp:
-- Underkropp ska inte bara vara benpress, benspark och vadpress om målet är ett balanserat schema.
-- Saknas baksida lår/säte: föreslå lårcurl, RDL, hip thrust eller glute bridge beroende på vana, utrustning och begränsningar.
-- Vader är accessoar, inte huvudlösningen för ett benpass.
-- Om underkroppspasset är mycket tunnare än överkroppspasset ska coachen flagga det.
-
-Erfarenhet:
-- Nybörjare: stabila övningar först, lagom volym, färre tekniskt krävande lyft, RIR 2-3.
-- Van: mer volym och tydligare bas + isolering kan fungera.
-- Erfaren: mer specialisering kan fungera, men uppenbar obalans ska fortfarande flaggas.
-
-Förslagsbeteende:
-- Ge konkreta förslag inne i rätt pass.
-- Lägga till: dimmad blå rad med plus.
-- Ta bort: rödtonad rad på befintlig övning.
-- Skriv inte "lägg till mer rygg"; skriv vilken övning och varför.
-- Skriv inte att schemat är dåligt. Skriv vad som bör ändras innan start.
 `.trim();
 
 export function containsUnsafeCoachPhrase(text: string) {

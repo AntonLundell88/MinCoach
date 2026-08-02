@@ -216,22 +216,19 @@ AI ska resonera fritt inom verkligheten, men aldrig hitta på fakta.
 
 ## Andra öppna UX-saker
 
-- Revidera hårdkodad skade/smärta-logik: efter att vi löste
-  bröstpress-återförslagsbuggen genom en resoneringsprincip (inte en ny
-  regel) misstänker vi att det finns fler ställen i koden — särskilt
-  runt skador/smärta — som är hårdkodade if/then-regler men som AI:n
-  egentligen kan resonera sig fram till själv med rätt data. Gå igenom
-  smärta/skaderelaterad kod (page.tsx, coachAi.ts) och identifiera vad
-  som kan tas bort till förmån för bättre resonemang, i linje med
-  AI-konstitutionen ovan.
-
-## Ljust tema
-
-Mörkt läge är huvudspåret och ser bra ut. Ljust tema behöver en
-wellness-look: beige/varmt, mjuk brun text, premium, lugnt — inte
-kritvitt, inte blått överallt (blå kan finnas subtilt för AI/action).
-Träningsläget i ljust tema behöver hel färgsättning i samma anda som
-passbyggaren.
+- Dubbla coachröster i programbyggaren: `app/lib/coachAi.ts` hade en
+  helt oanvänd `buildCoachProgramBuildPromptPayload`-funktion (borttagen
+  aug 2026) medan den faktiska bygg-rutten
+  (`app/api/coach/program/build/route.ts`) har sin egen separata,
+  hårdkodade systemprompt. De två har historiskt kunnat glida isär utan
+  att någon märkte det. Inte akut, men värt att unifiera till en källa
+  någon gång — inte en egen refactor-sprint.
+- Ljust tema: knappfärger (`.workout-primary-action`) och de fyra
+  portal-modalerna i passvyn är fixade (aug 2026). Kvar: muskelkartorna
+  ser fortfarande dåliga ut i ljust läge (rör dem inte utan att fråga —
+  de är bra i mörkt), och globals.css har två motstridiga CSS-lager för
+  samma knappar (ett äldre grönt, ett nyare blått som vinner) som borde
+  städas bort, inte bara maskeras med fler overrides.
 
 ## UI-status
 

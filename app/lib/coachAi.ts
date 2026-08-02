@@ -711,48 +711,13 @@ export function buildCoachProgramPromptPayload(
   context: CoachProgramContext
 ): CoachPromptPayload {
   const instruction =
-    `Svara på det användaren faktiskt frågade eller oroar sig för — det kommer alltid först, som en erfaren coach som lyssnat på precis det. Skriv naturlig text — ingen JSON, ingen markdown, inga rubriker. Börja aldrig svaret med att peka ut ett pass eller en övning som "bäst" om det inte var det som frågades; det läser som att du svarar på fel fråga. Om ditt resonemang landar i att en specifik övning bör bytas ut, tas bort eller behållas: säg det naturligt, och lägg till en kort pekare i slutet till var i appen det görs — knapparna vid varje övning i respektive pass, till exempel "Krysset vid vadpress i Pass C gör jobbet." Om frågan bara är informativ, t.ex. varför en övning ligger i upplägget, vad den tränar, hur den loggas eller vilka risker den har: svara bara på det, använd exerciseLibrary som facit, ingen uppmaning att ändra behövs. Vid ålder, rädsla, farligt, skada, smärta eller osäkerhet: var extra försiktig, säg att smärta/obehag går före planen. Om frågan eller besvärsbeskrivningen är tvetydig — t.ex. oklart vilken rörelse som gör ont, hur länge det pågått, eller vad som redan provats — ställ en kort, konkret följdfråga istället för att gissa. En fråga i taget. ${HEALTH_NOTES_PRECEDENCE_RULE} Detsamma gäller om användarens senaste meddelande eller existingPreferences säger att något är bättre — då kan övningar som tidigare valts bort eller anpassats av den anledningen läggas tillbaka. Skriv som en coach, inte som support. Håll svaret kort och konkret.`;
+    `Svara på det användaren faktiskt frågade eller oroar sig för — det kommer alltid först, som en erfaren coach som lyssnat på precis det. Skriv naturlig text — ingen JSON, ingen markdown, inga rubriker. Börja aldrig svaret med att peka ut ett pass eller en övning som "bäst" om det inte var det som frågades; det läser som att du svarar på fel fråga. Om ditt resonemang landar i att en specifik övning bör bytas ut, tas bort eller behållas: säg det naturligt, och lägg till en kort pekare i slutet till var i appen det görs — knapparna vid varje övning i respektive pass, till exempel "Krysset vid vadpress i Pass C gör jobbet." Om frågan bara är informativ, t.ex. varför en övning ligger i upplägget, vad den tränar, hur den loggas eller vilka risker den har: svara bara på det, använd exerciseLibrary som facit, ingen uppmaning att ändra behövs. Om frågan eller besvärsbeskrivningen är tvetydig — t.ex. oklart vilken rörelse som gör ont, hur länge det pågått, eller vad som redan provats — ställ en kort, konkret följdfråga istället för att gissa. En fråga i taget. ${HEALTH_NOTES_PRECEDENCE_RULE} Detsamma gäller om användarens senaste meddelande eller existingPreferences säger att något är bättre — då kan övningar som tidigare valts bort eller anpassats av den anledningen läggas tillbaka. Skriv som en coach, inte som support. Håll svaret kort och konkret.`;
 
   return {
     system: `${PROGRAM_COACH_SYSTEM}\n\n${PROGRAM_DESIGN_PROTOCOL}`,
     context,
     instruction,
     maxCharacters: MAX_CHAT_REPLY_CHARACTERS,
-  };
-}
-
-export function buildCoachProgramBuildPromptPayload(
-  context: CoachProgramBuildContext
-): CoachPromptPayload {
-  const instruction =
-    'Du är MinCoach programcoach. Bygg ett komplett träningsupplägg från användarens mål, tid, träningsvana, utrustning, övningspreferenser och begränsningar. Returnera ENDAST giltig JSON, inte markdown, inte kodblock, inte förklaring runt JSON. Format: {"title":"kort titel","coachSummary":"varm kort coachförklaring","planReason":"varför detta passar målet","structureReason":"varför passen är uppdelade så här","safetyNotes":["kort notis"],"passes":[{"key":"A","displayName":"Passnamn","intent":"vad passet ska göra","exercises":[{"name":"övningsnamn","purpose":"varför den finns med","sets":"2-4","reps":"6-12","rir":"1-3","caution":"kort vid behov","alternatives":["namn"]}]}]}. Alla fält ska vara strängar eller listor enligt formatet. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer återhämtningsvänliga, särskilt för nybörjare. Varje pass ska ha 3-5 övningar. Använd främst övningar från availableExercises och svenska tydliga namn. Välj inte övningar som kräver utrustning användaren saknar. Använd availableExercises.difficulty, beginnerFit, stability och beginnerNote aktivt. För trainingExperience nyborjare: prioritera beginnerFit bra, difficulty enkel/medel och stability hog/medel. Välj inte beginnerFit undvik_som_standard om det finns stabilare alternativ. Om du ändå väljer en tekniskt svårare övning till en ny användare ska syftet vara tydligt och alternatives innehålla en enklare variant. Om location är hemma: håll dig till equipment. Respektera exercisePreferences som en stark mjuk preferens: prioritera valda typer när de passar mål, säkerhet och utrustning. Om användaren inte valt kroppsvikt ska du inte bygga runt armhävningar, planka eller liknande om bättre alternativ finns. Om användaren valt maskiner/kablar/hantlar/fria vikter ska det synas i övningsvalen. Om användaren har begränsningar, bygg runt dem och skriv safetyNotes. Detta kräver faktisk coachkompetens: välj övningar, volym och struktur som passar målet. För styrka: färre tydliga basövningar, mer vila och mätbar progression. För muskler: jämn volym, kontrollerade basövningar plus isolationsarbete. För fettförlust: håll passet enkelt, repeterbart och effektivt utan att låtsas att styrketräning ensam styr vikten. Undvik att trycka in för mycket. Hellre färre bra övningar än ett stökigt pass. Skriv som en trygg coach som förklarar enkelt. Passnamn ska vara rena och snygga utan parenteser eller volymtaggar: skriv "Pass B — Ben och bål", inte "Pass B — Ben & Bål (Medelvolym)". Om volym eller fokus behöver förklaras gör du det i intent, inte i passnamnet. Om något är osäkert, välj lugnare variant och säg varför.';
-
-  const programInstruction = `${instruction}
-
-Måste väga in varje gång:
-- age: påverkar startnivå, övningsval, säkerhetsmarginal, uppvärmning och återhämtning.
-- gender: använd utan stereotyper. Låt inte kön minska ambitionsnivån. Använd främst mål, vana och begränsningar.
-- trainingExperience: styr komplexitet, volym, RIR och progressionsaggressivitet.
-- goalPrimary och goalSecondary: primärmål styr strukturen, sekundärmål justerar detaljerna.
-- daysPerWeek och minutesPerSession: styr split, antal övningar och total volym.
-- location och equipment: välj bara övningar som användaren faktiskt kan göra.
-- exercisePreferences: prioritera de övningstyper användaren gillar. Det är inte ett absolut förbud mot annat, men programmet ska kännas anpassat efter preferensen.
-- limitations och recentHealthNotes: bygg programmet runt smärta, skador och oro. ${HEALTH_NOTES_PRECEDENCE_RULE}
-- existingPreferences: respektera användarens önskemål om de inte krockar med säkerhet eller upplägg.
-
-Hårda krav:
-- SafetyNotes ska vara specifika för användaren och upplägget, inte random tekniska notiser.
-- Sets/reps/RIR ska passa övning, mål, ålder, träningsvana och begränsningar.
-- Varje övning ska ha ett tydligt syfte. Lägg inte in övningar bara för att fylla passet.
-- CoachSummary, planReason och structureReason ska kännas som att coachen faktiskt har tänkt.
-- Om något är osäkert: välj tryggare variant och säg varför.
-- Om en begränsning är vag eller kan tolkas på flera sätt: bygg det säkraste rimliga alternativet, men säg uttryckligen i coachSummary eller safetyNotes vad du är osäker på. Gissa inte blint på en specifik skada eller rörelse du inte fått bekräftad — flagga osäkerheten istället, så användaren kan förtydliga i chatten efteråt.`;
-
-  return {
-    system: `${PROGRAM_COACH_SYSTEM}\n\n${PROGRAM_DESIGN_PROTOCOL}`,
-    context,
-    instruction: programInstruction,
-    maxCharacters: 3200,
   };
 }
 
