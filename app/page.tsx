@@ -8177,6 +8177,18 @@ void requestAiWorkoutReview({
         replacementName,
       })
     ),
+    dayForm,
+    recentSessions: history.slice(0, 4).map((w) => ({
+      passLabel: w.displayName,
+      daysAgo: Math.max(
+        0,
+        Math.round((Date.now() - new Date(w.startedAt).getTime()) / (1000 * 60 * 60 * 24))
+      ),
+      totalSets: w.summary?.totalSets ?? 0,
+      hadPainOrEarlyStop: (w.events ?? []).some(
+        (event) => event.type === "pain" || event.type === "exercise_completed_early"
+      ),
+    })),
   },
   fallbackReview: getReviewCoachParts(review),
 }).then((response) => {

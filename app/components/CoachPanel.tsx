@@ -34,6 +34,7 @@ type Props = {
   sendChat: () => void;
   isCoachThinking?: boolean;
   isExpanded?: boolean;
+  variant?: "card" | "focus";
 };
 
 const coachInputPlaceholders = [
@@ -202,17 +203,20 @@ export default function CoachPanel({
   sendChat,
   isCoachThinking = false,
   isExpanded = false,
+  variant = "card",
 }: Props) {
+    const isFocus = variant === "focus";
     const [coachInputPlaceholder, setCoachInputPlaceholder] = React.useState(
       () => getRandomCoachPlaceholder()
     );
-    const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
+    const [isHistoryOpen, setIsHistoryOpen] = React.useState(isFocus ? true : false);
     const [thinkingWord, setThinkingWord] = React.useState(() => getRandomThinkingWord());
     const wasThinkingRef = useRef(false);
 
     useEffect(() => {
+      if (isFocus) return;
       setIsHistoryOpen(isExpanded);
-    }, [isExpanded]);
+    }, [isExpanded, isFocus]);
 
     useEffect(() => {
       if (isCoachThinking && !wasThinkingRef.current) {
@@ -303,17 +307,28 @@ export default function CoachPanel({
   );
 
   return (
-      <div className="coach-panel-shell space-y-2.5 rounded-[1.35rem] border border-white/[0.09] bg-[#0d1520] p-2.5 shadow-[0_16px_44px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-3">
+      <div
+        className={
+          isFocus
+            ? "coach-panel-shell flex h-full min-h-0 flex-col gap-2"
+            : "coach-panel-shell space-y-2.5 rounded-[1.35rem] border border-white/[0.09] bg-[#0d1520] p-2.5 shadow-[0_16px_44px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-3"
+        }
+      >
         {isHistoryOpen ? (
         <div
           ref={chatScrollRef}
           onScroll={updateStickToBottom}
-          className={`overflow-auto overscroll-contain space-y-2 pr-1 transition-[max-height,min-height] duration-200 ease-out ${
-            isExpanded
-              ? "max-h-[56dvh] min-h-[220px]"
-              : "max-h-[32dvh] min-h-[170px] sm:min-h-[220px]"
-          }`}
+          className={
+            isFocus
+              ? "flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 pr-1"
+              : `overflow-auto overscroll-contain space-y-2 pr-1 transition-[max-height,min-height] duration-200 ease-out ${
+                  isExpanded
+                    ? "max-h-[56dvh] min-h-[220px]"
+                    : "max-h-[32dvh] min-h-[170px] sm:min-h-[220px]"
+                }`
+          }
         >
+          {isFocus ? null : (
           <button
             type="button"
             onClick={() => setIsHistoryOpen(false)}
@@ -322,6 +337,7 @@ export default function CoachPanel({
             Dölj historik
             <span className="rotate-180 text-white/50">▾</span>
           </button>
+          )}
           {chatLog.length === 0 ? (
             <p className="coach-empty-message rounded-2xl border border-white/[0.09] bg-white/[0.042] px-3 py-2 text-sm leading-5 text-white/62">
               Skriv till coachen när något känns tungt, lätt eller annorlunda.

@@ -275,7 +275,9 @@ function getTopSet(progression: { weight: number; reps: number }[]) {
   })[0];
 }
 function getRestTime(exerciseName: string) {
-  if (getExerciseRestKind(exerciseName) === "heavy") return "2–3 min";
+  const kind = getExerciseRestKind(exerciseName);
+  if (kind === "heavy") return "2–3 min";
+  if (kind === "normal") return "2 min";
   return "60–90 sek";
 }
 
@@ -384,12 +386,8 @@ function getRestTargetRange(exerciseName: string, rir?: number) {
     return { min: 120, max: 180, label: "2:00–3:00" };
   }
 
-  const recommendation = getRestTime(exerciseName);
-
-  if (recommendation.includes("2") && recommendation.includes("3")) {
-    return { min: 120, max: 180, label: "2:00–3:00" };
-  }
-
+  if (kind === "heavy") return { min: 120, max: 180, label: "2:00–3:00" };
+  if (kind === "normal") return { min: 120, max: 120, label: "2:00" };
   return { min: 60, max: 90, label: "1:00–1:30" };
 }
 
@@ -885,6 +883,7 @@ useEffect(() => {
   return (
     <>
     <div className={`workout-screen-shell w-full max-w-none space-y-2 sm:max-w-xl sm:space-y-2.5 ${shouldShowRestDock ? "pb-44" : ""}`}>
+{!chatFocusMode && (
 <div className="sticky top-2 z-30">
 <CoachPanel
   coachData={coachData}
@@ -895,33 +894,99 @@ useEffect(() => {
   setChatInput={setChatInput}
   sendChat={sendChat}
   isCoachThinking={isCoachThinking}
-  isExpanded={chatFocusMode}
+  isExpanded={false}
 />
 
       <button
         type="button"
-        onClick={() => setChatFocusMode((value) => !value)}
+        onClick={() => setChatFocusMode(true)}
         className="workout-layout-toggle mx-auto -mt-1 flex h-9 w-14 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.045] text-white/72 shadow-[0_10px_28px_rgba(0,0,0,0.14)] transition duration-200 hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
-        aria-label={chatFocusMode ? "Visa hela passet" : "Fokusera chatten"}
+        aria-label="Fokusera chatten"
       >
-        <DoubleChevronDownGlyph
-          className={`h-5 w-5 transition-transform duration-200 ease-out ${
-            chatFocusMode ? "rotate-180" : ""
-          }`}
-        />
+        <DoubleChevronDownGlyph className="h-5 w-5 transition-transform duration-200 ease-out" />
       </button>
 </div>
+)}
 
       {chatFocusMode ? (
-        <section className="workout-focus-card animate-message-in rounded-[1.35rem] border border-blue-300/14 bg-[linear-gradient(180deg,rgba(37,99,235,0.105),rgba(15,23,42,0.38))] p-3 shadow-[0_16px_46px_rgba(0,0,0,0.20),0_0_30px_rgba(37,99,235,0.08),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="truncate text-base font-semibold tracking-tight text-white">
-                {currentExerciseName}
-              </h2>
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#0b1018]">
+          <div className="flex min-h-0 flex-1 flex-col px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <CoachPanel
+              variant="focus"
+              coachData={coachData}
+              dayForm={dayForm}
+              setDayForm={setDayForm}
+              chatLog={chatLog}
+              chatInput={chatInput}
+              setChatInput={setChatInput}
+              sendChat={sendChat}
+              isCoachThinking={isCoachThinking}
+              isExpanded
+            />
+          </div>
+        <section className="workout-focus-dock shrink-0 rounded-none border-t border-white/[0.08] bg-[#0d1520] px-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-18px_40px_rgba(0,0,0,0.4)]">
+          <div className="flex items-center gap-1.5">
+            <div className="min-w-0 flex-1 rounded-xl border border-white/[0.06] bg-white/[0.03] px-2.5 py-1.5">
+              <p className="truncate text-sm font-semibold text-white">{currentExerciseName}</p>
             </div>
-            <div className="workout-state-pill shrink-0 rounded-full border border-blue-300/18 bg-blue-500/[0.10] px-3 py-1.5 text-xs font-semibold text-blue-50">
-              {currentExerciseReadyToFinish ? "Klar" : `Set ${currentSets.length + 1}`}
+            <div className="min-w-0 shrink-0 rounded-xl border border-white/[0.06] bg-white/[0.03] px-2.5 py-1.5">
+              <p className="whitespace-nowrap text-[11px] font-semibold text-white">
+                {currentExerciseReadyToFinish
+                  ? "Klar"
+                  : hasNextPrescription
+                  ? [nextWeightLabel, currentMetricLabel, nextRirLabel].filter(Boolean).join(" · ")
+                  : "Första setet"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setChatFocusMode(false)}
+              className="workout-layout-toggle flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.045] text-white/72 transition hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
+              aria-label="Visa hela passet"
+            >
+              <DoubleChevronDownGlyph className="h-4 w-4 rotate-180" />
+            </button>
+          </div>
+
+          <div className="mt-2 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-baseline">
+              <span />
+              <span
+                className={`text-2xl font-bold tracking-tight tabular-nums transition-colors duration-500 ${
+                  restStartedAt === null
+                    ? "text-white"
+                    : restTimerState === "over"
+                    ? "text-orange-300"
+                    : restTimerState === "ready"
+                    ? "text-emerald-300"
+                    : "text-white"
+                }`}
+              >
+                {restStartedAt === null ? restTarget.label : formatRestTimer(restElapsed)}
+              </span>
+              <span className="justify-self-end text-[11px] font-semibold tabular-nums text-white/45">
+                {restStartedAt === null
+                  ? "vila"
+                  : restTimerState === "over"
+                  ? ""
+                  : restTimerState === "ready"
+                  ? "redo"
+                  : formatRestTimer(restSecondsUntilReady)}
+              </span>
+            </div>
+            <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  restStartedAt === null
+                    ? "bg-white"
+                    : restTimerState === "over"
+                    ? "bg-orange-400"
+                    : restTimerState === "ready"
+                    ? "bg-emerald-400"
+                    : "bg-white"
+                }`}
+                style={{ width: `${restStartedAt === null ? 0 : restProgress * 100}%` }}
+              />
             </div>
           </div>
 
@@ -1052,66 +1117,40 @@ useEffect(() => {
                 </div>
               ) : null}
 
-              <div className="mt-2 overflow-hidden rounded-2xl border border-white/[0.055] bg-white/[0.026]">
-                <button
-                  type="button"
-                  onClick={() => setShowRestTimer((value) => !value)}
-                  className="flex min-h-10 w-full items-center justify-between gap-3 px-3 text-left text-xs font-semibold text-white/58 transition hover:bg-white/[0.045] hover:text-white"
-                >
-                  <span>Vila</span>
-                  <span className="text-white/82">
-                    {showRestTimer ? restTimerHint : restTargetLabel}
-                  </span>
-                </button>
-                {showRestTimer ? (
-                  <div className="border-t border-white/[0.055] px-3 py-2">
-                    <div className="mb-2 flex items-center justify-center">
-                      <span
-                        className={`text-2xl font-semibold tracking-tight ${
-                          restTimerState === "over"
-                            ? "text-orange-100"
-                            : restTimerState === "ready"
-                            ? "text-emerald-100"
-                            : "text-white"
-                        }`}
-                      >
-                        {formatRestTimer(restElapsed)}
-                      </span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          restTimerState === "over"
-                            ? "bg-orange-300"
-                            : restTimerState === "ready"
-                            ? "bg-emerald-400"
-                            : "bg-blue-400"
-                        }`}
-                        style={{ width: `${restProgress * 100}%` }}
-                      />
-                    </div>
-                    <div className="mt-2 grid grid-cols-[1fr_1fr_auto] gap-1.5">
-                <button
-                  type="button"
-                  onClick={restStartedAt ? restartRestTimer : startRestTimer}
-                  className="workout-ai-action rounded-lg border border-blue-400/18 bg-blue-500/[0.10] px-2 py-1.5 text-xs font-semibold text-blue-100"
-                      >
-                        {restStartedAt ? "Starta om" : "Starta"}
-                      </button>
+              {!isTimedCurrentExercise && rirInput <= 1 ? (
+                <label className="mt-2 flex items-center gap-3 text-sm text-white/85">
+                  <input
+                    type="checkbox"
+                    checked={didFailInput}
+                    onChange={(e) => setDidFailInput(e.target.checked)}
+                    className="h-4 w-4 rounded border border-white/20 bg-slate-950/38"
+                  />
+                  <span>Setet gick till failure</span>
+                </label>
+              ) : null}
+              {!isTimedCurrentExercise && rirInput <= 1 && didFailInput ? (
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  {["grepp", "teknik", "ork", "smärta"].map((reason) => {
+                    const isActive = failNoteInput === reason;
+                    return (
                       <button
+                        key={reason}
                         type="button"
-                        onClick={() => setShowRestTimer(false)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.045] text-white/48"
-                        aria-label="Dölj vila"
+                        onClick={() => setFailNoteInput(reason)}
+                        className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                          isActive
+                            ? "workout-rir-selected border-blue-400/30 bg-blue-500/[0.10] text-white"
+                            : "border-white/[0.09] bg-slate-950/38 text-white/75 hover:bg-white/5 hover:text-white"
+                        }`}
                       >
-                        <CloseGlyph className="h-3.5 w-3.5" />
+                        {reason.charAt(0).toUpperCase() + reason.slice(1)}
                       </button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : null}
 
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex items-center gap-3">
                 <button
                   type="button"
                   onClick={addSet}
@@ -1123,7 +1162,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={removeLastSet}
-                    className="h-12 rounded-2xl border border-white/[0.075] bg-white/[0.052] px-4 text-sm font-semibold text-white/62 transition hover:bg-white/[0.08] hover:text-white active:scale-[0.99]"
+                    className="shrink-0 text-xs font-medium text-white/40 underline decoration-white/20 underline-offset-2 transition hover:text-white/70"
                   >
                     Ångra
                   </button>
@@ -1132,6 +1171,7 @@ useEffect(() => {
             </>
           )}
         </section>
+        </div>
       ) : (
         <>
       <section className="workout-status-panel rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-3.5 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
