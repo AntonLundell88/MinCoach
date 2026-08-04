@@ -33,7 +33,21 @@ function getLoginErrorMessage(message: string) {
     return `Mejlet kunde inte skickas just nu. Supabase säger: ${message}`;
   }
 
-  return `Kunde inte skicka länken just nu. Supabase säger: ${message}`;
+  return `Kunde inte skicka koden just nu. Supabase säger: ${message}`;
+}
+
+function getVerifyErrorMessage(message: string) {
+  const lower = message.toLowerCase();
+
+  if (lower.includes("expired") || lower.includes("invalid")) {
+    return `Koden stämmer inte eller har hunnit gå ut. Skicka en ny kod och försök igen.`;
+  }
+
+  if (lower.includes("rate limit") || lower.includes("too many")) {
+    return `För många försök på kort tid. Vänta en stund och testa igen. Supabase säger: ${message}`;
+  }
+
+  return `Kunde inte verifiera koden. Supabase säger: ${message}`;
 }
 
 export default function AuthStartScreen({
@@ -46,6 +60,10 @@ export default function AuthStartScreen({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [sentToEmail, setSentToEmail] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   const authConfigured = isSupabaseBrowserConfigured();
   const supabase = useMemo(
@@ -75,7 +93,7 @@ export default function AuthStartScreen({
     };
   }, [onAuthenticated, supabase]);
 
-  const sendLoginLink = async () => {
+  const sendCode = async () => {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !supabase) return;
 
@@ -85,7 +103,7 @@ export default function AuthStartScreen({
 
     const redirectTo =
       typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback?next=/`
+        ? `${window.location.origin}/auth/confirm?next=/`
         : undefined;
     const { error: loginError } = await supabase.auth.signInWithOtp({
       email: cleanEmail,
@@ -95,12 +113,45 @@ export default function AuthStartScreen({
     setBusy(false);
 
     if (loginError) {
-      console.error("Supabase login link failed", loginError);
+      console.error("Supabase login code failed", loginError);
       setError(getLoginErrorMessage(loginError.message));
       return;
     }
 
-    setMessage("Länken är skickad. Öppna mejlet på samma enhet.");
+    setSentToEmail(cleanEmail);
+    setOtpCode("");
+    setOtpSent(true);
+    setMessage("Kod skickad. Kolla mejlet och skriv in koden nedan.");
+  };
+
+  const verifyCode = async () => {
+    const code = otpCode.trim();
+    if (!code || !supabase || !sentToEmail) return;
+
+    setVerifying(true);
+    setError("");
+
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: sentToEmail,
+      token: code,
+      type: "email",
+    });
+
+    setVerifying(false);
+
+    if (verifyError) {
+      console.error("Supabase code verification failed", verifyError);
+      setError(getVerifyErrorMessage(verifyError.message));
+      return;
+    }
+    // onAuthStateChange plockar upp den nya sessionen och kallar onAuthenticated().
+  };
+
+  const resetToEmailStep = () => {
+    setOtpSent(false);
+    setOtpCode("");
+    setMessage("");
+    setError("");
   };
 
   return (
@@ -143,6 +194,45 @@ export default function AuthStartScreen({
           <div className="mt-4 rounded-2xl border border-blue-300/14 bg-blue-500/[0.08] p-3 text-sm text-white/76">
             Du är inloggad. Appen öppnas strax.
           </div>
+        ) : otpSent ? (
+          <div className="mt-5 space-y-3">
+            <p className="text-sm leading-6 text-white/70">
+              Kod skickad till <span className="text-white/90">{sentToEmail}</span>. Skriv in den 6-siffriga koden från mejlet.
+            </p>
+            <label className="block text-[13px] font-medium text-white/76">
+              Kod
+              <input
+                className="mt-1.5 w-full rounded-2xl border border-white/[0.07] bg-slate-950/32 px-3.5 py-3 text-center text-2xl tracking-[0.5em] text-white outline-none transition placeholder:tracking-normal placeholder:text-white/28 focus:border-blue-300/35 focus:ring-2 focus:ring-blue-500/20"
+                value={otpCode}
+                onChange={(event) =>
+                  setOtpCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6))
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") verifyCode();
+                }}
+                placeholder="123456"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+              />
+            </label>
+            <button
+              type="button"
+              onClick={verifyCode}
+              disabled={!otpCode.trim() || verifying}
+              className="w-full rounded-2xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.24)] transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {verifying ? "Loggar in..." : "Logga in"}
+            </button>
+            <div className="flex items-center justify-between gap-3 px-1 text-[12px] text-white/50">
+              <button type="button" onClick={sendCode} disabled={busy} className="underline decoration-white/25 underline-offset-2 hover:text-white/76">
+                Skicka ny kod
+              </button>
+              <button type="button" onClick={resetToEmailStep} className="underline decoration-white/25 underline-offset-2 hover:text-white/76">
+                Byt mejladress
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="mt-5 space-y-3">
             <label className="block text-[13px] font-medium text-white/76">
@@ -151,17 +241,20 @@ export default function AuthStartScreen({
                 className="mt-1.5 w-full rounded-2xl border border-white/[0.07] bg-slate-950/32 px-3.5 py-3 text-base text-white outline-none transition placeholder:text-white/28 focus:border-blue-300/35 focus:ring-2 focus:ring-blue-500/20 sm:text-[15px]"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") sendCode();
+                }}
                 placeholder="namn@example.com"
                 type="email"
               />
             </label>
             <button
               type="button"
-              onClick={sendLoginLink}
+              onClick={sendCode}
               disabled={!email.trim() || busy || !authConfigured}
               className="w-full rounded-2xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.24)] transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {busy ? "Skickar..." : "Skicka inloggningslänk"}
+              {busy ? "Skickar..." : "Skicka inloggningskod"}
             </button>
           </div>
         )}

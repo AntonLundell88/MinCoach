@@ -77,6 +77,20 @@ function formatStatusTime(value?: string) {
   });
 }
 
+function getVerifyErrorMessage(message: string) {
+  const lower = message.toLowerCase();
+
+  if (lower.includes("expired") || lower.includes("invalid")) {
+    return "Koden stämmer inte eller har hunnit gå ut. Skicka en ny kod och försök igen.";
+  }
+
+  if (lower.includes("rate limit") || lower.includes("too many")) {
+    return `För många försök på kort tid. Vänta en stund och testa igen. Supabase säger: ${message}`;
+  }
+
+  return `Kunde inte verifiera koden. Supabase säger: ${message}`;
+}
+
 function getStatusMode(status: StoredSyncStatus | null) {
   if (!status) return "Väntar";
   if (status.queued) return "Väntar";
@@ -140,6 +154,10 @@ export default function SettingsScreen({
   const [authMessage, setAuthMessage] = useState("");
   const [authError, setAuthError] = useState("");
   const [isAuthBusy, setIsAuthBusy] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [sentToEmail, setSentToEmail] = useState("");
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [accountSyncMessage, setAccountSyncMessage] = useState("");
   const [accountSyncError, setAccountSyncError] = useState("");
   const [isAccountSyncBusy, setIsAccountSyncBusy] = useState(false);
@@ -280,7 +298,7 @@ export default function SettingsScreen({
     }
   };
 
-  const sendLoginLink = async () => {
+  const sendCode = async () => {
     const email = authEmail.trim().toLowerCase();
 
     if (!email || !supabase) return;
@@ -291,7 +309,7 @@ export default function SettingsScreen({
 
     const redirectTo =
       typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback?next=/`
+        ? `${window.location.origin}/auth/confirm?next=/`
         : undefined;
 
     const { error } = await supabase.auth.signInWithOtp({
@@ -305,12 +323,45 @@ export default function SettingsScreen({
 
     if (error) {
       setAuthError(
-        `Kunde inte skicka länken just nu. Supabase säger: ${error.message}`
+        `Kunde inte skicka koden just nu. Supabase säger: ${error.message}`
       );
       return;
     }
 
-    setAuthMessage("Länken är skickad. Öppna mejlet på samma enhet för att logga in.");
+    setSentToEmail(email);
+    setOtpCode("");
+    setOtpSent(true);
+    setAuthMessage("Kod skickad. Kolla mejlet och skriv in koden nedan.");
+  };
+
+  const verifyCode = async () => {
+    const code = otpCode.trim();
+
+    if (!code || !supabase || !sentToEmail) return;
+
+    setIsVerifyingCode(true);
+    setAuthError("");
+
+    const { error } = await supabase.auth.verifyOtp({
+      email: sentToEmail,
+      token: code,
+      type: "email",
+    });
+
+    setIsVerifyingCode(false);
+
+    if (error) {
+      setAuthError(getVerifyErrorMessage(error.message));
+      return;
+    }
+    // onAuthStateChange plockar upp den nya sessionen.
+  };
+
+  const resetToEmailStep = () => {
+    setOtpSent(false);
+    setOtpCode("");
+    setAuthMessage("");
+    setAuthError("");
   };
 
   const signOut = async () => {
@@ -330,6 +381,9 @@ export default function SettingsScreen({
 
     setAuthSession(null);
     setAuthEmail("");
+    setOtpSent(false);
+    setOtpCode("");
+    setSentToEmail("");
     setAuthMessage("Du är utloggad.");
   };
 
@@ -557,7 +611,7 @@ export default function SettingsScreen({
             <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
               {authSession
                 ? "Kontot är kopplat. Spara beta-datan till kontot när du vill kunna hämta den på en annan enhet."
-                : "Skicka en säker länk till din e-post. Inget lösenord behövs."}
+                : "Skicka en säker kod till din e-post. Inget lösenord behövs."}
             </p>
 
             {!authConfigured ? (
@@ -621,6 +675,43 @@ export default function SettingsScreen({
                   </div>
                 </div>
               </div>
+            ) : otpSent ? (
+              <div className="mt-4 grid gap-3">
+                <p className={`text-xs leading-5 ${bodyClassName}`}>
+                  Kod skickad till <span className={titleClassName}>{sentToEmail}</span>. Skriv in den 6-siffriga koden från mejlet.
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={otpCode}
+                  onChange={(event) =>
+                    setOtpCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") verifyCode();
+                  }}
+                  className={`h-12 w-full rounded-2xl px-4 text-center text-lg tracking-[0.5em] outline-none transition placeholder:tracking-normal focus:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.55)] ${feedbackFieldClassName}`}
+                  placeholder="123456"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={verifyCode}
+                  disabled={!otpCode.trim() || isVerifyingCode}
+                  className={`${primaryButtonClassName} w-full`}
+                >
+                  {isVerifyingCode ? "Loggar in..." : "Logga in"}
+                </button>
+                <div className="flex items-center justify-between gap-3 px-1">
+                  <button type="button" onClick={sendCode} disabled={isAuthBusy} className={`text-xs underline ${bodyClassName}`}>
+                    Skicka ny kod
+                  </button>
+                  <button type="button" onClick={resetToEmailStep} className={`text-xs underline ${bodyClassName}`}>
+                    Byt mejladress
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="mt-4 grid gap-3">
                 <input
@@ -629,16 +720,19 @@ export default function SettingsScreen({
                   autoComplete="email"
                   value={authEmail}
                   onChange={(event) => setAuthEmail(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") sendCode();
+                  }}
                   className={`h-12 w-full rounded-2xl px-4 text-base outline-none transition focus:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.55)] sm:text-sm ${feedbackFieldClassName}`}
                   placeholder="din@email.se"
                 />
                 <button
                   type="button"
-                  onClick={sendLoginLink}
+                  onClick={sendCode}
                   disabled={!authEmail.trim() || isAuthBusy}
                   className={`${primaryButtonClassName} w-full`}
                 >
-                  {isAuthBusy ? "Skickar..." : "Skicka inloggningslänk"}
+                  {isAuthBusy ? "Skickar..." : "Skicka inloggningskod"}
                 </button>
               </div>
             )}
