@@ -678,7 +678,7 @@ export default function SettingsScreen({
             ) : otpSent ? (
               <div className="mt-4 grid gap-3">
                 <p className={`text-xs leading-5 ${bodyClassName}`}>
-                  Kod skickad till <span className={titleClassName}>{sentToEmail}</span>. Skriv in den 6-siffriga koden från mejlet.
+                  Kod skickad till <span className={titleClassName}>{sentToEmail}</span>. Skriv in koden från mejlet.
                 </p>
                 <input
                   type="text"
@@ -686,13 +686,13 @@ export default function SettingsScreen({
                   autoComplete="one-time-code"
                   value={otpCode}
                   onChange={(event) =>
-                    setOtpCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6))
+                    setOtpCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 8))
                   }
                   onKeyDown={(event) => {
                     if (event.key === "Enter") verifyCode();
                   }}
-                  className={`h-12 w-full rounded-2xl px-4 text-center text-lg tracking-[0.5em] outline-none transition placeholder:tracking-normal focus:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.55)] ${feedbackFieldClassName}`}
-                  placeholder="123456"
+                  className={`h-12 w-full rounded-2xl px-4 text-center text-base tracking-[0.35em] outline-none transition placeholder:tracking-normal focus:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.55)] ${feedbackFieldClassName}`}
+                  placeholder="12345678"
                   autoFocus
                 />
                 <button

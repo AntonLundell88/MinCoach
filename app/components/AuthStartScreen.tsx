@@ -197,20 +197,20 @@ export default function AuthStartScreen({
         ) : otpSent ? (
           <div className="mt-5 space-y-3">
             <p className="text-sm leading-6 text-white/70">
-              Kod skickad till <span className="text-white/90">{sentToEmail}</span>. Skriv in den 6-siffriga koden från mejlet.
+              Kod skickad till <span className="text-white/90">{sentToEmail}</span>. Skriv in koden från mejlet.
             </p>
             <label className="block text-[13px] font-medium text-white/76">
               Kod
               <input
-                className="mt-1.5 w-full rounded-2xl border border-white/[0.07] bg-slate-950/32 px-3.5 py-3 text-center text-2xl tracking-[0.5em] text-white outline-none transition placeholder:tracking-normal placeholder:text-white/28 focus:border-blue-300/35 focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1.5 w-full rounded-2xl border border-white/[0.07] bg-slate-950/32 px-3.5 py-3 text-center text-xl tracking-[0.35em] text-white outline-none transition placeholder:tracking-normal placeholder:text-white/28 focus:border-blue-300/35 focus:ring-2 focus:ring-blue-500/20"
                 value={otpCode}
                 onChange={(event) =>
-                  setOtpCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6))
+                  setOtpCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 8))
                 }
                 onKeyDown={(event) => {
                   if (event.key === "Enter") verifyCode();
                 }}
-                placeholder="123456"
+                placeholder="12345678"
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 autoFocus
