@@ -13,6 +13,10 @@ import {
   isTimedExercise,
   normalizeExerciseSearchText,
 } from "../lib/exercises";
+import {
+  requestAiCoachExerciseIntro,
+  type CoachExerciseIntroContext,
+} from "../lib/coachAi";
 
 const LIBRARY_CATEGORIES = [
   "alla",
@@ -264,6 +268,7 @@ type Props = {
   updateSet: (setIdx: number, weight: number, reps: number, rir: number) => void;
   validateSetWeight: (weight: number) => string | null;
   previousWorkoutSummary?: string;
+  otherGymReference?: CoachExerciseIntroContext["otherGymReference"];
 };
 
 function getTopSet(progression: { weight: number; reps: number }[]) {
@@ -453,28 +458,6 @@ function getIntroTarget(args: {
   };
 }
 
-const WORKOUT_START_PEP_LINES = [
-  "Yes. Nu kör vi 🔥",
-  "Där ja. Nu kör vi 🔥",
-  "Okej. Nu startar vi passet 🔥",
-  "Nu är vi igång 🔥",
-  "Bra. Nu kör vi. 👊",
-  "Okej, vi är igång. 💪",
-  "Låt oss köra. 👊",
-  "Nu sätter vi igång. 💪",
-  "Alright. Nu kör vi. 👊",
-  "Nu snackar vi! 👊",
-  "Let's go! 🔥",
-  "Dags! Nu kör vi 💪",
-  "Kom igen! 🔥",
-  "Nu! ⚡",
-  "Nu! 👊",
-];
-
-function getWorkoutStartPepLine() {
-  return WORKOUT_START_PEP_LINES[Math.floor(Math.random() * WORKOUT_START_PEP_LINES.length)];
-}
-
 function buildExerciseIntroCoachText(args: {
   exerciseName: string;
   exerciseIndex: number;
@@ -515,7 +498,7 @@ function buildExerciseIntroCoachText(args: {
   const pr = personalRecords[key];
   const introLine =
     exerciseIndex === 0
-      ? `${getWorkoutStartPepLine()}\n\nFörst: ${exerciseName}.`
+      ? `Nu kör vi.\n\nFörst: ${exerciseName}.`
       : exerciseIndex === exerciseCount - 1
       ? `Avslutar med ${exerciseName}.`
       : `Nu tar vi ${exerciseName}.`;
@@ -603,6 +586,110 @@ Vila ${rest}.`;
 
   return lines.join("\n");
 }
+
+function buildExerciseIntroAiContext(args: {
+  exerciseName: string;
+  exerciseIndex: number;
+  exerciseCount: number;
+  progression: { weight: number; reps: number }[];
+  progressionPlan: {
+    weight: string;
+    repsText: string;
+    rirText: string;
+    note: string;
+    opportunity?: {
+      type: "offer_increase" | "increase_now" | "optional_last_set_test";
+      confidence: "medium" | "high";
+      suggestedWeight: string;
+      reason: string;
+      tone: "offer" | "clear";
+    };
+  };
+  lastByExercise: Props["lastByExercise"];
+  exerciseKey: (name: string) => string;
+  personalRecords: Props["personalRecords"];
+  previousWorkoutSummary?: string;
+  otherGymReference?: CoachExerciseIntroContext["otherGymReference"];
+}): CoachExerciseIntroContext {
+  const {
+    exerciseName,
+    exerciseIndex,
+    exerciseCount,
+    progression,
+    progressionPlan,
+    lastByExercise,
+    exerciseKey,
+    personalRecords,
+    previousWorkoutSummary,
+    otherGymReference,
+  } = args;
+
+  const key = exerciseKey(exerciseName);
+  const last = lastByExercise[key];
+  const pr = personalRecords[key];
+  const position: CoachExerciseIntroContext["position"] =
+    exerciseIndex === 0 ? "first" : exerciseIndex === exerciseCount - 1 ? "last" : "middle";
+  const rest = getRestTime(exerciseName);
+  const summaryForFirst = exerciseIndex === 0 ? previousWorkoutSummary : undefined;
+
+  if (isTimedExercise(exerciseName)) {
+    const bestTime = pr?.durationSeconds ?? last?.durationSeconds ?? 0;
+    const targetSeconds = bestTime > 0 ? Math.max(15, Math.round(bestTime * 0.9)) : 30;
+
+    return {
+      kind: "exercise_intro",
+      exerciseName,
+      position,
+      isTimedExercise: true,
+      target: {
+        weight: null,
+        restText: "60–90 sek",
+        timedTargetText: formatDurationLabel(targetSeconds),
+      },
+      history: bestTime > 0 ? { bestTimeText: formatDurationLabel(bestTime) } : undefined,
+      previousWorkoutSummary: summaryForFirst,
+    };
+  }
+
+  const topSet = pr ? { weight: pr.weight, reps: pr.reps } : getTopSet(progression);
+  const plannedWeight = Number(progressionPlan.weight);
+  const baseWeight =
+    Number.isFinite(plannedWeight) && plannedWeight > 0
+      ? plannedWeight
+      : topSet?.weight ?? last?.weight ?? null;
+  const target = progressionPlan
+    ? { reps: progressionPlan.repsText, rir: progressionPlan.rirText }
+    : getIntroTarget({ last, topSet, baseWeight });
+
+  return {
+    kind: "exercise_intro",
+    exerciseName,
+    position,
+    isTimedExercise: false,
+    target: {
+      repsText: target.reps,
+      rirText: target.rir,
+      weight: baseWeight,
+      restText: rest,
+    },
+    history: {
+      topSet: topSet ?? undefined,
+      lastSession: last
+        ? { weight: last.weight, reps: last.reps, failNote: last.failNote }
+        : undefined,
+    },
+    opportunity:
+      progressionPlan.opportunity && topSet && baseWeight === topSet.weight
+        ? {
+            type: progressionPlan.opportunity.type,
+            suggestedWeight: progressionPlan.opportunity.suggestedWeight,
+            reason: progressionPlan.opportunity.reason,
+          }
+        : undefined,
+    otherGymReference,
+    previousWorkoutSummary: summaryForFirst,
+  };
+}
 export default function WorkoutScreen({
   personalRecords,
   exerciseIndex,
@@ -664,6 +751,7 @@ export default function WorkoutScreen({
   updateSet,
   validateSetWeight,
   previousWorkoutSummary,
+  otherGymReference,
 }: Props) {
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
@@ -685,6 +773,8 @@ export default function WorkoutScreen({
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showForraGangen, setShowForraGangen] = useState(false);
   const [chatFocusMode, setChatFocusMode] = useState(false);
+  const [isNormalChatHistoryOpen, setIsNormalChatHistoryOpen] = useState(false);
+  const normalChatCardRef = useRef<HTMLDivElement | null>(null);
   const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
   const [restElapsed, setRestElapsed] = useState(0);
@@ -853,38 +943,51 @@ export default function WorkoutScreen({
     setManualRestTarget(null);
   }
   
-const introSentForIndexRef = useRef<number | null>(null);
+const introSentForIndexRef = useRef<string | null>(null);
 
 /* eslint-disable react-hooks/exhaustive-deps */
 useEffect(() => {
   if (!currentExerciseName) return;
   if (isCoachThinking) return;
-  if (introSentForIndexRef.current === exerciseIndex) return;
-  introSentForIndexRef.current = exerciseIndex;
+  const introIdentity = `${exerciseIndex}:${exerciseKey(currentExerciseName)}`;
+  if (introSentForIndexRef.current === introIdentity) return;
+  introSentForIndexRef.current = introIdentity;
 
-  const eventKey = `exercise_intro:${exerciseIndex}`;
-  addCoachMessage(
-    buildExerciseIntroCoachText({
-      exerciseName: currentExerciseName,
-      exerciseIndex,
-      exerciseCount: activePlan.length,
-      progression,
-      progressionPlan,
-      lastByExercise,
-      exerciseKey,
-      personalRecords,
-      previousWorkoutSummary: exerciseIndex === 0 ? previousWorkoutSummary : undefined,
-    }),
-    eventKey
-  );
-}, [exerciseIndex, isCoachThinking]);
+  const eventKey = `exercise_intro:${introIdentity}`;
+  const introArgs = {
+    exerciseName: currentExerciseName,
+    exerciseIndex,
+    exerciseCount: activePlan.length,
+    progression,
+    progressionPlan,
+    lastByExercise,
+    exerciseKey,
+    personalRecords,
+    previousWorkoutSummary: exerciseIndex === 0 ? previousWorkoutSummary : undefined,
+    otherGymReference,
+  };
+  const fallbackText = buildExerciseIntroCoachText(introArgs);
+  const controller = new AbortController();
+
+  requestAiCoachExerciseIntro({
+    context: buildExerciseIntroAiContext(introArgs),
+    fallbackReply: fallbackText,
+    signal: controller.signal,
+  }).then((result) => {
+    addCoachMessage(result.text, eventKey);
+  });
+
+  return () => {
+    controller.abort();
+  };
+}, [exerciseIndex, currentExerciseName, isCoachThinking]);
 /* eslint-enable react-hooks/exhaustive-deps */
 
   return (
     <>
     <div className={`workout-screen-shell w-full max-w-none space-y-2 sm:max-w-xl sm:space-y-2.5 ${shouldShowRestDock ? "pb-44" : ""}`}>
 {!chatFocusMode && (
-<div className="sticky top-2 z-30">
+<div ref={normalChatCardRef} className={isNormalChatHistoryOpen ? "" : "sticky top-2 z-30"}>
 <CoachPanel
   coachData={coachData}
   dayForm={dayForm}
@@ -895,6 +998,14 @@ useEffect(() => {
   sendChat={sendChat}
   isCoachThinking={isCoachThinking}
   isExpanded={false}
+  onHistoryOpenChange={(open) => {
+    setIsNormalChatHistoryOpen(open);
+    if (open) {
+      requestAnimationFrame(() => {
+        normalChatCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }}
 />
 
       <button
@@ -976,7 +1087,7 @@ useEffect(() => {
             </div>
             <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${
+                className={`workout-rest-progress-fill h-full rounded-full transition-all duration-500 ${
                   restStartedAt === null
                     ? "bg-white"
                     : restTimerState === "over"
@@ -1582,7 +1693,7 @@ useEffect(() => {
 
             <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/8">
               <div
-                className={`h-full rounded-full shadow-[0_0_18px_rgba(96,165,250,0.35)] transition-all duration-500 ${
+                className={`workout-rest-progress-fill h-full rounded-full shadow-[0_0_18px_rgba(96,165,250,0.35)] transition-all duration-500 ${
                   restTimerState === "over"
                     ? "bg-orange-300"
                     : restTimerState === "ready"
@@ -2037,7 +2148,7 @@ useEffect(() => {
 
           <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/8">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${
+              className={`workout-rest-progress-fill h-full rounded-full transition-all duration-500 ${
                 restTimerState === "over"
                   ? "bg-orange-300 shadow-[0_0_18px_rgba(251,146,60,0.35)]"
                   : restTimerState === "ready"

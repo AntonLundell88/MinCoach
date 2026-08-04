@@ -258,6 +258,11 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
           <p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-white/35">
             Dagens set
           </p>
+          {onEditSet && (
+            <p className="mt-2 text-xs leading-5 text-white/45">
+              Ser du något fel i dagens pass? Ingen fara, klicka bara på raden för att redigera.
+            </p>
+          )}
           <div className="mt-3 space-y-4">
             {(review.loggedExercises ?? []).map((ex) => (
               <div key={ex.name}>
@@ -275,9 +280,6 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
               </div>
             ))}
           </div>
-          {onEditSet && (
-            <p className="mt-3 text-[10px] text-white/25">Tryck på ett set för att redigera</p>
-          )}
         </section>
       )}
 

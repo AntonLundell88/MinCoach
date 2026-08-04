@@ -108,6 +108,13 @@ export type CoachSetContext = {
     hasHistoryAtCurrentGym: boolean;
     differentFromLastSession: boolean;
   };
+  otherGymReference?: {
+    gymName: string;
+    weightText: string;
+    repsText: string;
+    rirText?: string;
+    daysAgo: number;
+  };
   recoveryContext?: {
     exerciseLastTrainedDays: number | null;
     previousSession?: {
@@ -171,6 +178,39 @@ export type CoachChatContext = {
   conditioningNote?: string;
   previousCoachReply?: string;
   recentConversation?: string[];
+};
+
+export type CoachExerciseIntroContext = {
+  kind: "exercise_intro";
+  userName?: string;
+  exerciseName: string;
+  position: "first" | "last" | "middle";
+  isTimedExercise: boolean;
+  target: {
+    repsText?: string;
+    rirText?: string;
+    weight: number | null;
+    restText: string;
+    timedTargetText?: string;
+  };
+  history?: {
+    topSet?: { weight: number; reps: number };
+    lastSession?: { weight: number; reps: number; failNote?: string | null };
+    bestTimeText?: string;
+  };
+  opportunity?: {
+    type: "offer_increase" | "increase_now" | "optional_last_set_test";
+    suggestedWeight: string;
+    reason: string;
+  };
+  otherGymReference?: {
+    gymName: string;
+    weightText: string;
+    repsText: string;
+    rirText?: string;
+    daysAgo: number;
+  };
+  previousWorkoutSummary?: string;
 };
 
 export type CoachProgramContext = {
@@ -376,13 +416,15 @@ export type CoachPromptPayload = {
     | CoachChatContext
     | CoachProgramContext
     | CoachProgramBuildContext
-    | CoachWorkoutReviewContext;
+    | CoachWorkoutReviewContext
+    | CoachExerciseIntroContext;
   instruction: string;
   maxCharacters: number;
 };
 
 const MAX_COACH_REPLY_CHARACTERS = 620;
 const MAX_CHAT_REPLY_CHARACTERS = 500;
+const MAX_EXERCISE_INTRO_CHARACTERS = 500;
 const NAME_USAGE_RULE =
   "Använd användarens namn mycket sparsamt. Skriv inte namnet i vanliga svar som \"Bra fråga\" eller \"Okej\". Namnet får användas vid start, stora milstolpar eller när extra närvaro behövs, men högst undantagsvis. Om du är osäker: använd inte namnet.";
 
@@ -618,6 +660,8 @@ const SET_COACH_INSTRUCTION = [
   "",
   COACH_LANGUAGE_NOTES,
   "",
+  "Var lika lekfull och entusiastisk här som i chatten.",
+  "",
   "Data:",
   "- currentSet / previousSet: vikt, reps, RIR — fakta",
   "- nextTarget: systemets förslag på nästa steg",
@@ -627,6 +671,7 @@ const SET_COACH_INSTRUCTION = [
   "- " + HEALTH_NOTES_PRECEDENCE_RULE,
   "- " + RECENT_WORKING_WEIGHTS_NOTE,
   "- gymComparison är intern signal. Om hasHistoryAtCurrentGym är false kan vikterna behöva kalibreras på detta gym. Nämn det bara om det hjälper användaren förstå dagens startvikt. Om differentFromLastSession är true: resonera tyst om att viktreferenser kan skilja sig mellan gym.",
+  "- otherGymReference: finns när kalibreringen för den här övningen på det aktuella gymmet inte är etablerad än (få gånger kört här, eller länge sen sist) — visar vad som faktiskt loggades senast på ett ANNAT gym (gymName, vikt, reps, RIR). Facit, inte gissning. Om dagens vikt skiljer sig tydligt från otherGymReference är det NÄSTAN ALLTID förklaringen (annan maskin/annat gym) — inte en plötslig framgång eller bakgång i sig. Väv in det naturligt i din reaktion då, t.ex. att nämna gymmet och vad som kördes där, istället för att bara reagera på siffran isolerat. Skippa det bara om vikten är i princip samma som otherGymReference. Räkna aldrig ut skillnaden åt användaren i onödiga decimaler.",
   "- " + RECOVERY_CONTEXT_NOTE + " Använd recoveryContext bara när den rimligen förklarar dagens prestation eller påverkar nästa beslut — nämn den inte rutinmässigt.",
   "- progressionOpportunity: om användaren har mer att ge",
   "- recentConversation: de senaste meddelandena från BÅDA sidor — ditt korttidsminne. Läs innan du agerar.",
@@ -637,6 +682,7 @@ const SET_COACH_INSTRUCTION = [
   "- Om nextTarget.strategy är 'complete': övningen är klar. Reagera på setet och avsluta naturligt — nämn inga fler set-vikter, reps eller vilotider för den här övningen. Namnge aldrig vilken övning som kommer härnäst — den informationen finns inte i din kontext här, appen visar den separat. Undantag: om progressionOpportunity finns kan du erbjuda ett extraset. Om setPlan.isLastExercise är true: passet är klart.",
   "- Om personalRecordText börjar med 'Nytt person': det är ett PB. Reagera tydligt, men låt det kännas genom precision — inte genom mer text. En träffsäker mening räcker ofta.",
   "- Om currentSet.failNote finns: användaren har sagt vad som stoppade setet. Bekräfta det direkt i svaret — det väger tyngre än setnumret.",
+  "- Om computedSignals innehåller solo_muscle_group_final_set: det här är sista planerade setet på en övning som är dagens enda för den muskelgruppen, så nextTarget.rirText är redan satt lite närmare failure än vanligt. Förklara gärna varför i egna ord om det känns naturligt.",
 ].join("\n");
 
 const CHAT_QUESTION_INSTRUCTION = [
@@ -691,6 +737,43 @@ const CHAT_ACTION_INSTRUCTION = [
   "fromExerciseName ska vara currentExerciseName. toExerciseName ska vara övningen användaren namngav eller tydligt syftade på.",
   "note_limitation: sätt när användaren nämner något som låter som en verklig skada eller ett ihållande kroppsligt besvär — nytt, förbättrat eller helt borta. Inte vanlig träningsutmattning eller överdrift (\"benen är helt slut\", \"armarna dog\" är inte skador). text ska vara en kort, saklig sammanfattning av vad som sades, i tredje person, t.ex. \"Ont i höger fot efter vridning, nämnt under pass.\" eller \"Ländryggsvärk som nämndes tidigare är nu helt borta.\" Sätt bara en av de två actions per svar — välj den som är tydligast om båda skulle kunna passa.",
 ].join("\n");
+
+const EXERCISE_INTRO_COACH_SYSTEM = [COACH_HARD_GUARDRAILS].join("\n");
+
+const EXERCISE_INTRO_INSTRUCTION = [
+  "Du skriver det första coachmeddelandet när användaren kommer till en ny övning i passet — innan något set är loggat.",
+  "",
+  "Det här är enda gången du presenterar dagens mål för övningen, så nämn gärna vikt, reps, RIR och vila naturligt — det är ingen upprepning, det är kickoffen.",
+  "",
+  NAME_USAGE_RULE,
+  "",
+  COACH_VOICE_BRIEF,
+  "",
+  COACH_LANGUAGE_NOTES,
+  "",
+  "Bygg meddelandet utifrån:",
+  "- position: 'first' peppar igång hela passet, 'last' signalerar att det är sista övningen, 'middle' är en kort övergång.",
+  "- history.topSet (all-time bästa) eller history.lastSession (senaste gången) sätter tonen. Finns ingen historik: det är första gången ni kör den, säg det kort och varmt.",
+  "- Om history.lastSession.failNote finns: senast tog det stopp av den anledningen — öppna smart utifrån det.",
+  "- target.repsText/rirText/weight: dagens mål. target.restText: vilan.",
+  "- Om isTimedExercise är true: prata om target.timedTargetText och position, inte reps eller RIR.",
+  "- Om opportunity finns: väv in erbjudandet om att testa lite tyngre, naturligt — tvinga inte in det.",
+  "- previousWorkoutSummary finns bara vid position 'first' — använd bara om den tillför något.",
+  "- otherGymReference: finns när kalibreringen för den här övningen på det aktuella gymmet inte är etablerad än (få gånger kört här, eller länge sen sist) — visar vad som faktiskt loggades senast på ett ANNAT gym. Väv in det naturligt i öppningen ('Här på [gym] brukar det ligga runt X') — det här är stunden att visa att du håller koll på att gymmen skiljer sig, det gör användaren trygg. Hitta inte på vad dagens vikt blir, det vet varken du eller användaren än eftersom det är en annan maskin.",
+  "",
+  "Max 4-5 korta rader, löpande text. Ingen rubrik, ingen lista.",
+].join("\n");
+
+export function buildCoachExerciseIntroPromptPayload(
+  context: CoachExerciseIntroContext
+): CoachPromptPayload {
+  return {
+    system: EXERCISE_INTRO_COACH_SYSTEM,
+    context,
+    instruction: EXERCISE_INTRO_INSTRUCTION,
+    maxCharacters: MAX_EXERCISE_INTRO_CHARACTERS,
+  };
+}
 
 export function buildCoachPromptPayload(
   context: CoachSetContext
@@ -872,6 +955,60 @@ export async function requestAiCoachChatReply(args: {
       reason: "network_error",
       text: fallbackText,
       action: null,
+    };
+  }
+}
+
+export async function requestAiCoachExerciseIntro(args: {
+  context: CoachExerciseIntroContext;
+  fallbackReply: string;
+  signal?: AbortSignal;
+}) {
+  const { context, fallbackReply, signal } = args;
+  const payload = buildCoachExerciseIntroPromptPayload(context);
+  const fallbackText = sanitizeCoachReply(
+    fallbackReply,
+    fallbackReply,
+    payload.maxCharacters
+  );
+
+  try {
+    const response = await fetch("/api/coach/exercise-intro", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        context,
+        fallbackReply,
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      return {
+        mode: "fallback" as const,
+        reason: "request_failed",
+        text: fallbackText,
+      };
+    }
+
+    const data = (await response.json()) as {
+      mode?: "ai" | "fallback";
+      reason?: string;
+      text?: string;
+    };
+
+    return {
+      mode: data.mode ?? "fallback",
+      reason: data.reason,
+      text: sanitizeCoachReply(data.text ?? "", fallbackText, payload.maxCharacters),
+    };
+  } catch {
+    return {
+      mode: "fallback" as const,
+      reason: "network_error",
+      text: fallbackText,
     };
   }
 }

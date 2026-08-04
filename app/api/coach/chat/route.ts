@@ -205,7 +205,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL ?? "gpt-5.5",
         instructions: payload.system,
-        reasoning: { effort: "medium" },
+        reasoning: { effort: "high" },
         text: { verbosity: "medium" },
         input: [
           {

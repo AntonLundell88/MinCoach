@@ -35,6 +35,7 @@ type Props = {
   isCoachThinking?: boolean;
   isExpanded?: boolean;
   variant?: "card" | "focus";
+  onHistoryOpenChange?: (open: boolean) => void;
 };
 
 const coachInputPlaceholders = [
@@ -204,6 +205,7 @@ export default function CoachPanel({
   isCoachThinking = false,
   isExpanded = false,
   variant = "card",
+  onHistoryOpenChange,
 }: Props) {
     const isFocus = variant === "focus";
     const [coachInputPlaceholder, setCoachInputPlaceholder] = React.useState(
@@ -217,6 +219,12 @@ export default function CoachPanel({
       if (isFocus) return;
       setIsHistoryOpen(isExpanded);
     }, [isExpanded, isFocus]);
+
+    useEffect(() => {
+      if (isFocus) return;
+      onHistoryOpenChange?.(isHistoryOpen);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isHistoryOpen, isFocus]);
 
     useEffect(() => {
       if (isCoachThinking && !wasThinkingRef.current) {
@@ -321,11 +329,7 @@ export default function CoachPanel({
           className={
             isFocus
               ? "flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 pr-1"
-              : `overflow-auto overscroll-contain space-y-2 pr-1 transition-[max-height,min-height] duration-200 ease-out ${
-                  isExpanded
-                    ? "max-h-[56dvh] min-h-[220px]"
-                    : "max-h-[32dvh] min-h-[170px] sm:min-h-[220px]"
-                }`
+              : "space-y-2"
           }
         >
           {isFocus ? null : (
@@ -451,7 +455,10 @@ export default function CoachPanel({
                   : normalizeCoachDisplayText(m.text);
 
                 return (
-                  <div key={originalIndex}>
+                  <div
+                    key={originalIndex}
+                    className={i > 0 ? "mt-1.5 border-t border-white/[0.16] pt-2" : undefined}
+                  >
                     <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
                       {m.role === "coach" ? "Coach" : "Du"}
                     </p>

@@ -112,6 +112,10 @@ html[data-theme="light"],
   border-color: rgba(16, 185, 129, 0.32) !important;
 }
 
+[data-theme="light"] [class*="text-orange"] {
+  color: #a8460a !important;
+}
+
 [data-theme="light"] [class*="bg-[#2f6df6]"],
 [data-theme="light"] [class*="bg-blue-500"],
 [data-theme="light"] [class*="bg-blue-600"] {
@@ -1048,6 +1052,13 @@ main[data-theme="light"]:has(.workout-screen-shell) > div:not([class*="fixed"]) 
     0 8px 20px rgba(80, 62, 42, 0.055) !important;
 }
 
+[data-theme="light"] .workout-screen-shell .workout-focus-dock {
+  background:
+    linear-gradient(180deg, var(--mc-wellness-surface-soft), var(--mc-wellness-surface)) !important;
+  border-color: var(--mc-wellness-border) !important;
+  box-shadow: 0 -14px 32px rgba(80, 62, 42, 0.1) !important;
+}
+
 [data-theme="light"] .workout-screen-shell .workout-state-pill {
   background: rgba(47, 95, 79, 0.1) !important;
   border-color: rgba(47, 95, 79, 0.22) !important;
@@ -1265,6 +1276,11 @@ main[data-theme="light"]:has(.workout-screen-shell) {
   background: rgba(52, 95, 80, 0.13) !important;
   border-color: rgba(52, 95, 80, 0.24) !important;
   color: var(--mc-wellness-primary-strong) !important;
+}
+
+[data-theme="light"] .workout-screen-shell .workout-rest-progress-fill[class*="bg-emerald"] {
+  background: #2f8f6f !important;
+  box-shadow: none !important;
 }
 
 /* Simple light theme: keep the dark UI structure, only soften the page and text. */

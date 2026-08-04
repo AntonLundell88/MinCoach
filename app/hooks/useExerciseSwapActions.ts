@@ -247,12 +247,16 @@ export function useExerciseSwapActions(args: {
   }
 
   function addExerciseDuringWorkout(): ExerciseActionResult {
-    if (!workoutExerciseInput.trim()) return { handled: true };
+    if (!workoutExerciseInput.trim()) {
+      return { handled: false, message: "Skriv ett namn på övningen." };
+    }
     return addExerciseToCurrentWorkout(workoutExerciseInput, { silent: true });
   }
 
   function swapCurrentExerciseDuringWorkout(): ExerciseActionResult {
-    if (!swapExerciseInput.trim()) return { handled: true };
+    if (!swapExerciseInput.trim()) {
+      return { handled: false, message: "Skriv ett namn på övningen." };
+    }
     const result = replaceExerciseInCurrentWorkout(currentExerciseName, swapExerciseInput, {
       silent: true,
     });

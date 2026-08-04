@@ -657,6 +657,16 @@ export default function SetupScreen({
                 Du får granska upplägget innan det används.
               </p>
 
+              {!isSubmitting && nameInput.trim().length === 0 ? (
+                <p className="px-1 text-center text-[12px] leading-5 text-amber-200/72">
+                  Skriv ditt namn högre upp för att fortsätta.
+                </p>
+              ) : !isSubmitting && !isEditing && !acceptedAiNotice ? (
+                <p className="px-1 text-center text-[12px] leading-5 text-amber-200/72">
+                  Bekräfta “Jag förstår” ovan för att fortsätta.
+                </p>
+              ) : null}
+
               <button
                 type="submit"
                 disabled={

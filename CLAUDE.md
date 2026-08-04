@@ -232,12 +232,20 @@ AI ska resonera fritt inom verkligheten, men aldrig hitta på fakta.
 
 ## UI-status
 
-Maximerat chatläge i passet med kompakt set-input fungerar bra
-(vikt/reps med minus/plus, timer under) — bevara den känslan vid
-ändringar. Inputrutorna i vanligt läge hade linjeringsproblem, kolla
-visuellt om du rör dem. Lobbyn ska hälsa beroende på tid (god
-morgon/kväll); dagens pass-sidan ska inte dubbelhälsa. Profilknappen
-som ledde till passbyggaren är borttagen/justerad (var förvirrande).
+Fokusläget i passet (aug 2026, omgjort) är en egen fullskärmsyta:
+chatten fyller toppen och äger sin egen scroll, en fast kontrollpanel
+sitter i botten (övningsnamn + nästa set, stor färgkodad vilotimer med
+progressbar, vikt/reps/RIR, Lägg till set, diskret Ångra) — nåbar med
+tummen, rör sig aldrig. Bevara den känslan vid ändringar: en scrollyta
+i taget, ingen konkurrerande scroll. Vanligt läge har fortfarande kvar
+den äldre nästlade scroll-känslan när man expanderar hela chatthistoriken
+där (chattkortet sticky + egen inre scroll, sidan scrollar separat under)
+— inte fixat, men samma mönster som fokusläget nu använder skulle lösa
+det om vi vill ta det senare. Inputrutorna i vanligt läge hade
+linjeringsproblem, kolla visuellt om du rör dem. Lobbyn ska hälsa
+beroende på tid (god morgon/kväll); dagens pass-sidan ska inte
+dubbelhälsa. Profilknappen som ledde till passbyggaren är
+borttagen/justerad (var förvirrande).
 
 ## Övningsbibliotek
 

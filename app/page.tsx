@@ -168,7 +168,7 @@ function WorkoutReviewLoadingScreen({ theme }: { theme: AppTheme }) {
           Pass klart
         </p>
         <h1 className="mt-3 text-2xl font-black tracking-tight">
-          Coachen sammanfattar passet.
+          Jag sammanfattar passet.
         </h1>
         <p
           className={`mt-3 max-w-sm text-sm font-semibold leading-6 ${
@@ -2209,6 +2209,44 @@ function getExerciseDecisionProfile(exerciseName: string) {
   };
 }
 
+function getMuscleGroupingKey(exerciseName: string) {
+  const primaryMuscle = getExerciseDefinition(exerciseName)?.primaryMuscle;
+  if (primaryMuscle) return primaryMuscle;
+
+  const category = getExerciseProfile(exerciseName).category;
+  return category === "okänd" ? null : category;
+}
+
+function isSoleExerciseForMuscleGroup(
+  workoutExercises: { name: string }[],
+  exerciseName: string
+) {
+  const groupKey = getMuscleGroupingKey(exerciseName);
+  if (!groupKey) return false;
+
+  const sameGroupCount = workoutExercises.filter(
+    (exercise) => getMuscleGroupingKey(exercise.name) === groupKey
+  ).length;
+
+  return sameGroupCount === 1;
+}
+
+function tightenRirForSoloMuscleGroup(plan: NextSetPlan, exerciseName: string) {
+  if (plan.strategy !== "hold" && plan.strategy !== "press") return plan;
+  if (typeof plan.rirInput !== "number" || plan.rirInput <= 0) return plan;
+
+  const tightenedRirInput = plan.rirInput - 1;
+  const tightenedRirText = tightenedRirInput <= 0 ? "RIR 0" : "RIR 0-1";
+  const muscleGroupLabel = getMuscleGroupingKey(exerciseName) ?? "den här muskelgruppen";
+
+  return {
+    ...plan,
+    rirInput: tightenedRirInput,
+    rirText: tightenedRirText,
+    reason: `${exerciseName} är din enda övning för ${muscleGroupLabel} idag — inget skäl att spara marginal till en till övning. Sista setet får gå närmare failure.`,
+  };
+}
+
 function getBackoffWeight(args: {
   weight: number;
   exerciseName: string;
@@ -3389,6 +3427,62 @@ function buildGymComparison(args: {
   return { currentGymName, hasHistoryAtCurrentGym, differentFromLastSession };
 }
 
+const ESTABLISHED_GYM_SESSION_COUNT = 3;
+const STALE_GYM_REFERENCE_DAYS = 30;
+
+function getOtherGymReference(args: {
+  history: Workout[];
+  exerciseName: string;
+  currentGymId: string | null;
+  gyms: Gym[];
+}): CoachSetContext["otherGymReference"] {
+  const { history: hist, exerciseName, currentGymId, gyms } = args;
+  if (!currentGymId || gyms.length <= 1) return undefined;
+
+  const key = exerciseKey(exerciseName);
+  const sorted = [...hist].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+
+  const sessionsAtCurrentGym = sorted.filter(
+    (w) =>
+      w.gymId === currentGymId &&
+      w.exercises.some((e) => exerciseKey(e.name) === key && e.sets.length > 0)
+  );
+
+  const isEstablishedAtCurrentGym =
+    sessionsAtCurrentGym.length >= ESTABLISHED_GYM_SESSION_COUNT;
+  const daysSinceLastHere =
+    sessionsAtCurrentGym.length > 0
+      ? Math.round(
+          (Date.now() - new Date(sessionsAtCurrentGym[0].startedAt).getTime()) / 86400000
+        )
+      : null;
+  const isStale = daysSinceLastHere !== null && daysSinceLastHere > STALE_GYM_REFERENCE_DAYS;
+
+  if (isEstablishedAtCurrentGym && !isStale) return undefined;
+
+  for (const w of sorted) {
+    if (!w.gymId || w.gymId === currentGymId) continue;
+    const ex = w.exercises.find((e) => exerciseKey(e.name) === key);
+    if (!ex || ex.sets.length === 0) continue;
+
+    const lastSet = ex.sets[ex.sets.length - 1];
+    const gymName = gyms.find((g) => g.id === w.gymId)?.name ?? w.gym;
+    const daysAgo = Math.round(
+      (Date.now() - new Date(w.startedAt).getTime()) / 86400000
+    );
+
+    return {
+      gymName,
+      weightText: `${lastSet.weight} kg`,
+      repsText: `${lastSet.reps} reps`,
+      rirText: typeof lastSet.rir === "number" ? `RIR ${lastSet.rir}` : undefined,
+      daysAgo,
+    };
+  }
+
+  return undefined;
+}
+
 function buildRecoveryContext(args: {
   exerciseName: string;
   history: Workout[];
@@ -3465,6 +3559,7 @@ function buildCoachSetContext(args: {
   warmupContext: WarmupContext | null;
   conditioningContext: ConditioningContext | null;
   gymComparison?: CoachSetContext["gymComparison"];
+  otherGymReference?: CoachSetContext["otherGymReference"];
   recoveryContext?: CoachSetContext["recoveryContext"];
 }): CoachSetContext {
   const previousSet = args.previousSets[args.previousSets.length - 1];
@@ -3598,6 +3693,9 @@ function buildCoachSetContext(args: {
   })();
 
   if (args.personalRecordText) signals.push("personal_record");
+  if (args.nextSetPlan.reason.toLowerCase().includes("enda övning")) {
+    signals.push("solo_muscle_group_final_set");
+  }
   if (progressionOpportunity?.type === "optional_last_set_test") {
     signals.push("optional_last_set_test");
   }
@@ -3755,6 +3853,7 @@ function buildCoachSetContext(args: {
     previousCoachReply: args.lastCoachMessage?.trim() || undefined,
     computedSignals: signals,
     gymComparison: args.gymComparison,
+    otherGymReference: args.otherGymReference,
     recoveryContext: args.recoveryContext,
   };
 }
@@ -4423,6 +4522,9 @@ const [showExerciseProgress, setShowExerciseProgress] = useState(false);
   const [selectedStartPass, setSelectedStartPass] = useState<PassType | null>(null);
   const [selectedProgressExercise, setSelectedProgressExercise] = useState<
     string | null
+  >(null);
+  const [exerciseProgressOrigin, setExerciseProgressOrigin] = useState<
+    "statistics" | "history" | "personalRecords" | null
   >(null);
 
   // â€œDatabasâ€
@@ -5217,6 +5319,16 @@ const gymFilteredHistory = useMemo(() => {
   const gymHistory = history.filter((w) => w.gymId === activeGymId);
   return gymHistory.length > 0 ? gymHistory : history;
 }, [history, activeGymId]);
+
+const otherGymReference = useMemo(() => {
+  if (!currentExerciseName) return undefined;
+  return getOtherGymReference({
+    history,
+    exerciseName: currentExerciseName,
+    currentGymId: activeGymId,
+    gyms,
+  });
+}, [history, currentExerciseName, activeGymId, gyms]);
 
 const progressionHistory = useMemo(() => {
   const baseHistory = workout ? [workout, ...gymFilteredHistory] : gymFilteredHistory;
@@ -7169,10 +7281,17 @@ const painFailure =
         exerciseName: currentExerciseName,
         previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
       });
-   const nextSetPlan =
+   const bodyweightAdjustedPlan =
     bodyweightExercise && !hasLoggedWeight
       ? { ...rawNextSetPlan, weight: 0 }
       : rawNextSetPlan;
+   const isNextSetLast = setNumber + 1 >= plannedSetCount;
+   const nextSetPlan =
+    !timedExercise &&
+    isNextSetLast &&
+    isSoleExerciseForMuscleGroup(updated.exercises, currentExerciseName)
+      ? tightenRirForSoloMuscleGroup(bodyweightAdjustedPlan, currentExerciseName)
+      : bodyweightAdjustedPlan;
    const effectivePlannedSetCount =
     nextSetPlan.strategy !== "complete" && setNumber >= plannedSetCount
       ? setNumber + 1
@@ -7299,6 +7418,7 @@ const coachSetContext = buildCoachSetContext({
     currentGymName: gym,
     gyms,
   }),
+  otherGymReference,
   recoveryContext: buildRecoveryContext({
     exerciseName: currentExerciseName,
     history,
@@ -8649,6 +8769,11 @@ if (userProfile && workoutPlan && showProgramReview) {
         setShowProgramReview(false);
       }}
       onEditProfile={() => setEditingProfile(true)}
+      onClose={
+        loadJSON<boolean>("approvedWorkoutPlan", false)
+          ? () => setShowProgramReview(false)
+          : undefined
+      }
     />
     {settingsPanel}
     </>
@@ -8761,6 +8886,7 @@ addCoachMessage={(text, eventKey) =>
           });
         }}
         previousWorkoutSummary={getPreviousWorkoutSummaryLine(history) ?? undefined}
+        otherGymReference={otherGymReference}
       />
       
 ) : workoutReviewLoading ? (
@@ -8892,6 +9018,7 @@ addCoachMessage={(text, eventKey) =>
     onBack={() => setShowStatistics(false)}
     onOpenExercises={(exerciseName) => {
       setSelectedProgressExercise(exerciseName ?? null);
+      setExerciseProgressOrigin("statistics");
       setShowStatistics(false);
       setShowExerciseProgress(true);
     }}
@@ -8902,6 +9029,7 @@ addCoachMessage={(text, eventKey) =>
     onBack={() => setShowHistory(false)}
     onOpenExercise={(exerciseName) => {
       setSelectedProgressExercise(exerciseName);
+      setExerciseProgressOrigin("history");
       setShowHistory(false);
       setShowExerciseProgress(true);
     }}
@@ -8913,6 +9041,7 @@ addCoachMessage={(text, eventKey) =>
     onBack={() => setShowPersonalRecords(false)}
     onOpenExercise={(exerciseName) => {
       setSelectedProgressExercise(exerciseName);
+      setExerciseProgressOrigin("personalRecords");
       setShowPersonalRecords(false);
       setShowExerciseProgress(true);
     }}
@@ -8924,6 +9053,10 @@ addCoachMessage={(text, eventKey) =>
     onBack={() => {
       setSelectedProgressExercise(null);
       setShowExerciseProgress(false);
+      if (exerciseProgressOrigin === "statistics") setShowStatistics(true);
+      else if (exerciseProgressOrigin === "history") setShowHistory(true);
+      else if (exerciseProgressOrigin === "personalRecords") setShowPersonalRecords(true);
+      setExerciseProgressOrigin(null);
     }}
   />
 ) : (

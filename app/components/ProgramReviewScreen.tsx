@@ -114,6 +114,7 @@ type Props = {
   onRemoveExercise: (passKey: PassType, exerciseName: string) => void;
   onApprove: () => void;
   onEditProfile: () => void;
+  onClose?: () => void;
   theme?: "dark" | "light";
 };
 
@@ -731,6 +732,7 @@ export default function ProgramReviewScreen({
   onRemoveExercise,
   onApprove,
   onEditProfile,
+  onClose,
   theme,
 }: Props) {
   const [infoPass, setInfoPass] = useState<WorkoutPass | null>(null);
@@ -1236,9 +1238,21 @@ export default function ProgramReviewScreen({
     <main data-theme={theme} className="min-h-screen bg-[#0b1018] px-3 pb-28 pt-16 text-white sm:px-4">
       <div className="mx-auto flex w-full max-w-[460px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
-            Coachen
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
+              Coachen
+            </p>
+            {onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                aria-label="Stäng"
+              >
+                <CloseGlyph className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
 
           <h1 className="mt-3 text-[1.45rem] font-semibold leading-tight tracking-normal text-white">
             {programBuildStatus === "fallback"
