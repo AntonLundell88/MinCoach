@@ -194,7 +194,7 @@ type Props = {
   }[];
   chatInput: string;
   setChatInput: (v: string) => void;
-  addCoachMessage: (text: string, eventKey?: string) => void;
+  addCoachMessage: (text: string, eventKey?: string, source?: "engine" | "llm") => void;
   sendChat: () => void;
   isCoachThinking?: boolean;
   workoutExerciseInput: string;
@@ -944,6 +944,7 @@ export default function WorkoutScreen({
   }
   
 const introSentForIndexRef = useRef<string | null>(null);
+const [introLoading, setIntroLoading] = useState(false);
 
 /* eslint-disable react-hooks/exhaustive-deps */
 useEffect(() => {
@@ -969,12 +970,14 @@ useEffect(() => {
   const fallbackText = buildExerciseIntroCoachText(introArgs);
   const controller = new AbortController();
 
+  setIntroLoading(true);
   requestAiCoachExerciseIntro({
     context: buildExerciseIntroAiContext(introArgs),
     fallbackReply: fallbackText,
     signal: controller.signal,
   }).then((result) => {
-    addCoachMessage(result.text, eventKey);
+    setIntroLoading(false);
+    addCoachMessage(result.text, eventKey, result.mode === "ai" ? "llm" : "engine");
   });
 
   return () => {
@@ -996,7 +999,7 @@ useEffect(() => {
   chatInput={chatInput}
   setChatInput={setChatInput}
   sendChat={sendChat}
-  isCoachThinking={isCoachThinking}
+  isCoachThinking={isCoachThinking || introLoading}
   isExpanded={false}
   onHistoryOpenChange={(open) => {
     setIsNormalChatHistoryOpen(open);
@@ -1031,7 +1034,7 @@ useEffect(() => {
               chatInput={chatInput}
               setChatInput={setChatInput}
               sendChat={sendChat}
-              isCoachThinking={isCoachThinking}
+              isCoachThinking={isCoachThinking || introLoading}
               isExpanded
             />
           </div>

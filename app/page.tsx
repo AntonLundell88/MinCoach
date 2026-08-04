@@ -8828,7 +8828,7 @@ return (
         pickExerciseForSwap={pickExerciseForSwap}
         pickCustomExerciseForAdd={pickCustomExerciseForAdd}
         pickCustomExerciseForSwap={pickCustomExerciseForSwap}
-addCoachMessage={(text, eventKey) =>
+addCoachMessage={(text, eventKey, source = "engine") =>
   setChatLog((prev) => {
     if (eventKey && prev.some((m) => m.eventKey === eventKey)) {
       return prev;
@@ -8838,7 +8838,7 @@ addCoachMessage={(text, eventKey) =>
       ...prev,
       {
         role: "coach",
-        source: "engine" as const,
+        source,
         text,
         eventKey,
       },
