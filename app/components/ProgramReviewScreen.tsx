@@ -1278,10 +1278,6 @@ export default function ProgramReviewScreen({
                 </div>
               )}
             </>
-          ) : manualReviewSummary ? (
-            <div className="mt-4 rounded-2xl border border-blue-300/14 bg-blue-400/[0.055] px-3.5 py-3 text-sm leading-6 text-white/70">
-              {manualReviewSummary}
-            </div>
           ) : null}
 
           {programBuildStatus === "building" ? (
@@ -2514,6 +2510,11 @@ export default function ProgramReviewScreen({
       }}
     >
       <div className="mx-auto max-w-[460px]">
+        {isManualBuilder && hasRunManualReview && manualReviewSummary ? (
+          <div className="mb-2.5 rounded-2xl border border-blue-300/14 bg-blue-400/[0.10] px-3.5 py-2.5 text-sm leading-6 text-white/82 backdrop-blur-sm">
+            {manualReviewSummary}
+          </div>
+        ) : null}
         {!canApproveProgram ? (
           <p className="mb-2 text-center text-xs font-medium leading-5 text-white/44">
             {totalExercises === 0

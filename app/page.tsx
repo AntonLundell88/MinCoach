@@ -4625,6 +4625,14 @@ const [customWorkoutPlan, setCustomWorkoutPlan] =
   useState<StoredWorkoutPlan | null>(null);
 const [passDisplayNamesByPass, setPassDisplayNamesByPass] =
   useState<PassDisplayNamesByPass>({});
+const renamePass = (passKey: PassType, displayName: string) => {
+  const nextNames = {
+    ...passDisplayNamesByPass,
+    [passKey]: displayName.trim(),
+  };
+  setPassDisplayNamesByPass(nextNames);
+  saveJSON("passDisplayNamesByPass", nextNames);
+};
 const [activeWarmupContext, setActiveWarmupContext] =
   useState<WarmupContext | null>(null);
 const [activeConditioningContext, setActiveConditioningContext] =
@@ -8623,14 +8631,7 @@ if (userProfile && workoutPlan && showProgramReview) {
         if (!userProfile) return;
         buildAiWorkoutPlanForProfile(userProfile);
       }}
-      onRenamePass={(passKey, displayName) => {
-        const nextNames = {
-          ...passDisplayNamesByPass,
-          [passKey]: displayName.trim(),
-        };
-        setPassDisplayNamesByPass(nextNames);
-        saveJSON("passDisplayNamesByPass", nextNames);
-      }}
+      onRenamePass={renamePass}
       onAddExercise={(passKey, exerciseNameRaw) => {
         const resolved = resolveExerciseName(exerciseNameRaw);
 
@@ -9011,6 +9012,8 @@ addCoachMessage={(text, eventKey, source = "engine") =>
     onSelectGym={selectGym}
     onAddGym={addGym}
     onRenameGym={renameGym}
+    onBack={() => setShowDailyPlan(false)}
+    onRenamePass={renamePass}
   />
 ) : showStatistics ? (
   <StatisticsScreen

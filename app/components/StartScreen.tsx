@@ -65,6 +65,9 @@ type Props = {
   onSelectGym: (id: string) => void;
   onAddGym: (name: string) => void;
   onRenameGym: (id: string, newName: string) => void;
+
+  onBack: () => void;
+  onRenamePass: (passKey: PassType, displayName: string) => void;
 };
 
 const cardClassName =
@@ -105,6 +108,8 @@ export default function StartScreen({
   onSelectGym,
   onAddGym,
   onRenameGym,
+  onBack,
+  onRenamePass,
 }: Props) {
   const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [showGymPicker, setShowGymPicker] = useState(false);
@@ -116,6 +121,8 @@ export default function StartScreen({
   const [isEditingExercises, setIsEditingExercises] = useState(false);
   const [showNewGymModal, setShowNewGymModal] = useState(false);
   const [pendingNewGymName, setPendingNewGymName] = useState("");
+  const [isEditingPassName, setIsEditingPassName] = useState(false);
+  const [editingPassName, setEditingPassName] = useState("");
 
   const cleanNextPassLabel = nextPassLabel.replace(" 1", "").replace(" 2", "");
   const todayExercises = todayExercisesByPass[nextPass] ?? [];
@@ -136,7 +143,7 @@ export default function StartScreen({
     <div className="w-full max-w-lg space-y-5">
       <div className="rounded-[1.75rem] border border-white/[0.09] bg-white/[0.05] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14)] backdrop-blur-xl">
         <div className="space-y-4">
-          <div className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
             <h1
               className="fade-up text-2xl font-semibold leading-tight text-white"
               style={{ animationDelay: "0s" }}
@@ -144,17 +151,75 @@ export default function StartScreen({
               Dagens pass är redo.
             </h1>
 
+            <button
+              type="button"
+              onClick={onBack}
+              className="shrink-0 rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
+            >
+              Tillbaka
+            </button>
           </div>
-          
+
           <div className="rounded-2xl border border-white/[0.09] bg-slate-950/18 p-4 backdrop-blur-sm">
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-[11px] uppercase tracking-[0.14em] text-white/35">
                   Dagens pass
                 </p>
-                <p className="mt-1 text-2xl font-semibold text-white">
-                  {cleanNextPassLabel}
-                </p>
+                {isEditingPassName ? (
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <input
+                      autoFocus
+                      value={editingPassName}
+                      onChange={(e) => setEditingPassName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && editingPassName.trim()) {
+                          onRenamePass(nextPass, editingPassName.trim());
+                          setIsEditingPassName(false);
+                        }
+                        if (e.key === "Escape") setIsEditingPassName(false);
+                      }}
+                      className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-base text-white placeholder-white/25 outline-none focus:border-white/20 sm:text-sm"
+                    />
+                    <button
+                      type="button"
+                      disabled={!editingPassName.trim()}
+                      onClick={() => {
+                        if (editingPassName.trim()) {
+                          onRenamePass(nextPass, editingPassName.trim());
+                          setIsEditingPassName(false);
+                        }
+                      }}
+                      className="shrink-0 rounded-xl bg-[#2f6df6] px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
+                    >
+                      Spara
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingPassName(false)}
+                      className="shrink-0 rounded-xl border border-white/10 px-3 py-2 text-sm text-white/50"
+                    >
+                      Avbryt
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex items-center gap-2">
+                    <p className="truncate text-2xl font-semibold text-white">
+                      {cleanNextPassLabel}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingPassName(cleanNextPassLabel);
+                        setIsEditingPassName(true);
+                      }}
+                      aria-label="Byt namn på passet"
+                      className="shrink-0 rounded-lg px-1.5 py-1 text-sm text-white/28 transition hover:bg-white/[0.06] hover:text-white/60"
+                    >
+                      ✎
+                    </button>
+                  </div>
+                )}
                 <p className="mt-1 text-sm text-white/50">
                   {plan.length + todayExercises.length} övningar idag
                 </p>
