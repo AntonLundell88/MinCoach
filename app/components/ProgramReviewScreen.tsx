@@ -1235,7 +1235,7 @@ export default function ProgramReviewScreen({
     <>
     {termsHelpOverlay}
     {alternativesOverlay}
-    <main data-theme={theme} className="min-h-screen bg-[#0b1018] px-3 pb-28 pt-16 text-white sm:px-4">
+    <main data-theme={theme} className="min-h-screen bg-[#0b1018] px-3 pb-28 pt-[max(4rem,env(safe-area-inset-top))] text-white sm:px-4">
       <div className="mx-auto flex w-full max-w-[460px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">

@@ -104,7 +104,7 @@ export default function AuthStartScreen({
   };
 
   return (
-    <main data-theme={theme} className="flex min-h-screen items-center justify-center bg-[#080d14] px-4 py-6 text-white">
+    <main data-theme={theme} className="flex min-h-screen items-center justify-center bg-[#080d14] px-4 py-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.12),transparent_34%),linear-gradient(180deg,#080d14_0%,#0d1420_52%,#080d14_100%)]" />
 
       <section className="w-full max-w-md rounded-[1.65rem] border border-white/[0.07] bg-white/[0.045] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">

@@ -128,7 +128,7 @@ function AppControls({
     : "flex h-11 w-11 items-center justify-center rounded-full bg-[#101824]/76 text-white/86 shadow-[0_16px_38px_rgba(0,0,0,0.30),inset_0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-2xl transition hover:bg-[#131c27]/92 hover:text-white";
 
   return (
-    <div className="fixed right-3 top-3 z-40 flex items-center gap-1.5 sm:right-6 sm:top-5">
+    <div className="fixed right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex items-center gap-1.5 sm:right-6 sm:top-[max(1.25rem,env(safe-area-inset-top))]">
       <button
         type="button"
         onClick={onOpenSettings}
@@ -8784,7 +8784,7 @@ if (userProfile && workoutPlan && showProgramReview) {
 return (
   <main
     data-theme={appTheme}
-    className="flex min-h-screen flex-col items-center justify-start gap-6 bg-[#0b1018] px-0 text-white"
+    className="flex min-h-screen flex-col items-center justify-start gap-6 bg-[#0b1018] px-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-white"
   >
    {shouldShowGlobalAppControls ? globalAppControls : null}
    {workoutComplete ? (

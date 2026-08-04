@@ -505,7 +505,7 @@ export default function SettingsScreen({
       />
 
       <aside
-        className={`relative z-10 max-h-[100svh] min-h-[100svh] w-full max-w-none overflow-y-auto rounded-none border-0 p-4 backdrop-blur-2xl sm:max-h-[calc(100svh-1.5rem)] sm:min-h-0 sm:max-w-lg sm:rounded-[1.75rem] sm:border sm:border-white/5 sm:p-5 ${panelClassName}`}
+        className={`relative z-10 max-h-[100svh] min-h-[100svh] w-full max-w-none overflow-y-auto rounded-none border-0 p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-2xl sm:max-h-[calc(100svh-1.5rem)] sm:min-h-0 sm:max-w-lg sm:rounded-[1.75rem] sm:border sm:border-white/5 sm:p-5 ${panelClassName}`}
       >
         <div className="space-y-4">
           <header className="flex items-start justify-between gap-3 pt-1 sm:pt-3">

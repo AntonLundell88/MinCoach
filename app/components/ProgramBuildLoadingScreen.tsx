@@ -59,7 +59,7 @@ export default function ProgramBuildLoadingScreen({ theme }: Props) {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
-    <main data-theme={theme} className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b1018] px-6 py-10 text-white">
+    <main data-theme={theme} className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b1018] px-6 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))] text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_24%,rgba(59,130,246,0.16),transparent_34%),radial-gradient(circle_at_18%_76%,rgba(125,96,64,0.08),transparent_26%),linear-gradient(180deg,#0b1018_0%,#111a25_52%,#0b1018_100%)]" />
 
       <section className="flex w-full max-w-[440px] flex-col items-center text-center">
