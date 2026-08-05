@@ -32,8 +32,9 @@ upprepningar. UI ska hjälpa coachen synas, inte ta över.
 
 ## Stack / infra
 
-- **GitHub → Netlify**, domän `mincoach.app`.
-- **Supabase**: auth (magic link) + datalagring. Användaren ska vara
+- **GitHub → Netlify**, appen körs på `app.mincoach.app` (separat
+  marknadsföringssajt på `mincoach.app`, eget repo `mincoach-site`).
+- **Supabase**: auth (e-postkod, OTP) + datalagring. Användaren ska vara
   inloggad länge, som en vanlig app — inte tvingas logga in ofta.
   Tabeller bl.a.: `profiles`, `user_settings`, `workout_programs`,
   `workouts`, `workout_sets`, `coach_memories`, `beta_feedback`,

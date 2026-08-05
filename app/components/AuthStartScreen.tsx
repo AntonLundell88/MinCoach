@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import type { Session } from "@supabase/supabase-js";
 import {
   createSupabaseBrowserClient,
   isSupabaseBrowserConfigured,
 } from "../lib/supabase/client";
+import { restoreAccountDataToLocalDevice } from "../lib/accountDataSync";
 
 type Props = {
   onAuthenticated: () => void;
@@ -64,6 +65,8 @@ export default function AuthStartScreen({
   const [otpCode, setOtpCode] = useState("");
   const [sentToEmail, setSentToEmail] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [restoringAccount, setRestoringAccount] = useState(false);
+  const [restoreError, setRestoreError] = useState("");
 
   const authConfigured = isSupabaseBrowserConfigured();
   const supabase = useMemo(
@@ -71,27 +74,70 @@ export default function AuthStartScreen({
     [authConfigured]
   );
 
+  const restoreThenContinue = useCallback(
+    async (activeSupabase: NonNullable<typeof supabase>, user: Session["user"]) => {
+      setRestoringAccount(true);
+      setRestoreError("");
+      const status = await restoreAccountDataToLocalDevice({
+        supabase: activeSupabase,
+        user,
+      });
+
+      if (!status.ok) {
+        setRestoringAccount(false);
+        setRestoreError(
+          "Kunde inte hämta ditt sparade upplägg just nu. Kontrollera anslutningen och försök igen."
+        );
+        return;
+      }
+
+      if (status.mode === "restored" && (status.restoredKeys?.length ?? 0) > 0) {
+        // Datan ligger nu i localStorage, men appens state hydrerades redan
+        // vid mount — en fräsch inladdning läser in allt korrekt i ett svep.
+        window.location.reload();
+        return;
+      }
+
+      setRestoringAccount(false);
+      onAuthenticated();
+    },
+    [onAuthenticated]
+  );
+
   useEffect(() => {
     if (!supabase) return;
+    const activeSupabase = supabase;
 
-    let mounted = true;
+    function handleSession(nextSession: Session | null) {
+      if (!nextSession) return;
 
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
+      if (localStorage.getItem("userProfile")) {
+        onAuthenticated();
+        return;
+      }
+
+      void restoreThenContinue(activeSupabase, nextSession.user);
+    }
+
+    void activeSupabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      if (data.session) onAuthenticated();
+      handleSession(data.session);
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = activeSupabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
-      if (nextSession) onAuthenticated();
+      handleSession(nextSession);
     });
 
     return () => {
-      mounted = false;
       data.subscription.unsubscribe();
     };
-  }, [onAuthenticated, supabase]);
+  }, [onAuthenticated, supabase, restoreThenContinue]);
+
+  const retryRestore = () => {
+    if (!session || !supabase) return;
+    void restoreThenContinue(supabase, session.user);
+  };
 
   const sendCode = async () => {
     const cleanEmail = email.trim().toLowerCase();
@@ -190,9 +236,22 @@ export default function AuthStartScreen({
             Inloggning är inte konfigurerad i den här miljön. Du kan fortsätta
             utan konto och testa appen på den här enheten.
           </div>
+        ) : session && restoreError ? (
+          <div className="mt-4 rounded-2xl border border-red-300/14 bg-red-500/[0.08] p-3 text-sm text-white/76">
+            <p>{restoreError}</p>
+            <button
+              type="button"
+              onClick={retryRestore}
+              className="mt-3 w-full rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
+            >
+              Försök igen
+            </button>
+          </div>
         ) : session ? (
           <div className="mt-4 rounded-2xl border border-blue-300/14 bg-blue-500/[0.08] p-3 text-sm text-white/76">
-            Du är inloggad. Appen öppnas strax.
+            {restoringAccount
+              ? "Hämtar ditt sparade upplägg..."
+              : "Du är inloggad. Appen öppnas strax."}
           </div>
         ) : otpSent ? (
           <div className="mt-5 space-y-3">
