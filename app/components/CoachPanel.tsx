@@ -11,6 +11,7 @@ type ChatMessage = {
   exerciseName?: string;
   source?: "engine" | "llm" | "fallback";
   highlight?: boolean;
+  emphasis?: boolean;
 };
 
 type CoachData = {
@@ -181,10 +182,10 @@ function CoachText({ text, isPrimary = false }: { text: string; isPrimary?: bool
                 ? `${currentLineIndex > 0 ? "pt-2" : "pt-0"} text-[9px] font-semibold uppercase tracking-[0.13em] text-blue-100/45`
                 : isTargetNumber
                 ? isPrimary
-                  ? "text-[14px] font-semibold leading-[1.32] tracking-normal text-white"
+                  ? "text-[15px] font-semibold leading-[1.32] tracking-normal text-white"
                   : "text-[14px] font-semibold leading-[1.32] tracking-normal text-white"
                 : isPrimary
-                ? "text-[13.5px] leading-[1.62] tracking-normal text-white/86"
+                ? "text-[14.5px] font-semibold leading-[1.55] tracking-normal text-white"
                 : "text-[13.5px] leading-[1.62] tracking-normal text-white/86"
             }
           >
@@ -393,6 +394,7 @@ export default function CoachPanel({
                           : typedLastCoachMessage
                         : m.text
                     }
+                    isPrimary={m.emphasis}
                   />
                 ) : (
                   <p className="user-message-text text-sm leading-5 text-white/86">{m.text}</p>

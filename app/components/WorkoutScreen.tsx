@@ -912,13 +912,33 @@ export default function WorkoutScreen({
     const el = inlineRestWidgetRef.current;
     if (!el || !showRestTimer) return;
 
+    let hideTimeout: number | null = null;
+
     const observer = new IntersectionObserver(
-      ([entry]) => setIsInlineRestWidgetVisible(entry.isIntersecting),
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (hideTimeout !== null) {
+            window.clearTimeout(hideTimeout);
+            hideTimeout = null;
+          }
+          setIsInlineRestWidgetVisible(true);
+        } else {
+          // Kort scrollhopp (t.ex. när chatten växer vid ett nytt meddelande)
+          // ska inte blinka fram den flytande timern — vänta och se om den
+          // inbäddade widgeten kommer tillbaka i vy innan vi växlar.
+          hideTimeout = window.setTimeout(() => {
+            setIsInlineRestWidgetVisible(false);
+          }, 250);
+        }
+      },
       { threshold: 0 }
     );
     observer.observe(el);
 
-    return () => observer.disconnect();
+    return () => {
+      if (hideTimeout !== null) window.clearTimeout(hideTimeout);
+      observer.disconnect();
+    };
   }, [showRestTimer]);
 
   function startRestTimer() {
@@ -952,7 +972,6 @@ useEffect(() => {
   if (isCoachThinking) return;
   const introIdentity = `${exerciseIndex}:${exerciseKey(currentExerciseName)}`;
   if (introSentForIndexRef.current === introIdentity) return;
-  introSentForIndexRef.current = introIdentity;
 
   const eventKey = `exercise_intro:${introIdentity}`;
   const introArgs = {
@@ -976,6 +995,9 @@ useEffect(() => {
     fallbackReply: fallbackText,
     signal: controller.signal,
   }).then((result) => {
+    if (controller.signal.aborted) return;
+    if (introSentForIndexRef.current === introIdentity) return;
+    introSentForIndexRef.current = introIdentity;
     setIntroLoading(false);
     addCoachMessage(result.text, eventKey, result.mode === "ai" ? "llm" : "engine");
   });

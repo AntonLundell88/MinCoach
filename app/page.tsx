@@ -62,13 +62,6 @@ const ACTIVE_WORKOUT_DRAFT_KEY = "activeWorkoutDraft";
 const AUTH_GATE_BYPASS_KEY = "mincoachContinueWithoutAccount";
 const COACH_PROGRAM_MAX_DAYS = 6;
 const MANUAL_PROGRAM_MAX_DAYS = 7;
-const WORKOUT_FINISH_LINES = [
-  "Där är vi klara med dagens pass. Gå vidare så kollar vi igenom det.",
-  "Där stänger vi passet. Gå vidare så tar vi genomgången.",
-  "Klart för idag. Tryck vidare så går vi igenom vad vi tar med oss.",
-  "Där har vi dagens jobb. Gå vidare så summerar vi passet.",
-  "Passet är klart. Gå vidare så tittar vi på helheten.",
-];
 
 function getPassKeys(daysPerWeek: number, maxDays = COACH_PROGRAM_MAX_DAYS) {
   const count = Math.min(Math.max(1, Math.round(daysPerWeek) || 1), maxDays);
@@ -666,30 +659,6 @@ function saveJSON(key: string, value: unknown) {
 function saveRawValue(key: string, value: string) {
   localStorage.setItem(key, value);
   scheduleBetaSync({ changedKey: key });
-}
-
-function getRotatingWorkoutFinishLine(workoutId: string, setNumber: number) {
-  const seed = `${workoutId}-${setNumber}`;
-  const hash = [...seed].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return WORKOUT_FINISH_LINES[hash % WORKOUT_FINISH_LINES.length];
-}
-
-function appendWorkoutFinishLine(text: string, finishLine: string) {
-  const trimmed = text.trim();
-  if (!trimmed) return finishLine;
-
-  const normalized = trimmed.toLowerCase();
-  const alreadySendsToReview =
-    normalized.includes("genomg") ||
-    normalized.includes("kollar vi igenom") ||
-    normalized.includes("tittar vi p") ||
-    normalized.includes("summerar vi") ||
-    normalized.includes("gå vidare") ||
-    normalized.includes("gå vidare");
-
-  if (alreadySendsToReview) return trimmed;
-
-  return `${trimmed}\n\n${finishLine}`;
 }
 
 type ExerciseBestSet = {
@@ -7485,27 +7454,19 @@ if (coachReply.text) {
   const isWorkoutFinished =
     nextSetPlan.strategy === "complete" &&
     exerciseIndex >= updated.exercises.length - 1;
-  const coachReplyText = isWorkoutFinished
-    ? appendWorkoutFinishLine(
-        coachReply.text,
-        getRotatingWorkoutFinishLine(updated.id, setNumber)
-      )
-    : coachReply.text;
 
-  const isHighlight =
-    isWorkoutFinished ||
-    personalRecordText !== "" ||
-    nextSetPlan.strategy === "complete";
+  const isRealPersonalRecord = personalRecordText.startsWith("Nytt personbästa");
 
   setChatLog((prev) => [
     ...prev,
     {
       role: "coach",
-      text: coachReplyText,
+      text: coachReply.text,
       setNumber,
       exerciseName: currentExerciseName || undefined,
       aiStatus: coachReply.mode === "ai" ? undefined : "fallback",
-      highlight: isHighlight || undefined,
+      highlight: isRealPersonalRecord || undefined,
+      emphasis: isWorkoutFinished || undefined,
     },
   ]);
 }
