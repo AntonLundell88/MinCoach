@@ -477,6 +477,216 @@ const REVIEWED_EXERCISE_INFO_TEMPLATES: Record<string, ExerciseInfoTemplate> = {
     "Det ska främst kännas i vaderna. Sänk vikten om du tappar stretch eller studs.",
     weightLog
   ),
+  marklyft: template(
+    "Skivstång",
+    [
+      "Grip stången strax utanför axelbredd och stå med stången nära skenbenen.",
+      "Sträck höft och knä samtidigt och håll stången nära kroppen.",
+      "Sänk kontrollerat genom att fälla höften bakåt igen.",
+    ],
+    "Det ska främst kännas i säte, baksida lår och ländrygg. Framsida lår och grepp hjälper till. Skarp ryggsmärta eller böjd rygg är en stoppsignal.",
+    "Total vikt på stången, reps och RIR."
+  ),
+  militarpress: template(
+    "Skivstång",
+    [
+      "Stå stabilt med bålen spänd och stången i axelhöjd.",
+      "Pressa stången rakt upp till fulla armar.",
+      "Sänk kontrollerat tillbaka till axelhöjd.",
+    ],
+    "Det ska främst kännas i axlarna. Triceps och övre bröst hjälper till. Svank i ländryggen eller axelsmärta är en stoppsignal.",
+    "Total vikt på stången, reps och RIR."
+  ),
+  axelryck: template(
+    "Hantlar eller skivstång",
+    [
+      "Stå avslappnat med vikten i händerna.",
+      "Lyft axlarna rakt upp mot öronen.",
+      "Sänk kontrollerat utan att rulla axlarna.",
+    ],
+    "Det ska främst kännas i övre trapezius, muskeln mellan nacke och axlar. Sänk vikten om nacken tar över.",
+    weightLog
+  ),
+  koncentrationscurl: template(
+    "Hantel",
+    [
+      "Sitt ner och stöd armbågen mot insidan av låret.",
+      "Curla hanteln upp mot axeln.",
+      "Sänk kontrollerat till fullt sträckt arm.",
+    ],
+    "Det ska främst kännas i biceps. Sänk vikten om armbågen gör ont eller om du behöver svinga kroppen.",
+    "Vikt per hantel, reps och RIR."
+  ),
+  framatutfall: template(
+    "Kroppsvikt eller hantlar",
+    [
+      "Stå stabilt och kliv fram med ett kontrollerat steg.",
+      "Sänk tills bakre knät nästan når golvet.",
+      "Pressa tillbaka till startläget genom främre foten.",
+    ],
+    "Det ska främst kännas i framsida lår och säte. Baksida lår och bål hjälper till. Knäsmärta styr steglängd och vikt.",
+    weightLog
+  ),
+  "lutande bankpress": template(
+    "Lutande bänk + skivstång",
+    [
+      "Lägg dig i lutande bänk med stången i rackläge.",
+      "Sänk kontrollerat mot övre bröstet.",
+      "Pressa upp till fulla armar.",
+    ],
+    "Det ska främst kännas i övre bröstet. Framsida axel och triceps hjälper till. Skarp axelsmärta är en stoppsignal.",
+    "Total vikt på stången, reps och RIR."
+  ),
+  "smal bankpress": template(
+    "Plan bänk + skivstång",
+    [
+      "Grip stången strax innanför axelbredd.",
+      "Sänk kontrollerat med armbågarna nära kroppen.",
+      "Pressa upp till fulla armar.",
+    ],
+    "Det ska främst kännas i triceps. Bröst och framsida axel hjälper till. Handledssmärta betyder att greppet är för smalt.",
+    "Total vikt på stången, reps och RIR."
+  ),
+  "fransk press": template(
+    "Skivstång, EZ-stång eller hantlar + bänk",
+    [
+      "Ligg på bänken med stången över bröstet och armarna raka.",
+      "Böj armbågarna och för stången mot pannan.",
+      "Sträck armarna igen utan att röra överarmarna.",
+    ],
+    "Det ska främst kännas i triceps. Sänk vikten direkt om armbågarna gör ont.",
+    weightLog
+  ),
+  tricepsmaskin: template(
+    "Tricepsmaskin",
+    [
+      "Ställ in sätet så armbågarna ligger i linje med maskinens led.",
+      "Sträck armarna kontrollerat.",
+      "Släpp tillbaka utan att tappa kontakt.",
+    ],
+    "Det ska främst kännas i triceps. Sänk vikten om armbågarna protesterar.",
+    machineLog
+  ),
+  frontboj: template(
+    "Skivstång och rack",
+    [
+      "Placera stången framför axlarna med armbågarna höga.",
+      "Sänk kontrollerat till ett djup som känns bra.",
+      "Pressa upp utan att bålen tippar framåt.",
+    ],
+    "Det ska främst kännas i framsida lår. Säte och bål hjälper till. Om bålen tippar framåt, sänk vikten.",
+    weightLog
+  ),
+  "larcurl staende": template(
+    "Lårcurlmaskin eller kabel, stående",
+    [
+      "Stå stabilt med stöd om det finns.",
+      "Böj knät och curla kontrollerat.",
+      "Släpp tillbaka utan att svanka.",
+    ],
+    "Det ska främst kännas i baksida lår, ett ben i taget. Håll höften stilla.",
+    machineLog
+  ),
+  "sittande vadpress": template(
+    "Sittande vadpressmaskin",
+    [
+      "Sitt med framfötterna på plattan och knäna under dynan.",
+      "Sänk till full stretch.",
+      "Pressa upp och pausa kort i toppen.",
+    ],
+    "Det ska främst kännas i vaderna, djupare än vid stående vadpress. Sänk vikten om du tappar stretch.",
+    machineLog
+  ),
+  framatlyft: template(
+    "Hantlar, kabel eller skivstång",
+    [
+      "Stå stabilt med vikten framför låren.",
+      "Lyft rakt fram till axelhöjd.",
+      "Sänk kontrollerat utan sving.",
+    ],
+    "Det ska främst kännas i framsida axel. Sänk vikten om ryggen börjar svanka eller sving tar över.",
+    weightLog
+  ),
+  "upright row": template(
+    "Skivstång, hantlar eller kabel",
+    [
+      "Grip vikten med händerna nära varandra.",
+      "Dra rakt upp mot hakan med armbågarna först.",
+      "Sänk kontrollerat.",
+    ],
+    "Det ska främst kännas i sida axel och övre trapezius. Sänk vikten eller bredda greppet om axeln känns trång.",
+    weightLog
+  ),
+  "pullover maskin": template(
+    "Pullover-maskin",
+    [
+      "Ställ in sitsen så axeln är i linje med maskinens led.",
+      "Dra armarna nedåt framför kroppen.",
+      "Släpp tillbaka till full stretch.",
+    ],
+    "Det ska främst kännas i lats. Bröst och triceps hjälper till.",
+    machineLog
+  ),
+  "straight arm pulldown": template(
+    "Kabelmaskin, hög position",
+    [
+      "Stå med lätt böjda armbågar och grepp i kabeln ovanför huvudet.",
+      "Dra kabeln nedåt mot låren med raka armar.",
+      "Släpp tillbaka kontrollerat till start.",
+    ],
+    "Det ska främst kännas i lats. Håll armbågarna nästan raka hela vägen.",
+    weightLog
+  ),
+  "god morgon": template(
+    "Skivstång",
+    [
+      "Placera stången på axlarna som vid knäböj.",
+      "Fäll överkroppen framåt med lätt böjda knän och rak rygg.",
+      "Res dig upp igen genom att sträcka höften.",
+    ],
+    "Det ska främst kännas i ländrygg, säte och baksida lår. Skarp ryggsmärta är en stoppsignal — använd lätt vikt.",
+    "Total vikt på stången, reps och RIR."
+  ),
+  bondepromenad: template(
+    "Hantlar eller kettlebells",
+    [
+      "Grip vikterna stadigt och stå upprätt.",
+      "Gå framåt med korta, kontrollerade steg.",
+      "Sänk vikterna kontrollerat när tiden är klar.",
+    ],
+    "Det ska främst kännas i grepp och underarmar. Bål, säte och trapezius hjälper till att hålla positionen. Sänk vikten om ryggen böjs eller axlarna hasar ner.",
+    "Vikt, tid och RIR."
+  ),
+  "sumo marklyft": template(
+    "Skivstång",
+    [
+      "Ställ dig brett med tårna pekandes lätt utåt och grepp innanför knäna.",
+      "Sträck höft och knä samtidigt med stången nära kroppen.",
+      "Sänk kontrollerat genom att fälla höften bakåt igen.",
+    ],
+    "Det ska främst kännas i säte och ländrygg. Framsida lår, baksida lår och insida lår hjälper till. Skarp ryggsmärta eller fallande knän är en stoppsignal.",
+    "Total vikt på stången, reps och RIR."
+  ),
+  "gaende utfall": template(
+    "Kroppsvikt eller hantlar",
+    [
+      "Stå stabilt och kliv fram med ett kontrollerat steg.",
+      "Sänk tills bakre knät nästan når golvet.",
+      "Driv upp och fortsätt direkt med nästa steg på andra benet.",
+    ],
+    "Det ska främst kännas i framsida lår och säte. Insida lår hjälper till. Ta kortare steg om balansen känns osäker.",
+    "Vikt, reps och RIR. Varje steg räknas som ett rep."
+  ),
+  rullhjul: template(
+    "Rullhjul",
+    [
+      "Sitt på knä och håll i hjulet framför dig.",
+      "Rulla ut så långt du kan hålla ryggen rak och kontrollerad.",
+      "Rulla tillbaka till startläget.",
+    ],
+    "Det ska främst kännas i magen. Sänk rörelseutslaget om ländryggen börjar svanka.",
+    bodyweightLog
+  ),
 };
 
 export function getReviewedExerciseInfoTemplate(

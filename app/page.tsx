@@ -6422,6 +6422,7 @@ function addCustomExercise(pass: PassType, nameRaw: string) {
     saveJSON("customExercisesByPass", next);
     return next;
   });
+  setCustomExerciseInput("");
 }
 
 function addTodayExercise(pass: PassType, nameRaw: string) {
@@ -6452,6 +6453,7 @@ function addTodayExercise(pass: PassType, nameRaw: string) {
 
     return next;
   });
+  setCustomExerciseInput("");
 }
 
 function removeTodayExercise(pass: PassType, nameToRemove: string) {
@@ -8957,6 +8959,32 @@ addCoachMessage={(text, eventKey, source = "engine") =>
       });
       setHistory(updatedHistory);
       saveJSON("workoutHistory", updatedHistory);
+
+      const allWorkoutsForPr = workout ? [workout, ...updatedHistory] : updatedHistory;
+      const editedExerciseKey = exerciseKey(exerciseName);
+
+      const bestRecord = getBestRecordForExercise(allWorkoutsForPr, exerciseName);
+      const nextPersonalRecords = { ...personalRecords };
+      if (bestRecord) nextPersonalRecords[editedExerciseKey] = bestRecord;
+      else delete nextPersonalRecords[editedExerciseKey];
+      setPersonalRecords(nextPersonalRecords);
+      saveJSON("personalRecords", nextPersonalRecords);
+
+      const latestForExercise = getLatestLoggedSetForExercise(allWorkoutsForPr, exerciseName);
+      const nextLastByExercise = { ...lastByExercise };
+      if (latestForExercise) {
+        nextLastByExercise[editedExerciseKey] = {
+          weight: latestForExercise.set.weight,
+          reps: latestForExercise.set.reps,
+          rir: latestForExercise.set.rir ?? null,
+          failNote: latestForExercise.set.failNote ?? null,
+          updatedAt: latestForExercise.set.createdAt,
+        };
+      } else {
+        delete nextLastByExercise[editedExerciseKey];
+      }
+      setLastByExercise(nextLastByExercise);
+      saveJSON("lastByExercise", nextLastByExercise);
 
       const updatedWorkout = updatedHistory.find((w) => w.id === wid);
       if (updatedWorkout) {

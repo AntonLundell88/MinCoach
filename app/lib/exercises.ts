@@ -213,7 +213,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Armhävningar",
-    aliases: ["armhavningar", "push up", "push ups"],
+    aliases: ["armhavningar", "push up", "push ups", "pushup", "pushups"],
     primaryMuscle: "bröst",
     secondaryMuscles: ["triceps", "framsida axel", "bål"],
     category: "bröst",
@@ -243,7 +243,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Latsdrag",
-    aliases: ["lat pulldown", "lats drag", "latsdrag"],
+    aliases: ["lat pulldown", "lats drag", "latsdrag", "pulldown"],
     primaryMuscle: "lats",
     secondaryMuscles: ["övre rygg", "biceps"],
     category: "rygg",
@@ -371,7 +371,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Bandrodd",
-    aliases: ["band rodd", "resistansbandsrodd"],
+    aliases: ["band rodd", "resistansbandsrodd", "band row"],
     primaryMuscle: "övre rygg",
     secondaryMuscles: ["lats", "biceps"],
     category: "rygg",
@@ -401,7 +401,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Assisterade chins",
-    aliases: ["assisterad chins", "assisted chins", "assisted pull ups"],
+    aliases: ["assisterad chins", "assisted chins", "assisted pull ups", "assisted chin up"],
     primaryMuscle: "lats",
     secondaryMuscles: ["övre rygg", "biceps"],
     category: "rygg",
@@ -521,7 +521,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Knäböj",
-    aliases: ["knaboj", "knoboj", "squat"],
+    aliases: ["knaboj", "knoboj", "squat", "back squat"],
     primaryMuscle: "framsida lår",
     secondaryMuscles: ["säte", "bål", "baksida lår"],
     category: "ben",
@@ -611,7 +611,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Hip thrust",
-    aliases: ["hipthrust", "glute bridge"],
+    aliases: ["hipthrust"],
     primaryMuscle: "säte",
     secondaryMuscles: ["baksida lår"],
     category: "ben",
@@ -1063,7 +1063,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Chins",
-    aliases: ["pull up", "pull ups", "pullup", "chin up", "chin ups"],
+    aliases: ["pull up", "pull ups", "pullup", "pullups", "chin up", "chin ups", "chinup", "chinups"],
     primaryMuscle: "lats",
     secondaryMuscles: ["övre rygg", "biceps", "grepp"],
     category: "rygg",
@@ -1218,7 +1218,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Omvända flyes",
-    aliases: ["reverse flyes", "reverse fly", "bakåtflyes"],
+    aliases: ["reverse flyes", "reverse fly", "bakåtflyes", "rear delt fly"],
     primaryMuscle: "baksida axel",
     secondaryMuscles: ["övre rygg"],
     category: "axlar",
@@ -1249,7 +1249,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Stångcurl",
-    aliases: ["stangcurl", "stångcurl", "barbell curl", "ez curl"],
+    aliases: ["stangcurl", "stångcurl", "barbell curl", "ez curl", "ez bar curl"],
     primaryMuscle: "biceps",
     secondaryMuscles: ["underarm"],
     category: "armar",
@@ -1280,7 +1280,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Triceps extension",
-    aliases: ["tricep extension", "triceps extension", "hantel triceps extension"],
+    aliases: ["tricep extension", "triceps extension", "hantel triceps extension", "dumbbell overhead extension"],
     primaryMuscle: "triceps",
     secondaryMuscles: [],
     category: "armar",
@@ -1311,7 +1311,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Dips",
-    aliases: ["dips", "assisterade dips", "bench dips"],
+    aliases: ["dips", "assisterade dips", "bench dips", "tricep dips", "chest dips"],
     primaryMuscle: "triceps",
     secondaryMuscles: ["bröst", "framsida axel"],
     category: "armar",
@@ -1342,7 +1342,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Pec deck",
-    aliases: ["pec deck", "pecdeck", "machine fly", "bröstflyes maskin"],
+    aliases: ["pec deck", "pecdeck", "machine fly", "bröstflyes maskin", "butterfly", "butterfly machine"],
     primaryMuscle: "bröst",
     secondaryMuscles: ["framsida axel"],
     category: "bröst",
@@ -1374,7 +1374,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Cable flyes",
-    aliases: ["cable fly", "cable flyes", "cable flies", "cable cross"],
+    aliases: ["cable fly", "cable flyes", "cable flies", "cable cross", "cable crossover"],
     primaryMuscle: "bröst",
     secondaryMuscles: ["framsida axel"],
     category: "bröst",
@@ -1560,7 +1560,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Rear delt-maskin",
-    aliases: ["rear delt machine", "reverse pec deck", "bakre axel maskin"],
+    aliases: ["rear delt machine", "reverse pec deck", "bakre axel maskin", "rear delt fly machine"],
     primaryMuscle: "baksida axel",
     secondaryMuscles: ["övre rygg"],
     category: "axlar",
@@ -1715,7 +1715,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Liggande lårcurl",
-    aliases: ["lying leg curl", "liggande lårcurl", "liggande larcurl"],
+    aliases: ["lying leg curl", "liggande lårcurl", "liggande larcurl", "prone leg curl"],
     primaryMuscle: "baksida lår",
     secondaryMuscles: [],
     category: "ben",
@@ -1746,7 +1746,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Höftabduktion",
-    aliases: ["hip abduction", "abductor machine", "höftabduktion"],
+    aliases: ["hip abduction", "abductor machine", "höftabduktion", "abductor"],
     primaryMuscle: "säte",
     secondaryMuscles: ["utsida höft"],
     category: "ben",
@@ -1777,7 +1777,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Höftadduktion",
-    aliases: ["hip adduction", "adductor machine", "höftadduktion"],
+    aliases: ["hip adduction", "adductor machine", "höftadduktion", "adductor"],
     primaryMuscle: "insida lår",
     secondaryMuscles: [],
     category: "ben",
@@ -1994,7 +1994,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Vadpress",
-    aliases: ["calf raise", "calf raises", "vad press"],
+    aliases: ["calf raise", "calf raises", "vad press", "standing calf raise"],
     primaryMuscle: "vader",
     secondaryMuscles: [],
     category: "ben",
@@ -2021,6 +2021,657 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
       "Stretch och paus är viktigare än last. Höj först när repsen är rena.",
     beginnerNote:
       "Enkel och trygg när den görs kontrollerat.",
+  },
+  {
+    name: "Marklyft",
+    aliases: ["deadlift", "konventionell marklyft", "skivstångsmarklyft", "vanlig marklyft", "conventional deadlift"],
+    primaryMuscle: "säte",
+    secondaryMuscles: ["baksida lår", "framsida lår", "ländrygg", "underarm"],
+    category: "ben",
+    equipmentTags: ["barbell", "free_weights"],
+    equipment: "Skivstång",
+    environment: "gym",
+    exerciseType: "basövning",
+    movementPattern: "hoftfallning",
+    logType: "weight_reps_rir",
+    difficulty: "avancerad",
+    beginnerFit: "undvik_som_standard",
+    stability: "lag",
+    suitableFor: ["van", "erfaren"],
+    popularity: 9,
+    trainingValue: "hög",
+    risks: "Kräver stabil ryggposition och kontrollerat grepp. Sänk vikten om ryggen böjs eller stången vandrar bort från kroppen.",
+    substitutions: ["Rumänska marklyft", "Hip thrust", "Benpress"],
+    detail:
+      "Marklyft tränar säte, baksida lår och ländrygg tillsammans med grepp och framsida lår. Det är ett tungt helhetslyft, inte bara ett tillägg i benpasset.",
+    coachReason:
+      "Ger mycket träning på kort tid för vana användare som klarar tekniken tryggt.",
+    techniqueCue: "Fokus: stången nära kroppen, rak rygg och höft och knä som sträcks samtidigt.",
+    techniqueFocus: ["neutral spine", "bar close to body", "hip and knee extend together"],
+    progressionRule:
+      "Höj bara när ryggpositionen håller genom hela setet. Hellre 1-2 RIR än en ful sista rep.",
+    beginnerNote:
+      "Mer tekniskt krävande. För nybörjare ska den bara väljas med tydligt skäl, låg startvikt och gärna Rumänska marklyft eller hip thrust först.",
+  },
+  {
+    name: "Militärpress",
+    aliases: ["military press", "overhead press", "stående skivstångspress", "standing barbell press", "ohp"],
+    primaryMuscle: "framsida axel",
+    secondaryMuscles: ["triceps", "övre bröst"],
+    category: "axlar",
+    equipmentTags: ["barbell", "free_weights"],
+    equipment: "Skivstång",
+    environment: "gym",
+    exerciseType: "basövning",
+    movementPattern: "vertikal_press",
+    logType: "weight_reps_rir",
+    difficulty: "avancerad",
+    beginnerFit: "undvik_som_standard",
+    stability: "lag",
+    suitableFor: ["van", "erfaren"],
+    popularity: 8,
+    trainingValue: "hög",
+    risks: "Kräver stabil bål och axelrörlighet. Sänk vikten eller byt till sittande/hantelvariant om ländryggen svankar eller axeln känns fel.",
+    substitutions: ["Axelpress", "Axelpressmaskin", "Sidolyft"],
+    detail:
+      "Militärpress tränar axlar och triceps med skivstång i stående position. Den kräver mer bål- och axelstabilitet än sittande eller hantelvarianter.",
+    coachReason:
+      "Stark axelövning för vana användare som vill ha ett tyngre, mer tekniskt pressval.",
+    techniqueCue: "Fokus: spänd bål, stången rakt upp och ingen svank i ländryggen.",
+    techniqueFocus: ["braced core", "vertical bar path", "full lockout overhead"],
+    progressionRule:
+      "Höj bara när bålen och ryggen håller stilla genom hela setet.",
+    beginnerNote:
+      "Inte standard för nybörjare. Axelpress med hantlar eller maskin är oftast tryggare förstaval.",
+  },
+  {
+    name: "Axelryck",
+    aliases: ["shrugs", "shrug", "trapezius shrug", "hantelryck"],
+    primaryMuscle: "övre trapezius",
+    secondaryMuscles: ["övre rygg"],
+    category: "rygg",
+    equipmentTags: ["barbell", "dumbbells", "free_weights"],
+    equipment: "Hantlar eller skivstång",
+    environment: "båda",
+    exerciseType: "isolationsövning",
+    movementPattern: "axel_isolering",
+    logType: "weight_reps_rir",
+    difficulty: "enkel",
+    beginnerFit: "bra",
+    stability: "hog",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 8,
+    trainingValue: "medel",
+    risks: "Undvik att rulla axlarna eller använda sving. Håll nacken avslappnad.",
+    substitutions: ["Stångrodd", "Hantelrodd"],
+    detail:
+      "Axelryck tränar övre trapezius genom att lyfta axlarna rakt upp mot öronen. Den är en enkel isolering som kompletterar rygg- och axelpass.",
+    coachReason:
+      "Ger direkt trapeziusträning utan att störa resten av passet.",
+    techniqueCue: "Fokus: lyft rakt upp, pausa kort i toppen och sänk kontrollerat utan sving.",
+    techniqueFocus: ["straight up movement", "controlled eccentric", "relaxed neck"],
+    progressionRule:
+      "Höj när rörelsen är ren och nacken känns avslappnad genom hela setet.",
+    beginnerNote:
+      "Enkel och trygg övning för de flesta.",
+  },
+  {
+    name: "Koncentrationscurl",
+    aliases: ["concentration curl", "concentration curls"],
+    primaryMuscle: "biceps",
+    secondaryMuscles: ["underarm"],
+    category: "armar",
+    equipmentTags: ["dumbbells"],
+    equipment: "Hantel",
+    environment: "båda",
+    exerciseType: "isolationsövning",
+    movementPattern: "armbojning",
+    logType: "weight_reps_rir",
+    difficulty: "enkel",
+    beginnerFit: "bra",
+    stability: "hog",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 7,
+    trainingValue: "medel",
+    risks: "Vid armbågskänning: sänk vikten eller byt till en annan curlvariant.",
+    substitutions: ["Bicepscurl", "Hammercurl", "Stångcurl"],
+    detail:
+      "Koncentrationscurl tränar biceps sittande med armbågen stödd mot insidan av låret. Den ger en väldigt isolerad rörelse utan hjälp från kroppen.",
+    coachReason:
+      "Bra avslutande armövning när fokus ska ligga helt på biceps utan sving.",
+    techniqueCue: "Fokus: stöd armbågen, curla utan sving och sänk kontrollerat.",
+    techniqueFocus: ["fixed upper arm", "no torso swing", "controlled eccentric"],
+    progressionRule:
+      "Höj bara när rörelsen är helt ren utan hjälp från kroppen.",
+    beginnerNote:
+      "Enkel och trygg med lätt till medeltung vikt.",
+  },
+  {
+    name: "Framåtutfall",
+    aliases: ["forward lunge", "forward lunges", "utfall framåt"],
+    primaryMuscle: "framsida lår",
+    secondaryMuscles: ["säte", "baksida lår", "bål"],
+    category: "ben",
+    equipmentTags: ["none", "bodyweight", "dumbbells"],
+    equipment: "Kroppsvikt eller hantlar",
+    environment: "båda",
+    exerciseType: "basövning",
+    movementPattern: "utfall_ett_ben",
+    logType: "weight_reps_rir",
+    difficulty: "medel",
+    beginnerFit: "okej",
+    stability: "lag",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 8,
+    trainingValue: "hög",
+    risks: "Kliv inte för kort. Knäkontroll och balans ska styra, inte fart framåt.",
+    substitutions: ["Utfall bakåt", "Goblet squat", "Bulgarian split squat"],
+    detail:
+      "Framåtutfall tränar lår och säte med kroppsvikt eller hantlar. Den är något mer belastande för framknäet än utfall bakåt eftersom steget går framåt.",
+    coachReason:
+      "Bra benval när coachen vill variera utfallsriktning eller öka svårighetsgraden något.",
+    techniqueCue: "Fokus: kliv kontrollerat framåt och tryck tillbaka genom hela foten.",
+    techniqueFocus: ["front knee tracking", "controlled step", "upright torso"],
+    progressionRule:
+      "Öka reps eller lägg till hantlar när samma steglängd och kontroll sitter.",
+    beginnerNote:
+      "Okej för nybörjare, men Utfall bakåt är ofta en snällare start för knäna.",
+  },
+  {
+    name: "Lutande bänkpress",
+    aliases: ["incline bench press", "incline barbell press"],
+    primaryMuscle: "övre bröst",
+    secondaryMuscles: ["framsida axel", "triceps"],
+    category: "bröst",
+    equipmentTags: ["barbell", "bench", "free_weights"],
+    equipment: "Lutande bänk och skivstång",
+    environment: "gym",
+    exerciseType: "basövning",
+    movementPattern: "horisontell_press",
+    logType: "weight_reps_rir",
+    difficulty: "medel",
+    beginnerFit: "okej",
+    stability: "medel",
+    suitableFor: ["van", "erfaren"],
+    popularity: 7,
+    trainingValue: "hög",
+    risks: "Kan reta axel eller handled om vinkeln blir för brant eller grepp/bana blir fel.",
+    substitutions: ["Lutande hantelpress", "Bänkpress", "Hantelpress"],
+    detail:
+      "Lutande bänkpress tränar övre bröst, framsida axel och triceps med skivstång. Den ger ett tydligt styrkemått för övre bröst men kräver samma teknikstabilitet som vanlig bänkpress.",
+    coachReason:
+      "Passar när användaren vill bygga övre bröst med skivstång och kan hålla tekniken stabil.",
+    techniqueCue: "Fokus: samma bänkvinkel varje gång och kontrollerad sänkning mot övre bröstet.",
+    techniqueFocus: ["scapular retraction", "consistent incline angle", "controlled descent"],
+    progressionRule:
+      "Höj när toppsetet sitter med rimlig marginal och samma vinkel.",
+    beginnerNote:
+      "Inte förstaval för helt nya. Lutande hantelpress är ofta snällare att lära sig med.",
+  },
+  {
+    name: "Smal bänkpress",
+    aliases: ["close grip bench press", "close-grip bench press", "narrow grip bench press"],
+    primaryMuscle: "triceps",
+    secondaryMuscles: ["bröst", "framsida axel"],
+    category: "armar",
+    equipmentTags: ["barbell", "bench", "free_weights"],
+    equipment: "Plan bänk och skivstång",
+    environment: "gym",
+    exerciseType: "basövning",
+    movementPattern: "armstrackning",
+    logType: "weight_reps_rir",
+    difficulty: "medel",
+    beginnerFit: "okej",
+    stability: "medel",
+    suitableFor: ["van", "erfaren"],
+    popularity: 7,
+    trainingValue: "hög",
+    risks: "För smalt grepp kan stressa handleder. Håll armbågarna nära kroppen, inte helt låsta inåt.",
+    substitutions: ["Triceps pushdown", "Dips", "Bänkpress"],
+    detail:
+      "Smal bänkpress tränar triceps med skivstång och ett smalare grepp än vanlig bänkpress. Bröst och framsida axel hjälper till.",
+    coachReason:
+      "Ger tung tricepsträning med samma pressmönster som bänkpress.",
+    techniqueCue: "Fokus: armbågarna nära kroppen och jämn pressbana.",
+    techniqueFocus: ["elbows close to body", "controlled descent", "full extension"],
+    progressionRule:
+      "Höj när armbågarna känns stabila och greppet inte belastar handlederna.",
+    beginnerNote:
+      "Inte förstaval för nya användare. Triceps pushdown eller dips är ofta enklare att lära sig med.",
+  },
+  {
+    name: "Fransk press",
+    aliases: ["skull crusher", "skull crushers", "lying triceps extension", "ez-press", "lying tricep extension"],
+    primaryMuscle: "triceps",
+    secondaryMuscles: [],
+    category: "armar",
+    equipmentTags: ["barbell", "dumbbells", "free_weights"],
+    equipment: "Skivstång, EZ-stång eller hantlar",
+    environment: "båda",
+    exerciseType: "isolationsövning",
+    movementPattern: "armstrackning",
+    logType: "weight_reps_rir",
+    difficulty: "medel",
+    beginnerFit: "okej",
+    stability: "medel",
+    suitableFor: ["van", "erfaren"],
+    popularity: 7,
+    trainingValue: "medel",
+    risks: "Sänk vikten direkt om armbågarna eller axlarna protesterar. Håll stången kontrollerad nära pannan.",
+    substitutions: ["Triceps extension", "Triceps pushdown", "Dips"],
+    detail:
+      "Fransk press tränar triceps liggande med stången förd mot pannan. Den är en isolerad rörelse som kräver stabila armbågar.",
+    coachReason:
+      "Ger en tydlig tricepssträckning med bra stretch i botten.",
+    techniqueCue: "Fokus: stilla överarmar och kontrollerad bana förbi huvudet.",
+    techniqueFocus: ["fixed upper arm", "controlled path around head", "full extension"],
+    progressionRule:
+      "Höj bara när armbågarna känns helt smärtfria genom hela setet.",
+    beginnerNote:
+      "Kräver god armbågskontroll. Triceps pushdown är ofta ett snällare förstaval.",
+  },
+  {
+    name: "Tricepsmaskin",
+    aliases: ["triceps machine", "lever triceps extension", "machine triceps extension"],
+    primaryMuscle: "triceps",
+    secondaryMuscles: [],
+    category: "armar",
+    equipmentTags: ["machines"],
+    equipment: "Tricepsmaskin",
+    environment: "gym",
+    exerciseType: "isolationsövning",
+    movementPattern: "armstrackning",
+    logType: "weight_reps_rir",
+    difficulty: "enkel",
+    beginnerFit: "bra",
+    stability: "hog",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 6,
+    trainingValue: "medel",
+    risks: "Ställ in sätet så armbågarna ligger i linje med maskinens led.",
+    substitutions: ["Triceps pushdown", "Triceps extension", "Dips"],
+    detail:
+      "Tricepsmaskin tränar triceps sittande i en stödd maskin. Den är stabil och enkel att dosera.",
+    coachReason:
+      "Trygg tricepsövning med låg teknisk tröskel, bra när kabel eller fri vikt inte behövs.",
+    techniqueCue: "Fokus: sträck armarna helt och släpp tillbaka kontrollerat.",
+    techniqueFocus: ["full extension", "controlled return", "elbows aligned with pivot"],
+    progressionRule:
+      "Höj när rörelsen är ren från första till sista rep.",
+    beginnerNote:
+      "Stabil och tydlig variant. Bra förstaval för nybörjare när maskinen finns.",
+  },
+  {
+    name: "Frontböj",
+    aliases: ["front squat"],
+    primaryMuscle: "framsida lår",
+    secondaryMuscles: ["säte", "bål", "baksida lår"],
+    category: "ben",
+    equipmentTags: ["barbell", "free_weights"],
+    equipment: "Skivstång och rack",
+    environment: "gym",
+    exerciseType: "basövning",
+    movementPattern: "knaboj",
+    logType: "weight_reps_rir",
+    difficulty: "avancerad",
+    beginnerFit: "undvik_som_standard",
+    stability: "lag",
+    suitableFor: ["van", "erfaren"],
+    popularity: 6,
+    trainingValue: "hög",
+    risks: "Kräver bra handleds- och axelrörlighet för stångplaceringen. Sänk vikten om bålen tippar framåt.",
+    substitutions: ["Knäböj", "Benpress", "Goblet squat"],
+    detail:
+      "Frontböj tränar framsida lår mer och ländrygg mindre än vanlig knäböj eftersom stången ligger framför axlarna. Den kräver god bålkontroll och rörlighet.",
+    coachReason:
+      "Bra för vana användare som vill ha ett mer knädominant benlyft med skonsammare rygghållning.",
+    techniqueCue: "Fokus: armbågarna höga, bålen upprätt och jämnt djup.",
+    techniqueFocus: ["high elbows", "upright torso", "knee tracking"],
+    progressionRule:
+      "Höj bara när bålen håller upprätt genom hela setet.",
+    beginnerNote:
+      "Mer tekniskt krävande än vanlig knäböj. Inte standard för nybörjare.",
+  },
+  {
+    name: "Lårcurl stående",
+    aliases: ["standing leg curl"],
+    primaryMuscle: "baksida lår",
+    secondaryMuscles: ["vader"],
+    category: "ben",
+    equipmentTags: ["machines", "cables"],
+    equipment: "Lårcurlmaskin eller kabel, stående",
+    environment: "gym",
+    exerciseType: "isolationsövning",
+    movementPattern: "hamstring_isolering",
+    logType: "weight_reps_rir",
+    difficulty: "enkel",
+    beginnerFit: "bra",
+    stability: "hog",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 6,
+    trainingValue: "medel",
+    risks: "Håll höften stilla och undvik att svanka.",
+    substitutions: ["Sittande lårcurl", "Liggande lårcurl", "Rumänska marklyft"],
+    detail:
+      "Lårcurl stående tränar baksida lår ett ben i taget. Den är vald när coachen vill ha en unilateral variant av lårcurl.",
+    coachReason:
+      "Bra hamstring-isolering med extra fokus på balans mellan sidorna.",
+    techniqueCue: "Fokus: böj kontrollerat och håll höften stilla genom hela setet.",
+    techniqueFocus: ["hip stays neutral", "controlled eccentric", "full range of motion"],
+    progressionRule:
+      "Höj när repsen är rena utan ryck på båda benen.",
+    beginnerNote:
+      "Stabil och tydlig variant. Bra förstaval för nybörjare när utrustningen finns.",
+  },
+  {
+    name: "Sittande vadpress",
+    aliases: ["seated calf raise"],
+    primaryMuscle: "vader",
+    secondaryMuscles: [],
+    category: "ben",
+    equipmentTags: ["machines"],
+    equipment: "Sittande vadpressmaskin",
+    environment: "gym",
+    exerciseType: "isolationsövning",
+    movementPattern: "vad",
+    logType: "weight_reps_rir",
+    difficulty: "enkel",
+    beginnerFit: "bra",
+    stability: "hog",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 6,
+    trainingValue: "medel",
+    risks: "Kontakt och rörelseutslag är viktigare än tung vikt.",
+    substitutions: ["Vadpress", "Tåhävningar med hantlar"],
+    detail:
+      "Sittande vadpress tränar vaderna med böjda knän, vilket ger mer fokus på den djupare vadmuskeln (soleus) än stående vadpress.",
+    coachReason:
+      "Bra komplement till stående vadpress för att träffa vaderna från ett annat läge.",
+    techniqueCue: "Fokus: stretch i botten och paus i toppen.",
+    techniqueFocus: ["full range of motion", "controlled eccentric", "pause at top"],
+    progressionRule:
+      "Stretch och paus är viktigare än last. Höj först när repsen är rena.",
+    beginnerNote:
+      "Enkel och trygg när den görs kontrollerat.",
+  },
+  {
+    name: "Framåtlyft",
+    aliases: ["front raise", "front raises", "frontlyft"],
+    primaryMuscle: "framsida axel",
+    secondaryMuscles: [],
+    category: "axlar",
+    equipmentTags: ["dumbbells", "cables", "barbell"],
+    equipment: "Hantlar, kabel eller skivstång",
+    environment: "båda",
+    exerciseType: "isolationsövning",
+    movementPattern: "axel_isolering",
+    logType: "weight_reps_rir",
+    difficulty: "enkel",
+    beginnerFit: "bra",
+    stability: "hog",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 6,
+    trainingValue: "medel",
+    risks: "För tung vikt gör att sving eller rygg tar över. Håll rörelsen kontrollerad.",
+    substitutions: ["Axelpress", "Sidolyft"],
+    detail:
+      "Framåtlyft tränar framsida axel isolerat genom att lyfta vikten rakt fram. Den är ett enkelt komplement till pressövningar.",
+    coachReason:
+      "Ger extra fokus på framsida axel utan att belasta lika mycket som en press.",
+    techniqueCue: "Fokus: lyft rakt fram till axelhöjd och sänk kontrollerat utan sving.",
+    techniqueFocus: ["controlled swing-free lift", "stop at shoulder height", "controlled eccentric"],
+    progressionRule:
+      "Höj bara när rörelsen är helt fri från sving.",
+    beginnerNote:
+      "Enkel och trygg övning för de flesta.",
+  },
+  {
+    name: "Upright row",
+    aliases: ["uppdrag", "upright rows"],
+    primaryMuscle: "sida axel",
+    secondaryMuscles: ["framsida axel", "övre trapezius"],
+    category: "axlar",
+    equipmentTags: ["barbell", "dumbbells", "cables"],
+    equipment: "Skivstång, hantlar eller kabel",
+    environment: "båda",
+    exerciseType: "isolationsövning",
+    movementPattern: "axel_isolering",
+    logType: "weight_reps_rir",
+    difficulty: "medel",
+    beginnerFit: "okej",
+    stability: "medel",
+    suitableFor: ["van", "erfaren"],
+    popularity: 6,
+    trainingValue: "medel",
+    risks: "Kan reta axelleden vid för smalt grepp eller för hög dragbana. Sänk vikten eller bredda greppet om axeln känns fel.",
+    substitutions: ["Sidolyft", "Axelryck"],
+    detail:
+      "Upright row tränar sida axel och övre trapezius genom att dra vikten rakt upp mot hakan. Grepp och dragbana avgör hur mycket axeln belastas.",
+    coachReason:
+      "Ger axel- och trapeziusträning i en rörelse när coachen vill kombinera de två.",
+    techniqueCue: "Fokus: dra med armbågarna leder och håll ett bredare grepp om axeln känns trång.",
+    techniqueFocus: ["elbows lead the pull", "moderate grip width", "controlled return"],
+    progressionRule:
+      "Höj bara om axeln känns helt bekväm genom hela rörelsebanan.",
+    beginnerNote:
+      "Inte förstaval för nya användare. Sidolyft och axelryck ger liknande träning med mindre axelrisk.",
+  },
+  {
+    name: "Pullover-maskin",
+    aliases: ["machine pullover", "pullover machine"],
+    primaryMuscle: "lats",
+    secondaryMuscles: ["bröst", "triceps"],
+    category: "rygg",
+    equipmentTags: ["machines"],
+    equipment: "Pullover-maskin",
+    environment: "gym",
+    exerciseType: "isolationsövning",
+    movementPattern: "vertikalt_drag",
+    logType: "weight_reps_rir",
+    difficulty: "enkel",
+    beginnerFit: "bra",
+    stability: "hog",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 6,
+    trainingValue: "medel",
+    risks: "Ställ in sitsen så axelleden är i linje med maskinens led.",
+    substitutions: ["Latsdrag", "Sittande kabelrodd"],
+    detail:
+      "Pullover-maskin tränar lats genom att dra armarna nedåt framför kroppen. Bröst och triceps hjälper till.",
+    coachReason:
+      "Ett stabilt komplement till drag när coachen vill isolera lats mer än vid vanligt drag.",
+    techniqueCue: "Fokus: dra med raka armar och känn stretchen i toppen.",
+    techniqueFocus: ["controlled range of motion", "shoulder aligned with pivot", "controlled return"],
+    progressionRule:
+      "Höj när stretchen och kontakten känns bra genom hela setet.",
+    beginnerNote:
+      "Stabil och tydlig variant. Bra förstaval för nybörjare när maskinen finns.",
+  },
+  {
+    name: "Straight arm pulldown",
+    aliases: ["raka armars drag", "straight-arm pulldown"],
+    primaryMuscle: "lats",
+    secondaryMuscles: ["bröst", "triceps", "baksida axel"],
+    category: "rygg",
+    equipmentTags: ["cables"],
+    equipment: "Kabelmaskin, hög position",
+    environment: "gym",
+    exerciseType: "isolationsövning",
+    movementPattern: "vertikalt_drag",
+    logType: "weight_reps_rir",
+    difficulty: "medel",
+    beginnerFit: "okej",
+    stability: "medel",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 6,
+    trainingValue: "medel",
+    risks: "Håll armbågarna lätt böjda och stilla. Sänk vikten om ländryggen börjar svanka.",
+    substitutions: ["Latsdrag", "Pullover-maskin"],
+    detail:
+      "Straight arm pulldown tränar lats genom att dra kabeln nedåt med raka armar från en hög position. Den isolerar lats mer än vanligt latsdrag.",
+    coachReason:
+      "Bra komplement när coachen vill ge lats extra fokus utan att biceps tar över.",
+    techniqueCue: "Fokus: håll armarna nästan raka och dra med lats, inte armarna.",
+    techniqueFocus: ["fixed elbow angle", "lat-driven pull", "controlled return"],
+    progressionRule:
+      "Höj när rörelsen känns ren utan att ryggen svankar.",
+    beginnerNote:
+      "Okej för nya användare med lätt vikt och tydlig kontroll.",
+  },
+  {
+    name: "God morgon",
+    aliases: ["good morning", "good mornings"],
+    primaryMuscle: "ländrygg",
+    secondaryMuscles: ["säte", "baksida lår"],
+    category: "rygg",
+    equipmentTags: ["barbell", "free_weights"],
+    equipment: "Skivstång",
+    environment: "gym",
+    exerciseType: "basövning",
+    movementPattern: "hoftfallning",
+    logType: "weight_reps_rir",
+    difficulty: "avancerad",
+    beginnerFit: "undvik_som_standard",
+    stability: "lag",
+    suitableFor: ["van", "erfaren"],
+    popularity: 5,
+    trainingValue: "medel",
+    risks: "Mycket tekniskt känslig för ländryggen. Använd lätt vikt och stoppa vid minsta osäkerhet i ryggen.",
+    substitutions: ["Rumänska marklyft", "Ryggresning", "Hip thrust"],
+    detail:
+      "God morgon tränar ländrygg, säte och baksida lår genom att fälla överkroppen framåt med stången på axlarna. Den kräver mycket god teknik och bör byggas upp med lätt vikt.",
+    coachReason:
+      "Ett effektivt komplement till marklyft-mönstret för vana användare som vill styrketräna ländryggen specifikt.",
+    techniqueCue: "Fokus: rak rygg, lätt böjda knän och kontrollerad fällning framåt.",
+    techniqueFocus: ["neutral spine", "slight knee bend", "controlled hip hinge"],
+    progressionRule:
+      "Höj extremt försiktigt. Ryggpositionen ska hålla perfekt innan vikten någonsin ökar.",
+    beginnerNote:
+      "Inte en nybörjarövning. Rumänska marklyft ger liknande träning med mindre risk.",
+  },
+  {
+    name: "Bondepromenad",
+    aliases: ["farmers walk", "farmer's walk", "farmer carry", "farmer's carry"],
+    primaryMuscle: "underarm",
+    secondaryMuscles: ["bål", "säte", "övre trapezius", "framsida lår"],
+    category: "helkropp",
+    equipmentTags: ["dumbbells", "kettlebell", "free_weights"],
+    equipment: "Hantlar eller kettlebells",
+    environment: "båda",
+    exerciseType: "basövning",
+    movementPattern: "bal_stabilitet",
+    logType: "time_rir",
+    difficulty: "medel",
+    beginnerFit: "okej",
+    stability: "medel",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 6,
+    trainingValue: "medel",
+    risks: "Håll bålen spänd och gången kontrollerad. Sänk vikten om ryggen böjs eller axlarna hasar ner.",
+    substitutions: ["Planka", "Axelryck", "Hip thrust"],
+    detail:
+      "Bondepromenad tränar grepp och underarmar tillsammans med bål, säte, övre trapezius och ben genom att bära tung vikt i en kontrollerad gång. Den loggas med tid, precis som planka.",
+    coachReason:
+      "Ett effektivt helkroppstillägg som bygger grepp- och bålstyrka på kort tid.",
+    techniqueCue: "Fokus: bröstet högt, bålen spänd och korta, kontrollerade steg.",
+    techniqueFocus: ["braced core", "shoulders back", "controlled steps"],
+    progressionRule:
+      "Öka tiden eller vikten först när greppet och hållningen håller genom hela setet.",
+    beginnerNote:
+      "Okej för nybörjare med lättare vikt och kort sträcka/tid.",
+  },
+  {
+    name: "Sumo marklyft",
+    aliases: ["sumo deadlift"],
+    primaryMuscle: "säte",
+    secondaryMuscles: ["ländrygg", "framsida lår", "baksida lår", "insida lår"],
+    category: "ben",
+    equipmentTags: ["barbell", "free_weights"],
+    equipment: "Skivstång",
+    environment: "gym",
+    exerciseType: "basövning",
+    movementPattern: "hoftfallning",
+    logType: "weight_reps_rir",
+    difficulty: "avancerad",
+    beginnerFit: "undvik_som_standard",
+    stability: "lag",
+    suitableFor: ["van", "erfaren"],
+    popularity: 7,
+    trainingValue: "hög",
+    risks: "Kräver bra höftrörlighet för den breda stansen. Sänk vikten om knäna faller inåt eller ryggen böjs.",
+    substitutions: ["Marklyft", "Rumänska marklyft", "Hip thrust"],
+    detail:
+      "Sumo marklyft tränar säte och ländrygg med en bred stans och grepp innanför knäna. Den belastar framsida lår och insida lår mer, och ländryggen något mindre, än vanlig marklyft.",
+    coachReason:
+      "Ett alternativ till vanlig marklyft för vana användare som vill avlasta ländryggen något eller har längre bål i förhållande till benen.",
+    techniqueCue: "Fokus: bred stans, knäna i linje med tårna och stången nära kroppen.",
+    techniqueFocus: ["wide stance", "knees track over toes", "bar close to body"],
+    progressionRule:
+      "Höj bara när stansen och knäkontrollen håller genom hela setet.",
+    beginnerNote:
+      "Mer tekniskt krävande. För nybörjare ska den bara väljas med tydligt skäl och låg startvikt.",
+  },
+  {
+    name: "Gående utfall",
+    aliases: ["walking lunge", "walking lunges"],
+    primaryMuscle: "framsida lår",
+    secondaryMuscles: ["säte", "insida lår"],
+    category: "ben",
+    equipmentTags: ["none", "bodyweight", "dumbbells"],
+    equipment: "Kroppsvikt eller hantlar",
+    environment: "båda",
+    exerciseType: "basövning",
+    movementPattern: "utfall_ett_ben",
+    logType: "weight_reps_rir",
+    difficulty: "medel",
+    beginnerFit: "okej",
+    stability: "lag",
+    suitableFor: ["nyborjare", "van", "erfaren"],
+    popularity: 7,
+    trainingValue: "hög",
+    risks: "Kräver mer balans än stillastående utfall eftersom du rör dig kontinuerligt framåt. Ta kortare steg om balansen känns osäker.",
+    substitutions: ["Framåtutfall", "Utfall bakåt", "Goblet squat"],
+    detail:
+      "Gående utfall tränar framsida lår, säte och insida lår genom att kliva kontinuerligt framåt istället för att gå tillbaka mellan varje rep. Den är mer krävande för balansen än stillastående utfall.",
+    coachReason:
+      "Bra när coachen vill göra utfall mer dynamiskt och kondition-betonat.",
+    techniqueCue: "Fokus: jämn steglängd och kontrollerad övergång mellan benen.",
+    techniqueFocus: ["controlled step transition", "front knee tracking", "upright torso"],
+    progressionRule:
+      "Öka reps eller lägg till hantlar när balansen och steglängden är jämn mellan benen.",
+    beginnerNote:
+      "Okej för nybörjare men kräver mer balans än stillastående utfall. Prova Framåtutfall eller Utfall bakåt först om balansen känns osäker.",
+  },
+  {
+    name: "Rullhjul",
+    aliases: ["ab wheel", "ab wheel rollout", "ab roller", "rullhjulet", "ab rollout"],
+    primaryMuscle: "mage",
+    secondaryMuscles: ["sneda magmuskler"],
+    category: "mage",
+    equipmentTags: ["none", "bodyweight"],
+    equipment: "Rullhjul",
+    environment: "båda",
+    exerciseType: "isolationsövning",
+    movementPattern: "bal_stabilitet",
+    logType: "bodyweight_reps_rir",
+    difficulty: "avancerad",
+    beginnerFit: "undvik_som_standard",
+    stability: "lag",
+    suitableFor: ["van", "erfaren"],
+    popularity: 6,
+    trainingValue: "hög",
+    risks: "Sänk rörelseutslaget om ländryggen börjar svanka. Rulla inte längre ut än du kan kontrollera tillbaka.",
+    substitutions: ["Cable crunch", "Planka", "Hängande benlyft"],
+    detail:
+      "Rullhjul tränar magen genom att rulla ut och tillbaka på knä med ett litet hjul. Forskning visar att den är särskilt effektiv för nedre magen.",
+    coachReason:
+      "En av de mest effektiva magövningarna som finns, men kräver god bålkontroll för att göras säkert.",
+    techniqueCue: "Fokus: håll ryggen rak genom hela rörelsen och rulla bara så långt du kan kontrollera tillbaka.",
+    techniqueFocus: ["neutral spine", "controlled range of motion", "core braced throughout"],
+    progressionRule:
+      "Öka rörelseutslaget gradvis. Fler kontrollerade reps är bättre än att rulla för långt och tappa ryggpositionen.",
+    beginnerNote:
+      "Krävande för bålen. Nya användare bör börja med kortare rörelseutslag eller välja planka/cable crunch först.",
   },
 ];
 
@@ -2886,6 +3537,18 @@ const EXERCISE_ALIASES: Record<string, string> = {
   vadpress: "Vadpress",
 };
 
+type ExerciseSearchTerm = { term: string; canonicalName: string };
+
+const KNOWN_EXERCISE_SEARCH_TERMS: ExerciseSearchTerm[] = [
+  ...EXERCISE_LIBRARY.flatMap((exercise) => [
+    { term: exercise.name, canonicalName: exercise.name },
+    ...exercise.aliases.map((alias) => ({ term: alias, canonicalName: exercise.name })),
+  ]),
+  ...KNOWN_EXERCISE_NAMES.filter(
+    (name) => !EXERCISE_LIBRARY.some((exercise) => exercise.name === name)
+  ).map((name) => ({ term: name, canonicalName: name })),
+];
+
 function getEditDistance(a: string, b: string) {
   const matrix = Array.from({ length: a.length + 1 }, (_, index) => [index]);
 
@@ -2954,8 +3617,8 @@ export function resolveExerciseName(rawName: string): ExerciseResolveResult {
     return { status: "known", name: exact, suggestion: "" };
   }
 
-  const contained = KNOWN_EXERCISE_NAMES.find((exercise) => {
-    const known = normalizeExerciseSearchText(exercise);
+  const contained = KNOWN_EXERCISE_SEARCH_TERMS.find(({ term }) => {
+    const known = normalizeExerciseSearchText(term);
     return (
       normalized.length >= 5 &&
       (known.includes(normalized) || normalized.includes(known))
@@ -2963,19 +3626,19 @@ export function resolveExerciseName(rawName: string): ExerciseResolveResult {
   });
 
   if (contained) {
-    return { status: "suggest", name, suggestion: contained };
+    return { status: "suggest", name, suggestion: contained.canonicalName };
   }
 
-  const closest = KNOWN_EXERCISE_NAMES.map((exercise) => ({
-    exercise,
-    distance: getEditDistance(normalized, normalizeExerciseSearchText(exercise)),
+  const closest = KNOWN_EXERCISE_SEARCH_TERMS.map(({ term, canonicalName }) => ({
+    canonicalName,
+    distance: getEditDistance(normalized, normalizeExerciseSearchText(term)),
   })).sort((a, b) => a.distance - b.distance)[0];
 
   if (
     closest &&
     closest.distance <= Math.max(2, Math.floor(normalized.length * 0.22))
   ) {
-    return { status: "suggest", name, suggestion: closest.exercise };
+    return { status: "suggest", name, suggestion: closest.canonicalName };
   }
 
   return { status: "unknown", name, suggestion: "" };

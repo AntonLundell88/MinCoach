@@ -14,6 +14,7 @@ export type MuscleMapToken =
   | "forearms"
   | "lats"
   | "upper_back"
+  | "upper_traps"
   | "lower_back"
   | "abs"
   | "obliques"
@@ -85,6 +86,7 @@ export const BODY_MUSCLE_TOKEN_IDS: Record<MuscleMapToken, string[]> = {
     "traps-mid-right",
     "traps-lower-right",
   ],
+  upper_traps: ["traps-upper-left", "traps-upper-right"],
   lower_back: [
     "spine",
     "lower-back-erectors-left",
@@ -259,6 +261,86 @@ const SOURCES = {
   backExtension: {
     label: "ExRx Back Extension",
     url: "https://exrx.net/WeightExercises/ErectorSpinae/WtBackExtension",
+  },
+  deadlift: {
+    label: "ExRx Barbell Deadlift",
+    url: "https://exrx.net/WeightExercises/GluteusMaximus/BBDeadlift",
+  },
+  militaryPress: {
+    label: "ExRx Barbell Military Press",
+    url: "https://exrx.net/WeightExercises/DeltoidAnterior/BBMilitaryPress",
+  },
+  shrug: {
+    label: "ExRx Dumbbell Shrug",
+    url: "https://exrx.net/WeightExercises/TrapeziusUpper/DBShrug",
+  },
+  concentrationCurl: {
+    label: "ExRx Dumbbell Concentration Curl",
+    url: "https://exrx.net/WeightExercises/Brachialis/DBConcentrationCurl",
+  },
+  lunge: {
+    label: "ExRx Dumbbell Lunge",
+    url: "https://exrx.net/WeightExercises/Quadriceps/DBLunge",
+  },
+  closeGripBench: {
+    label: "ExRx Barbell Close Grip Bench Press",
+    url: "https://exrx.net/WeightExercises/Triceps/BBCloseGripBenchPress",
+  },
+  lyingTricepsExt: {
+    label: "ExRx Barbell Lying Triceps Extension",
+    url: "https://exrx.net/WeightExercises/Triceps/BBLyingTriExt",
+  },
+  leverTricepsExt: {
+    label: "ExRx Lever Triceps Extension",
+    url: "https://exrx.net/WeightExercises/Triceps/LVTriExt",
+  },
+  frontSquat: {
+    label: "ExRx Barbell Front Squat",
+    url: "https://exrx.net/WeightExercises/Quadriceps/BBFrontSquat",
+  },
+  standingLegCurl: {
+    label: "ExRx Lever Standing Leg Curl",
+    url: "https://exrx.net/WeightExercises/Hamstrings/LVStandingLegCurl",
+  },
+  seatedCalfRaise: {
+    label: "ExRx Lever Seated Calf Raise",
+    url: "https://exrx.net/WeightExercises/Soleus/LVSeatedCalfRaise",
+  },
+  frontRaise: {
+    label: "ExRx Dumbbell Front Raise",
+    url: "https://exrx.net/WeightExercises/DeltoidAnterior/DBFrontRaise",
+  },
+  uprightRow: {
+    label: "ExRx Barbell Upright Row",
+    url: "https://exrx.net/WeightExercises/DeltoidLateral/BBUprightRow",
+  },
+  machinePullover: {
+    label: "ExRx Lever Pullover",
+    url: "https://exrx.net/WeightExercises/LatissimusDorsi/LVPullover",
+  },
+  straightArmPulldown: {
+    label: "ExRx Cable Bent-over Pullover (Straight Arm Pulldown)",
+    url: "https://exrx.net/WeightExercises/LatissimusDorsi/CBBentoverPullover",
+  },
+  goodMorning: {
+    label: "ExRx Barbell Bent Knee Good-morning",
+    url: "https://exrx.net/WeightExercises/ErectorSpinae/BBBentKneeGoodMorning",
+  },
+  farmersWalk: {
+    label: "StrengthLog: Farmers Walk",
+    url: "https://www.strengthlog.com/farmers-walk/",
+  },
+  sumoDeadlift: {
+    label: "StrengthLog: Sumo Deadlift",
+    url: "https://www.strengthlog.com/sumo-deadlift/",
+  },
+  walkingLunge: {
+    label: "StrengthLog: Dumbbell Walking Lunge",
+    url: "https://www.strengthlog.com/dumbbell-walking-lunge/",
+  },
+  abWheelRollout: {
+    label: "StrengthLog: Kneeling Ab Wheel Roll-Out",
+    url: "https://www.strengthlog.com/kneeling-ab-wheel-roll-out/",
   },
 } satisfies Record<string, Source>;
 
@@ -768,6 +850,232 @@ const REVIEWED_MUSCLE_MAPS: Record<string, ReviewedMuscleMap> = {
       secondary: [],
     },
     [SOURCES.calfRaise]
+  ),
+  marklyft: review(
+    {
+      primary: "Säte",
+      active: "Baksida lår, framsida lår",
+      secondary: "Ländrygg, underarm, övre trapezius",
+    },
+    {
+      primary: ["glutes"],
+      active: ["hamstrings", "quads"],
+      secondary: ["lower_back", "forearms", "upper_traps"],
+    },
+    [SOURCES.deadlift]
+  ),
+  militarpress: review(
+    {
+      primary: "Framsida axel",
+      active: "Sida axel",
+      secondary: "Triceps, övre bröst",
+    },
+    {
+      primary: ["front_delts"],
+      active: ["side_delts"],
+      secondary: ["triceps", "chest_upper"],
+    },
+    [SOURCES.militaryPress]
+  ),
+  axelryck: review(
+    {
+      primary: "Övre trapezius",
+      active: "Övre rygg",
+    },
+    {
+      primary: ["upper_traps"],
+      active: ["upper_back"],
+      secondary: [],
+    },
+    [SOURCES.shrug]
+  ),
+  koncentrationscurl: review(
+    {
+      primary: "Biceps",
+      active: "Underarm",
+    },
+    {
+      primary: ["biceps"],
+      active: ["forearms"],
+      secondary: [],
+    },
+    [SOURCES.concentrationCurl]
+  ),
+  framatutfall: review(
+    {
+      primary: "Framsida lår",
+      active: "Säte",
+      secondary: "Baksida lår, insida lår, bål",
+    },
+    {
+      primary: ["quads"],
+      active: ["glutes"],
+      secondary: ["hamstrings", "adductors", "core"],
+    },
+    [SOURCES.lunge]
+  ),
+  "lutande bankpress": inclinePress,
+  "smal bankpress": review(
+    {
+      primary: "Triceps",
+      active: "Bröst",
+      secondary: "Framsida axel",
+    },
+    {
+      primary: ["triceps"],
+      active: ["chest_upper", "chest_sternal"],
+      secondary: ["front_delts_press"],
+    },
+    [SOURCES.closeGripBench]
+  ),
+  "fransk press": tricepsOnly([SOURCES.lyingTricepsExt]),
+  tricepsmaskin: tricepsOnly([SOURCES.leverTricepsExt]),
+  frontboj: review(
+    {
+      primary: "Framsida lår",
+      active: "Säte",
+      secondary: "Baksida lår, insida lår, bål",
+    },
+    {
+      primary: ["quads"],
+      active: ["glutes"],
+      secondary: ["hamstrings", "adductors", "core"],
+    },
+    [SOURCES.frontSquat]
+  ),
+  "larcurl staende": review(
+    {
+      primary: "Baksida lår",
+      secondary: "Vader",
+    },
+    {
+      primary: ["hamstrings"],
+      active: [],
+      secondary: ["calves"],
+    },
+    [SOURCES.standingLegCurl]
+  ),
+  "sittande vadpress": review(
+    {
+      primary: "Vader",
+    },
+    {
+      primary: ["calves"],
+      active: [],
+      secondary: [],
+    },
+    [SOURCES.seatedCalfRaise]
+  ),
+  framatlyft: review(
+    {
+      primary: "Framsida axel",
+    },
+    {
+      primary: ["front_delts"],
+      active: [],
+      secondary: [],
+    },
+    [SOURCES.frontRaise]
+  ),
+  "upright row": review(
+    {
+      primary: "Sida axel",
+      active: "Övre trapezius",
+      secondary: "Framsida axel",
+    },
+    {
+      primary: ["side_delts"],
+      active: ["upper_traps"],
+      secondary: ["front_delts"],
+    },
+    [SOURCES.uprightRow]
+  ),
+  "pullover maskin": review(
+    {
+      primary: "Lats",
+      secondary: "Bröst, triceps",
+    },
+    {
+      primary: ["lats"],
+      active: [],
+      secondary: ["chest_sternal", "triceps"],
+    },
+    [SOURCES.machinePullover]
+  ),
+  "straight arm pulldown": review(
+    {
+      primary: "Lats",
+      secondary: "Bröst, triceps, baksida axel",
+    },
+    {
+      primary: ["lats"],
+      active: [],
+      secondary: ["chest_sternal", "triceps", "rear_delts"],
+    },
+    [SOURCES.straightArmPulldown]
+  ),
+  "god morgon": review(
+    {
+      primary: "Ländrygg",
+      active: "Säte, baksida lår",
+    },
+    {
+      primary: ["lower_back"],
+      active: ["glutes", "hamstrings"],
+      secondary: [],
+    },
+    [SOURCES.goodMorning]
+  ),
+  bondepromenad: review(
+    {
+      primary: "Underarm",
+      active: "Bål, säte",
+      secondary: "Övre trapezius, framsida lår",
+    },
+    {
+      primary: ["forearms"],
+      active: ["core", "glutes"],
+      secondary: ["upper_traps", "quads"],
+    },
+    [SOURCES.farmersWalk]
+  ),
+  "sumo marklyft": review(
+    {
+      primary: "Säte",
+      active: "Ländrygg",
+      secondary: "Framsida lår, baksida lår, insida lår",
+    },
+    {
+      primary: ["glutes"],
+      active: ["lower_back"],
+      secondary: ["quads", "hamstrings", "adductors"],
+    },
+    [SOURCES.sumoDeadlift]
+  ),
+  "gaende utfall": review(
+    {
+      primary: "Framsida lår",
+      active: "Säte",
+      secondary: "Insida lår",
+    },
+    {
+      primary: ["quads"],
+      active: ["glutes"],
+      secondary: ["adductors"],
+    },
+    [SOURCES.walkingLunge]
+  ),
+  rullhjul: review(
+    {
+      primary: "Mage",
+      secondary: "Sneda magmuskler",
+    },
+    {
+      primary: ["abs"],
+      active: [],
+      secondary: ["obliques"],
+    },
+    [SOURCES.abWheelRollout]
   ),
 };
 

@@ -523,7 +523,6 @@ export default function StartScreen({
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 addTodayExercise(nextPass, customExerciseInput);
-                setCustomExerciseInput("");
               }
             }}
           />
@@ -535,7 +534,6 @@ export default function StartScreen({
               style={{ color: "rgba(255, 255, 255, 0.72)" }}
               onClick={() => {
                 addTodayExercise(nextPass, customExerciseInput);
-                setCustomExerciseInput("");
               }}
             >
               Bara idag
@@ -546,7 +544,6 @@ export default function StartScreen({
               className="start-add-mode-button rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-medium text-white/62 transition hover:bg-white/10 hover:text-white"
               onClick={() => {
                 addCustomExercise(nextPass, customExerciseInput);
-                setCustomExerciseInput("");
               }}
             >
               Spara i schemat
