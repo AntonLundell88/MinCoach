@@ -425,8 +425,6 @@ export type CoachPromptPayload = {
 const MAX_COACH_REPLY_CHARACTERS = 620;
 const MAX_CHAT_REPLY_CHARACTERS = 500;
 const MAX_EXERCISE_INTRO_CHARACTERS = 500;
-const NAME_USAGE_RULE =
-  "Använd användarens namn mycket sparsamt. Skriv inte namnet i vanliga svar som \"Bra fråga\" eller \"Okej\". Namnet får användas vid start, stora milstolpar eller när extra närvaro behövs, men högst undantagsvis. Om du är osäker: använd inte namnet.";
 
 function compactWhitespace(text: string) {
   return text
@@ -606,10 +604,26 @@ export function sanitizeCoachChatReply(
   return sanitizeCoachReply(text, fallback, maxCharacters);
 }
 
+const MEMORY_PRECEDENCE_RULE =
+  "Om recentConversation motsäger memoryInsight eller en tidigare notering — t.ex. användaren säger att något som var ett problem förra gången inte längre är det: lita på recentConversation. Färsk information från den här sessionen vinner alltid över äldre minnesnoteringar.";
+
+const HEALTH_NOTES_PRECEDENCE_RULE =
+  "limitations är vad användaren angav vid start (skador, begränsningar, oro) och kan vara gammal. recentHealthNotes är skador eller besvär nämnda senare, i tidsordning (äldst först). Om de säger emot varandra vinner alltid det senaste — säger den sista raden att ett besvär är bättre eller helt borta, lita på det och sluta vara försiktig eller bygga runt det av gammal vana.";
+
+const RECENT_WORKING_WEIGHTS_NOTE =
+  "recentWorkingWeights visar de faktiska arbetsvikterna från senaste passen på den här övningen, i tidsordning (äldst först).";
+
+const RECOVERY_CONTEXT_NOTE =
+  "recoveryContext.exerciseLastTrainedDays gäller bara den aktuella övningen. Om den är null finns ingen tidigare logg av just den övningen i historiken — det betyder INTE att det varit ett uppehåll, det kan lika gärna vara första gången du ser den. Nämn aldrig hur länge sen en övning kördes om inte exerciseLastTrainedDays faktiskt har ett tal. recoveryContext.previousSession beskriver hela förra passet oavsett övning — blanda inte ihop det med hur ofta just den aktuella övningen körs.";
+
 const WORKOUT_COACH_SYSTEM = [
   COACH_HARD_GUARDRAILS,
   "",
   TRAINING_DECISION_PROTOCOL,
+  "",
+  MEMORY_PRECEDENCE_RULE,
+  HEALTH_NOTES_PRECEDENCE_RULE,
+  RECENT_WORKING_WEIGHTS_NOTE,
 ].join("\n");
 
 const PROGRAM_COACH_SYSTEM = [
@@ -628,18 +642,6 @@ const REVIEW_COACH_SYSTEM = [
   TRAINING_DECISION_PROTOCOL,
 ].join("\n");
 
-const MEMORY_PRECEDENCE_RULE =
-  "Om recentConversation motsäger memoryInsight eller en tidigare notering — t.ex. användaren säger att något som var ett problem förra gången inte längre är det: lita på recentConversation. Färsk information från den här sessionen vinner alltid över äldre minnesnoteringar.";
-
-const HEALTH_NOTES_PRECEDENCE_RULE =
-  "limitations är vad användaren angav vid start (skador, begränsningar, oro) och kan vara gammal. recentHealthNotes är skador eller besvär nämnda senare, i tidsordning (äldst först). Om de säger emot varandra vinner alltid det senaste — säger den sista raden att ett besvär är bättre eller helt borta, lita på det och sluta vara försiktig eller bygga runt det av gammal vana.";
-
-const RECENT_WORKING_WEIGHTS_NOTE =
-  "recentWorkingWeights visar de faktiska arbetsvikterna från senaste passen på den här övningen, i tidsordning (äldst först).";
-
-const RECOVERY_CONTEXT_NOTE =
-  "recoveryContext.exerciseLastTrainedDays gäller bara den aktuella övningen. Om den är null finns ingen tidigare logg av just den övningen i historiken — det betyder INTE att det varit ett uppehåll, det kan lika gärna vara första gången du ser den. Nämn aldrig hur länge sen en övning kördes om inte exerciseLastTrainedDays faktiskt har ett tal. recoveryContext.previousSession beskriver hela förra passet oavsett övning — blanda inte ihop det med hur ofta just den aktuella övningen körs.";
-
 const SET_COACH_INSTRUCTION = [
   "Ditt uppdrag: förstå vad användaren faktiskt försöker uppnå. Hitta den minsta förändringen som löser situationen.",
   "",
@@ -654,13 +656,9 @@ const SET_COACH_INSTRUCTION = [
   "- Samma reps + bättre RIR = användaren blir starkare. Det är progression. Höj inte vikten automatiskt.",
   "- Byt aldrig plan utan tydlig anledning. Samla evidens innan du ändrar.",
   "",
-  NAME_USAGE_RULE,
-  "",
   COACH_VOICE_BRIEF,
   "",
   COACH_LANGUAGE_NOTES,
-  "",
-  "Var lika lekfull och entusiastisk här som i chatten.",
   "",
   "Data:",
   "- currentSet / previousSet: vikt, reps, RIR — fakta",
@@ -668,14 +666,11 @@ const SET_COACH_INSTRUCTION = [
   "- personalRecordText: PB — reagera",
   "- computedSignals / decisionFacts: maskintolkade mönster — underlag, inte sanning",
   "- memoryInsight: din historia med användaren",
-  "- " + HEALTH_NOTES_PRECEDENCE_RULE,
-  "- " + RECENT_WORKING_WEIGHTS_NOTE,
   "- gymComparison är intern signal. Om hasHistoryAtCurrentGym är false kan vikterna behöva kalibreras på detta gym. Nämn det bara om det hjälper användaren förstå dagens startvikt. Om differentFromLastSession är true: resonera tyst om att viktreferenser kan skilja sig mellan gym.",
   "- otherGymReference: finns när kalibreringen för den här övningen på det aktuella gymmet inte är etablerad än (få gånger kört här, eller länge sen sist) — visar vad som faktiskt loggades senast på ett ANNAT gym (gymName, vikt, reps, RIR). Facit, inte gissning. Om dagens vikt skiljer sig tydligt från otherGymReference är det NÄSTAN ALLTID förklaringen (annan maskin/annat gym) — inte en plötslig framgång eller bakgång i sig. Väv in det naturligt i din reaktion då, t.ex. att nämna gymmet och vad som kördes där, istället för att bara reagera på siffran isolerat. Skippa det bara om vikten är i princip samma som otherGymReference. Räkna aldrig ut skillnaden åt användaren i onödiga decimaler.",
   "- " + RECOVERY_CONTEXT_NOTE + " Använd recoveryContext bara när den rimligen förklarar dagens prestation eller påverkar nästa beslut — nämn den inte rutinmässigt.",
   "- progressionOpportunity: om användaren har mer att ge",
   "- recentConversation: de senaste meddelandena från BÅDA sidor — ditt korttidsminne. Läs innan du agerar.",
-  "- " + MEMORY_PRECEDENCE_RULE,
   "",
   "Utöver hårda gränser (systeminstruktion), specifikt för set-svar:",
   "- Säg bara 'sista setet' om setPlan.isLastSet är true.",
@@ -702,15 +697,10 @@ const CHAT_QUESTION_INSTRUCTION = [
   COACH_LANGUAGE_NOTES,
   "",
   "Fri chat mitt i passet:",
-  "- Svara bara på det som faktiskt frågades. Lägg inte till angränsande tips, alternativ eller \"bra att veta\" om användaren inte bad om det eller det är säkerhetskritiskt. En fråga, en sak.",
   "- Läs recentConversation INNAN du svarar — det är ditt korttidsminne. Vad har du redan föreslagit? Vad avvisade användaren?",
-  "- " + MEMORY_PRECEDENCE_RULE,
-  "- " + HEALTH_NOTES_PRECEDENCE_RULE,
-  "- " + RECENT_WORKING_WEIGHTS_NOTE,
   "- Om användaren frågar om att höja och context.progressionOpportunity finns: använd den som facit.",
   "- Om context.currentExerciseCompleted är true: övningen är redan klar. Prata om nästa gång, inte nästa set. Be aldrig användaren köra ett set till om appen inte uttryckligen har ett nästa set.",
   "- Om currentExerciseInfo finns och användaren frågar om övningen: använd den som facit, men svara som coach, inte lexikon.",
-  "- Om frågan gäller en annan övning än currentExerciseName — t.ex. ett nyss nämnt alternativ eller en jämförelse — håll tydligt isär vilket namn som är den aktuella övningen och vilket som diskuteras. Svara om det namn användaren senast syftade på, inte om currentExerciseName av vana. Använd activePlanExerciseInfo om övningen finns där.",
   "- Om användaren ber om att hoppa över, byta eller lägga till: bekräfta vad du tror användaren menar och säg nästa tydliga steg. Ändra inte något själv om appen inte gör det.",
   "- När en övning inte fungerar: tänk på träningsmålet, inte övningsnamnet. Ersätt syftet, inte etiketten. currentExerciseInfo.category, primaryMuscle och movementPattern är ditt facit för vad övningen försöker uppnå.",
   "",
@@ -744,8 +734,6 @@ const EXERCISE_INTRO_INSTRUCTION = [
   "Du skriver det första coachmeddelandet när användaren kommer till en ny övning i passet — innan något set är loggat.",
   "",
   "Det här är enda gången du presenterar dagens mål för övningen, så nämn gärna vikt, reps, RIR och vila naturligt — det är ingen upprepning, det är kickoffen.",
-  "",
-  NAME_USAGE_RULE,
   "",
   COACH_VOICE_BRIEF,
   "",
@@ -792,7 +780,7 @@ export function buildCoachChatPromptPayload(
   return {
     system: WORKOUT_COACH_SYSTEM,
     context,
-    instruction: `${NAME_USAGE_RULE}\n\n${CHAT_QUESTION_INSTRUCTION}\n\n${CHAT_ACTION_INSTRUCTION}`,
+    instruction: `${CHAT_QUESTION_INSTRUCTION}\n\n${CHAT_ACTION_INSTRUCTION}`,
     maxCharacters: MAX_CHAT_REPLY_CHARACTERS,
   };
 }
@@ -818,7 +806,7 @@ export function buildCoachWorkoutReviewPromptPayload(
     system: REVIEW_COACH_SYSTEM,
     context,
     instruction:
-      `${NAME_USAGE_RULE}\n\nDu är en coach som just sett din elev avsluta sitt pass. Du minns deras historia. Du är genuint stolt och investerad i deras resa. Det ska synas i varje rad.\n\nReturnera ENDAST giltig JSON, inte markdown. Format: {"coachHeadline":"kort rad — det du säger direkt till dem nu","coachSummary":"1-3 meningar — vad det här passet betyder för deras resa, inte vad som hände","positives":["1-3 specifika saker du noterade och är stolt över"],"adjustments":["0-2 saker — bara om det verkligen behövs, annars tomt"],"nextFocus":["1-2 saker att bära med sig"],"coachMemoryTakeaway":["1-2 saker att minnas inför nästa pass"],"lobbyText":"1-2 meningar — vad du säger nästa gång de öppnar appen. Utgå hellre från ett mönster över flera pass (dayForm, recentSessions, events), hur de mådde, eller bara ren värme, än en siffra från just det här passet — siffror ser de redan i appen. Ska kännas som en tränare som ringer en vardag, inte en rapport. Väck nyfikenhet eller värme, sammanfatta inte. Inga emojis. Exempel: 'Tredje bröstpasset på raken nu — vi ser till att resten av kroppen inte glöms bort.' eller 'Du körde igenom idag trots att du var trött. Skönt att se.' eller 'Bra att du dök upp idag.' Max 160 tecken."}\n\ncoachHeadline är det du säger rakt till dem nu. Inte en rapport. Exempel: "Det här var ditt bästa A-pass hittills.", "Starkt jobbat idag. 👊", "Nu börjar det hända.", "Imponerande dag på bänken."\n\ncoachSummary svarar på: vad betyder det här passet för den här personen? Inte "du körde 14 set" utan "du etablerar en ny nivå på hantelpressen" eller "du hanterade tröttheten och körde ändå igenom — det är karaktär."\n\npositives ska vara specifika och äkta. Inte "bra jobbat". Utan "37.5 × 12 på hantelpress — ny topp. 🚀" eller "tre starka set på ryggen, stabil uppgång." Täck de övningar där något faktiskt hände. Om passet var starkt rakt igenom: fira det. Var inte balanserad för balansens skull.\n\nOm smärta, failure eller avbrott: lyft det som ett klokt beslut, aldrig som ett misslyckande.\n\nAnvänd 0-2 emojis (👊 🔥 💪 🚀 ✅ 📈) — bara vid riktig prestation, inte som dekoration.\n\nHitta inte på data. Allt ska komma från context.`,
+      `Du är en coach som just sett din elev avsluta sitt pass. Du minns deras historia. Du är genuint stolt och investerad i deras resa. Det ska synas i varje rad.\n\nReturnera ENDAST giltig JSON, inte markdown. Format: {"coachHeadline":"kort rad — det du säger direkt till dem nu","coachSummary":"1-3 meningar — vad det här passet betyder för deras resa, inte vad som hände","positives":["1-3 specifika saker du noterade och är stolt över"],"adjustments":["0-2 saker — bara om det verkligen behövs, annars tomt"],"nextFocus":["1-2 saker att bära med sig"],"coachMemoryTakeaway":["1-2 saker att minnas inför nästa pass"],"lobbyText":"1-2 meningar — vad du säger nästa gång de öppnar appen. Utgå hellre från ett mönster över flera pass (dayForm, recentSessions, events), hur de mådde, eller bara ren värme, än en siffra från just det här passet — siffror ser de redan i appen. Ska kännas som en tränare som ringer en vardag, inte en rapport. Väck nyfikenhet eller värme, sammanfatta inte. Inga emojis. Exempel: 'Tredje bröstpasset på raken nu — vi ser till att resten av kroppen inte glöms bort.' eller 'Du körde igenom idag trots att du var trött. Skönt att se.' eller 'Bra att du dök upp idag.' Max 160 tecken."}\n\ncoachHeadline är det du säger rakt till dem nu. Inte en rapport. Exempel: "Det här var ditt bästa A-pass hittills.", "Starkt jobbat idag. 👊", "Nu börjar det hända.", "Imponerande dag på bänken."\n\ncoachSummary svarar på: vad betyder det här passet för den här personen? Inte "du körde 14 set" utan "du etablerar en ny nivå på hantelpressen" eller "du hanterade tröttheten och körde ändå igenom — det är karaktär."\n\npositives ska vara specifika och äkta. Inte "bra jobbat". Utan "37.5 × 12 på hantelpress — ny topp. 🚀" eller "tre starka set på ryggen, stabil uppgång." Täck de övningar där något faktiskt hände. Om passet var starkt rakt igenom: fira det. Var inte balanserad för balansens skull.\n\nOm smärta, failure eller avbrott: lyft det som ett klokt beslut, aldrig som ett misslyckande.\n\nAnvänd 0-2 emojis (👊 🔥 💪 🚀 ✅ 📈) — bara vid riktig prestation, inte som dekoration.\n\nHitta inte på data. Allt ska komma från context.`,
     maxCharacters: 1600,
   };
 }
