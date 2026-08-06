@@ -48,7 +48,15 @@ type Props = {
   history: Workout[];
   onBack: () => void;
   onOpenExercise: (exerciseName: string) => void;
-  onEditSet?: (workoutId: string, exerciseName: string, setIdx: number, weight: number, reps: number, rir: number) => void;
+  onEditSet?: (
+    workoutId: string,
+    exerciseName: string,
+    setIdx: number,
+    weight: number,
+    reps: number,
+    rir: number,
+    durationSeconds?: number
+  ) => void;
 };
 
 function formatDate(value: string) {
@@ -129,12 +137,18 @@ export default function HistoryScreen({
   const [editWeight, setEditWeight] = useState("");
   const [editReps, setEditReps] = useState("");
   const [editRir, setEditRir] = useState(2);
+  const [editDuration, setEditDuration] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
 
   function openEdit(workoutId: string, exerciseName: string, setIdx: number, set: LoggedSet) {
     setEditWeight(set.weight > 0 ? String(set.weight) : "");
     setEditReps(set.reps > 0 ? String(set.reps) : "");
     setEditRir(set.rir ?? 2);
+    setEditDuration(
+      typeof set.durationSeconds === "number" && set.durationSeconds > 0
+        ? String(Math.round(set.durationSeconds))
+        : ""
+    );
     setEditError(null);
     setEditingSet({
       workoutId,
@@ -146,6 +160,18 @@ export default function HistoryScreen({
 
   function saveEdit() {
     if (!editingSet || !onEditSet) return;
+
+    if (editingSet.isTimed) {
+      const d = parseInt(editDuration, 10);
+      if (!Number.isFinite(d) || d <= 0) { setEditError("Tiden ser inte rätt ut. Kontrollera och försök igen."); return; }
+      if (d > 21600) { setEditError("Tiden ser ut som en felskrivning. Kontrollera och försök igen."); return; }
+      const originalWeight = parseFloat(editWeight.replace(",", ".")) || 0;
+      const originalReps = parseInt(editReps, 10) || 0;
+      onEditSet(editingSet.workoutId, editingSet.exerciseName, editingSet.setIdx, originalWeight, originalReps, editRir, d);
+      setEditingSet(null);
+      return;
+    }
+
     const w = parseFloat(editWeight.replace(",", "."));
     const r = parseInt(editReps, 10);
     if (!Number.isFinite(w) || !Number.isFinite(r)) return;
@@ -366,6 +392,19 @@ export default function HistoryScreen({
               Redigera set {editingSet.setIdx + 1}
             </p>
             <p className="text-center text-xs text-white/40">{editingSet.exerciseName}</p>
+
+            {editingSet.isTimed && (
+              <div className="space-y-1">
+                <label className="text-xs text-white/50">Tid (sekunder)</label>
+                <input
+                  autoFocus
+                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
+                  inputMode="numeric"
+                  value={editDuration}
+                  onChange={(e) => setEditDuration(e.target.value.replace(/[^0-9]/g, ""))}
+                />
+              </div>
+            )}
 
             {!editingSet.isTimed && (
               <div className="grid grid-cols-2 gap-3">

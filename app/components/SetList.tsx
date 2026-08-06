@@ -14,7 +14,13 @@ type LoggedSet = {
 
 type Props = {
   currentSets: LoggedSet[];
-  onEditSet?: (setIdx: number, weight: number, reps: number, rir: number) => void;
+  onEditSet?: (
+    setIdx: number,
+    weight: number,
+    reps: number,
+    rir: number,
+    durationSeconds?: number
+  ) => void;
   validateWeight?: (weight: number) => string | null;
 };
 
@@ -47,6 +53,7 @@ export default function SetList({ currentSets, onEditSet, validateWeight }: Prop
   const [editWeight, setEditWeight] = useState("");
   const [editReps, setEditReps] = useState("");
   const [editRir, setEditRir] = useState(2);
+  const [editDuration, setEditDuration] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -61,12 +68,30 @@ export default function SetList({ currentSets, onEditSet, validateWeight }: Prop
     setEditWeight(set.weight > 0 ? String(set.weight) : "");
     setEditReps(set.reps > 0 ? String(set.reps) : "");
     setEditRir(set.rir ?? 2);
+    setEditDuration(
+      typeof set.durationSeconds === "number" && set.durationSeconds > 0
+        ? String(Math.round(set.durationSeconds))
+        : ""
+    );
     setEditError(null);
     setEditingIndex(index);
   }
 
   function saveEdit() {
     if (editingIndex === null || !onEditSet) return;
+    const isTimedEdit =
+      currentSets[editingIndex].metricType === "time" ||
+      typeof currentSets[editingIndex].durationSeconds === "number";
+
+    if (isTimedEdit) {
+      const d = parseInt(editDuration, 10);
+      if (!Number.isFinite(d) || d <= 0) { setEditError("Tiden ser inte rätt ut. Kontrollera och försök igen."); return; }
+      if (d > 21600) { setEditError("Tiden ser ut som en felskrivning. Kontrollera och försök igen."); return; }
+      onEditSet(editingIndex, currentSets[editingIndex].weight, currentSets[editingIndex].reps, editRir, d);
+      setEditingIndex(null);
+      return;
+    }
+
     const w = parseFloat(editWeight.replace(",", "."));
     const r = parseInt(editReps, 10);
     if (!Number.isFinite(w) || !Number.isFinite(r)) return;
@@ -115,6 +140,19 @@ export default function SetList({ currentSets, onEditSet, validateWeight }: Prop
             <p className="text-base font-semibold text-white text-center">
               Redigera set {(editingIndex ?? 0) + 1}
             </p>
+
+            {isTimed && (
+              <div className="space-y-1">
+                <label className="text-xs text-white/50">Tid (sekunder)</label>
+                <input
+                  autoFocus
+                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
+                  inputMode="numeric"
+                  value={editDuration}
+                  onChange={(e) => setEditDuration(e.target.value.replace(/[^0-9]/g, ""))}
+                />
+              </div>
+            )}
 
             {!isTimed && (
               <div className="grid grid-cols-2 gap-3">

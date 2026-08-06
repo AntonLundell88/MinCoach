@@ -1,6 +1,33 @@
 "use client";
 import { useState } from "react";
 
+const NEXT_SESSION_TIPS = [
+  "Muskler består till stor del av vatten — se till att du dricker ordentligt idag.",
+  "Sömn är där mycket av återhämtningen faktiskt sker, mer än man ofta tänker på.",
+  "Protein utspritt över dagens måltider hjälper kroppen bygga nytt muskelprotein.",
+  "Stress höjer kortisol, vilket kan bromsa återhämtningen. Ge dig själv en stunds lugn idag.",
+  "En kort promenad på vilodagen kan påskynda återhämtningen utan att belasta musklerna.",
+  "Kroppen reparerar sig bäst med regelbunden sömn, inte bara långa nätter ibland.",
+  "Återhämtning är inte lathet — det är där resultatet faktiskt byggs.",
+  "Lite extra kolhydrater efter ett tungt pass hjälper till att fylla på energidepåerna.",
+  "Att äta tillräckligt totalt sett spelar minst lika stor roll som själva passet.",
+  "Konsekvens över tid slår enstaka perfekta pass — nästa gång räcker.",
+  "Värk är inte samma sak som framsteg. Lyssna på kroppen imorgon.",
+  "Vatten hjälper leder och muskler att fungera som de ska — fyll på under dagen.",
+  "Ett par extra minuter uppvärmning nästa pass kan göra hela skillnaden för känslan.",
+  "Stillasittande hela dagen efter ett pass kan göra kroppen stelare — lite rörelse hjälper.",
+  "Bra sömn påverkar även styrkan du kan prestera nästa pass, inte bara humöret.",
+  "En sval och mörk sovmiljö kan göra sömnen mer återhämtande.",
+  "Kroppen bygger muskler mellan passen, inte under dem. Vila är en del av träningen.",
+  "Att äta något proteinrikt inom några timmar efter passet är bra — ingen magisk gräns i minuter.",
+  "Regelbundna sovtider gör mer för återhämtningen än antal timmar en enstaka natt.",
+  "Andas ut lite idag — ett lugnare nervsystem återhämtar sig snabbare.",
+];
+
+function pickRandomLine(options: string[]) {
+  return options[Math.floor(Math.random() * options.length)];
+}
+
 type ReviewSet = {
   weight: number;
   reps: number;
@@ -47,6 +74,7 @@ type EditedSet = {
   weight: string;
   reps: string;
   rir: string;
+  duration: string;
 };
 
 type Props = {
@@ -56,7 +84,7 @@ type Props = {
     exerciseName: string,
     setIndex: number,
     exerciseKey: string,
-    updated: { weight: number; reps: number; rir?: number }
+    updated: { weight: number; reps: number; rir?: number; durationSeconds?: number }
   ) => void;
 };
 
@@ -136,13 +164,40 @@ function SetRow({
     weight: String(set.weight),
     reps: String(set.reps),
     rir: set.rir != null ? String(set.rir) : "",
+    duration:
+      typeof set.durationSeconds === "number" && set.durationSeconds > 0
+        ? String(Math.round(set.durationSeconds))
+        : "",
   });
+  const [error, setError] = useState<string | null>(null);
+  const isTimed = set.metricType === "time" || typeof set.durationSeconds === "number";
 
   if (editing) {
     const handleSave = () => {
+      const rir = values.rir.trim() !== "" ? parseInt(values.rir, 10) : undefined;
+
+      if (isTimed) {
+        const duration = parseInt(values.duration, 10);
+        if (!Number.isFinite(duration) || duration <= 0) {
+          setError("Tiden ser inte rätt ut. Kontrollera och försök igen.");
+          return;
+        }
+        if (duration > 21600) {
+          setError("Tiden ser ut som en felskrivning. Kontrollera och försök igen.");
+          return;
+        }
+        onEdit?.(exerciseName, set.setIndex, set.exerciseKey, {
+          weight: set.weight,
+          reps: set.reps,
+          rir,
+          durationSeconds: duration,
+        });
+        setEditing(false);
+        return;
+      }
+
       const weight = parseFloat(values.weight.replace(",", "."));
       const reps = parseInt(values.reps, 10);
-      const rir = values.rir.trim() !== "" ? parseInt(values.rir, 10) : undefined;
       if (!Number.isFinite(weight) || !Number.isFinite(reps)) return;
       onEdit?.(exerciseName, set.setIndex, set.exerciseKey, { weight, reps, rir });
       setEditing(false);
@@ -157,35 +212,55 @@ function SetRow({
         >
           ✕
         </button>
-        <div className="grid grid-cols-3 gap-2">
+        {isTimed ? (
           <div>
-            <p className="mb-1 text-[10px] text-white/40">Vikt (kg)</p>
+            <p className="mb-1 text-[10px] text-white/40">Tid (sekunder)</p>
             <input
-              className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
-              inputMode="decimal"
-              value={values.weight}
-              onChange={(e) => setValues((v) => ({ ...v, weight: e.target.value }))}
-            />
-          </div>
-          <div>
-            <p className="mb-1 text-[10px] text-white/40">Reps</p>
-            <input
+              autoFocus
               className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
               inputMode="numeric"
-              value={values.reps}
-              onChange={(e) => setValues((v) => ({ ...v, reps: e.target.value }))}
+              value={values.duration}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, duration: e.target.value.replace(/[^0-9]/g, "") }))
+              }
             />
           </div>
-          <div>
-            <p className="mb-1 text-[10px] text-white/40">RIR</p>
-            <input
-              className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
-              inputMode="numeric"
-              value={values.rir}
-              onChange={(e) => setValues((v) => ({ ...v, rir: e.target.value }))}
-            />
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <p className="mb-1 text-[10px] text-white/40">Vikt (kg)</p>
+              <input
+                className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
+                inputMode="decimal"
+                value={values.weight}
+                onChange={(e) => setValues((v) => ({ ...v, weight: e.target.value }))}
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-[10px] text-white/40">Reps</p>
+              <input
+                className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
+                inputMode="numeric"
+                value={values.reps}
+                onChange={(e) => setValues((v) => ({ ...v, reps: e.target.value }))}
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-[10px] text-white/40">RIR</p>
+              <input
+                className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
+                inputMode="numeric"
+                value={values.rir}
+                onChange={(e) => setValues((v) => ({ ...v, rir: e.target.value }))}
+              />
+            </div>
           </div>
-        </div>
+        )}
+        {error && (
+          <p className="rounded-lg border border-red-400/20 bg-red-900/20 px-2 py-1.5 text-xs text-red-300">
+            {error}
+          </p>
+        )}
         <div className="flex gap-2">
           <button
             className="flex-1 rounded-lg border border-white/[0.07] bg-white/[0.04] py-1.5 text-xs font-semibold text-white/60 transition hover:text-white"
@@ -215,6 +290,7 @@ function SetRow({
 }
 
 export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Props) {
+  const [nextSessionTip] = useState(() => pickRandomLine(NEXT_SESSION_TIPS));
   const title = review.isPartial
     ? "Passet är sparat."
     : review.totalSets >= 10
@@ -287,9 +363,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
         <p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-white/35">
           Till nästa pass
         </p>
-        <p className="mt-3 text-sm leading-6 text-white/76">
-          Mat, vatten och sömn nu. Det är där nästa pass börjar.
-        </p>
+        <p className="mt-3 text-sm leading-6 text-white/76">{nextSessionTip}</p>
       </section>
 
       <button

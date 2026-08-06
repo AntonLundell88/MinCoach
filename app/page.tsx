@@ -63,6 +63,52 @@ const AUTH_GATE_BYPASS_KEY = "mincoachContinueWithoutAccount";
 const COACH_PROGRAM_MAX_DAYS = 6;
 const MANUAL_PROGRAM_MAX_DAYS = 7;
 
+const UNDO_SET_MESSAGES = [
+  "Såg det — stryker det setet.",
+  "Vi stryker det setet.",
+  "Det setet hände aldrig. 🙈",
+  "Det setet tar vi bort.",
+];
+
+const MISSING_TIME_MESSAGES = [
+  "Jag behöver tiden först. Starta klockan för att logga tiden.",
+  "Starta klockan så vi får en tid att jobba med.",
+  "Tryck på Starta, så loggar vi tiden.",
+];
+
+const IMPLAUSIBLE_TIME_MESSAGES = [
+  "Vänta.\n\nTiden ser ut som en felskrivning. Jag sparar inte setet förrän tiden är rätt.",
+  "Vänta.\n\nDet där kan inte stämma va? Jag sparar inte setet förrän tiden är rätt.",
+  "Vänta.\n\nNja, den tiden låter rätt orimlig. Jag sparar inte setet förrän den är rätt.",
+];
+
+const IMPLAUSIBLE_REPS_MESSAGES = [
+  "Vänta.\n\nRepsen ser ut som en felskrivning. Jag sparar inte setet förrän repsen är rätt.",
+  "Vänta.\n\nDet där kan inte stämma va? Jag sparar inte setet förrän repsen är rätt.",
+  "Vänta.\n\nNja, den repsiffran låter rätt orimlig. Jag sparar inte setet förrän den är rätt.",
+];
+
+const MISSING_WEIGHT_AND_REPS_MESSAGES = [
+  "Jag behöver vikt och reps först.",
+  "Fyll i vikt och reps så kör vi.",
+  "Vikt och reps saknas än.",
+];
+
+const MISSING_REPS_ONLY_MESSAGES = [
+  "Jag behöver reps först.",
+  "Fyll i reps så kör vi.",
+  "Reps saknas än.",
+];
+
+const EXTREME_REPS_EASTER_EGG =
+  "Om det stämmer skriver vi kontrakt med Guinness rekordbok istället. Skriv in det riktiga antalet.";
+const EXTREME_TIME_EASTER_EGG =
+  "Om det stämmer skriver vi kontrakt med Guinness rekordbok istället. Skriv in den riktiga tiden.";
+
+function pickRandomLine(options: string[]) {
+  return options[Math.floor(Math.random() * options.length)];
+}
+
 function getPassKeys(daysPerWeek: number, maxDays = COACH_PROGRAM_MAX_DAYS) {
   const count = Math.min(Math.max(1, Math.round(daysPerWeek) || 1), maxDays);
   return ALL_PASS_KEYS.slice(0, count);
@@ -7104,37 +7150,41 @@ async function addSet() {
     const existingPR = personalRecords[prKey];
     const durationSeconds = timedExercise ? Math.round(durationSecondsInput) : undefined;
     if (timedExercise && (!durationSeconds || durationSeconds <= 0)) {
-      const missingInputMessage = "Jag behöver tiden först. Starta klockan eller fyll i tiden.";
       setChatLog((prev) => {
         const lastMessage = prev[prev.length - 1];
-        if (lastMessage?.role === "coach" && lastMessage.text === missingInputMessage) return prev;
-        return [...prev, { role: "coach", source: "engine" as const, text: missingInputMessage }];
+        if (lastMessage?.role === "coach" && MISSING_TIME_MESSAGES.includes(lastMessage.text)) return prev;
+        return [...prev, { role: "coach", source: "engine" as const, text: pickRandomLine(MISSING_TIME_MESSAGES) }];
       });
       return;
     }
     if (timedExercise && durationSeconds && durationSeconds > 7200) {
-      const durationWarningMessage =
-        "Vänta.\n\nTiden ser ut som en felskrivning. Jag sparar inte setet förrän tiden är rätt.";
+      const isExtreme = durationSeconds > 21600;
+      const pool = isExtreme ? [EXTREME_TIME_EASTER_EGG] : IMPLAUSIBLE_TIME_MESSAGES;
       setChatLog((prev) => {
         const lastMessage = prev[prev.length - 1];
-        if (lastMessage?.role === "coach" && lastMessage.text === durationWarningMessage) return prev;
-        return [...prev, { role: "coach", source: "engine" as const, text: durationWarningMessage }];
+        if (
+          lastMessage?.role === "coach" &&
+          (IMPLAUSIBLE_TIME_MESSAGES.includes(lastMessage.text) || lastMessage.text === EXTREME_TIME_EASTER_EGG)
+        ) {
+          return prev;
+        }
+        return [...prev, { role: "coach", source: "engine" as const, text: pickRandomLine(pool) }];
       });
       return;
     }
     const missingRequiredInput =
       (!timedExercise && (!Number.isFinite(reps) || reps <= 0)) ||
       (!bodyweightExercise && (!Number.isFinite(weight) || weight <= 0));
-    const missingInputMessage = bodyweightExercise
-      ? "Jag behöver reps först."
-      : "Jag behöver vikt och reps först.";
+    const missingInputMessagePool = bodyweightExercise
+      ? MISSING_REPS_ONLY_MESSAGES
+      : MISSING_WEIGHT_AND_REPS_MESSAGES;
 
 if (missingRequiredInput) {
   setChatLog((prev) => {
     const lastMessage = prev[prev.length - 1];
     if (
       lastMessage?.role === "coach" &&
-      lastMessage.text === missingInputMessage
+      missingInputMessagePool.includes(lastMessage.text)
     ) {
       return prev;
     }
@@ -7143,7 +7193,8 @@ if (missingRequiredInput) {
       ...prev,
       {
         role: "coach",
-        text: missingInputMessage,
+        source: "engine" as const,
+        text: pickRandomLine(missingInputMessagePool),
       },
     ];
   });
@@ -7151,11 +7202,14 @@ if (missingRequiredInput) {
 }
 
 if (!timedExercise && reps > 200) {
-  const repsWarningMessage =
-    "Vänta.\n\nRepsen ser ut som en felskrivning. Jag sparar inte setet förrän repsen är rätt.";
+  const isExtreme = reps > 1000;
+  const pool = isExtreme ? [EXTREME_REPS_EASTER_EGG] : IMPLAUSIBLE_REPS_MESSAGES;
   setChatLog((prev) => {
     const lastMessage = prev[prev.length - 1];
-    if (lastMessage?.role === "coach" && lastMessage.text === repsWarningMessage) {
+    if (
+      lastMessage?.role === "coach" &&
+      (IMPLAUSIBLE_REPS_MESSAGES.includes(lastMessage.text) || lastMessage.text === EXTREME_REPS_EASTER_EGG)
+    ) {
       return prev;
     }
 
@@ -7164,7 +7218,7 @@ if (!timedExercise && reps > 200) {
       {
         role: "coach",
         source: "engine" as const,
-        text: repsWarningMessage,
+        text: pickRandomLine(pool),
       },
     ];
   });
@@ -7566,7 +7620,7 @@ setRirInput(nextSetRirInput);
     saveJSON("personalRecords", nextPersonalRecords);
 
     setChatLog((prev) => {
-      const undoText = "Såg det — stryker det setet.";
+      const undoText = pickRandomLine(UNDO_SET_MESSAGES);
       if (prev.length > 0 && prev[prev.length - 1].role === "coach") {
         return [...prev.slice(0, -1), { role: "coach", source: "engine" as const, text: undoText }];
       }
@@ -7574,14 +7628,20 @@ setRirInput(nextSetRirInput);
     });
   }
 
-  function updateSet(setIdx: number, newWeight: number, newReps: number, newRir: number) {
+  function updateSet(setIdx: number, newWeight: number, newReps: number, newRir: number, newDurationSeconds?: number) {
     if (!workout) return;
     const updated = structuredClone(workout);
     const sets = updated.exercises[exerciseIndex].sets;
     if (setIdx < 0 || setIdx >= sets.length) return;
     const exerciseName = updated.exercises[exerciseIndex].name;
     const key = exerciseKey(exerciseName);
-    sets[setIdx] = { ...sets[setIdx], weight: newWeight, reps: newReps, rir: newRir };
+    sets[setIdx] = {
+      ...sets[setIdx],
+      weight: newWeight,
+      reps: newReps,
+      rir: newRir,
+      ...(newDurationSeconds !== undefined ? { durationSeconds: newDurationSeconds } : {}),
+    };
     setWorkout(updated);
 
     const workoutsForExercise = [updated, ...history];
@@ -7618,14 +7678,21 @@ setRirInput(nextSetRirInput);
     setIdx: number,
     newWeight: number,
     newReps: number,
-    newRir: number
+    newRir: number,
+    newDurationSeconds?: number
   ) {
     const updatedHistory = history.map((w) => {
       if (w.id !== workoutId) return w;
       const updated = structuredClone(w);
       const ex = updated.exercises.find((e) => e.name === exerciseName);
       if (!ex || setIdx < 0 || setIdx >= ex.sets.length) return w;
-      ex.sets[setIdx] = { ...ex.sets[setIdx], weight: newWeight, reps: newReps, rir: newRir };
+      ex.sets[setIdx] = {
+        ...ex.sets[setIdx],
+        weight: newWeight,
+        reps: newReps,
+        rir: newRir,
+        ...(newDurationSeconds !== undefined ? { durationSeconds: newDurationSeconds } : {}),
+      };
       return updated;
     });
 
@@ -8873,7 +8940,15 @@ addCoachMessage={(text, eventKey, source = "engine") =>
               ...ex,
               sets: ex.sets.map((s, i) =>
                 i === setIndex
-                  ? { ...s, weight: updated.weight, reps: updated.reps, rir: updated.rir }
+                  ? {
+                      ...s,
+                      weight: updated.weight,
+                      reps: updated.reps,
+                      rir: updated.rir,
+                      ...(updated.durationSeconds !== undefined
+                        ? { durationSeconds: updated.durationSeconds }
+                        : {}),
+                    }
                   : s
               ),
             };
@@ -8924,7 +8999,15 @@ addCoachMessage={(text, eventKey, source = "engine") =>
               ...ex,
               sets: ex.sets.map((s) =>
                 s.setIndex === setIndex
-                  ? { ...s, weight: updated.weight, reps: updated.reps, rir: updated.rir }
+                  ? {
+                      ...s,
+                      weight: updated.weight,
+                      reps: updated.reps,
+                      rir: updated.rir,
+                      ...(updated.durationSeconds !== undefined
+                        ? { durationSeconds: updated.durationSeconds }
+                        : {}),
+                    }
                   : s
               ),
             };

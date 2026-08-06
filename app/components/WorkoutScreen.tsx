@@ -265,7 +265,7 @@ type Props = {
   >;
   plannedWeightKg?: number;
   plannedReps?: number;
-  updateSet: (setIdx: number, weight: number, reps: number, rir: number) => void;
+  updateSet: (setIdx: number, weight: number, reps: number, rir: number, durationSeconds?: number) => void;
   validateSetWeight: (weight: number) => string | null;
   previousWorkoutSummary?: string;
   otherGymReference?: CoachExerciseIntroContext["otherGymReference"];

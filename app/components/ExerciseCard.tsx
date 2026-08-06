@@ -107,6 +107,8 @@ export default function ExerciseCard({
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
   const [useAddedWeight, setUseAddedWeight] = useState(false);
   const [isDurationRunning, setIsDurationRunning] = useState(false);
+  const [isEditingDuration, setIsEditingDuration] = useState(false);
+  const [durationEditValue, setDurationEditValue] = useState("");
   const [awaitingWeightConfirm, setAwaitingWeightConfirm] = useState(false);
   const [awaitingRepsConfirm, setAwaitingRepsConfirm] = useState(false);
   const [confirmSkip, setConfirmSkip] = useState(false);
@@ -250,6 +252,7 @@ useEffect(() => {
   setUseAddedWeight(false);
   setIsDurationRunning(false);
   setDurationSecondsInput(0);
+  setIsEditingDuration(false);
 }, [currentExerciseName, setDurationSecondsInput]);
 /* eslint-enable react-hooks/set-state-in-effect */
 useEffect(() => {
@@ -415,33 +418,86 @@ useEffect(() => {
                 <label className="text-xs text-gray-300">Tid</label>
               </div>
               <div className="workout-timer-card rounded-2xl border border-blue-300/15 bg-slate-950/50 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-2xl font-semibold tracking-[-0.03em] text-white">
-                    {formatDuration(durationSecondsInput)}
-                  </p>
+                {isEditingDuration ? (
                   <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setIsDurationRunning((value) => !value)}
-                      className="workout-ai-action inline-flex items-center gap-1.5 rounded-xl border border-blue-300/20 bg-blue-500/[0.12] px-3 py-1.5 text-xs font-semibold text-blue-50 transition hover:bg-blue-500/[0.18]"
-                    >
-                      {isDurationRunning ? <PauseGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
-                      {isDurationRunning ? "Stoppa" : "Starta"}
-                    </button>
+                    <input
+                      autoFocus
+                      type="text"
+                      inputMode="numeric"
+                      value={durationEditValue}
+                      onChange={(e) => setDurationEditValue(e.target.value.replace(/[^0-9]/g, ""))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          setDurationSecondsInput(Number(durationEditValue) || 0);
+                          setIsDurationRunning(false);
+                          setIsEditingDuration(false);
+                        }
+                        if (e.key === "Escape") setIsEditingDuration(false);
+                      }}
+                      placeholder="sekunder"
+                      className="min-w-0 flex-1 rounded-xl border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-center text-xl font-semibold text-white outline-none focus:border-blue-400/40"
+                    />
                     <button
                       type="button"
                       onClick={() => {
+                        setDurationSecondsInput(Number(durationEditValue) || 0);
                         setIsDurationRunning(false);
-                        setDurationSecondsInput(0);
+                        setIsEditingDuration(false);
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.035] px-2.5 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+                      className="shrink-0 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500"
                     >
-                      <RotateGlyph className="h-3.5 w-3.5" />
-                      Nollställ
+                      Klar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingDuration(false)}
+                      className="shrink-0 rounded-xl border border-white/[0.07] px-2.5 py-2 text-xs font-semibold text-white/58 transition hover:text-white"
+                    >
+                      Avbryt
                     </button>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-2xl font-semibold tracking-[-0.03em] text-white">
+                      {formatDuration(durationSecondsInput)}
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsDurationRunning((value) => !value)}
+                        className="workout-ai-action inline-flex items-center gap-1.5 rounded-xl border border-blue-300/20 bg-blue-500/[0.12] px-3 py-1.5 text-xs font-semibold text-blue-50 transition hover:bg-blue-500/[0.18]"
+                      >
+                        {isDurationRunning ? <PauseGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
+                        {isDurationRunning ? "Stoppa" : "Starta"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDurationRunning(false);
+                          setDurationSecondsInput(0);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.035] px-2.5 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+                      >
+                        <RotateGlyph className="h-3.5 w-3.5" />
+                        Nollställ
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+              {!isEditingDuration && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDurationRunning(false);
+                    setDurationEditValue(durationSecondsInput > 0 ? String(durationSecondsInput) : "");
+                    setIsEditingDuration(true);
+                  }}
+                  className="text-[11px] font-medium text-white/40 underline decoration-white/25 underline-offset-2 transition hover:text-white/70"
+                >
+                  Skriv in tid själv
+                </button>
+              )}
             </div>
           ) : (
             <>
