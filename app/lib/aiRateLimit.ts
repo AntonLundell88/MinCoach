@@ -1,4 +1,4 @@
-type AiRouteKind = "set" | "chat" | "program" | "exercise_intro";
+type AiRouteKind = "set" | "chat" | "program" | "exercise_intro" | "set_video";
 
 type UsageBucket = {
   count: number;
@@ -11,6 +11,7 @@ const LIMITS: Record<AiRouteKind, number> = {
   chat: 180,
   program: 80,
   exercise_intro: 150,
+  set_video: 5,
 };
 
 const store = globalThis as typeof globalThis & {

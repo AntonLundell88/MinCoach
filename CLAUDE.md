@@ -225,11 +225,12 @@ AI ska resonera fritt inom verkligheten, men aldrig hitta på fakta.
   att någon märkte det. Inte akut, men värt att unifiera till en källa
   någon gång — inte en egen refactor-sprint.
 - Ljust tema: knappfärger (`.workout-primary-action`) och de fyra
-  portal-modalerna i passvyn är fixade (aug 2026). Kvar: muskelkartorna
-  ser fortfarande dåliga ut i ljust läge (rör dem inte utan att fråga —
-  de är bra i mörkt), och globals.css har två motstridiga CSS-lager för
-  samma knappar (ett äldre grönt, ett nyare blått som vinner) som borde
-  städas bort, inte bara maskeras med fler overrides.
+  portal-modalerna i passvyn är fixade (aug 2026). Muskelkartornas utseende
+  i ljust läge är medvetet accepterat som det är (aug 2026, Anton: "jag vill
+  ha det som det är") — rör dem inte, föreslå det inte som ett problem.
+  Kvar: globals.css har två motstridiga CSS-lager för samma knappar (ett
+  äldre grönt, ett nyare blått som vinner) som borde städas bort, inte
+  bara maskeras med fler overrides.
 
 ## UI-status
 
