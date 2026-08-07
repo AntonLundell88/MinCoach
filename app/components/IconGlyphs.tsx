@@ -197,3 +197,22 @@ export function FlagGlyph({ className = "" }: IconProps) {
     </svg>
   );
 }
+
+export function CameraGlyph({ className = "" }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="M4 8.6c0-.9.73-1.6 1.6-1.6h1.66c.5 0 .96-.27 1.2-.7l.6-1.1c.24-.43.7-.7 1.2-.7h3.48c.5 0 .96.27 1.2.7l.6 1.1c.24.43.7.7 1.2.7h1.66c.88 0 1.6.72 1.6 1.6v8.8c0 .88-.72 1.6-1.6 1.6H5.6A1.6 1.6 0 0 1 4 17.4V8.6Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 15.6a3.1 3.1 0 1 0 0-6.2 3.1 3.1 0 0 0 0 6.2Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}

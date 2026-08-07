@@ -125,6 +125,16 @@ export type CoachSetContext = {
   };
 };
 
+export type CoachSetVideoContext = {
+  kind: "set_video_feedback";
+  exerciseName: string;
+  weight?: number;
+  reps?: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
+  rir?: number;
+};
+
 export type CoachChatContext = {
   kind: "workout_chat";
   userName?: string;
@@ -417,7 +427,8 @@ export type CoachPromptPayload = {
     | CoachProgramContext
     | CoachProgramBuildContext
     | CoachWorkoutReviewContext
-    | CoachExerciseIntroContext;
+    | CoachExerciseIntroContext
+    | CoachSetVideoContext;
   instruction: string;
   maxCharacters: number;
 };
@@ -772,6 +783,121 @@ export function buildCoachPromptPayload(
     instruction: SET_COACH_INSTRUCTION,
     maxCharacters: MAX_COACH_REPLY_CHARACTERS,
   };
+}
+
+export const SET_VIDEO_FEEDBACK_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    visibility: { type: "string", enum: ["clear", "partial", "unclear"] },
+    visibilityReason: { type: "string" },
+    whatLooksGood: { type: "string" },
+    mainAdjustment: { type: "string" },
+    needsNewAngle: { type: "boolean" },
+  },
+  required: [
+    "visibility",
+    "visibilityReason",
+    "whatLooksGood",
+    "mainAdjustment",
+    "needsNewAngle",
+  ],
+};
+
+const SET_VIDEO_COACH_SYSTEM = COACH_HARD_GUARDRAILS;
+
+const SET_VIDEO_COACH_INSTRUCTION = [
+  "Du har fått en kort sekvens bildrutor från en video av setet — tagna i ordning under samma rörelse, inte separata tillfällen.",
+  "Reagera på det du faktiskt ser, som en fortsättning på din vanliga setreaktion — aldrig som en separat teknikanalys eller rapport.",
+  'Hitta aldrig på detaljer du inte ser i bilderna. Om bildrutorna är för otydliga, för långt bort, fel vinkel eller inte visar hela rörelsen: sätt visibility till "unclear" eller "partial" och håll whatLooksGood/mainAdjustment korta eller tomma — gissa inte fram teknik du inte kan se.',
+  'visibilityReason: bara ifyllt om visibility INTE är "clear". En kort, konkret, mänsklig beskrivning av VARFÖR du inte kunde se ordentligt — t.ex. "det var för mörkt", "du stod för långt bort", "vinkeln visade inte höften" eller "bilderna var suddiga". Skriv det som du själv skulle säga det, inte en teknisk felkod. Tom sträng om visibility är "clear".',
+  "whatLooksGood: en kort, konkret sak som faktiskt fungerar i bilderna. Tom sträng om inget går att bedöma.",
+  "mainAdjustment: högst EN sak att tänka på till nästa gång — den mest värdefulla, inte en checklista. Tom sträng om inget går att bedöma.",
+  "needsNewAngle: true om vinkeln eller avståndet gjorde det svårt att bedöma rörelsen ordentligt.",
+  "",
+  COACH_VOICE_BRIEF,
+  "",
+  COACH_LANGUAGE_NOTES,
+].join("\n");
+
+export function buildCoachSetVideoPromptPayload(
+  context: CoachSetVideoContext
+): CoachPromptPayload {
+  return {
+    system: SET_VIDEO_COACH_SYSTEM,
+    context,
+    instruction: SET_VIDEO_COACH_INSTRUCTION,
+    maxCharacters: MAX_COACH_REPLY_CHARACTERS,
+  };
+}
+
+export function composeSetVideoCoachText(result: {
+  visibility: "clear" | "partial" | "unclear";
+  visibilityReason?: string;
+  whatLooksGood: string;
+  mainAdjustment: string;
+}) {
+  if (result.visibility === "unclear") {
+    const reason = result.visibilityReason?.trim();
+    return reason
+      ? `Jag hann se klippet, men ${reason.charAt(0).toLowerCase()}${reason.slice(1)} — filma gärna om.`
+      : "Jag hann se klippet, men fick inte tillräckligt tydlig bild för att säga något säkert. Filma gärna om.";
+  }
+
+  const parts = [result.whatLooksGood, result.mainAdjustment]
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return parts.length > 0
+    ? parts.join(" ")
+    : "Jag såg klippet men har inget särskilt att lägga till just nu — fortsätt som du gör.";
+}
+
+export async function requestAiCoachSetVideoReply(args: {
+  context: CoachSetVideoContext;
+  frames: string[];
+  fallbackReply: string;
+  signal?: AbortSignal;
+}) {
+  const { context, frames, fallbackReply, signal } = args;
+
+  try {
+    const response = await fetch("/api/coach/set-video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ context, frames, fallbackReply }),
+      signal,
+    });
+
+    if (!response.ok) {
+      return {
+        mode: "fallback" as const,
+        reason: "request_failed",
+        text: fallbackReply,
+      };
+    }
+
+    const data = (await response.json()) as {
+      mode?: "ai" | "fallback";
+      reason?: string;
+      text?: string;
+      needsNewAngle?: boolean;
+    };
+
+    return {
+      mode: data.mode ?? "fallback",
+      reason: data.reason,
+      text: data.text ?? fallbackReply,
+      needsNewAngle: data.needsNewAngle ?? false,
+    };
+  } catch {
+    return {
+      mode: "fallback" as const,
+      reason: "network_error",
+      text: fallbackReply,
+      needsNewAngle: false,
+    };
+  }
 }
 
 export function buildCoachChatPromptPayload(

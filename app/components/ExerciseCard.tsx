@@ -1,13 +1,14 @@
 "use client";
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
+import { CameraGlyph, PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
   getExerciseWeightStep,
   isBodyweightExercise,
   isTimedExercise,
 } from "../lib/exercises";
 import ExerciseInfoModal from "./ExerciseInfoModal";
+import VideoFeedbackInfoModal from "./VideoFeedbackInfoModal";
 
 type PersonalRecord = {
   exerciseName: string;
@@ -46,6 +47,7 @@ type Props = {
   plannedReps?: number;
   embedded?: boolean;
   nextExerciseButton?: React.ReactNode;
+  onRecordLastSet?: () => void;
 };
 
 const CRAZY_WEIGHT_MESSAGES = [
@@ -102,6 +104,7 @@ export default function ExerciseCard({
   plannedReps,
   embedded = false,
   nextExerciseButton,
+  onRecordLastSet,
 }: Props) {
   const [showRirInfo, setShowRirInfo] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
@@ -114,6 +117,7 @@ export default function ExerciseCard({
   const [confirmSkip, setConfirmSkip] = useState(false);
   const [crazyWeightMessageIndex] = useState(() => Math.floor(Math.random() * CRAZY_WEIGHT_MESSAGES.length));
   const [awaitingDecimalConfirm, setAwaitingDecimalConfirm] = useState(false);
+  const [showVideoInfo, setShowVideoInfo] = useState(false);
   const [suggestedDecimalWeight, setSuggestedDecimalWeight] = useState<number | null>(null);
   const isBodyweight = isBodyweightExercise(currentExerciseName);
   const isTimed = isTimedExercise(currentExerciseName);
@@ -854,13 +858,36 @@ useEffect(() => {
           {embedded ? (
             <>
               {nextExerciseButton}
-              <button
-                className="w-full rounded-xl border border-white/[0.04] bg-transparent px-4 py-2 text-sm font-medium text-white/36 transition hover:bg-white/[0.05] hover:text-white/58"
-                onClick={removeLastSet}
-                title="Ta bort senaste set"
-              >
-                Ångra set
-              </button>
+              <div className="flex gap-2">
+                <button
+                  className="flex-1 rounded-xl border border-white/[0.04] bg-transparent px-4 py-2 text-sm font-medium text-white/36 transition hover:bg-white/[0.05] hover:text-white/58"
+                  onClick={removeLastSet}
+                  title="Ta bort senaste set"
+                >
+                  Ångra set
+                </button>
+                {onRecordLastSet ? (
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.075] bg-white/[0.035] text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+                      onClick={onRecordLastSet}
+                      title="Filma senaste setet"
+                      aria-label="Filma senaste setet"
+                    >
+                      <CameraGlyph className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowVideoInfo(true)}
+                      className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-[10px] font-semibold text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                      aria-label="Vad gör filma-knappen?"
+                    >
+                      i
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </>
           ) : (
             <div className="contents">
@@ -871,9 +898,33 @@ useEffect(() => {
               >
                 Ångra set
               </button>
+              {onRecordLastSet ? (
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.075] bg-white/[0.035] text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+                    onClick={onRecordLastSet}
+                    title="Filma senaste setet"
+                    aria-label="Filma senaste setet"
+                  >
+                    <CameraGlyph className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowVideoInfo(true)}
+                    className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-[10px] font-semibold text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                    aria-label="Vad gör filma-knappen?"
+                  >
+                    i
+                  </button>
+                </div>
+              ) : null}
               {nextExerciseButton}
             </div>
           )}
+          {showVideoInfo ? (
+            <VideoFeedbackInfoModal onClose={() => setShowVideoInfo(false)} />
+          ) : null}
         </div>
       )}
     </div>

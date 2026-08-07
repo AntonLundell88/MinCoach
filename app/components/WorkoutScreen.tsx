@@ -5,8 +5,10 @@ import ExerciseCard from "./ExerciseCard";
 import ExerciseInfoModal from "./ExerciseInfoModal";
 import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
+import SetVideoReview from "./SetVideoReview";
+import VideoFeedbackInfoModal from "./VideoFeedbackInfoModal";
 import ToggleSwitch from "./ToggleSwitch";
-import { CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
+import { CameraGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
   getExerciseProfile,
   isBodyweightExercise,
@@ -773,6 +775,8 @@ export default function WorkoutScreen({
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showForraGangen, setShowForraGangen] = useState(false);
   const [chatFocusMode, setChatFocusMode] = useState(false);
+  const [showVideoReview, setShowVideoReview] = useState(false);
+  const [showVideoInfo, setShowVideoInfo] = useState(false);
   const [isNormalChatHistoryOpen, setIsNormalChatHistoryOpen] = useState(false);
   const normalChatCardRef = useRef<HTMLDivElement | null>(null);
   const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
@@ -1074,6 +1078,27 @@ useEffect(() => {
                   : "Första setet"}
               </p>
             </div>
+            {latestSet ? (
+              <button
+                type="button"
+                onClick={() => setShowVideoReview(true)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.045] text-white/72 transition hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
+                aria-label="Filma senaste setet"
+                title="Filma senaste setet"
+              >
+                <CameraGlyph className="h-5 w-5" />
+              </button>
+            ) : null}
+            {latestSet ? (
+              <button
+                type="button"
+                onClick={() => setShowVideoInfo(true)}
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.045] text-[9px] font-semibold text-white/55 transition hover:bg-white/[0.07] hover:text-white"
+                aria-label="Vad gör filma-knappen?"
+              >
+                i
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => setChatFocusMode(false)}
@@ -1520,6 +1545,7 @@ useEffect(() => {
           personalRecords={personalRecords}
           plannedWeightKg={plannedWeightKg}
           plannedReps={plannedReps}
+          onRecordLastSet={latestSet ? () => setShowVideoReview(true) : undefined}
           nextExerciseButton={
             <button
               type="button"
@@ -2186,6 +2212,21 @@ useEffect(() => {
 
         </div>
       </div>
+    ) : null}
+    {showVideoReview && latestSet ? (
+      <SetVideoReview
+        exerciseName={currentExerciseName}
+        weight={latestSet.weight}
+        reps={latestSet.reps}
+        durationSeconds={latestSet.durationSeconds}
+        metricType={latestSet.metricType}
+        rir={latestSet.rir}
+        onClose={() => setShowVideoReview(false)}
+        onFeedbackReceived={(text) => addCoachMessage(text, undefined, "llm")}
+      />
+    ) : null}
+    {showVideoInfo ? (
+      <VideoFeedbackInfoModal onClose={() => setShowVideoInfo(false)} />
     ) : null}
     </>
   );
