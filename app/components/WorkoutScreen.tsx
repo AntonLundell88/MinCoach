@@ -196,7 +196,7 @@ type Props = {
   }[];
   chatInput: string;
   setChatInput: (v: string) => void;
-  addCoachMessage: (text: string, eventKey?: string, source?: "engine" | "llm" | "video") => void;
+  addCoachMessage: (text: string, eventKey?: string, source?: "engine" | "llm" | "video", exerciseName?: string) => void;
   sendChat: () => void;
   isCoachThinking?: boolean;
   workoutExerciseInput: string;
@@ -989,7 +989,7 @@ const [introLoading, setIntroLoading] = useState(false);
 useEffect(() => {
   if (!currentExerciseName) return;
   if (isCoachThinking) return;
-  const introIdentity = `${exerciseIndex}:${exerciseKey(currentExerciseName)}`;
+  const introIdentity = exerciseKey(currentExerciseName);
   if (introSentForIndexRef.current === introIdentity) return;
 
   const eventKey = `exercise_intro:${introIdentity}`;
@@ -2237,7 +2237,7 @@ useEffect(() => {
         metricType={videoReviewContext.metricType}
         rir={videoReviewContext.rir}
         onClose={() => setShowVideoReview(false)}
-        onFeedbackReceived={(text) => addCoachMessage(text, undefined, "video")}
+        onFeedbackReceived={(text) => addCoachMessage(text, undefined, "video", currentExerciseName)}
       />
     ) : null}
     {showVideoInfo ? (

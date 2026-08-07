@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
-import {
-  buildCoachProgramPromptPayload,
-  sanitizeCoachReply,
-  type CoachProgramContext,
-} from "../../../lib/coachAi";
+import { sanitizeCoachReply, type CoachProgramContext } from "../../../lib/coachAi";
+import { buildCoachProgramPromptPayload } from "../../../lib/coachPrompts";
 
 type CoachProgramRequest = {
   context?: CoachProgramContext;

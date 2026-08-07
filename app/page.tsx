@@ -8863,7 +8863,7 @@ return (
         pickExerciseForSwap={pickExerciseForSwap}
         pickCustomExerciseForAdd={pickCustomExerciseForAdd}
         pickCustomExerciseForSwap={pickCustomExerciseForSwap}
-addCoachMessage={(text, eventKey, source = "engine") =>
+addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
   setChatLog((prev) => {
     if (eventKey && prev.some((m) => m.eventKey === eventKey)) {
       return prev;
@@ -8876,6 +8876,7 @@ addCoachMessage={(text, eventKey, source = "engine") =>
         source,
         text,
         eventKey,
+        exerciseName,
       },
     ];
   })

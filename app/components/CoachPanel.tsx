@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef } from "react";
-import { SendGlyph } from "./IconGlyphs";
+import { CameraGlyph, SendGlyph } from "./IconGlyphs";
 
 type DayForm = "trött" | "normal" | "stark" | null;
 
@@ -362,15 +362,15 @@ export default function CoachPanel({
                 }
               >
                 <div className="mb-1 flex items-center gap-1.5">
-                  {m.role === "coach" && m.source && (
+                  {m.role === "coach" && m.source === "video" ? (
+                    <CameraGlyph className="h-3 w-3 shrink-0 text-blue-300/75" />
+                  ) : m.role === "coach" && m.source ? (
                     <span
                       className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        m.source === "llm" || m.source === "video"
-                          ? "bg-blue-400/70"
-                          : "bg-yellow-400/70"
+                        m.source === "llm" ? "bg-blue-400/70" : "bg-yellow-400/70"
                       }`}
                     />
-                  )}
+                  ) : null}
                   <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
                     {m.role === "coach" ? "Coach" : "Du"}
                   </p>

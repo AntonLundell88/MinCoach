@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import {
-  buildCoachPromptPayload,
   sanitizeCoachReply,
   sanitizeCoachSetFallback,
   sanitizeCoachSetReply,
   type CoachSetContext,
 } from "../../../lib/coachAi";
+import { buildCoachPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
 
 type CoachSetRequest = {

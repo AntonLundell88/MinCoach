@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  buildCoachExerciseIntroPromptPayload,
-  sanitizeCoachReply,
-  type CoachExerciseIntroContext,
-} from "../../../lib/coachAi";
+import { sanitizeCoachReply, type CoachExerciseIntroContext } from "../../../lib/coachAi";
+import { buildCoachExerciseIntroPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
 
 type CoachExerciseIntroRequest = {

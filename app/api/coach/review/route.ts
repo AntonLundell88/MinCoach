@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import {
-  buildCoachWorkoutReviewPromptPayload,
   sanitizeCoachReply,
   type CoachWorkoutReviewContext,
   type CoachWorkoutReviewResult,
 } from "../../../lib/coachAi";
+import { buildCoachWorkoutReviewPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
 
 type CoachReviewRequest = {

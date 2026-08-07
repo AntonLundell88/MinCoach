@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
+import { sanitizeCoachReply, type CoachSetVideoContext } from "../../../lib/coachAi";
 import {
   buildCoachSetVideoPromptPayload,
   composeSetVideoCoachText,
-  sanitizeCoachReply,
   SET_VIDEO_FEEDBACK_JSON_SCHEMA,
-  type CoachSetVideoContext,
-} from "../../../lib/coachAi";
+} from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 

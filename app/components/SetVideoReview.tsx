@@ -5,7 +5,7 @@ import { requestAiCoachSetVideoReply, type CoachSetVideoContext } from "../lib/c
 type Stage = "intro" | "record" | "review" | "sending" | "result" | "error";
 
 const MAX_RECORD_SECONDS = 8;
-const PRE_ROLL_SECONDS = 10;
+const PRE_ROLL_SECONDS = 20;
 const FRAME_COUNT = 5;
 const FRAME_MAX_DIMENSION = 512;
 const FRAME_QUALITY = 0.6;
