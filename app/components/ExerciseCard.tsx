@@ -870,7 +870,7 @@ useEffect(() => {
                   <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
-                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.075] bg-white/[0.035] text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-blue-300/30 bg-blue-500/[0.16] text-blue-50 transition hover:bg-blue-500/[0.24] hover:text-white"
                       onClick={onRecordLastSet}
                       title="Filma senaste setet"
                       aria-label="Filma senaste setet"

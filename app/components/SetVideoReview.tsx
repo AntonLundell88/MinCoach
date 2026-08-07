@@ -5,6 +5,7 @@ import { requestAiCoachSetVideoReply, type CoachSetVideoContext } from "../lib/c
 type Stage = "intro" | "record" | "review" | "sending" | "result" | "error";
 
 const MAX_RECORD_SECONDS = 8;
+const PRE_ROLL_SECONDS = 10;
 const FRAME_COUNT = 5;
 const FRAME_MAX_DIMENSION = 512;
 const FRAME_QUALITY = 0.6;
@@ -104,6 +105,7 @@ export default function SetVideoReview({
   const [stage, setStage] = useState<Stage>(() => (hasSeenIntro() ? "record" : "intro"));
   const [isRecording, setIsRecording] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(MAX_RECORD_SECONDS);
+  const [preRollSecondsLeft, setPreRollSecondsLeft] = useState<number | null>(null);
   const [clipUrl, setClipUrl] = useState<string | null>(null);
   const [resultText, setResultText] = useState("");
   const [errorText, setErrorText] = useState("");
@@ -113,7 +115,6 @@ export default function SetVideoReview({
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const clipBlobRef = useRef<Blob | null>(null);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (stage !== "record") return;
@@ -153,7 +154,6 @@ export default function SetVideoReview({
 
   useEffect(() => {
     return () => {
-      if (countdownRef.current) clearInterval(countdownRef.current);
       if (clipUrl) URL.revokeObjectURL(clipUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -188,25 +188,52 @@ export default function SetVideoReview({
     recorder.start();
     setIsRecording(true);
     setSecondsLeft(MAX_RECORD_SECONDS);
-
-    countdownRef.current = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          if (countdownRef.current) clearInterval(countdownRef.current);
-          recorderRef.current?.stop();
-          setIsRecording(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
   }
 
   function stopRecording() {
-    if (countdownRef.current) clearInterval(countdownRef.current);
     setIsRecording(false);
     recorderRef.current?.stop();
   }
+
+  function startPreRoll() {
+    setPreRollSecondsLeft(PRE_ROLL_SECONDS);
+  }
+
+  function cancelPreRoll() {
+    setPreRollSecondsLeft(null);
+  }
+
+  useEffect(() => {
+    if (preRollSecondsLeft === null) return;
+
+    if (preRollSecondsLeft <= 0) {
+      setPreRollSecondsLeft(null);
+      startRecording();
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setPreRollSecondsLeft((prev) => (prev === null ? null : prev - 1));
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preRollSecondsLeft]);
+
+  useEffect(() => {
+    if (!isRecording) return;
+
+    if (secondsLeft <= 0) {
+      stopRecording();
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setSecondsLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [isRecording, secondsLeft]);
 
   function retake() {
     if (clipUrl) URL.revokeObjectURL(clipUrl);
@@ -265,7 +292,6 @@ export default function SetVideoReview({
     }
     if (isRecording) recorderRef.current?.stop();
     stopStream();
-    if (countdownRef.current) clearInterval(countdownRef.current);
     if (clipUrl) URL.revokeObjectURL(clipUrl);
     onClose();
   }
@@ -305,7 +331,7 @@ export default function SetVideoReview({
 
           {stage === "record" && (
             <div className="space-y-3">
-              <div className="aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black">
+              <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black">
                 <video
                   ref={videoPreviewRef}
                   autoPlay
@@ -313,18 +339,35 @@ export default function SetVideoReview({
                   playsInline
                   className="h-full w-full object-cover"
                 />
+                {preRollSecondsLeft !== null && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                    <span className="text-7xl font-semibold text-white">{preRollSecondsLeft}</span>
+                  </div>
+                )}
               </div>
               <p className="text-xs leading-5 text-white/50">
-                Filma sidled, hela kroppen i bild. Max {MAX_RECORD_SECONDS} sekunder — räcker till 2-4 reps.
+                Filma sidled, hela kroppen i bild. Efter du trycker Spela in har du {PRE_ROLL_SECONDS} sekunder på dig att ställa dig till rätt, sen spelar den in i max {MAX_RECORD_SECONDS} sekunder — räcker till 2-4 reps.
               </p>
               <button
                 type="button"
-                onClick={isRecording ? stopRecording : startRecording}
+                onClick={
+                  preRollSecondsLeft !== null
+                    ? cancelPreRoll
+                    : isRecording
+                    ? stopRecording
+                    : startPreRoll
+                }
                 className={`w-full rounded-2xl px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] ${
-                  isRecording ? "bg-red-600/80 hover:bg-red-500/80" : "bg-blue-600 hover:bg-blue-500"
+                  isRecording || preRollSecondsLeft !== null
+                    ? "bg-red-600/80 hover:bg-red-500/80"
+                    : "bg-blue-600 hover:bg-blue-500"
                 }`}
               >
-                {isRecording ? `Stoppa (${secondsLeft}s)` : "Spela in"}
+                {preRollSecondsLeft !== null
+                  ? `Avbryt (${preRollSecondsLeft}s)`
+                  : isRecording
+                  ? `Stoppa (${secondsLeft}s)`
+                  : "Spela in"}
               </button>
             </div>
           )}

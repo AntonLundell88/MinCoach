@@ -187,6 +187,7 @@ export type CoachChatContext = {
   warmupNote?: string;
   conditioningNote?: string;
   previousCoachReply?: string;
+  lastCoachMessageWasVideoFeedback?: boolean;
   recentConversation?: string[];
 };
 
@@ -709,6 +710,7 @@ const CHAT_QUESTION_INSTRUCTION = [
   "",
   "Fri chat mitt i passet:",
   "- Läs recentConversation INNAN du svarar — det är ditt korttidsminne. Vad har du redan föreslagit? Vad avvisade användaren?",
+  "- Om lastCoachMessageWasVideoFeedback är true: din senaste rad byggde på en video du tittade på en gång, som sedan raderades direkt — den går inte att se igen. Om användaren ber dig kolla igen, zooma in eller peka på något nytt i klippet: säg ärligt att du inte kan se det längre, och referera bara till vad du redan sa.",
   "- Om användaren frågar om att höja och context.progressionOpportunity finns: använd den som facit.",
   "- Om context.currentExerciseCompleted är true: övningen är redan klar. Prata om nästa gång, inte nästa set. Be aldrig användaren köra ett set till om appen inte uttryckligen har ett nästa set.",
   "- Om currentExerciseInfo finns och användaren frågar om övningen: använd den som facit, men svara som coach, inte lexikon.",

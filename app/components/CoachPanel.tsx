@@ -9,7 +9,7 @@ type ChatMessage = {
   text: string;
   setNumber?: number;
   exerciseName?: string;
-  source?: "engine" | "llm" | "fallback";
+  source?: "engine" | "llm" | "fallback" | "video";
   highlight?: boolean;
   emphasis?: boolean;
 };
@@ -365,7 +365,7 @@ export default function CoachPanel({
                   {m.role === "coach" && m.source && (
                     <span
                       className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        m.source === "llm"
+                        m.source === "llm" || m.source === "video"
                           ? "bg-blue-400/70"
                           : "bg-yellow-400/70"
                       }`}

@@ -464,7 +464,7 @@ type ActiveWorkoutDraft = {
     role: "you" | "coach";
     text: string;
     setNumber?: number;
-    source?: "engine" | "llm" | "fallback";
+    source?: "engine" | "llm" | "fallback" | "video";
   }[];
   chatInput: string;
   weightInput: string;
@@ -4581,7 +4581,7 @@ const [chatLog, setChatLog] = useState<
     text: string;
     setNumber?: number;
     exerciseName?: string;
-    source?: "engine" | "llm" | "fallback";
+    source?: "engine" | "llm" | "fallback" | "video";
     highlight?: boolean;
     eventKey?: string;
   }[]
@@ -6050,8 +6050,11 @@ async function sendChat() {
   const routedHasAnyLoggedSet =
     workout?.exercises?.some((ex) => ex.sets.length > 0) ?? false;
   const normalizedChatMessage = normalizeIntentText(msg);
-  const lastCoachMessage =
-    [...chatLog].reverse().find((message) => message.role === "coach")?.text || "";
+  const lastCoachMessageEntry = [...chatLog]
+    .reverse()
+    .find((message) => message.role === "coach");
+  const lastCoachMessage = lastCoachMessageEntry?.text || "";
+  const lastCoachMessageWasVideoFeedback = lastCoachMessageEntry?.source === "video";
   const currentWorkoutExercise = workout?.exercises?.[exerciseIndex];
   const aiUnavailableReply = buildLocalWorkoutChatFallback({
     message: msg,
@@ -6151,6 +6154,7 @@ async function sendChat() {
       warmupNote: overrides?.warmupContext?.note ?? activeWarmupContext?.note,
       conditioningNote: overrides?.conditioningContext?.note ?? activeConditioningContext?.note,
       previousCoachReply: lastCoachMessage,
+      lastCoachMessageWasVideoFeedback,
       recentConversation: chatLog
         .slice(-10)
         .filter((m, i, arr) =>

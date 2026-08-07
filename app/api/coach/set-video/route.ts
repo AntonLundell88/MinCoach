@@ -210,6 +210,11 @@ export async function POST(request: Request) {
       await supabase.from("set_video_feedback").insert({
         user_id: userId,
         exercise_name: context.exerciseName,
+        weight: context.weight ?? null,
+        reps: context.reps ?? null,
+        duration_seconds: context.durationSeconds ?? null,
+        metric_type: context.metricType ?? null,
+        rir: context.rir ?? null,
         visibility,
         visibility_reason: visibilityReason,
         what_looks_good: whatLooksGood,

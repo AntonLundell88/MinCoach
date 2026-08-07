@@ -14,7 +14,7 @@ type ChatMessage = {
   text: string;
   setNumber?: number;
   exerciseName?: string;
-  source?: "engine" | "llm" | "fallback";
+  source?: "engine" | "llm" | "fallback" | "video";
   highlight?: boolean;
   eventKey?: string;
 };

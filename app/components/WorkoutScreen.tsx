@@ -196,7 +196,7 @@ type Props = {
   }[];
   chatInput: string;
   setChatInput: (v: string) => void;
-  addCoachMessage: (text: string, eventKey?: string, source?: "engine" | "llm") => void;
+  addCoachMessage: (text: string, eventKey?: string, source?: "engine" | "llm" | "video") => void;
   sendChat: () => void;
   isCoachThinking?: boolean;
   workoutExerciseInput: string;
@@ -822,6 +822,21 @@ export default function WorkoutScreen({
   const currentExerciseReadyToFinish = Boolean(currentExerciseCompleted);
   const isTimedCurrentExercise = isTimedExercise(currentExerciseName);
   const isBodyweightCurrentExercise = isBodyweightExercise(currentExerciseName);
+  const videoReviewContext = latestSet
+    ? {
+        weight: latestSet.weight,
+        reps: latestSet.reps,
+        durationSeconds: latestSet.durationSeconds,
+        metricType: latestSet.metricType,
+        rir: latestSet.rir,
+      }
+    : {
+        weight: plannedWeightKg,
+        reps: plannedReps,
+        durationSeconds: undefined,
+        metricType: isTimedCurrentExercise ? ("time" as const) : undefined,
+        rir: undefined,
+      };
   const shouldShowWeightInput =
     !isTimedCurrentExercise && !isBodyweightCurrentExercise;
   const currentMetricLabel = isTimedCurrentExercise
@@ -1078,18 +1093,18 @@ useEffect(() => {
                   : "Första setet"}
               </p>
             </div>
-            {latestSet ? (
+            {currentExerciseName ? (
               <button
                 type="button"
                 onClick={() => setShowVideoReview(true)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.045] text-white/72 transition hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/[0.16] text-blue-50 transition hover:bg-blue-500/[0.24] hover:text-white active:scale-[0.97]"
                 aria-label="Filma senaste setet"
                 title="Filma senaste setet"
               >
                 <CameraGlyph className="h-5 w-5" />
               </button>
             ) : null}
-            {latestSet ? (
+            {currentExerciseName ? (
               <button
                 type="button"
                 onClick={() => setShowVideoInfo(true)}
@@ -1545,7 +1560,7 @@ useEffect(() => {
           personalRecords={personalRecords}
           plannedWeightKg={plannedWeightKg}
           plannedReps={plannedReps}
-          onRecordLastSet={latestSet ? () => setShowVideoReview(true) : undefined}
+          onRecordLastSet={currentExerciseName ? () => setShowVideoReview(true) : undefined}
           nextExerciseButton={
             <button
               type="button"
@@ -2213,16 +2228,16 @@ useEffect(() => {
         </div>
       </div>
     ) : null}
-    {showVideoReview && latestSet ? (
+    {showVideoReview && currentExerciseName ? (
       <SetVideoReview
         exerciseName={currentExerciseName}
-        weight={latestSet.weight}
-        reps={latestSet.reps}
-        durationSeconds={latestSet.durationSeconds}
-        metricType={latestSet.metricType}
-        rir={latestSet.rir}
+        weight={videoReviewContext.weight}
+        reps={videoReviewContext.reps}
+        durationSeconds={videoReviewContext.durationSeconds}
+        metricType={videoReviewContext.metricType}
+        rir={videoReviewContext.rir}
         onClose={() => setShowVideoReview(false)}
-        onFeedbackReceived={(text) => addCoachMessage(text, undefined, "llm")}
+        onFeedbackReceived={(text) => addCoachMessage(text, undefined, "video")}
       />
     ) : null}
     {showVideoInfo ? (
