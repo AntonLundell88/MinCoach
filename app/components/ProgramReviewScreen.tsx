@@ -118,35 +118,10 @@ type Props = {
   theme?: "dark" | "light";
 };
 
-const PROGRAM_COPY_REPLACEMENTS: Array<[RegExp, string]> = [
-  [/\bköttade\b/gi, "körde hårt"],
-  [/\bkötta\b/gi, "köra hårt"],
-  [/\bköttigt\b/gi, "tungt"],
-  [/\bköttiga\b/gi, "tunga"],
-  [/\bköttig\b/gi, "tung"],
-  [/\bmanglade\b/gi, "körde kontrollerat"],
-  [/\bmangla\b/gi, "köra kontrollerat"],
-  [/\bbrutalt\b/gi, "tungt"],
-  [/\bbrutala\b/gi, "tunga"],
-  [/\bbrutal\b/gi, "tung"],
-  [/Handledermär/g, "Om handlederna känns ömma"],
-  [/handledermär/g, "om handlederna känns ömma"],
-  [/handledsmär/gi, "handledsbesvär"],
-  [/\bRyggraden\b/g, "Ryggen"],
-  [/\bryggraden\b/g, "ryggen"],
-  [/\bRyggrad\b/g, "Rygg"],
-  [/\bryggrad\b/g, "rygg"],
-];
-
 function cleanProgramCopy(value?: string | null) {
   if (!value) return "";
 
-  return PROGRAM_COPY_REPLACEMENTS.reduce(
-    (text, [pattern, replacement]) => text.replace(pattern, replacement),
-    repairMojibake(value)
-  )
-    .replace(/\s+/g, " ")
-    .trim();
+  return repairMojibake(value).replace(/\s+/g, " ").trim();
 }
 
 function cleanPassNameForDisplay(value: string) {

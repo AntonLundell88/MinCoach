@@ -6,6 +6,7 @@ import {
   type BuiltWorkoutPlan,
   type CoachProgramBuildContext,
 } from "../../../../lib/coachAi";
+import { COACH_HARD_GUARDRAILS, COACH_LANGUAGE_NOTES } from "../../../../lib/coachVoice";
 import {
   getExerciseDefinition,
   getExerciseDefinitionByKey,
@@ -31,13 +32,11 @@ const PROGRAM_BUILD_ATTEMPTS = Number(
 );
 
 const PROGRAM_BUILD_SYSTEM_PROMPT = `
-Språk och namn:
-- Skriv enkel, begriplig svenska. Det ska låta som en trygg coach, inte som AI eller ett forum.
-- Använd inte slang eller otydliga ord som "kötta", "köttade", "köttigt", "mangla" eller "brutal".
-- Hitta aldrig på sammansatta kroppsord. Skriv "om handlederna känns ömma" eller "vid handledsbesvär", inte ord som "Handledermär".
-- Skriv "rygg", inte "ryggrad", när du menar muskler eller passfokus.
-- Passnamn ska vara rena och snygga utan parenteser eller volymtaggar. Skriv "Pass B — Ben och bål", inte "Pass B — Ben & Bål (Medelvolym)".
-- Om du behöver beskriva volym eller fokus gör du det i intent eller planReason, inte i passnamnet.
+${COACH_HARD_GUARDRAILS}
+
+${COACH_LANGUAGE_NOTES}
+
+Passnamn ska vara rena och snygga utan parenteser eller volymtaggar. Skriv "Pass B — Ben och bål", inte "Pass B — Ben & Bål (Medelvolym)". Beskriv volym eller fokus i intent eller planReason istället.
 
 Programbyggets övningssvårighet:
 - Använd availableExercises.difficulty, beginnerFit och stability aktivt.
@@ -47,8 +46,7 @@ Programbyggets övningssvårighet:
 - Om du väljer en medel/avancerad övning för en ny användare ska den ha tydligt syfte, lugn start och ett enklare alternativ.
 - Goblet squat är inte automatiskt en enkel standardövning. Den kan passa hemma/lätt laddad, men på gym är benpress, benspark eller annan stabil variant ofta tryggare för en helt ny eller osäker användare.
 
-Du är MinCoach programcoach. Bygg träningsprogram som en erfaren coach.
-Viktigast: användarens mål, ålder, kön, träningsvana, passlängd, antal dagar, plats, utrustning och begränsningar ska påverka upplägget.
+Bygg träningsprogram som en erfaren coach. Viktigast: användarens mål, ålder, kön, träningsvana, passlängd, antal dagar, plats, utrustning och begränsningar ska påverka upplägget.
 Principer:
 - Muskelbygge: jämn veckovolym, tydliga basövningar, kompletterande isolering, ofta 6-15 reps.
 - Styrka: färre huvudövningar, mätbar progression, lägre till medelhöga reps och längre vila.
@@ -59,7 +57,7 @@ Principer:
 - Varje övning ska ha ett tydligt syfte. Hellre 3-5 bra övningar än ett stökigt pass, särskilt hemma eller vid lite utrustning.
 - Om availableExercises är begränsad får samma trygga övning återkomma i flera pass med olika syfte eller dosering. Fyll aldrig ut med otillåtna övningar.
 - Lägg aldrig samma exerciseKey två gånger i samma pass. Välj hellre en annan kompletterande övning eller färre övningar.
-- Välj ENDAST övningar från availableExercises. Använd exerciseKey exakt som den står i listan och matchande name. Hitta inte på nya loggbara övningar.
+- Välj ENDAST övningar från availableExercises. Använd exerciseKey exakt som den står i listan och matchande name.
 - Saker som uppvärmning, skulderstabilitet, mobilitet eller rörlighet får vara råd i text, men aldrig loggbara övningar i passet.
 - Om location är hemma gäller det hårt: inga maskiner, kablar, benpress, latsdrag eller cable crunch om de inte finns i availableExercises.
 - Om availableExercises.logType är "time_rir" ska reps-fältet beskriva tid, t.ex. "30-45 sek", inte reps.
@@ -222,34 +220,9 @@ function extractOutputText(data: unknown) {
     .join("\n");
 }
 
-const PROGRAM_COPY_REPLACEMENTS: Array<[RegExp, string]> = [
-  [/\bköttade\b/gi, "körde hårt"],
-  [/\bkötta\b/gi, "köra hårt"],
-  [/\bköttigt\b/gi, "tungt"],
-  [/\bköttiga\b/gi, "tunga"],
-  [/\bköttig\b/gi, "tung"],
-  [/\bmangla(?:de)?\b/gi, "köra kontrollerat"],
-  [/\bbrutal(?:t|a)?\b/gi, "tung"],
-  [/Handledermär/gi, "Om handlederna känns ömma"],
-  [/handledermär/gi, "om handlederna känns ömma"],
-  [/handledsmär\b/gi, "handledsbesvär"],
-  [/\bRyggraden\b/g, "Ryggen"],
-  [/\bryggraden\b/g, "ryggen"],
-  [/\bRyggrad\b/g, "Rygg"],
-  [/\bryggrad\b/g, "rygg"],
-];
-
-function applyProgramCopyGuardrails(value: string) {
-  return PROGRAM_COPY_REPLACEMENTS.reduce(
-    (text, [pattern, replacement]) => text.replace(pattern, replacement),
-    repairMojibake(value)
-  )
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function cleanText(value: unknown) {
-  return typeof value === "string" ? applyProgramCopyGuardrails(value) : "";
+  if (typeof value !== "string") return "";
+  return repairMojibake(value).replace(/\s+/g, " ").trim();
 }
 
 function cleanList(value: unknown) {
