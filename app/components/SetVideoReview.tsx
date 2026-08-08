@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { requestAiCoachSetVideoReply, type CoachSetVideoContext } from "../lib/coachAi";
 
 type Stage = "intro" | "record" | "review" | "sending" | "result" | "error";
@@ -272,7 +273,11 @@ export default function SetVideoReview({
         fallbackReply,
       });
 
-      setResultText(response.text);
+      setResultText(
+        response.reason === "rate_limited"
+          ? "Du har nått dagens gräns för videoanalyser — testa igen imorgon."
+          : response.text
+      );
       setStage("result");
     } catch {
       setErrorText("Något gick fel när klippet skulle analyseras. Filmen är inte sparad — testa gärna igen.");
@@ -314,9 +319,20 @@ export default function SetVideoReview({
         <div className="flex-1 overflow-y-auto p-4">
           {stage === "intro" && (
             <div className="space-y-4">
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-[#0b1220]">
+                <Image
+                  src="/filming-angle-guide.png"
+                  alt="Filma från sidan, hela kroppen i bild"
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/75 to-transparent px-4 pb-6 pt-3">
+                  <p className="text-center text-sm font-semibold text-white/92">Filma sidled, hela kroppen i bild.</p>
+                </div>
+              </div>
               <p className="text-[15px] font-semibold text-white/90">Innan du filmar första gången</p>
               <div className="space-y-2.5 text-sm leading-6 text-white/72">
-                <p>Jag ser klippet en gång för att titta på setet, sedan raderas det direkt — varken på din enhet, i appen eller hos oss. Ingen kan se det igen, inte ens jag.</p>
+                <p>Jag ser klippet en gång för att titta på setet, sedan raderas det direkt. Ingen kan se det igen, inte ens jag.</p>
                 <p>Det jag sparar är bara mina skriftliga anteckningar om setet, så jag kan komma ihåg och referera till dem senare — precis som med resten av din träning.</p>
               </div>
               <button

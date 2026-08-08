@@ -402,6 +402,7 @@ type WorkoutReview = {
     worse: string[];
   };
   coachMemoryTakeaway: string[];
+  videoNotes: Array<{ exerciseName: string; text: string }>;
   loggedExercises: ReviewExercise[];
   workoutId: string;
   passKey: string;
@@ -4948,6 +4949,45 @@ return applyWorkoutPlanEdits({
   passDisplayNamesByPass,
 ]);
 
+async function requestAiWorkoutPlanWithRetry(
+  profile: UserProfile,
+  fallbackPlan: BuiltWorkoutPlan
+) {
+  const context = {
+    kind: "program_build" as const,
+    userName: profile.name,
+    profile: {
+      age: profile.age,
+      gender: profile.gender,
+      trainingExperience: profile.trainingExperience,
+      goalPrimary: profile.goalPrimary,
+      goalSecondary: profile.goalSecondary,
+      daysPerWeek: profile.daysPerWeek,
+      minutesPerSession: profile.minutesPerSession,
+      location: profile.location,
+      equipment: profile.location === "hemma" ? profile.equipment : [],
+      exercisePreferences: profile.exercisePreferences ?? [],
+      limitations: profile.limitations,
+    },
+    availableExercises: getAvailableProgramExercises(profile),
+    existingPreferences: programPreferences,
+    recentHealthNotes: getRecentHealthNotes(coachMemory),
+  };
+
+  let result = await requestAiProgramBuild({ context, fallbackPlan });
+
+  if (result.mode !== "ai") {
+    console.warn(`Program build fallback, retrying once: ${result.reason ?? "unknown"}`);
+    result = await requestAiProgramBuild({ context, fallbackPlan });
+  }
+
+  if (result.mode !== "ai") {
+    console.warn(`Program build fallback after retry: ${result.reason ?? "unknown"}`);
+  }
+
+  return result;
+}
+
 async function buildAiWorkoutPlanForProfile(profile: UserProfile) {
   const fallbackPlan = buildProgramFallbackPlan(profile);
   const signature = getProgramProfileSignature(profile);
@@ -4956,33 +4996,7 @@ async function buildAiWorkoutPlanForProfile(profile: UserProfile) {
   setProgramBuildScreenVisible(true);
   setProgramBuildStatus("building");
 
-  const result = await requestAiProgramBuild({
-    context: {
-      kind: "program_build",
-      userName: profile.name,
-      profile: {
-        age: profile.age,
-        gender: profile.gender,
-        trainingExperience: profile.trainingExperience,
-        goalPrimary: profile.goalPrimary,
-        goalSecondary: profile.goalSecondary,
-        daysPerWeek: profile.daysPerWeek,
-        minutesPerSession: profile.minutesPerSession,
-        location: profile.location,
-        equipment: profile.location === "hemma" ? profile.equipment : [],
-        exercisePreferences: profile.exercisePreferences ?? [],
-        limitations: profile.limitations,
-      },
-      availableExercises: getAvailableProgramExercises(profile),
-      existingPreferences: programPreferences,
-      recentHealthNotes: getRecentHealthNotes(coachMemory),
-    },
-    fallbackPlan,
-  });
-
-  if (result.mode !== "ai") {
-    console.warn(`Program build fallback: ${result.reason ?? "unknown"}`);
-  }
+  const result = await requestAiWorkoutPlanWithRetry(profile, fallbackPlan);
 
   const nextPlan: StoredWorkoutPlan = {
     ...result.plan,
@@ -5131,36 +5145,9 @@ useEffect(() => {
     setProgramBuildScreenVisible(true);
     setProgramBuildStatus("building");
 
-    const result = await requestAiProgramBuild({
-      context: {
-        kind: "program_build",
-        userName: activeProfile.name,
-        profile: {
-          age: activeProfile.age,
-          gender: activeProfile.gender,
-          trainingExperience: activeProfile.trainingExperience,
-          goalPrimary: activeProfile.goalPrimary,
-          goalSecondary: activeProfile.goalSecondary,
-          daysPerWeek: activeProfile.daysPerWeek,
-          minutesPerSession: activeProfile.minutesPerSession,
-          location: activeProfile.location,
-          equipment:
-            activeProfile.location === "hemma" ? activeProfile.equipment : [],
-          exercisePreferences: activeProfile.exercisePreferences ?? [],
-          limitations: activeProfile.limitations,
-        },
-        availableExercises: getAvailableProgramExercises(activeProfile),
-        existingPreferences: programPreferences,
-        recentHealthNotes: getRecentHealthNotes(coachMemory),
-      },
-      fallbackPlan,
-    });
+    const result = await requestAiWorkoutPlanWithRetry(activeProfile, fallbackPlan);
 
     if (cancelled) return;
-
-    if (result.mode !== "ai") {
-      console.warn(`Program build fallback: ${result.reason ?? "unknown"}`);
-    }
 
     const nextPlan: StoredWorkoutPlan = {
       ...result.plan,
@@ -5189,6 +5176,7 @@ useEffect(() => {
     cancelled = true;
     if (finishTimer) window.clearTimeout(finishTimer);
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [userProfile, showProgramReview, customWorkoutPlan, programPreferences]);
 
 const nextPlannedPass: WorkoutPass | null =
@@ -7938,8 +7926,9 @@ function buildWorkoutReview(args: {
     same: string[];
     worse: string[];
   };
+  videoNotes?: Array<{ exerciseName: string; text: string }>;
 }): WorkoutReview {
-  const { workout, summary, progression } = args;
+  const { workout, summary, progression, videoNotes = [] } = args;
   const coachMemoryTakeaway: string[] = [];
 
   const allSets = workout.exercises.flatMap((ex) => ex.sets);
@@ -8138,6 +8127,7 @@ return {
   nextFocus,
   progression,
   coachMemoryTakeaway,
+  videoNotes,
   loggedExercises: workout.exercises
     .filter((ex) => ex.sets.length > 0)
     .map((ex) => ({
@@ -8268,10 +8258,15 @@ saveCoachNotes(freshNotes);
     setLastPass(workout.pass);
     void syncBetaSnapshotNow({ reason: "workout-finished" });
 
+const videoNotes = chatLog
+  .filter((m) => m.role === "coach" && m.source === "video")
+  .map((m) => ({ exerciseName: m.exerciseName ?? "", text: m.text }));
+
 const review = buildWorkoutReview({
   workout: workoutWithSummary,
   summary,
   progression: progressionComparison,
+  videoNotes,
 });
 
 setWorkoutReview(null);

@@ -64,6 +64,7 @@ type WorkoutReviewData = {
     worse: string[];
   };
   coachMemoryTakeaway: string[];
+  videoNotes: Array<{ exerciseName: string; text: string }>;
   loggedExercises: ReviewExercise[];
   workoutId: string;
   passKey: string;
@@ -301,6 +302,11 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
   const nextTime = uniqueItems(
     review.nextFocus.length > 0 ? review.nextFocus : review.adjustments
   ).slice(0, 2);
+  const videoNoteLines = uniqueItems(
+    (review.videoNotes ?? []).map((note) =>
+      note.exerciseName ? `${note.exerciseName}: ${note.text}` : note.text
+    )
+  );
 
   return (
     <div className="w-full max-w-none space-y-3 text-white sm:max-w-xl sm:space-y-4">
@@ -328,6 +334,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
 
       <SimpleList title="Detta tar vi med oss" items={takeaways} accent />
       <SimpleList title="Nästa gång" items={nextTime} />
+      <SimpleList title="Videoanalys" items={videoNoteLines} />
 
       {(review.loggedExercises ?? []).length > 0 && (
         <section className="rounded-[1.45rem] border border-white/[0.06] bg-white/[0.032] p-4">

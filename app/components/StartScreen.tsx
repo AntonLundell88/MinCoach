@@ -758,6 +758,10 @@ export default function StartScreen({
                 ont, känns fel eller gör dig osäker.
               </p>
               <p>
+                Värm upp innan tunga set — ett par lätta set på vikten du ska
+                köra minskar skaderisk och gör att musklerna presterar bättre.
+              </p>
+              <p>
                 Vid skada, sjukdom eller medicinska frågor ska du rådgöra med
                 vårdpersonal.
               </p>

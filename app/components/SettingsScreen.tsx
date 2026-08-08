@@ -85,10 +85,10 @@ function getVerifyErrorMessage(message: string) {
   }
 
   if (lower.includes("rate limit") || lower.includes("too many")) {
-    return `För många försök på kort tid. Vänta en stund och testa igen. Supabase säger: ${message}`;
+    return `För många försök på kort tid. Vänta en stund och testa igen.`;
   }
 
-  return `Kunde inte verifiera koden. Supabase säger: ${message}`;
+  return `Kunde inte verifiera koden just nu. Testa igen om en liten stund.`;
 }
 
 function getStatusMode(status: StoredSyncStatus | null) {
@@ -322,8 +322,11 @@ export default function SettingsScreen({
     setIsAuthBusy(false);
 
     if (error) {
+      const lower = error.message.toLowerCase();
       setAuthError(
-        `Kunde inte skicka koden just nu. Supabase säger: ${error.message}`
+        lower.includes("rate limit") || lower.includes("too many")
+          ? "För många försök på kort tid. Vänta en stund och testa igen."
+          : "Kunde inte skicka koden just nu. Dubbelkolla mejladressen och testa igen om en liten stund."
       );
       return;
     }

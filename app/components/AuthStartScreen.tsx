@@ -19,22 +19,22 @@ function getLoginErrorMessage(message: string) {
   const lower = message.toLowerCase();
 
   if (lower.includes("rate limit") || lower.includes("too many")) {
-    return `För många försök på kort tid. Vänta en stund och testa igen. Supabase säger: ${message}`;
+    return `För många försök på kort tid. Vänta en stund och testa igen.`;
   }
 
   if (lower.includes("signup") || lower.includes("sign up")) {
-    return `Den här mejlen kunde inte skapa ett konto just nu. Supabase säger: ${message}`;
+    return `Den här mejlen kunde inte skapa ett konto just nu. Dubbelkolla mejladressen och testa igen.`;
   }
 
   if (lower.includes("redirect") || lower.includes("url")) {
-    return `Inloggningslänken stoppas av redirect-inställningen. Supabase säger: ${message}`;
+    return `Något är fel i inloggningsinställningarna just nu — det är inte du som gjort något fel. Testa igen om en stund.`;
   }
 
   if (lower.includes("email")) {
-    return `Mejlet kunde inte skickas just nu. Supabase säger: ${message}`;
+    return `Mejlet kunde inte skickas just nu. Dubbelkolla mejladressen och testa igen.`;
   }
 
-  return `Kunde inte skicka koden just nu. Supabase säger: ${message}`;
+  return `Kunde inte skicka koden just nu. Testa igen om en liten stund.`;
 }
 
 function getVerifyErrorMessage(message: string) {
@@ -45,10 +45,10 @@ function getVerifyErrorMessage(message: string) {
   }
 
   if (lower.includes("rate limit") || lower.includes("too many")) {
-    return `För många försök på kort tid. Vänta en stund och testa igen. Supabase säger: ${message}`;
+    return `För många försök på kort tid. Vänta en stund och testa igen.`;
   }
 
-  return `Kunde inte verifiera koden. Supabase säger: ${message}`;
+  return `Kunde inte verifiera koden just nu. Testa igen om en liten stund.`;
 }
 
 export default function AuthStartScreen({
