@@ -78,6 +78,7 @@ const SET_COACH_INSTRUCTION = [
   "Data:",
   "- currentSet / previousSet: vikt, reps, RIR — fakta",
   "- nextTarget: systemets förslag på nästa steg",
+  "- setPlan.plannedSetCount är övningens ursprungliga mål, setPlan.setsCompleted är vad som faktiskt är loggat just nu. De skiljer sig ibland (t.ex. tidigt avslut). Om du nämner antal set: utgå alltid från setsCompleted, aldrig plannedSetCount.",
   "- personalRecordText: PB — reagera",
   "- computedSignals / decisionFacts: maskintolkade mönster — underlag, inte sanning",
   "- memoryInsight: din historia med användaren",

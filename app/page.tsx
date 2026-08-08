@@ -6774,15 +6774,15 @@ function suggestReplacementFor(exName: string): string {
   }
   if (key.includes("bänkpress")) fallbackCandidates.push("Hantelpress");
   if (key.includes("militärpress")) fallbackCandidates.push("Hantelpress (axlar)");
-  if (key.includes("latsdrag")) fallbackCandidates.push("Chins (assisterade)");
+  if (key.includes("latsdrag")) fallbackCandidates.push("Assisterade chins");
   if (key.includes("benspark")) fallbackCandidates.push("Goblet squat");
-  if (key.includes("vadpress")) fallbackCandidates.push("Tåhävningar med hantlar");
-  if (key.includes("sidolyft")) fallbackCandidates.push("Kabellyft åt sidan");
+  if (key.includes("vadpress")) fallbackCandidates.push("Sittande vadpress");
+  if (key.includes("sidolyft")) fallbackCandidates.push("Axelpress");
   if (key.includes("rodd")) {
     fallbackCandidates.push("Hantelrodd", "Maskinrodd", "Skivstångsrodd", "Bandrodd");
   }
-  if (key.includes("curl")) fallbackCandidates.push("Hantelcurl");
-  if (key.includes("triceps")) fallbackCandidates.push("Triceps pushdown med rep");
+  if (key.includes("curl")) fallbackCandidates.push("Bicepscurl");
+  if (key.includes("triceps")) fallbackCandidates.push("Triceps pushdown");
 
   return fallbackCandidates.find(isDifferentExercise) ?? "";
 }

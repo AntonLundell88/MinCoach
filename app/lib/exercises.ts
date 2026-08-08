@@ -3391,7 +3391,6 @@ export const KNOWN_EXERCISE_NAMES = Array.from(new Set([
   "Cable cross",
   "Cable crunch",
   "Chins",
-  "Chins (assisterade)",
   "Dips",
   "Goblet squat",
   "Hack squat",
