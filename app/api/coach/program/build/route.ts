@@ -909,7 +909,7 @@ export async function POST(request: Request) {
               ],
             },
           ],
-          max_output_tokens: 2200,
+          max_output_tokens: 4000,
         }),
         signal: controller.signal,
       });

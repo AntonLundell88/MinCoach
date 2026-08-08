@@ -5999,18 +5999,19 @@ async function sendChat() {
     text: string;
     action?: CoachChatAction | null;
   }) => {
-    reply(response.text, response.mode === "ai" ? "llm" : "fallback");
-
     if (
       response.mode === "ai" &&
       response.action?.type === "replace_exercise" &&
       exerciseKey(response.action.fromExerciseName) === exerciseKey(currentExerciseName) &&
       exerciseKey(response.action.toExerciseName) !== exerciseKey(currentExerciseName)
     ) {
-      replaceExerciseInCurrentWorkout(
+      const result = replaceExerciseInCurrentWorkout(
         response.action.fromExerciseName,
         response.action.toExerciseName
       );
+      if (result.handled) reply(response.text, "llm");
+    } else {
+      reply(response.text, response.mode === "ai" ? "llm" : "fallback");
     }
 
     if (response.mode === "ai" && response.action?.type === "note_limitation" && workout) {

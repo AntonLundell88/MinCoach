@@ -131,10 +131,12 @@ export function useExerciseSwapActions(args: {
     if (resolved.status === "empty") return { handled: true };
 
     if (resolved.status === "suggest") {
-      setSwapExerciseInput(resolved.suggestion);
-      const message = `Menar du ${resolved.suggestion}? Jag har fyllt i det namnet. Tryck Byt igen om det stämmer.`;
-      if (!silent) setChatLog((prev) => [...prev, { role: "coach", text: message }]);
-      return { handled: false, message };
+      if (silent) {
+        setSwapExerciseInput(resolved.suggestion);
+        const message = `Menar du ${resolved.suggestion}? Jag har fyllt i det namnet. Tryck Byt igen om det stämmer.`;
+        return { handled: false, message };
+      }
+      return replaceExerciseInCurrentWorkout(fromName, resolved.suggestion, options);
     }
 
     if (resolved.status === "needsCategory") {
@@ -166,10 +168,7 @@ export function useExerciseSwapActions(args: {
 
     if (alreadyInWorkout) {
       const message = `${replacementName} ligger redan i dagens pass.`;
-      if (!silent) {
-        setChatLog((prev) => [...prev, { role: "coach", text: message }]);
-        return { handled: true };
-      }
+      if (!silent) setChatLog((prev) => [...prev, { role: "coach", text: message }]);
       return { handled: false, message };
     }
 
