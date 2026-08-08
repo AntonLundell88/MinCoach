@@ -2905,7 +2905,13 @@ export function getProgramExercisePool(args: {
     if (args.location === "hemma") {
       if (!matchesHomeEquipment(exercise, equipment)) return false;
     } else if (exercise.environment === "hemma") {
-      return false;
+      const needsNoEquipment = exercise.equipmentTags.every(
+        (tag) => tag === "none" || tag === "bodyweight"
+      );
+      const matchesPreferredEquipment = exercise.equipmentTags.some((tag) =>
+        preferences.includes(tag)
+      );
+      if (!needsNoEquipment && !matchesPreferredEquipment) return false;
     }
 
     if (

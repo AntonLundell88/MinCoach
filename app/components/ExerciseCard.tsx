@@ -174,7 +174,8 @@ export default function ExerciseCard({
     Number.isFinite(enteredWeight) &&
     enteredWeight > 0 &&
     (
-      (hasPlan && enteredWeight !== (plannedWeightKg ?? 0)) ||
+      (hasPlan &&
+        Math.abs(enteredWeight - (plannedWeightKg ?? 0)) / (plannedWeightKg ?? 1) > 0.15) ||
       (!hasPlan && pbWeight > 0 && enteredWeight > pbWeight * 1.5)
     );
   const adjustReps = (delta: number) => {
