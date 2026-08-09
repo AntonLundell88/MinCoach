@@ -923,6 +923,8 @@ function buildProgressionPlan(args: {
   const topWeightStableSets = topWeightSets.filter(
     (set) => set.reps >= Math.max(targetReps, topSet.reps - 1) && hasUsefulMargin(set)
   );
+  // Medvetet bredare än isHardOrFailedSet (RIR<=0): deload ska fånga ett
+  // mönster av slitsamma pass över tid, inte kräva total failure varje gång.
   const recentHardCount = recentBestSets
     .slice(0, 4)
     .filter((set) => set.failNote || (typeof set.rir === "number" && set.rir <= 1))
@@ -2879,8 +2881,9 @@ function getNextSetPlan(args: {
   targetReps?: number;
   exerciseName?: string;
   previousSets?: { weight: number; reps: number; rir?: number }[];
+  dayForm?: DayForm | null;
 }) {
-  const { weight, reps, rir, setNumber } = args;
+  const { weight, reps, rir, setNumber, dayForm } = args;
   const exerciseName = args.exerciseName ?? "";
   const decisionProfile = getExerciseDecisionProfile(exerciseName);
   const previousSet = args.previousSets?.[args.previousSets.length - 1];
@@ -2998,6 +3001,7 @@ function getNextSetPlan(args: {
     previousSetShowsUsefulLoad &&
     sameWeightStayedStable;
   const canUseLastSetAsTest =
+    dayForm !== "trött" &&
     onePlannedSetLeft &&
     !shouldCompleteExercise &&
     !fail &&
@@ -3202,9 +3206,25 @@ function getNextSetPlan(args: {
   }
 
   if (tooManyRepsDespiteLowMargin) {
-    const nextWeight = getNextAvailableWeight(weight, exerciseName, "up");
     const min = workingRepRange.min;
     const max = Math.max(min, workingRepRange.max);
+
+    if (dayForm === "trött") {
+      return {
+        weight,
+        repsText: range(min, max),
+        repsInput: min,
+        rirText: "RIR 1-2",
+        rirInput: 2,
+        restText,
+        techniqueCue,
+        strategy: "hold",
+        reason:
+          "Repsen stack iväg trots låg marginal, men du körde in som trött. Vi håller vikten och sparar höjningen till nästa gång du är pigg.",
+      } satisfies NextSetPlan;
+    }
+
+    const nextWeight = getNextAvailableWeight(weight, exerciseName, "up");
 
     return {
       weight: nextWeight,
@@ -3305,6 +3325,21 @@ function getNextSetPlan(args: {
       } satisfies NextSetPlan;
     }
 
+    if (dayForm === "trött") {
+      return {
+        weight,
+        repsText: range(workingRepRange.min, workingRepRange.max),
+        repsInput: workingRepRange.min,
+        rirText: "RIR 1-2",
+        rirInput: 2,
+        restText,
+        techniqueCue,
+        strategy: "hold",
+        reason:
+          "Samma vikt gav fler reps med marginal kvar, men du körde in som trött idag. Vi håller vikten och sparar höjningen till nästa pass.",
+      } satisfies NextSetPlan;
+    }
+
     const nextWeight = getNextAvailableWeight(weight, exerciseName, "up");
 
     return {
@@ -3392,8 +3427,23 @@ function getNextSetPlan(args: {
     } satisfies NextSetPlan;
   }
 
-  const nextWeight = getNextAvailableWeight(weight, exerciseName, "up");
   const min = Math.max(1, reps - 2);
+
+  if (dayForm === "trött") {
+    return {
+      weight,
+      repsText: range(min, reps),
+      repsInput: min,
+      rirText: "RIR 1-2",
+      rirInput: 2,
+      restText,
+      techniqueCue,
+      strategy: "hold",
+      reason: "Du har mer att ge här, men det är en trött dag. Vi håller vikten och sparar höjningen till nästa gång.",
+    } satisfies NextSetPlan;
+  }
+
+  const nextWeight = getNextAvailableWeight(weight, exerciseName, "up");
   return {
     weight: nextWeight,
     repsText: range(min, reps),
@@ -6119,6 +6169,7 @@ async function sendChat() {
               targetReps: goalTargets.targetReps,
               exerciseName: currentExerciseName,
               previousSets: currentWorkoutExercise.sets.slice(0, -1),
+              dayForm: overrides?.dayForm ?? dayForm,
             });
             return { strategy: decision.strategy, reason: decision.reason };
           })()
@@ -7346,6 +7397,7 @@ const painFailure =
         targetReps: goalTargets.targetReps,
         exerciseName: currentExerciseName,
         previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
+        dayForm,
       });
    const bodyweightAdjustedPlan =
     bodyweightExercise && !hasLoggedWeight

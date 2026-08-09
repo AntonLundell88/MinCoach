@@ -35,6 +35,7 @@ type UserProfile = {
   minutesPerSession: number;
   location: "gym" | "hemma";
   equipment: string[];
+  exercisePreferences?: string[];
   limitations: string;
 };
 
@@ -835,6 +836,7 @@ export default function ProgramReviewScreen({
   const libraryExercises = getProgramExercisePool({
     location: profile.location,
     equipment: profile.equipment,
+    exercisePreferences: profile.exercisePreferences ?? [],
     trainingExperience: profile.trainingExperience,
     limit: 120,
   });
