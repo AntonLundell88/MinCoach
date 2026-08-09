@@ -7,6 +7,7 @@ import {
   type CoachProgramBuildContext,
 } from "../../../../lib/coachAi";
 import { COACH_HARD_GUARDRAILS, COACH_LANGUAGE_NOTES } from "../../../../lib/coachVoice";
+import { PROGRAM_DESIGN_PROTOCOL } from "../../../../lib/coachRules";
 import {
   getExerciseDefinition,
   getExerciseDefinitionByKey,
@@ -36,6 +37,8 @@ ${COACH_HARD_GUARDRAILS}
 
 ${COACH_LANGUAGE_NOTES}
 
+${PROGRAM_DESIGN_PROTOCOL}
+
 Passnamn ska vara rena och snygga utan parenteser eller volymtaggar. Skriv "Pass B — Ben och bål", inte "Pass B — Ben & Bål (Medelvolym)". Beskriv volym eller fokus i intent eller planReason istället.
 
 Programbyggets övningssvårighet:
@@ -46,15 +49,7 @@ Programbyggets övningssvårighet:
 - Om du väljer en medel/avancerad övning för en ny användare ska den ha tydligt syfte, lugn start och ett enklare alternativ.
 - Goblet squat är inte automatiskt en enkel standardövning. Den kan passa hemma/lätt laddad, men på gym är benpress, benspark eller annan stabil variant ofta tryggare för en helt ny eller osäker användare.
 
-Bygg träningsprogram som en erfaren coach. Viktigast: användarens mål, ålder, kön, träningsvana, passlängd, antal dagar, plats, utrustning och begränsningar ska påverka upplägget.
-Principer:
-- Muskelbygge: jämn veckovolym, tydliga basövningar, kompletterande isolering, ofta 6-15 reps.
-- Styrka: färre huvudövningar, mätbar progression, lägre till medelhöga reps och längre vila.
-- Fettminskning: enkelt, repeterbart upplägg som bevarar/bygger muskler. Påstå inte att styrketräning ensam styr vikten.
-- Nybörjare/äldre/osäkra användare: färre övningar, stabila varianter, RIR 2-3 och trygg start.
-- Vana/erfarna: mer specifik struktur och RIR 1-3 där det passar.
-- Begränsningar väger tungt. Bygg runt smärta, tidigare skador och oro. Ge inga medicinska garantier.
-- Varje övning ska ha ett tydligt syfte. Hellre 3-5 bra övningar än ett stökigt pass, särskilt hemma eller vid lite utrustning.
+Varje övning ska ha ett tydligt syfte. Hellre 3-5 bra övningar än ett stökigt pass, särskilt hemma eller vid lite utrustning.
 - Om availableExercises är begränsad får samma trygga övning återkomma i flera pass med olika syfte eller dosering. Fyll aldrig ut med otillåtna övningar.
 - Lägg aldrig samma exerciseKey två gånger i samma pass. Välj hellre en annan kompletterande övning eller färre övningar.
 - Välj ENDAST övningar från availableExercises. Använd exerciseKey exakt som den står i listan och matchande name.

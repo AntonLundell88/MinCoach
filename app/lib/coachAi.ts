@@ -300,6 +300,7 @@ export type CoachWorkoutReviewContext = {
     same: string[];
     worse: string[];
   };
+  gymCalibrationNote?: string;
   exercises: Array<{
     name: string;
     sets: Array<{

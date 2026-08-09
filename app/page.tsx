@@ -3499,6 +3499,31 @@ function getOtherGymReference(args: {
   return undefined;
 }
 
+function getGymCalibrationNote(args: {
+  history: Workout[];
+  exerciseNames: string[];
+  currentGymId: string | null;
+  currentGymName: string;
+  gyms: Gym[];
+}): string | undefined {
+  const { history: hist, exerciseNames, currentGymId, currentGymName, gyms } = args;
+  if (!currentGymId || gyms.length <= 1 || exerciseNames.length === 0) return undefined;
+
+  const uncalibrated = exerciseNames.filter((name) => {
+    const key = exerciseKey(name);
+    const sessionsAtCurrentGym = hist.filter(
+      (w) =>
+        w.gymId === currentGymId &&
+        w.exercises.some((e) => exerciseKey(e.name) === key && e.sets.length > 0)
+    );
+    return sessionsAtCurrentGym.length < ESTABLISHED_GYM_SESSION_COUNT;
+  });
+
+  if (uncalibrated.length === 0) return undefined;
+
+  return `Tränar just nu på ${currentGymName}. Ännu inte kalibrerad här (färre än ${ESTABLISHED_GYM_SESSION_COUNT} pass): ${uncalibrated.join(", ")}.`;
+}
+
 function buildRecoveryContext(args: {
   exerciseName: string;
   history: Workout[];
@@ -8263,6 +8288,14 @@ const videoNotes = chatLog
   .filter((m) => m.role === "coach" && m.source === "video")
   .map((m) => ({ exerciseName: m.exerciseName ?? "", text: m.text }));
 
+const gymCalibrationNote = getGymCalibrationNote({
+  history,
+  exerciseNames: progressionComparison.worse,
+  currentGymId: workoutWithSummary.gymId ?? null,
+  currentGymName: workoutWithSummary.gym,
+  gyms,
+});
+
 const review = buildWorkoutReview({
   workout: workoutWithSummary,
   summary,
@@ -8315,6 +8348,7 @@ void requestAiWorkoutReview({
       isPartial: summary.isPartial,
     },
     progression: progressionComparison,
+    gymCalibrationNote,
     exercises: workoutWithSummary.exercises.map((exercise) => ({
       name: exercise.name,
       sets: exercise.sets.map((set) => ({
