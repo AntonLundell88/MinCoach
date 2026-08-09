@@ -317,6 +317,7 @@ export type CoachWorkoutReviewContext = {
     setCount?: number;
     replacementName?: string;
   }>;
+  userNotes?: Array<{ exerciseName?: string; text: string }>;
   warmupNote?: string;
   conditioningNote?: string;
   dayForm?: "trött" | "normal" | "stark" | null;

@@ -8355,6 +8355,11 @@ const videoNotes = chatLog
   .filter((m) => m.role === "coach" && m.source === "video")
   .map((m) => ({ exerciseName: m.exerciseName ?? "", text: m.text }));
 
+const userNotes = chatLog
+  .filter((m) => m.role === "you" && m.text.trim().length > 0)
+  .slice(-8)
+  .map((m) => ({ exerciseName: m.exerciseName, text: m.text.trim().slice(0, 200) }));
+
 const gymCalibrationNote = getGymCalibrationNote({
   history,
   exerciseNames: progressionComparison.worse,
@@ -8436,6 +8441,7 @@ void requestAiWorkoutReview({
         replacementName,
       })
     ),
+    userNotes,
     dayForm,
     recentSessions: history.slice(0, 4).map((w) => ({
       passLabel: w.displayName,
