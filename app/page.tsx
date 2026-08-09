@@ -7085,7 +7085,7 @@ function buildWeightInputWarningMessage({
   previousSets: LoggedSet[];
   existingPR?: PersonalRecord;
   historicalBestSets?: ExerciseBestSet[];
-}) {
+}): { text: string; overridable: boolean } | null {
   const referenceWeight = getReasonableWeightReference(
     previousSets,
     existingPR,
@@ -7100,23 +7100,32 @@ function buildWeightInputWarningMessage({
     : "";
 
   if (isClearlyImpossibleWeight(weight)) {
-    return `Vänta.\n\n${formatWeightForCoach(
-      weight
-    )} kg ser ut som en felskrivning.${suggestionText}\nJag sparar inte setet förrän vikten är rätt.`;
+    return {
+      overridable: false,
+      text: `Vänta.\n\n${formatWeightForCoach(
+        weight
+      )} kg ser ut som en felskrivning.${suggestionText}\nJag sparar inte setet förrän vikten är rätt.`,
+    };
   }
 
   if (isUnusuallyHighGymWeight(weight)) {
-    return `Vänta.\n\n${formatWeightForCoach(
-      weight
-    )} kg är ovanligt högt för ett vanligt gymset.${suggestionText}\nJag sparar inte setet förrän vikten är rätt.`;
+    return {
+      overridable: false,
+      text: `Vänta.\n\n${formatWeightForCoach(
+        weight
+      )} kg är ovanligt högt för ett vanligt gymset.${suggestionText}\nJag sparar inte setet förrän vikten är rätt.`,
+    };
   }
 
   if (hasSuspiciousJump(weight, referenceWeight)) {
-    return `Vänta.\n\n${formatWeightForCoach(
-      weight
-    )} kg är mycket högre än senaste nivån (${formatWeightForCoach(
-      referenceWeight!
-    )} kg).${suggestionText}\nJag sparar inte setet förrän du rättat vikten.`;
+    return {
+      overridable: true,
+      text: `Vänta.\n\n${formatWeightForCoach(
+        weight
+      )} kg är mycket högre än senaste nivån (${formatWeightForCoach(
+        referenceWeight!
+      )} kg).${suggestionText}\nStämmer det, tryck Lägg till set igen så sparar jag det.`,
+    };
   }
 
   return null;
@@ -7127,29 +7136,32 @@ function checkWeightBeforeSavingSet({
   previousSets,
   existingPR,
   historicalBestSets,
+  alreadyWarnedMessage,
 }: {
   weight: number;
   previousSets: LoggedSet[];
   existingPR?: PersonalRecord;
   historicalBestSets?: ExerciseBestSet[];
+  alreadyWarnedMessage?: string;
 }):
   | { ok: true }
   | {
       ok: false;
       message: string;
     } {
-  const message = buildWeightInputWarningMessage({
+  const warning = buildWeightInputWarningMessage({
     weight,
     previousSets,
     existingPR,
     historicalBestSets,
   });
 
-  if (message) {
-    return { ok: false, message };
+  if (!warning) return { ok: true };
+  if (warning.overridable && warning.text === alreadyWarnedMessage) {
+    return { ok: true };
   }
 
-  return { ok: true };
+  return { ok: false, message: warning.text };
 }
 
 async function addSet() {
@@ -7246,11 +7258,14 @@ if (!timedExercise && reps > 200) {
 }
 
 if (!bodyweightExercise && !timedExercise) {
+  const lastChatMessage = chatLog[chatLog.length - 1];
   const weightCheck = checkWeightBeforeSavingSet({
     weight,
     previousSets: exerciseBeingLogged?.sets ?? [],
     existingPR,
     historicalBestSets: getExerciseBestSets(gymFilteredHistory, exerciseName, 6),
+    alreadyWarnedMessage:
+      lastChatMessage?.role === "coach" ? lastChatMessage.text : undefined,
   });
 
   if (!weightCheck.ok) {
@@ -8944,12 +8959,13 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
         updateSet={updateSet}
         validateSetWeight={(weight) => {
           if (isBodyweightExercise(currentExerciseName) || isTimedExercise(currentExerciseName)) return null;
-          return buildWeightInputWarningMessage({
+          const warning = buildWeightInputWarningMessage({
             weight,
             previousSets: workout?.exercises[exerciseIndex]?.sets ?? [],
             existingPR: personalRecords[exerciseKey(currentExerciseName)],
             historicalBestSets: getExerciseBestSets(gymFilteredHistory, currentExerciseName, 6),
           });
+          return warning?.text ?? null;
         }}
         previousWorkoutSummary={getPreviousWorkoutSummaryLine(history) ?? undefined}
         otherGymReference={otherGymReference}
