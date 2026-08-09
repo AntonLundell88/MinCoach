@@ -62,9 +62,15 @@ function getWeekStart(date: Date) {
   return next;
 }
 
+function toLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function getWeekKey(date: Date) {
-  const start = getWeekStart(date);
-  return start.toISOString().slice(0, 10);
+  return toLocalDateKey(getWeekStart(date));
 }
 
 function getWeekLabel(date: Date) {
@@ -76,7 +82,7 @@ function getWeekLabel(date: Date) {
 }
 
 function getDayKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+  return toLocalDateKey(date);
 }
 
 function getDayLabel(date: Date) {
@@ -323,9 +329,9 @@ export default function StatisticsScreen({
   const chartItems =
     chartMode === "days" ? days : chartMode === "year" ? months : weeks;
   const chartConfig = getChartConfig(chartMode);
-  const mostActiveWeek = weeks.reduce<WeekStats>((best, week) =>
-    week.totalSets > best.totalSets ? week : best,
-    weeks[0]
+  const mostActiveBucket = chartItems.reduce<WeekStats>((best, item) =>
+    item.totalSets > best.totalSets ? item : best,
+    chartItems[0]
   );
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-6 pt-4 text-white sm:px-6 lg:px-8">
@@ -434,11 +440,11 @@ export default function StatisticsScreen({
               {chartConfig.activeLabel}
             </p>
             <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
-              {mostActiveWeek.totalSets > 0 ? mostActiveWeek.label : "-"}
+              {mostActiveBucket.totalSets > 0 ? mostActiveBucket.label : "-"}
             </p>
             <p className="mt-1 text-sm text-white/55">
-              {mostActiveWeek.totalSets > 0
-                ? `${mostActiveWeek.passCount} pass · ${mostActiveWeek.totalSets} set`
+              {mostActiveBucket.totalSets > 0
+                ? `${mostActiveBucket.passCount} pass · ${mostActiveBucket.totalSets} set`
                 : "När pass sparas syns det här."}
             </p>
           </div>
