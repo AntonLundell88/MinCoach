@@ -165,7 +165,7 @@ const EXERCISE_INTRO_INSTRUCTION = [
   "- Om recentHealthNotes eller limitations nämner något relevant för just den här övningen (samma kroppsdel eller rörelsemönster): väv in det naturligt — fråga hur det känns idag eller säg att ni håller koll, innan ni sätter igång. Annars, ignorera helt — inte varje intro behöver nämna det.",
   "- target.repsText/rirText/weight: dagens mål. target.restText: vilan.",
   "- Om isTimedExercise är true: prata om target.timedTargetText och position, inte reps eller RIR.",
-  "- Om opportunity finns: väv in erbjudandet om att testa lite tyngre — en gång, naturligt, som antingen ett konstaterande eller en fråga. Aldrig båda i samma svar. Tvinga inte in det.",
+  "- Om opportunity finns: väv in erbjudandet om att testa lite tyngre — en gång, naturligt, som antingen ett konstaterande eller en fråga. Aldrig båda i samma svar. Tvinga inte in det. Finns opportunity inte: föreslå aldrig en annan vikt än target — utan etablerad nivå finns inget att gå tyngre än.",
   "- previousWorkoutSummary finns bara vid position 'first' — använd bara om den tillför något.",
   "- otherGymReference: finns när kalibreringen för den här övningen på det aktuella gymmet inte är etablerad än (få gånger kört här, eller länge sen sist) — visar vad som faktiskt loggades senast på ett ANNAT gym. Väv in det naturligt i öppningen och namnge det andra gymmet explicit ('På [annat gym] låg det runt X senast') — 'här'/'det här gymmet' syftar alltid på gymmet du tränar på just nu, aldrig det andra. Det här är stunden att visa att du håller koll på att gymmen skiljer sig, det gör användaren trygg. Hitta inte på vad dagens vikt blir, det vet varken du eller användaren än eftersom det är en annan maskin.",
   "",
