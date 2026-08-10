@@ -2645,7 +2645,7 @@ function getNextSetRirInput(rir: number) {
 
 function formatCoachWeight(weight: number) {
   if (!Number.isFinite(weight)) return "";
-  return Number(weight.toFixed(2)).toString();
+  return Number(weight.toFixed(2)).toLocaleString("sv-SE");
 }
 
 function formatDurationText(seconds: number) {

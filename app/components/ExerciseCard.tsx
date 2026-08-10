@@ -229,7 +229,7 @@ export default function ExerciseCard({
 
     return isBodyweight && record.weight <= 0
       ? `${record.reps} reps`
-      : `${record.weight} x ${record.reps}`;
+      : `${record.weight.toLocaleString("sv-SE")} x ${record.reps}`;
 };
 /* eslint-disable react-hooks/set-state-in-effect */
 useEffect(() => {

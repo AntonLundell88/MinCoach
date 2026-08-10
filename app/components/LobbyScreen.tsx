@@ -97,7 +97,7 @@ function formatRecord(record: PersonalRecord) {
     return record.weight > 0 ? `${time} + ${record.weight} kg` : time;
   }
 
-  return `${record.weight} × ${record.reps}`;
+  return `${record.weight.toLocaleString("sv-SE")} × ${record.reps}`;
 }
 
 function getStaleDraftLabel(startedAt: string, now: Date): string {

@@ -555,16 +555,16 @@ Vila ${rest}.`;
     lines.push("Senast tog det stopp här, så vi öppnar smart.");
     lines.push("");
   } else if (topSet) {
-    lines.push(`Ditt bästa här är ${topSet.weight} × ${topSet.reps}.`);
+    lines.push(`Ditt bästa här är ${topSet.weight.toLocaleString("sv-SE")} × ${topSet.reps}.`);
   } else if (last) {
-    lines.push(`Senast låg du på ${last.weight} × ${last.reps}.`);
+    lines.push(`Senast låg du på ${last.weight.toLocaleString("sv-SE")} × ${last.reps}.`);
   }
 
   if (baseWeight !== null) {
     lines.push(
       topSet && baseWeight === topSet.weight
         ? `Vi börjar på samma vikt och siktar på ${target.reps}, ${target.rir}.`
-        : `Vi börjar på ${baseWeight} kg och siktar på ${target.reps}, ${target.rir}.`
+        : `Vi börjar på ${baseWeight.toLocaleString("sv-SE")} kg och siktar på ${target.reps}, ${target.rir}.`
     );
 
     if (
@@ -574,7 +574,7 @@ Vila ${rest}.`;
       baseWeight === topSet.weight
     ) {
       lines.push(
-        `Vill du testa ${progressionPlan.opportunity.suggestedWeight} kg idag så köper jag det. Då jagar vi färre, snygga reps - inte ego.`
+        `Vill du testa ${Number(progressionPlan.opportunity.suggestedWeight).toLocaleString("sv-SE")} kg idag så köper jag det. Då jagar vi färre, snygga reps - inte ego.`
       );
     }
 
@@ -1611,7 +1611,7 @@ useEffect(() => {
           const label = pr
             ? isBodyweightExercise(currentExerciseName) && pr.weight <= 0
               ? `${pr.reps} reps`
-              : `${pr.weight} × ${pr.reps}`
+              : `${pr.weight.toLocaleString("sv-SE")} × ${pr.reps}`
             : null;
           return (
             <div className="flex">

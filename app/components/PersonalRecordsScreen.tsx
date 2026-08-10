@@ -37,10 +37,10 @@ function getRecordLabel(record: PersonalRecord) {
   if (record.metricType === "time" || typeof record.durationSeconds === "number") {
     const seconds = Math.max(0, Math.round(record.durationSeconds ?? 0));
     const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-    return record.weight > 0 ? `${time} + ${record.weight} kg` : time;
+    return record.weight > 0 ? `${time} + ${record.weight.toLocaleString("sv-SE")} kg` : time;
   }
 
-  return `${record.weight} × ${record.reps}`;
+  return `${record.weight.toLocaleString("sv-SE")} × ${record.reps}`;
 }
 
 export default function PersonalRecordsScreen({

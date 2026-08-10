@@ -98,9 +98,9 @@ function formatSet(set: ReviewSet): string {
     const mins = Math.floor(set.durationSeconds / 60);
     const secs = set.durationSeconds % 60;
     const time = mins > 0 ? `${mins}:${String(secs).padStart(2, "0")}` : `${secs} s`;
-    return set.weight > 0 ? `${time} · ${set.weight} kg` : time;
+    return set.weight > 0 ? `${time} · ${set.weight.toLocaleString("sv-SE")} kg` : time;
   }
-  const weightStr = set.weight > 0 ? `${set.weight} kg × ` : "× ";
+  const weightStr = set.weight > 0 ? `${set.weight.toLocaleString("sv-SE")} kg × ` : "× ";
   const rirStr = set.rir != null ? ` · RIR ${set.rir}` : "";
   return `${weightStr}${set.reps}${rirStr}`;
 }

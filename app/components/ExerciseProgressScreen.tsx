@@ -70,10 +70,10 @@ function getSetScore(set: LoggedSet) {
 function getSetLabel(set: LoggedSet) {
   if (set.metricType === "time" || typeof set.durationSeconds === "number") {
     const base = formatDuration(set.durationSeconds ?? 0);
-    return set.weight > 0 ? `${base} + ${set.weight} kg` : base;
+    return set.weight > 0 ? `${base} + ${set.weight.toLocaleString("sv-SE")} kg` : base;
   }
 
-  return `${set.weight} × ${set.reps}`;
+  return `${set.weight.toLocaleString("sv-SE")} × ${set.reps}`;
 }
 
 function getSetEffortLabel(set?: LoggedSet | null) {
