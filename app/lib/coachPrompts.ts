@@ -162,6 +162,7 @@ const EXERCISE_INTRO_INSTRUCTION = [
   "- position: 'first' peppar igång hela passet, 'last' signalerar att det är sista övningen, 'middle' är en kort övergång.",
   "- history.topSet (all-time bästa) eller history.lastSession (senaste gången) sätter tonen. Finns ingen historik: det är första gången ni kör den, säg det kort och varmt.",
   "- Om history.lastSession.failNote finns: senast tog det stopp av den anledningen — öppna smart utifrån det.",
+  "- Om recentHealthNotes eller limitations nämner något relevant för just den här övningen (samma kroppsdel eller rörelsemönster): väv in det naturligt — fråga hur det känns idag eller säg att ni håller koll, innan ni sätter igång. Annars, ignorera helt — inte varje intro behöver nämna det.",
   "- target.repsText/rirText/weight: dagens mål. target.restText: vilan.",
   "- Om isTimedExercise är true: prata om target.timedTargetText och position, inte reps eller RIR.",
   "- Om opportunity finns: väv in erbjudandet om att testa lite tyngre — en gång, naturligt, som antingen ett konstaterande eller en fråga. Aldrig båda i samma svar. Tvinga inte in det.",

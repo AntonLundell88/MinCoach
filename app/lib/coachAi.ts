@@ -213,6 +213,8 @@ export type CoachExerciseIntroContext = {
     daysAgo: number;
   };
   previousWorkoutSummary?: string;
+  recentHealthNotes?: string[];
+  limitations?: string;
 };
 
 export type CoachProgramContext = {

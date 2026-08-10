@@ -271,6 +271,8 @@ type Props = {
   validateSetWeight: (weight: number) => string | null;
   previousWorkoutSummary?: string;
   otherGymReference?: CoachExerciseIntroContext["otherGymReference"];
+  recentHealthNotes?: string[];
+  limitations?: string;
 };
 
 function getTopSet(progression: { weight: number; reps: number }[]) {
@@ -612,6 +614,8 @@ function buildExerciseIntroAiContext(args: {
   personalRecords: Props["personalRecords"];
   previousWorkoutSummary?: string;
   otherGymReference?: CoachExerciseIntroContext["otherGymReference"];
+  recentHealthNotes?: string[];
+  limitations?: string;
 }): CoachExerciseIntroContext {
   const {
     exerciseName,
@@ -624,6 +628,8 @@ function buildExerciseIntroAiContext(args: {
     personalRecords,
     previousWorkoutSummary,
     otherGymReference,
+    recentHealthNotes,
+    limitations,
   } = args;
 
   const key = exerciseKey(exerciseName);
@@ -650,6 +656,8 @@ function buildExerciseIntroAiContext(args: {
       },
       history: bestTime > 0 ? { bestTimeText: formatDurationLabel(bestTime) } : undefined,
       previousWorkoutSummary: summaryForFirst,
+      recentHealthNotes,
+      limitations,
     };
   }
 
@@ -690,6 +698,8 @@ function buildExerciseIntroAiContext(args: {
         : undefined,
     otherGymReference,
     previousWorkoutSummary: summaryForFirst,
+    recentHealthNotes,
+    limitations,
   };
 }
 export default function WorkoutScreen({
@@ -754,6 +764,8 @@ export default function WorkoutScreen({
   validateSetWeight,
   previousWorkoutSummary,
   otherGymReference,
+  recentHealthNotes,
+  limitations,
 }: Props) {
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
@@ -1004,6 +1016,8 @@ useEffect(() => {
     personalRecords,
     previousWorkoutSummary: exerciseIndex === 0 ? previousWorkoutSummary : undefined,
     otherGymReference,
+    recentHealthNotes,
+    limitations,
   };
   const fallbackText = buildExerciseIntroCoachText(introArgs);
   const controller = new AbortController();

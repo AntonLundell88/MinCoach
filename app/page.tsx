@@ -9027,6 +9027,8 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
         }}
         previousWorkoutSummary={getPreviousWorkoutSummaryLine(history) ?? undefined}
         otherGymReference={otherGymReference}
+        recentHealthNotes={getRecentHealthNotes(coachMemory)}
+        limitations={userProfile?.limitations}
       />
       
 ) : workoutReviewLoading ? (
@@ -9257,7 +9259,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
     staleDraft={staleDraft ? { startedAt: staleDraft.workout.startedAt, displayName: staleDraft.workout.displayName } : null}
     onResumeStaleDraft={() => {
       if (!staleDraft) return;
-      setWorkout(staleDraft.workout);
+      setWorkout({ ...staleDraft.workout, startedAt: new Date().toISOString() });
       setExerciseIndex(staleDraft.exerciseIndex ?? 0);
       setSkippedExercise(staleDraft.skippedExercise ?? null);
       setChatLog((staleDraft.chatLog ?? []).filter((m) => m.source !== "fallback"));
