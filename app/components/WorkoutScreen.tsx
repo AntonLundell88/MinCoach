@@ -996,6 +996,7 @@ export default function WorkoutScreen({
   
 const introSentForIndexRef = useRef<string | null>(null);
 const healthContextMentionedRef = useRef(false);
+const chatLogLengthAtLastIntroRef = useRef(0);
 const [introLoading, setIntroLoading] = useState(false);
 
 /* eslint-disable react-hooks/exhaustive-deps */
@@ -1005,10 +1006,28 @@ useEffect(() => {
   const introIdentity = exerciseKey(currentExerciseName);
   if (introSentForIndexRef.current === introIdentity) return;
 
-  const includeHealthContext = !healthContextMentionedRef.current;
-  if (includeHealthContext && ((recentHealthNotes && recentHealthNotes.length > 0) || limitations)) {
+  // Profil-begränsningar och gamla pass-minnen: nämns max en gång per pass,
+  // annars frågar coachen om samma sak på varje övnings-intro.
+  const includeStaticHealthContext = !healthContextMentionedRef.current;
+  if (includeStaticHealthContext && ((recentHealthNotes && recentHealthNotes.length > 0) || limitations)) {
     healthContextMentionedRef.current = true;
   }
+
+  // Chattkommentarer från passet: alltid färska per definition (sagt en gång,
+  // aldrig upprepat), så de omfattas inte av samma envångs-spärr. Bara det
+  // som sagts sen förra övnings-introt tas med, så samma kommentar inte
+  // visas om och om igen på varje efterföljande övning.
+  const recentUserComments = chatLog
+    .slice(chatLogLengthAtLastIntroRef.current)
+    .filter((m) => m.role === "you" && m.text.trim().length > 0)
+    .slice(-3)
+    .map((m) => m.text.trim().slice(0, 200));
+  chatLogLengthAtLastIntroRef.current = chatLog.length;
+
+  const combinedHealthNotes = [
+    ...(includeStaticHealthContext ? recentHealthNotes ?? [] : []),
+    ...recentUserComments,
+  ];
 
   const eventKey = `exercise_intro:${introIdentity}`;
   const introArgs = {
@@ -1022,8 +1041,8 @@ useEffect(() => {
     personalRecords,
     previousWorkoutSummary: exerciseIndex === 0 ? previousWorkoutSummary : undefined,
     otherGymReference,
-    recentHealthNotes: includeHealthContext ? recentHealthNotes : undefined,
-    limitations: includeHealthContext ? limitations : undefined,
+    recentHealthNotes: combinedHealthNotes.length > 0 ? combinedHealthNotes : undefined,
+    limitations: includeStaticHealthContext ? limitations : undefined,
   };
   const fallbackText = buildExerciseIntroCoachText(introArgs);
   const controller = new AbortController();
