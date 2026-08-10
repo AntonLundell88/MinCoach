@@ -403,7 +403,7 @@ export default function LobbyScreen({
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>
                 <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isLight ? "text-emerald-700" : "text-emerald-300/60"}`}>Timmar</span>
               </div>
-              <p className={`mt-1.5 text-2xl font-semibold tracking-tight ${titleClassName}`}>{hours28}</p>
+              <p className={`mt-1.5 text-2xl font-semibold tracking-tight ${titleClassName}`}>{hours28.toLocaleString("sv-SE")}</p>
               <p className={`mt-0.5 text-xs ${bodyClassName}`}>i gymmet</p>
             </div>
             <div className={`rounded-2xl p-3.5 ${isLight ? "bg-orange-50/60 ring-1 ring-orange-200/60" : "bg-orange-400/[0.07] ring-1 ring-orange-400/[0.14]"}`}>
@@ -411,7 +411,7 @@ export default function LobbyScreen({
                 <span className="h-1.5 w-1.5 rounded-full bg-orange-400"/>
                 <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isLight ? "text-orange-700" : "text-orange-300/60"}`}>Lyft</span>
               </div>
-              <p className={`mt-1.5 text-2xl font-semibold tracking-tight ${titleClassName}`}>{tons28} <span className={`text-base font-normal ${bodyClassName}`}>t</span></p>
+              <p className={`mt-1.5 text-2xl font-semibold tracking-tight ${titleClassName}`}>{tons28.toLocaleString("sv-SE")} <span className={`text-base font-normal ${bodyClassName}`}>t</span></p>
               <p className={`mt-0.5 text-xs ${bodyClassName}`}>ton lyft</p>
             </div>
           </div>

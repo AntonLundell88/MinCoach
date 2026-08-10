@@ -320,7 +320,9 @@ export default function StatisticsScreen({
     .filter((rir): rir is number => typeof rir === "number");
   const averageRir =
     rirValues.length > 0
-      ? (rirValues.reduce((sum, rir) => sum + rir, 0) / rirValues.length).toFixed(1)
+      ? Number(
+          (rirValues.reduce((sum, rir) => sum + rir, 0) / rirValues.length).toFixed(1)
+        ).toLocaleString("sv-SE")
       : "-";
   const mostTrained = getMostTrainedExercise(periodHistory);
   const days = getLastDays(history);
