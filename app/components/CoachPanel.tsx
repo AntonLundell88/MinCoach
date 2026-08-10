@@ -337,7 +337,7 @@ export default function CoachPanel({
           <button
             type="button"
             onClick={() => setIsHistoryOpen(false)}
-            className="sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-lg bg-[#0d1520] py-1 text-[10px] uppercase tracking-[0.14em] text-white/38 transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white/64"
+            className="coach-history-toggle sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-lg bg-[#0d1520] py-1 text-[10px] uppercase tracking-[0.14em] text-white/38 transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white/64"
           >
             Dölj historik
             <span className="rotate-180 text-white/50">▾</span>

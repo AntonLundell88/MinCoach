@@ -1117,7 +1117,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => setShowVideoReview(true)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/[0.16] text-blue-50 transition hover:bg-blue-500/[0.24] hover:text-white active:scale-[0.97]"
+                className="workout-ai-action flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/[0.16] text-blue-50 transition hover:bg-blue-500/[0.24] hover:text-white active:scale-[0.97]"
                 aria-label="Filma senaste setet"
                 title="Filma senaste setet"
               >

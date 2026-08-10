@@ -1160,6 +1160,7 @@ main[data-theme="light"]:has(.workout-screen-shell) {
   .coach-message,
   .user-message,
   .coach-empty-message,
+  .coach-history-toggle,
   .workout-next-card,
   .workout-history-card,
   .workout-rest-card,
@@ -1204,6 +1205,14 @@ main[data-theme="light"]:has(.workout-screen-shell) {
   [class*="text-slate-"]
 ) {
   color: var(--mc-wellness-muted) !important;
+}
+
+/* Setets/coachens brödtext ska läsas som huvudinnehåll, inte metadata -
+   utan denna regel vinner den bredare text-white/-> muted-regeln ovan
+   eftersom den matchar substrängen i t.ex. text-white/90 också. */
+[data-theme="light"] .workout-screen-shell .coach-message p,
+[data-theme="light"] .workout-screen-shell .user-message-text {
+  color: var(--mc-wellness-text) !important;
 }
 
 [data-theme="light"] .workout-screen-shell input,
