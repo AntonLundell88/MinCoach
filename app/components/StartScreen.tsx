@@ -203,8 +203,8 @@ export default function StartScreen({
                     </button>
                   </div>
                 ) : (
-                  <div className="mt-1 flex items-center gap-2">
-                    <p className="truncate text-2xl font-semibold text-white">
+                  <div className="mt-1 flex items-start gap-2">
+                    <p className="text-xl font-semibold leading-tight text-white">
                       {cleanNextPassLabel}
                     </p>
                     <button
