@@ -4498,30 +4498,47 @@ function getWorkoutComparison(history: Workout[]) {
     if (!prevEx) continue;
     if (ex.sets.length === 0 || prevEx.sets.length === 0) continue;
 
-    const bestLatest = ex.sets.reduce((best, s) => {
+    const bestByDuration = (best: (typeof ex.sets)[number], s: (typeof ex.sets)[number]) =>
+      (s.durationSeconds ?? 0) > (best.durationSeconds ?? 0) ? s : best;
+    const bestByWeight = (best: (typeof ex.sets)[number], s: (typeof ex.sets)[number]) => {
       if (s.weight > best.weight) return s;
       if (s.weight === best.weight && s.reps > best.reps) return s;
       return best;
-    }, ex.sets[0]);
+    };
 
-    const bestPrev = prevEx.sets.reduce((best, s) => {
-      if (s.weight > best.weight) return s;
-      if (s.weight === best.weight && s.reps > best.reps) return s;
-      return best;
-    }, prevEx.sets[0]);
+    const bestLatest = ex.sets.reduce(bestByDuration, ex.sets[0]);
+    const bestPrev = prevEx.sets.reduce(bestByDuration, prevEx.sets[0]);
+    const isTimed = (bestLatest.durationSeconds ?? 0) > 0 || (bestPrev.durationSeconds ?? 0) > 0;
 
-    if (
-      bestLatest.weight > bestPrev.weight ||
-      (bestLatest.weight === bestPrev.weight && bestLatest.reps > bestPrev.reps)
-    ) {
-      result.improved.push(ex.name);
-    } else if (
-      bestLatest.weight === bestPrev.weight &&
-      bestLatest.reps === bestPrev.reps
-    ) {
-      result.same.push(ex.name);
+    if (isTimed) {
+      const latestDuration = bestLatest.durationSeconds ?? 0;
+      const prevDuration = bestPrev.durationSeconds ?? 0;
+
+      if (latestDuration > prevDuration) {
+        result.improved.push(ex.name);
+      } else if (latestDuration === prevDuration) {
+        result.same.push(ex.name);
+      } else {
+        result.worse.push(ex.name);
+      }
     } else {
-      result.worse.push(ex.name);
+      const bestLatestByWeight = ex.sets.reduce(bestByWeight, ex.sets[0]);
+      const bestPrevByWeight = prevEx.sets.reduce(bestByWeight, prevEx.sets[0]);
+
+      if (
+        bestLatestByWeight.weight > bestPrevByWeight.weight ||
+        (bestLatestByWeight.weight === bestPrevByWeight.weight &&
+          bestLatestByWeight.reps > bestPrevByWeight.reps)
+      ) {
+        result.improved.push(ex.name);
+      } else if (
+        bestLatestByWeight.weight === bestPrevByWeight.weight &&
+        bestLatestByWeight.reps === bestPrevByWeight.reps
+      ) {
+        result.same.push(ex.name);
+      } else {
+        result.worse.push(ex.name);
+      }
     }
   }
 

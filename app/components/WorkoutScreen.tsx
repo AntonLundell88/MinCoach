@@ -995,6 +995,7 @@ export default function WorkoutScreen({
   }
   
 const introSentForIndexRef = useRef<string | null>(null);
+const healthContextMentionedRef = useRef(false);
 const [introLoading, setIntroLoading] = useState(false);
 
 /* eslint-disable react-hooks/exhaustive-deps */
@@ -1003,6 +1004,11 @@ useEffect(() => {
   if (isCoachThinking) return;
   const introIdentity = exerciseKey(currentExerciseName);
   if (introSentForIndexRef.current === introIdentity) return;
+
+  const includeHealthContext = !healthContextMentionedRef.current;
+  if (includeHealthContext && ((recentHealthNotes && recentHealthNotes.length > 0) || limitations)) {
+    healthContextMentionedRef.current = true;
+  }
 
   const eventKey = `exercise_intro:${introIdentity}`;
   const introArgs = {
@@ -1016,8 +1022,8 @@ useEffect(() => {
     personalRecords,
     previousWorkoutSummary: exerciseIndex === 0 ? previousWorkoutSummary : undefined,
     otherGymReference,
-    recentHealthNotes,
-    limitations,
+    recentHealthNotes: includeHealthContext ? recentHealthNotes : undefined,
+    limitations: includeHealthContext ? limitations : undefined,
   };
   const fallbackText = buildExerciseIntroCoachText(introArgs);
   const controller = new AbortController();
