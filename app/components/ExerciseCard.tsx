@@ -674,11 +674,11 @@ useEffect(() => {
                 <div className="space-y-1.5 text-center">
                   <p className="text-base font-semibold text-white">{CRAZY_WEIGHT_MESSAGES[crazyWeightMessageIndex]}</p>
                   <p className="text-sm text-white/50">
-                    Du angav <span className="font-semibold text-white/80">{enteredWeight} kg</span>
+                    Du angav <span className="font-semibold text-white/80">{enteredWeight.toLocaleString("sv-SE")} kg</span>
                     {hasPlan
-                      ? <> — planerat var <span className="font-semibold text-white/80">{plannedWeightKg} kg</span></>
+                      ? <> — planerat var <span className="font-semibold text-white/80">{plannedWeightKg?.toLocaleString("sv-SE")} kg</span></>
                       : pbWeight > 0
-                      ? <> — ditt PB är <span className="font-semibold text-white/80">{pbWeight} kg</span></>
+                      ? <> — ditt PB är <span className="font-semibold text-white/80">{pbWeight.toLocaleString("sv-SE")} kg</span></>
                       : null}
                   </p>
                 </div>
@@ -689,7 +689,7 @@ useEffect(() => {
                     setAwaitingWeightConfirm(false);
                   }}
                 >
-                  Okej, ändra till {hasPlan ? plannedWeightKg : pbWeight > 0 ? pbWeight : "?"} kg
+                  Okej, ändra till {hasPlan ? plannedWeightKg?.toLocaleString("sv-SE") : pbWeight > 0 ? pbWeight.toLocaleString("sv-SE") : "?"} kg
                 </button>
               </>
             ) : (
@@ -698,11 +698,11 @@ useEffect(() => {
                   <p className="text-base font-semibold text-white">Stämmer vikten?</p>
                   <p className="text-sm text-white/60">
                     Du angav{" "}
-                    <span className="font-semibold text-white">{enteredWeight} kg</span>
+                    <span className="font-semibold text-white">{enteredWeight.toLocaleString("sv-SE")} kg</span>
                     {hasPlan
-                      ? <> — planerat var <span className="font-semibold text-white">{plannedWeightKg} kg</span></>
+                      ? <> — planerat var <span className="font-semibold text-white">{plannedWeightKg?.toLocaleString("sv-SE")} kg</span></>
                       : pbWeight > 0
-                      ? <> — ditt PB är <span className="font-semibold text-white">{pbWeight} kg</span></>
+                      ? <> — ditt PB är <span className="font-semibold text-white">{pbWeight.toLocaleString("sv-SE")} kg</span></>
                       : null}
                   </p>
                 </div>
@@ -714,7 +714,7 @@ useEffect(() => {
                       addSet();
                     }}
                   >
-                    Ja, {enteredWeight} kg stämmer
+                    Ja, {enteredWeight.toLocaleString("sv-SE")} kg stämmer
                   </button>
                   {(hasPlan || pbWeight > 0) && (
                     <button
@@ -724,7 +724,7 @@ useEffect(() => {
                         setAwaitingWeightConfirm(false);
                       }}
                     >
-                      Ändra till {hasPlan ? plannedWeightKg : pbWeight} kg
+                      Ändra till {(hasPlan ? plannedWeightKg : pbWeight)?.toLocaleString("sv-SE")} kg
                     </button>
                   )}
                 </div>
