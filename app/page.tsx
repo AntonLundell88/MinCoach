@@ -4470,16 +4470,6 @@ function buildCoachMessage(args: {
   ]);
 }
 function getWorkoutComparison(history: Workout[]) {
-  if (history.length < 2) {
-    return {
-      improved: [],
-      same: [],
-      worse: [],
-    };
-  }
-
-  const [latest, previous] = history;
-
   const result: {
     improved: string[];
     same: string[];
@@ -4490,55 +4480,28 @@ function getWorkoutComparison(history: Workout[]) {
     worse: [],
   };
 
+  if (history.length === 0) return result;
+
+  const [latest, ...rest] = history;
+
   for (const ex of latest.exercises) {
-    const prevEx = previous.exercises.find(
-      (e) => exerciseKey(e.name) === exerciseKey(ex.name)
-    );
+    if (ex.sets.length === 0) continue;
 
-    if (!prevEx) continue;
-    if (ex.sets.length === 0 || prevEx.sets.length === 0) continue;
+    const bestLatest = getBestSetFromSets(ex.sets);
+    if (!bestLatest) continue;
 
-    const bestByDuration = (best: (typeof ex.sets)[number], s: (typeof ex.sets)[number]) =>
-      (s.durationSeconds ?? 0) > (best.durationSeconds ?? 0) ? s : best;
-    const bestByWeight = (best: (typeof ex.sets)[number], s: (typeof ex.sets)[number]) => {
-      if (s.weight > best.weight) return s;
-      if (s.weight === best.weight && s.reps > best.reps) return s;
-      return best;
-    };
+    const [bestPrev] = getExerciseBestSets(rest, ex.name, 1);
+    if (!bestPrev) continue;
 
-    const bestLatest = ex.sets.reduce(bestByDuration, ex.sets[0]);
-    const bestPrev = prevEx.sets.reduce(bestByDuration, prevEx.sets[0]);
-    const isTimed = (bestLatest.durationSeconds ?? 0) > 0 || (bestPrev.durationSeconds ?? 0) > 0;
+    const latestScore = getLoggedSetScore(bestLatest);
+    const prevScore = getLoggedSetScore(bestPrev);
 
-    if (isTimed) {
-      const latestDuration = bestLatest.durationSeconds ?? 0;
-      const prevDuration = bestPrev.durationSeconds ?? 0;
-
-      if (latestDuration > prevDuration) {
-        result.improved.push(ex.name);
-      } else if (latestDuration === prevDuration) {
-        result.same.push(ex.name);
-      } else {
-        result.worse.push(ex.name);
-      }
+    if (latestScore > prevScore) {
+      result.improved.push(ex.name);
+    } else if (latestScore === prevScore) {
+      result.same.push(ex.name);
     } else {
-      const bestLatestByWeight = ex.sets.reduce(bestByWeight, ex.sets[0]);
-      const bestPrevByWeight = prevEx.sets.reduce(bestByWeight, prevEx.sets[0]);
-
-      if (
-        bestLatestByWeight.weight > bestPrevByWeight.weight ||
-        (bestLatestByWeight.weight === bestPrevByWeight.weight &&
-          bestLatestByWeight.reps > bestPrevByWeight.reps)
-      ) {
-        result.improved.push(ex.name);
-      } else if (
-        bestLatestByWeight.weight === bestPrevByWeight.weight &&
-        bestLatestByWeight.reps === bestPrevByWeight.reps
-      ) {
-        result.same.push(ex.name);
-      } else {
-        result.worse.push(ex.name);
-      }
+      result.worse.push(ex.name);
     }
   }
 
