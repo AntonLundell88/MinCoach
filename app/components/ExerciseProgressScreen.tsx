@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { getExerciseProfile } from "../lib/exercises";
+import ExerciseInfoModal from "./ExerciseInfoModal";
+import { LibraryBrowser, LIBRARY_CATEGORIES, type LibraryExercise } from "./LibraryBrowser";
 
 type LoggedSet = {
   weight: number;
@@ -45,6 +46,7 @@ type Props = {
   history: Workout[];
   initialExerciseName?: string | null;
   onBack: () => void;
+  libraryExercises: LibraryExercise[];
 };
 
 function formatDate(value: string) {
@@ -258,6 +260,7 @@ function getExerciseProgress(history: Workout[]): ExerciseProgress[] {
 }
 
 function ProgressChart({ exercise }: { exercise: ExerciseProgress }) {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const points = exercise.sessions
     .map((session) => {
       const best = getBestSet(session.sets);
@@ -278,7 +281,7 @@ function ProgressChart({ exercise }: { exercise: ExerciseProgress }) {
   const width = 620;
   const height = 230;
   const paddingX = 34;
-  const paddingY = 30;
+  const paddingY = 36;
   const usableWidth = width - paddingX * 2;
   const usableHeight = height - paddingY * 2;
 
@@ -295,74 +298,126 @@ function ProgressChart({ exercise }: { exercise: ExerciseProgress }) {
   const line = chartPoints
     .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
     .join(" ");
+  const maxIndex = scores.length > 0 ? scores.indexOf(max) : -1;
+  const minIndex = scores.length > 0 ? scores.indexOf(min) : -1;
+  const selected = selectedIndex !== null ? chartPoints[selectedIndex] ?? null : null;
 
   return (
-    <div className="relative h-44 overflow-hidden rounded-[1.25rem] border border-white/[0.09] bg-slate-950/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:h-52">
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full">
-        <defs>
-          <linearGradient id="progressGlow" x1="0" x2="1" y1="0" y2="0">
-            <stop stopColor="rgba(96,165,250,0.12)" />
-            <stop offset="1" stopColor="rgba(96,165,250,0.86)" />
-          </linearGradient>
-        </defs>
-        {[0, 1, 2, 3].map((lineIndex) => {
-          const y = paddingY + (lineIndex / 3) * usableHeight;
-          return (
-            <line
-              key={lineIndex}
-              x1={paddingX}
-              x2={width - paddingX}
-              y1={y}
-              y2={y}
-              stroke="rgba(255,255,255,0.075)"
-              strokeWidth="1"
-            />
-          );
-        })}
+    <div>
+      <div className="relative h-44 overflow-hidden rounded-[1.25rem] border border-white/[0.09] bg-slate-950/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:h-52">
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full">
+          <defs>
+            <linearGradient id="progressGlow" x1="0" x2="1" y1="0" y2="0">
+              <stop stopColor="rgba(96,165,250,0.12)" />
+              <stop offset="1" stopColor="rgba(96,165,250,0.86)" />
+            </linearGradient>
+          </defs>
+          {[0, 1, 2, 3].map((lineIndex) => {
+            const y = paddingY + (lineIndex / 3) * usableHeight;
+            return (
+              <line
+                key={lineIndex}
+                x1={paddingX}
+                x2={width - paddingX}
+                y1={y}
+                y2={y}
+                stroke="rgba(255,255,255,0.075)"
+                strokeWidth="1"
+              />
+            );
+          })}
 
-        {chartPoints.length > 1 ? (
-          <>
-            <path
-              d={line}
-              fill="none"
-              stroke="rgba(96,165,250,0.10)"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="9"
-            />
-            <path
-              d={line}
-              fill="none"
-              stroke="url(#progressGlow)"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="4"
-            />
-          </>
-        ) : null}
+          {maxIndex >= 0 ? (
+            <text
+              x={paddingX}
+              y={paddingY - 14}
+              fill="rgba(255,255,255,0.42)"
+              fontSize="13"
+              fontWeight="600"
+            >
+              {getSetLabel(points[maxIndex].set)}
+            </text>
+          ) : null}
+          {minIndex >= 0 && minIndex !== maxIndex ? (
+            <text
+              x={paddingX}
+              y={paddingY + usableHeight + 18}
+              fill="rgba(255,255,255,0.42)"
+              fontSize="13"
+              fontWeight="600"
+            >
+              {getSetLabel(points[minIndex].set)}
+            </text>
+          ) : null}
 
-        {chartPoints.map((chartPoint, index) => (
-          <g key={`${chartPoint.point.date}-${index}`}>
-            <circle
-              cx={chartPoint.x}
-              cy={chartPoint.y}
-              r="8"
-              fill="rgba(96,165,250,0.20)"
-            />
-            <circle
-              cx={chartPoint.x}
-              cy={chartPoint.y}
-              r="4"
-              fill="#93c5fd"
-            />
-          </g>
-        ))}
-      </svg>
+          {chartPoints.length > 1 ? (
+            <>
+              <path
+                d={line}
+                fill="none"
+                stroke="rgba(96,165,250,0.10)"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="9"
+              />
+              <path
+                d={line}
+                fill="none"
+                stroke="url(#progressGlow)"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="4"
+              />
+            </>
+          ) : null}
 
-      <div className="pointer-events-none absolute inset-x-5 bottom-4 flex justify-between text-[11px] font-medium uppercase tracking-[0.14em] text-white/32">
-        <span>{points[0] ? formatDate(points[0].date) : ""}</span>
-        <span>{points.at(-1) ? formatDate(points.at(-1)!.date) : ""}</span>
+          {chartPoints.map((chartPoint, index) => (
+            <g
+              key={`${chartPoint.point.date}-${index}`}
+              onClick={() =>
+                setSelectedIndex(selectedIndex === index ? null : index)
+              }
+              className="cursor-pointer"
+            >
+              <circle cx={chartPoint.x} cy={chartPoint.y} r="16" fill="transparent" />
+              <circle
+                cx={chartPoint.x}
+                cy={chartPoint.y}
+                r={selectedIndex === index ? "11" : "8"}
+                fill={
+                  selectedIndex === index
+                    ? "rgba(147,197,253,0.32)"
+                    : "rgba(96,165,250,0.20)"
+                }
+              />
+              <circle
+                cx={chartPoint.x}
+                cy={chartPoint.y}
+                r={selectedIndex === index ? "5.5" : "4"}
+                fill="#93c5fd"
+              />
+            </g>
+          ))}
+        </svg>
+
+        <div className="pointer-events-none absolute inset-x-5 bottom-4 flex justify-between text-[11px] font-medium uppercase tracking-[0.14em] text-white/32">
+          <span>{points[0] ? formatDate(points[0].date) : ""}</span>
+          <span>{points.at(-1) ? formatDate(points.at(-1)!.date) : ""}</span>
+        </div>
       </div>
+
+      {selected ? (
+        <p className="mt-2 text-center text-xs text-white/55">
+          {formatDate(selected.point.date)}: {getSetLabel(selected.point.set)}
+          {getSetEffortLabel(selected.point.set)
+            ? ` · ${getSetEffortLabel(selected.point.set)}`
+            : ""}
+        </p>
+      ) : (
+        <p className="mt-2 text-center text-xs text-white/32">
+          Tryck på en punkt för exakta siffror.
+        </p>
+      )}
     </div>
   );
 }
@@ -371,6 +426,7 @@ export default function ExerciseProgressScreen({
   history,
   initialExerciseName = null,
   onBack,
+  libraryExercises,
 }: Props) {
   const exercises = useMemo(() => getExerciseProgress(history), [history]);
   const [selectedName, setSelectedName] = useState<string | null>(
@@ -385,9 +441,22 @@ export default function ExerciseProgressScreen({
     useState<ExercisePeriod>("halfYear");
   const [infoExerciseName, setInfoExerciseName] = useState<string | null>(null);
   const [showTrendInfo, setShowTrendInfo] = useState(false);
-  const infoExercise = infoExerciseName
-    ? getExerciseProfile(infoExerciseName)
-    : null;
+  const [showLibraryBrowser, setShowLibraryBrowser] = useState(false);
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryCategory, setLibraryCategory] =
+    useState<(typeof LIBRARY_CATEGORIES)[number]>("alla");
+  const normalizedLibrarySearch = librarySearch.trim().toLowerCase();
+  const filteredLibraryExercises = libraryExercises.filter((exercise) => {
+    const matchesCategory =
+      libraryCategory === "alla" || exercise.category === libraryCategory;
+    const matchesSearch =
+      !normalizedLibrarySearch ||
+      `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment}`
+        .toLowerCase()
+        .includes(normalizedLibrarySearch);
+
+    return matchesCategory && matchesSearch;
+  });
   const selected =
     exercises.find((exercise) => exercise.name === selectedName) ??
     exercises[0] ??
@@ -441,9 +510,18 @@ export default function ExerciseProgressScreen({
               showExerciseDetail ? "hidden lg:block" : ""
             }`}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
-              Övningslista
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                Övningslista
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowLibraryBrowser(true)}
+                className="text-xs font-semibold text-blue-300/85 transition hover:text-blue-200"
+              >
+                Bläddra i alla övningar
+              </button>
+            </div>
 
             <div className="mt-3 space-y-2.5">
               <input
@@ -751,45 +829,29 @@ export default function ExerciseProgressScreen({
         </section>
       )}
 
-      {infoExerciseName && infoExercise ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-4 backdrop-blur-sm">
-          <div className="w-full max-w-[430px] rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
-                  Övningsinfo
-                </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
-                  {infoExerciseName}
-                </h2>
-              </div>
+      {infoExerciseName ? (
+        <ExerciseInfoModal
+          exerciseName={infoExerciseName}
+          onClose={() => setInfoExerciseName(null)}
+        />
+      ) : null}
 
-              <button
-                type="button"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-lg leading-none text-white/60 transition hover:bg-white/[0.08] hover:text-white"
-                onClick={() => setInfoExerciseName(null)}
-                aria-label="Stäng"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-white/8 bg-slate-950/20 p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-100/42">
-                {infoExercise.equipment}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-white/72">
-                {infoExercise.detail}
-              </p>
-              <div className="mt-3 rounded-xl border border-white/8 bg-white/[0.035] p-2.5">
-                <p className="text-xs leading-5 text-white/66">
-                  {infoExercise.techniqueCue}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-white/44">
-                  {infoExercise.progressionRule}
-                </p>
-              </div>
-            </div>
+      {showLibraryBrowser ? (
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end bg-black/10 px-4 py-4 backdrop-blur-[3px] sm:justify-center">
+          <div className="relative mb-10 w-full max-w-lg rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl sm:mb-0">
+            <LibraryBrowser
+              title="Bläddra i alla övningar"
+              search={librarySearch}
+              setSearch={setLibrarySearch}
+              category={libraryCategory}
+              setCategory={setLibraryCategory}
+              exercises={filteredLibraryExercises}
+              onClose={() => setShowLibraryBrowser(false)}
+              onPick={(name) => {
+                setShowLibraryBrowser(false);
+                setInfoExerciseName(name);
+              }}
+            />
           </div>
         </div>
       ) : null}

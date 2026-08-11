@@ -9187,6 +9187,10 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
       setShowStatistics(false);
       setShowExerciseProgress(true);
     }}
+    onOpenHistory={() => {
+      setShowStatistics(false);
+      setShowHistory(true);
+    }}
   />
 ) : showHistory ? (
   <HistoryScreen
@@ -9215,6 +9219,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
   <ExerciseProgressScreen
     history={history}
     initialExerciseName={selectedProgressExercise}
+    libraryExercises={userProfile ? getAvailableProgramExercises(userProfile) : []}
     onBack={() => {
       setSelectedProgressExercise(null);
       setShowExerciseProgress(false);
