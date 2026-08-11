@@ -163,6 +163,7 @@ const EXERCISE_INTRO_INSTRUCTION = [
   "- history.topSet (all-time bästa) eller history.lastSession (senaste gången) sätter tonen. Finns ingen historik: det är första gången ni kör den, säg det kort och varmt.",
   "- Om history.lastSession.failNote finns: senast tog det stopp av den anledningen — öppna smart utifrån det.",
   "- Om recentHealthNotes eller limitations nämner något relevant för just den här övningen (samma kroppsdel eller rörelsemönster): väv in det naturligt — fråga hur det känns idag eller säg att ni håller koll, innan ni sätter igång. Annars, ignorera helt — inte varje intro behöver nämna det.",
+  "- Om recentChatNotes finns: det är vad som sas i chatten under recentChatNotes.duringExercise, precis innan den här övningen. Utrustnings-/vikt-specifikt (maskinens steg, en trasig del, hur tung den kändes) hör bara till den övningen — anta inte att det gäller här, det kan vara en helt annan maskin. Handlar det om kroppen (smärta, känning, ork) kan det fortfarande vara relevant, väv då in det som recentHealthNotes. Osäker? Ignorera hellre än att gissa fel.",
   "- target.repsText/rirText/weight: dagens mål. target.restText: vilan.",
   "- Om isTimedExercise är true: prata om target.timedTargetText och position, inte reps eller RIR.",
   "- Om opportunity finns: väv in erbjudandet om att testa lite tyngre — en gång, naturligt, som antingen ett konstaterande eller en fråga. Aldrig båda i samma svar. Tvinga inte in det. Finns opportunity inte: föreslå aldrig en annan vikt än target — utan etablerad nivå finns inget att gå tyngre än.",

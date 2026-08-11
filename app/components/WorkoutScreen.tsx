@@ -616,6 +616,7 @@ function buildExerciseIntroAiContext(args: {
   otherGymReference?: CoachExerciseIntroContext["otherGymReference"];
   recentHealthNotes?: string[];
   limitations?: string;
+  recentChatNotes?: CoachExerciseIntroContext["recentChatNotes"];
 }): CoachExerciseIntroContext {
   const {
     exerciseName,
@@ -630,6 +631,7 @@ function buildExerciseIntroAiContext(args: {
     otherGymReference,
     recentHealthNotes,
     limitations,
+    recentChatNotes,
   } = args;
 
   const key = exerciseKey(exerciseName);
@@ -658,6 +660,7 @@ function buildExerciseIntroAiContext(args: {
       previousWorkoutSummary: summaryForFirst,
       recentHealthNotes,
       limitations,
+      recentChatNotes,
     };
   }
 
@@ -700,6 +703,7 @@ function buildExerciseIntroAiContext(args: {
     previousWorkoutSummary: summaryForFirst,
     recentHealthNotes,
     limitations,
+    recentChatNotes,
   };
 }
 export default function WorkoutScreen({
@@ -997,6 +1001,7 @@ export default function WorkoutScreen({
 const introSentForIndexRef = useRef<string | null>(null);
 const healthContextMentionedRef = useRef(false);
 const chatLogLengthAtLastIntroRef = useRef(0);
+const previousExerciseNameRef = useRef<string | null>(null);
 const [introLoading, setIntroLoading] = useState(false);
 
 /* eslint-disable react-hooks/exhaustive-deps */
@@ -1013,21 +1018,22 @@ useEffect(() => {
     healthContextMentionedRef.current = true;
   }
 
-  // Chattkommentarer från passet: alltid färska per definition (sagt en gång,
-  // aldrig upprepat), så de omfattas inte av samma envångs-spärr. Bara det
-  // som sagts sen förra övnings-introt tas med, så samma kommentar inte
-  // visas om och om igen på varje efterföljande övning.
+  // Chattkommentarer sen förra övnings-introt: taggas med vilken övning de
+  // sas under, så de aldrig läcker in som fakta om en annan övning/maskin
+  // (t.ex. viktsteg eller ett trasigt handtag hör bara till den övningen).
   const recentUserComments = chatLog
     .slice(chatLogLengthAtLastIntroRef.current)
     .filter((m) => m.role === "you" && m.text.trim().length > 0)
     .slice(-3)
     .map((m) => m.text.trim().slice(0, 200));
+  const chatNotesSourceExercise = previousExerciseNameRef.current;
   chatLogLengthAtLastIntroRef.current = chatLog.length;
+  previousExerciseNameRef.current = currentExerciseName;
 
-  const combinedHealthNotes = [
-    ...(includeStaticHealthContext ? recentHealthNotes ?? [] : []),
-    ...recentUserComments,
-  ];
+  const recentChatNotes =
+    recentUserComments.length > 0 && chatNotesSourceExercise
+      ? { duringExercise: chatNotesSourceExercise, notes: recentUserComments }
+      : undefined;
 
   const eventKey = `exercise_intro:${introIdentity}`;
   const introArgs = {
@@ -1041,8 +1047,9 @@ useEffect(() => {
     personalRecords,
     previousWorkoutSummary: exerciseIndex === 0 ? previousWorkoutSummary : undefined,
     otherGymReference,
-    recentHealthNotes: combinedHealthNotes.length > 0 ? combinedHealthNotes : undefined,
+    recentHealthNotes: includeStaticHealthContext ? recentHealthNotes : undefined,
     limitations: includeStaticHealthContext ? limitations : undefined,
+    recentChatNotes,
   };
   const fallbackText = buildExerciseIntroCoachText(introArgs);
   const controller = new AbortController();

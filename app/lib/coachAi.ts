@@ -215,6 +215,7 @@ export type CoachExerciseIntroContext = {
   previousWorkoutSummary?: string;
   recentHealthNotes?: string[];
   limitations?: string;
+  recentChatNotes?: { duringExercise: string; notes: string[] };
 };
 
 export type CoachProgramContext = {
