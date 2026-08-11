@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { getExerciseProfile } from "../lib/exercises";
 
 type LoggedSet = {
   weight: number;
   reps: number;
   rir?: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
   createdAt: string;
 };
 
@@ -34,14 +37,17 @@ type WeekStats = {
   passCount: number;
   totalSets: number;
   totalMinutes: number;
+  totalVolume: number;
 };
 
 type ChartMode = "days" | "weeks" | "year";
+type ChartMetric = "sets" | "volume";
 
 type Props = {
   history: Workout[];
   onBack: () => void;
   onOpenExercises: (exerciseName?: string) => void;
+  onOpenHistory: () => void;
 };
 
 function formatMinutes(minutes: number) {
@@ -109,13 +115,24 @@ function makeEmptyStats(key: string, label: string): WeekStats {
     passCount: 0,
     totalSets: 0,
     totalMinutes: 0,
+    totalVolume: 0,
   };
+}
+
+function getSetVolume(set: LoggedSet) {
+  if (set.metricType === "time" || typeof set.durationSeconds === "number") return 0;
+  return set.weight * set.reps;
 }
 
 function addWorkoutToStats(bucket: WeekStats, workout: Workout) {
   bucket.passCount += 1;
   bucket.totalSets += workout.summary?.totalSets ?? 0;
   bucket.totalMinutes += workout.summary?.durationMinutes ?? 0;
+  bucket.totalVolume += workout.exercises.reduce(
+    (sum, exercise) =>
+      sum + exercise.sets.reduce((setSum, set) => setSum + getSetVolume(set), 0),
+    0
+  );
 }
 
 function getLastDays(history: Workout[], dayCount = 7): WeekStats[] {
@@ -189,8 +206,7 @@ function getChartConfig(mode: ChartMode) {
     return {
       statLabel: "Senaste 7 dagar",
       eyebrow: "Senaste 7 dagar",
-      title: "Set per dag",
-      helper: "Antal loggade arbetsset.",
+      unit: "dag",
       activeLabel: "Mest aktiva dag",
     };
   }
@@ -199,8 +215,7 @@ function getChartConfig(mode: ChartMode) {
     return {
       statLabel: "Senaste 12 månader",
       eyebrow: "Senaste 12 månader",
-      title: "Set per månad",
-      helper: "Antal loggade arbetsset.",
+      unit: "månad",
       activeLabel: "Mest aktiva månad",
     };
   }
@@ -208,9 +223,29 @@ function getChartConfig(mode: ChartMode) {
   return {
     statLabel: "Senaste 6 veckor",
     eyebrow: "Senaste 6 veckor",
-    title: "Set per vecka",
-    helper: "Antal loggade arbetsset.",
+    unit: "vecka",
     activeLabel: "Mest aktiva vecka",
+  };
+}
+
+function getMetricConfig(metric: ChartMetric) {
+  if (metric === "volume") {
+    return {
+      label: "Volym",
+      title: "Volym per",
+      helper: "Vikt × reps, summerat.",
+      formatValue: (value: number) =>
+        value >= 1000
+          ? `${(value / 1000).toLocaleString("sv-SE", { maximumFractionDigits: 1 })}k`
+          : value.toLocaleString("sv-SE"),
+    };
+  }
+
+  return {
+    label: "Set",
+    title: "Set per",
+    helper: "Antal loggade arbetsset.",
+    formatValue: (value: number) => value.toLocaleString("sv-SE"),
   };
 }
 
@@ -232,12 +267,40 @@ function getPeriodStart(mode: ChartMode) {
   return start;
 }
 
+function getPreviousPeriodStart(mode: ChartMode) {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  if (mode === "days") {
+    now.setDate(now.getDate() - 13);
+    return now;
+  }
+
+  if (mode === "year") {
+    return new Date(now.getFullYear(), now.getMonth() - 23, 1);
+  }
+
+  const start = getWeekStart(now);
+  start.setDate(start.getDate() - 11 * 7);
+  return start;
+}
+
 function getPeriodHistory(history: Workout[], mode: ChartMode) {
   const periodStart = getPeriodStart(mode).getTime();
 
   return history.filter(
     (workout) => new Date(workout.startedAt).getTime() >= periodStart
   );
+}
+
+function getPreviousPeriodHistory(history: Workout[], mode: ChartMode) {
+  const previousStart = getPreviousPeriodStart(mode).getTime();
+  const currentStart = getPeriodStart(mode).getTime();
+
+  return history.filter((workout) => {
+    const time = new Date(workout.startedAt).getTime();
+    return time >= previousStart && time < currentStart;
+  });
 }
 
 function getAllSets(history: Workout[]) {
@@ -249,6 +312,16 @@ function getAllSets(history: Workout[]) {
       }))
     )
   );
+}
+
+function getAverageRir(sets: { rir?: number }[]) {
+  const values = sets
+    .map((set) => set.rir)
+    .filter((rir): rir is number => typeof rir === "number");
+
+  return values.length > 0
+    ? values.reduce((sum, rir) => sum + rir, 0) / values.length
+    : null;
 }
 
 function getMostTrainedExercise(history: Workout[]) {
@@ -265,32 +338,92 @@ function getMostTrainedExercise(history: Workout[]) {
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0] ?? null;
 }
 
-function SetChart({ items }: { items: WeekStats[] }) {
-  const maxSets = Math.max(...items.map((item) => item.totalSets), 1);
+function getMuscleGroupBreakdown(history: Workout[]) {
+  const counts = new Map<string, number>();
+  let total = 0;
+
+  history.forEach((workout) => {
+    workout.exercises.forEach((exercise) => {
+      const setCount = exercise.sets.length;
+      if (setCount === 0) return;
+      const category = getExerciseProfile(exercise.name).category;
+      counts.set(category, (counts.get(category) ?? 0) + setCount);
+      total += setCount;
+    });
+  });
+
+  return Array.from(counts.entries())
+    .map(([category, count]) => ({
+      category,
+      count,
+      percent: total > 0 ? Math.round((count / total) * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function formatPercentDelta(current: number, previous: number) {
+  if (previous <= 0) return current > 0 ? "Nytt mot förra perioden" : null;
+
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct === 0) return "Oförändrat mot förra perioden";
+  return `${pct > 0 ? "+" : ""}${pct}% mot förra perioden`;
+}
+
+function formatRirDelta(current: number | null, previous: number | null) {
+  if (current === null || previous === null) return null;
+
+  const diff = Number((current - previous).toFixed(1));
+  if (diff === 0) return "Oförändrat mot förra perioden";
+  return `${diff > 0 ? "+" : ""}${diff.toLocaleString("sv-SE")} mot förra perioden`;
+}
+
+function TrendChart({
+  items,
+  formatValue,
+}: {
+  items: { key: string; label: string; value: number }[];
+  formatValue: (value: number) => string;
+}) {
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const maxValue = Math.max(...items.map((item) => item.value), 1);
 
   return (
     <div className="h-40 rounded-[1.25rem] border border-white/[0.09] bg-slate-950/18 p-3 sm:h-48">
       <div className="flex h-full items-end gap-2">
         {items.map((item) => {
-          const height = Math.max((item.totalSets / maxSets) * 100, item.totalSets > 0 ? 12 : 4);
+          const height = Math.max((item.value / maxValue) * 100, item.value > 0 ? 12 : 4);
+          const isSelected = item.key === selectedKey;
 
           return (
-            <div key={item.key} className="flex h-full flex-1 flex-col justify-end gap-2">
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setSelectedKey(isSelected ? null : item.key)}
+              className="flex h-full flex-1 flex-col justify-end gap-2"
+            >
               <div className="flex flex-1 items-end">
                 <div
-                  className="w-full rounded-t-xl border border-blue-300/15 bg-[linear-gradient(180deg,rgba(96,165,250,0.72),rgba(37,99,235,0.18))]"
+                  className={`w-full rounded-t-xl border transition ${
+                    isSelected
+                      ? "border-blue-200/45 bg-[linear-gradient(180deg,rgba(147,197,253,0.95),rgba(37,99,235,0.34))]"
+                      : "border-blue-300/15 bg-[linear-gradient(180deg,rgba(96,165,250,0.72),rgba(37,99,235,0.18))]"
+                  }`}
                   style={{ height: `${height}%` }}
                 />
               </div>
               <div className="text-center">
-                <p className="text-xs font-semibold text-white">
-                  {item.totalSets}
+                <p
+                  className={`text-xs font-semibold transition ${
+                    isSelected ? "text-blue-100" : "text-white"
+                  }`}
+                >
+                  {formatValue(item.value)}
                 </p>
                 <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/34">
                   {item.label}
                 </p>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -302,10 +435,15 @@ export default function StatisticsScreen({
   history,
   onBack,
   onOpenExercises,
+  onOpenHistory,
 }: Props) {
   const [chartMode, setChartMode] = useState<ChartMode>("weeks");
+  const [chartMetric, setChartMetric] = useState<ChartMetric>("sets");
   const periodHistory = getPeriodHistory(history, chartMode);
+  const previousPeriodHistory = getPreviousPeriodHistory(history, chartMode);
   const allSets = getAllSets(periodHistory);
+  const previousAllSets = getAllSets(previousPeriodHistory);
+
   const totalPasses = periodHistory.length;
   const totalSets = periodHistory.reduce(
     (sum, workout) => sum + (workout.summary?.totalSets ?? 0),
@@ -315,26 +453,69 @@ export default function StatisticsScreen({
     (sum, workout) => sum + (workout.summary?.durationMinutes ?? 0),
     0
   );
-  const rirValues = allSets
-    .map((set) => set.rir)
-    .filter((rir): rir is number => typeof rir === "number");
+  const averageRirValue = getAverageRir(allSets);
   const averageRir =
-    rirValues.length > 0
-      ? Number(
-          (rirValues.reduce((sum, rir) => sum + rir, 0) / rirValues.length).toFixed(1)
-        ).toLocaleString("sv-SE")
+    averageRirValue !== null
+      ? Number(averageRirValue.toFixed(1)).toLocaleString("sv-SE")
       : "-";
+
+  const previousTotalPasses = previousPeriodHistory.length;
+  const previousTotalSets = previousPeriodHistory.reduce(
+    (sum, workout) => sum + (workout.summary?.totalSets ?? 0),
+    0
+  );
+  const previousTotalMinutes = previousPeriodHistory.reduce(
+    (sum, workout) => sum + (workout.summary?.durationMinutes ?? 0),
+    0
+  );
+  const previousAverageRirValue = getAverageRir(previousAllSets);
+
   const mostTrained = getMostTrainedExercise(periodHistory);
+  const muscleBreakdown = getMuscleGroupBreakdown(history);
   const days = getLastDays(history);
   const weeks = getLastWeeks(history);
   const months = getLastMonths(history);
-  const chartItems =
+  const chartBuckets =
     chartMode === "days" ? days : chartMode === "year" ? months : weeks;
   const chartConfig = getChartConfig(chartMode);
-  const mostActiveBucket = chartItems.reduce<WeekStats>((best, item) =>
+  const metricConfig = getMetricConfig(chartMetric);
+  const chartItems = chartBuckets.map((bucket) => ({
+    key: bucket.key,
+    label: bucket.label,
+    value: chartMetric === "volume" ? bucket.totalVolume : bucket.totalSets,
+  }));
+  const mostActiveBucket = chartBuckets.reduce<WeekStats>((best, item) =>
     item.totalSets > best.totalSets ? item : best,
-    chartItems[0]
+    chartBuckets[0]
   );
+
+  const statTiles = [
+    {
+      label: "Pass",
+      value: totalPasses.toString(),
+      helper: "totalt",
+      delta: formatPercentDelta(totalPasses, previousTotalPasses),
+    },
+    {
+      label: "Set",
+      value: totalSets.toString(),
+      helper: "loggade",
+      delta: formatPercentDelta(totalSets, previousTotalSets),
+    },
+    {
+      label: "Tid",
+      value: formatMinutes(totalMinutes),
+      helper: "träning",
+      delta: formatPercentDelta(totalMinutes, previousTotalMinutes),
+    },
+    {
+      label: "RIR",
+      value: averageRir,
+      helper: "snitt",
+      delta: formatRirDelta(averageRirValue, previousAverageRirValue),
+    },
+  ];
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-6 pt-4 text-white sm:px-6 lg:px-8">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(37,99,235,0.06),transparent_28%),linear-gradient(180deg,#0b1018_0%,#111a25_45%,#0b1018_100%)]" />
@@ -380,23 +561,21 @@ export default function StatisticsScreen({
       <p className="mt-3 text-sm text-white/45">{chartConfig.statLabel}</p>
 
       <section className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          ["Pass", totalPasses.toString(), "totalt"],
-          ["Set", totalSets.toString(), "loggade"],
-          ["Tid", formatMinutes(totalMinutes), "träning"],
-          ["RIR", averageRir, "snitt"],
-        ].map(([label, value, helper]) => (
+        {statTiles.map((tile) => (
           <div
-            key={label}
+            key={tile.label}
             className="rounded-[1.25rem] border border-white/[0.09] bg-white/[0.052] p-3.5 backdrop-blur-xl"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
-              {label}
+              {tile.label}
             </p>
             <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white sm:text-2xl">
-              {value}
+              {tile.value}
             </p>
-            <p className="mt-1 text-sm text-white/50">{helper}</p>
+            <p className="mt-1 text-sm text-white/50">{tile.helper}</p>
+            {tile.delta ? (
+              <p className="mt-1.5 text-xs text-white/40">{tile.delta}</p>
+            ) : null}
           </div>
         ))}
       </section>
@@ -409,16 +588,29 @@ export default function StatisticsScreen({
                 {chartConfig.eyebrow}
               </p>
               <h2 className="mt-1.5 text-xl font-semibold tracking-[-0.03em] text-white">
-                {chartConfig.title}
+                {metricConfig.title} {chartConfig.unit}
               </h2>
-              <p className="mt-1 text-sm text-white/48">
-                {chartConfig.helper}
-              </p>
+              <p className="mt-1 text-sm text-white/48">{metricConfig.helper}</p>
             </div>
 
+            <div className="flex gap-1 rounded-xl border border-white/[0.09] bg-white/[0.042] p-1">
+              {(["sets", "volume"] as ChartMetric[]).map((metric) => (
+                <button
+                  key={metric}
+                  onClick={() => setChartMetric(metric)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    chartMetric === metric
+                      ? "bg-blue-500/[0.14] text-blue-100"
+                      : "text-white/45 hover:text-white/75"
+                  }`}
+                >
+                  {getMetricConfig(metric).label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <SetChart items={chartItems} />
+          <TrendChart items={chartItems} formatValue={metricConfig.formatValue} />
         </div>
 
         <div className="space-y-4">
@@ -437,7 +629,10 @@ export default function StatisticsScreen({
             </p>
           </button>
 
-          <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl sm:p-5">
+          <button
+            onClick={onOpenHistory}
+            className="w-full rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 text-left backdrop-blur-xl transition hover:border-white/16 hover:bg-white/[0.06] sm:p-5"
+          >
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
               {chartConfig.activeLabel}
             </p>
@@ -449,9 +644,39 @@ export default function StatisticsScreen({
                 ? `${mostActiveBucket.passCount} pass · ${mostActiveBucket.totalSets} set`
                 : "När pass sparas syns det här."}
             </p>
-          </div>
+          </button>
         </div>
       </section>
+
+      {muscleBreakdown.length > 0 ? (
+        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl sm:p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+            Hela historiken
+          </p>
+          <h2 className="mt-1.5 text-xl font-semibold tracking-[-0.03em] text-white">
+            Fördelning per muskelgrupp
+          </h2>
+
+          <div className="mt-4 space-y-2.5">
+            {muscleBreakdown.map((item) => (
+              <div key={item.category} className="flex items-center gap-3">
+                <p className="w-20 shrink-0 text-sm font-medium text-white/70 sm:w-24">
+                  {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                </p>
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                  <div
+                    className="h-full rounded-full bg-[linear-gradient(90deg,rgba(37,99,235,0.55),rgba(96,165,250,0.85))]"
+                    style={{ width: `${Math.max(item.percent, 3)}%` }}
+                  />
+                </div>
+                <p className="w-10 shrink-0 text-right text-xs font-semibold text-white/55">
+                  {item.percent}%
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {history.length > 0 ? (
         <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl sm:p-5">
