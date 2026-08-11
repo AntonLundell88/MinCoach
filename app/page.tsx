@@ -2902,7 +2902,6 @@ function getNextSetPlan(args: {
   const targetReps = Math.max(1, args.targetReps ?? 10);
   const workingRepRange = getWorkingRepRange(exerciseName, targetReps);
   const plannedExtraSet =
-    decisionProfile.type !== "technical-heavy" &&
     plannedSetCount > decisionProfile.maxHardSets &&
     setNumber >= decisionProfile.maxHardSets &&
     setNumber < plannedSetCount;
