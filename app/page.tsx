@@ -342,11 +342,13 @@ type LoggedExercise = {
 };
 
 type WorkoutEvent = {
-  type: "pain" | "exercise_replaced" | "exercise_completed_early";
-  exerciseName: string;
+  type: "pain" | "exercise_replaced" | "exercise_completed_early" | "ai_fallback";
+  exerciseName?: string;
   note?: string;
   setCount?: number;
   replacementName?: string;
+  route?: string;
+  reason?: string;
   createdAt: string;
 };
 
@@ -6220,12 +6222,24 @@ async function sendChat() {
       fallbackReply,
     });
 
-    if (process.env.NODE_ENV !== "production" && response.mode !== "ai") {
-      console.warn("MinCoach chat fallback", {
-        reason: response.reason,
-        message: msg,
-        fallbackReply,
-      });
+    if (response.mode !== "ai" && response.reason) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("MinCoach chat fallback", {
+          reason: response.reason,
+          message: msg,
+          fallbackReply,
+        });
+      }
+      setWorkout((prev) =>
+        prev
+          ? addWorkoutEventToWorkout(prev, {
+              type: "ai_fallback",
+              route: "chat",
+              reason: response.reason,
+              exerciseName: currentExerciseName || undefined,
+            })
+          : prev
+      );
     }
 
     return response;
@@ -7570,6 +7584,19 @@ const coachReply = await requestAiCoachSetReply({
 });
 setCoachPendingReply(false);
 
+if (coachReply.mode !== "ai" && coachReply.reason) {
+  setWorkout((prev) =>
+    prev
+      ? addWorkoutEventToWorkout(prev, {
+          type: "ai_fallback",
+          route: "set",
+          reason: coachReply.reason,
+          exerciseName: currentExerciseName || undefined,
+        })
+      : prev
+  );
+}
+
 if (coachReply.text) {
   const isWorkoutFinished =
     nextSetPlan.strategy === "complete" &&
@@ -8411,15 +8438,23 @@ void requestAiWorkoutReview({
     })),
     warmupNote: workoutWithSummary.warmupContext?.note,
     conditioningNote: workoutWithSummary.conditioningContext?.note,
-    events: workoutWithSummary.events?.map(
-      ({ type, exerciseName, note, setCount, replacementName }) => ({
+    events: workoutWithSummary.events
+      ?.filter(
+        (
+          event
+        ): event is typeof event & {
+          type: "pain" | "exercise_replaced" | "exercise_completed_early";
+          exerciseName: string;
+        } =>
+          event.type !== "ai_fallback" && typeof event.exerciseName === "string"
+      )
+      .map(({ type, exerciseName, note, setCount, replacementName }) => ({
         type,
         exerciseName,
         note,
         setCount,
         replacementName,
-      })
-    ),
+      })),
     userNotes,
     dayForm,
     recentSessions: history.slice(0, 4).map((w) => ({

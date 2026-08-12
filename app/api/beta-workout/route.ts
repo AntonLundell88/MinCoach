@@ -84,6 +84,7 @@ export async function POST(request: Request) {
             : null,
         review: isRecord(workout.review) ? workout.review : {},
         summary: isRecord(workout.summary) ? workout.summary : {},
+        events: Array.isArray(workout.events) ? workout.events : [],
         sets: workout.sets.map((set) => ({
           exerciseName:
             typeof set.exerciseName === "string" ? set.exerciseName : "",
