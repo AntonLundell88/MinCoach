@@ -947,13 +947,72 @@ html[data-theme="light"],
   animation: programBuildStep 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes wrappedGlowDriftA {
+  0%,
+  100% {
+    transform: translate(-8%, -10%) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(10%, 8%) scale(1.2);
+    opacity: 0.85;
+  }
+}
+
+@keyframes wrappedGlowDriftB {
+  0%,
+  100% {
+    transform: translate(10%, 8%) scale(1.15);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(-8%, -6%) scale(1);
+    opacity: 0.7;
+  }
+}
+
+.wrapped-glow-blob-a {
+  animation: wrappedGlowDriftA 7s ease-in-out infinite;
+}
+
+.wrapped-glow-blob-b {
+  animation: wrappedGlowDriftB 8.5s ease-in-out infinite;
+}
+
+@keyframes wrappedSparkleFall {
+  0% {
+    transform: translateY(-12%) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(120%) scale(1);
+    opacity: 0;
+  }
+}
+
+.wrapped-sparkle {
+  top: -10%;
+  animation-name: wrappedSparkleFall;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .splash-mark,
   .splash-word,
   .animate-message-in,
   .fade-up,
   .program-build-logo,
-  .program-build-step {
+  .program-build-step,
+  .wrapped-glow-blob-a,
+  .wrapped-glow-blob-b,
+  .wrapped-sparkle {
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
   }

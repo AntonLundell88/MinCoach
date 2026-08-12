@@ -68,6 +68,7 @@ type Props = {
   onOpenSettings: () => void;
   theme: AppTheme;
   lobbyCoachText?: string;
+  wrapped?: { monthLabel: string; onOpen: () => void; isSpotlight: boolean } | null;
 };
 
 function getLatestPR(personalRecords: Record<string, PersonalRecord>) {
@@ -90,7 +91,7 @@ function formatMinutes(minutes: number) {
   return rest > 0 ? `${hours} h ${rest} min` : `${hours} h`;
 }
 
-function formatRecord(record: PersonalRecord) {
+export function formatRecord(record: PersonalRecord) {
   if (record.metricType === "time" || typeof record.durationSeconds === "number") {
     const seconds = Math.max(0, Math.round(record.durationSeconds ?? 0));
     const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -141,6 +142,7 @@ export default function LobbyScreen({
   onOpenSettings,
   theme,
   lobbyCoachText,
+  wrapped,
 }: Props) {
   const isLight = theme === "light";
   const pageClassName = isLight
@@ -327,6 +329,48 @@ export default function LobbyScreen({
           </div>
         )}
 
+        {wrapped && wrapped.isSpotlight && (
+          <div className="relative">
+            <div
+              className="wrapped-glow-blob-a pointer-events-none absolute -left-4 -top-8 h-32 w-32 rounded-full blur-xl"
+              style={{ background: "radial-gradient(circle, rgba(79,131,255,0.85), transparent 70%)" }}
+            />
+            <div
+              className="wrapped-glow-blob-b pointer-events-none absolute -bottom-8 -right-2 h-32 w-32 rounded-full blur-xl"
+              style={{ background: "radial-gradient(circle, rgba(168,85,247,0.8), transparent 70%)" }}
+            />
+            <button
+              type="button"
+              onClick={wrapped.onOpen}
+              className={`relative flex w-full items-center justify-between gap-3 rounded-[1.25rem] px-4 py-3.5 text-left transition active:scale-[0.99] ${
+                isLight
+                  ? "border border-amber-300/40 bg-[#fdf8f0]/95 shadow-[0_4px_16px_rgba(217,119,6,0.10)]"
+                  : "border border-white/[0.08] bg-[#0d1520]/92 shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
+              }`}
+            >
+              <div className="min-w-0">
+                <p
+                  className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                    isLight ? "text-amber-700/80" : "text-amber-200/60"
+                  }`}
+                >
+                  Höjdpunkter
+                </p>
+                <p className={`mt-1 text-sm font-semibold ${titleClassName}`}>
+                  Din {wrapped.monthLabel} är klar
+                </p>
+              </div>
+              <span
+                className={`shrink-0 text-xs font-semibold ${
+                  isLight ? "text-amber-700" : "text-amber-200"
+                }`}
+              >
+                Visa →
+              </span>
+            </button>
+          </div>
+        )}
+
         <section className="grid gap-4 lg:grid-cols-[1.55fr_0.9fr]">
           <div
             className={`relative overflow-hidden rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}
@@ -416,6 +460,22 @@ export default function LobbyScreen({
             </div>
           </div>
         </section>
+
+        {wrapped && !wrapped.isSpotlight && (
+          <button
+            type="button"
+            onClick={wrapped.onOpen}
+            className={`flex w-full items-center justify-between gap-3 rounded-[1.25rem] px-4 py-3 text-left transition active:scale-[0.99] ${cardClassName}`}
+          >
+            <div className="min-w-0">
+              <p className={labelClassName}>Höjdpunkter</p>
+              <p className={`mt-1 text-sm font-semibold ${titleClassName}`}>
+                Din {wrapped.monthLabel}
+              </p>
+            </div>
+            <span className={`shrink-0 text-xs font-semibold ${bodyClassName}`}>Visa →</span>
+          </button>
+        )}
 
         <section className="grid gap-4">
           <div className="grid gap-4 sm:grid-cols-2">

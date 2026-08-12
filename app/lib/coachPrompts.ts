@@ -9,6 +9,7 @@ import {
   MAX_CHAT_REPLY_CHARACTERS,
   MAX_COACH_REPLY_CHARACTERS,
   MAX_EXERCISE_INTRO_CHARACTERS,
+  MAX_WRAPPED_REFLECTION_CAPTION_CHARACTERS,
   sanitizeCoachSetReply,
   type CoachChatContext,
   type CoachExerciseIntroContext,
@@ -17,6 +18,7 @@ import {
   type CoachSetContext,
   type CoachSetVideoContext,
   type CoachWorkoutReviewContext,
+  type CoachWrappedContext,
 } from "./coachAi";
 
 const MEMORY_PRECEDENCE_RULE =
@@ -297,6 +299,29 @@ export function buildCoachWorkoutReviewPromptPayload(
     instruction:
       `Du har precis sett din elev avsluta sitt pass. Det ska synas i varje rad.\n\nReturnera ENDAST giltig JSON, inte markdown. Format: {"coachHeadline":"kort rad — det du säger direkt till dem nu","coachSummary":"1-3 meningar — vad det här passet betyder för deras resa, inte vad som hände","positives":["1-3 specifika saker du noterade och är stolt över"],"adjustments":["0-2 saker — bara om det verkligen behövs, annars tomt"],"nextFocus":["1-2 saker att bära med sig"],"coachMemoryTakeaway":["1-2 saker att minnas inför nästa pass"],"lobbyText":"1-2 meningar — vad du säger nästa gång de öppnar appen. Utgå hellre från ett mönster över flera pass (dayForm, recentSessions, events), hur de mådde, eller bara ren värme, än en siffra från just det här passet — siffror ser de redan i appen. Ska kännas som en tränare som ringer en vardag, inte en rapport. Väck nyfikenhet eller värme, sammanfatta inte. Inga emojis. Exempel: 'Tredje bröstpasset på raken nu — vi ser till att resten av kroppen inte glöms bort.' eller 'Du körde igenom idag trots att du var trött. Skönt att se.' eller 'Bra att du dök upp idag.' Max 160 tecken."}\n\ncoachHeadline är det du säger rakt till dem nu. Inte en rapport. Exempel: "Det här var ditt bästa A-pass hittills.", "Starkt jobbat idag. 👊", "Nu börjar det hända.", "Imponerande dag på bänken."\n\ncoachSummary svarar på: vad betyder det här passet för den här personen? Inte "du körde 14 set" utan "du etablerar en ny nivå på hantelpressen" eller "du hanterade tröttheten och körde ändå igenom — det är karaktär."\n\npositives ska vara specifika och äkta. Inte "bra jobbat". Utan "37.5 × 12 på hantelpress — ny topp. 🚀" eller "tre starka set på ryggen, stabil uppgång." Täck de övningar där något faktiskt hände. Om passet var starkt rakt igenom: fira det. Var inte balanserad för balansens skull.\n\nOm gymCalibrationNote finns: övningar den nämner som också ligger i progression.worse kan bero på att du tränar på ett gym du inte kalibrerat dig på än, inte en försämring — nämn det varsamt om alls, aldrig som ett styrketapp.\n\nOm userNotes finns: det användaren själv sa under passet, lika giltig träningsdata som siffrorna. Säger något där emot en siffra i progression eller exercises — lita på användaren, inte den råa jämförelsen.\n\nOm smärta, failure eller avbrott: lyft det som ett klokt beslut, aldrig som ett misslyckande.\n\nAnvänd 0-2 emojis (👊 🔥 💪 🚀 ✅ 📈) — bara vid riktig prestation, inte som dekoration.\n\nHitta inte på data. Allt ska komma från context.`,
     maxCharacters: 1600,
+  };
+}
+
+export const WRAPPED_CAPTIONS_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    activityCaption: { type: "string" },
+    pbCaption: { type: "string" },
+    reflectionCaption: { type: "string" },
+  },
+  required: ["activityCaption", "pbCaption", "reflectionCaption"],
+};
+
+export function buildCoachWrappedPromptPayload(
+  context: CoachWrappedContext
+): CoachPromptPayload {
+  return {
+    system: REVIEW_COACH_SYSTEM,
+    context,
+    instruction:
+      `Du har precis sett din elevs månad i sin helhet — ${context.monthLabel}. Det här är inte en rapport, det är du som ser tillbaka tillsammans med dem på vad som hänt, som en tränare som varit med hela vägen.\n\nReturnera ENDAST giltig JSON, inte markdown. Format: {"activityCaption":"1 kort mening om aktiviteten/konsekvensen den här månaden — max 100 tecken","pbCaption":"1 kort mening som firar biggestPb, eller om biggestPb är null: varm text om konsekvens istället för en toppnotering — max 100 tecken","reflectionCaption":"1-2 meningar, den enda riktiga röst-raden i hela sammanfattningen — vad den här månaden betydde, inte vad som hände i siffror — max 160 tecken"}\n\nIngen text ska avslutas med punkt — kort och levande, inte ett dokument.\n\nactivityCaption: kommentera mönstret i passCount/totalMinutes — regelbundenhet, ett uppsving, eller bara att de dök upp. Ingen siffra behöver upprepas, de syns redan på kortet.\n\npbCaption: om biggestPb finns, fira själva prestationen — exerciseName och att de slog sitt eget rekord. Om biggestPb är null: aldrig tomt eller nedtonat, hitta värme i konsekvensen istället — aldrig något som låter som en ursäkt eller ett misslyckande.\n\nreflectionCaption: den här raden är hela poängen. Inte en sammanfattning av siffrorna — vad betyder den här månaden för den här personens resa? Måste vara grundad i något konkret från context, aldrig ett generellt påstående som skulle kunna gälla vem som helst (låter det som något som kunde stå på en gymvägg är det fel). Ska kännas som något en tränare som känner just den här personen skulle säga, inte ett citat.\n\nDu vet bara det som faktiskt står i context — hitta aldrig på historik, motivation eller tidslinjer utöver det (t.ex. hur länge någon "jagat" en siffra). 0-2 emoji totalt över alla tre fält, bara om det känns äkta firat — inte som dekoration.`,
+    maxCharacters: MAX_WRAPPED_REFLECTION_CAPTION_CHARACTERS,
   };
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getExerciseProfile } from "../lib/exercises";
+import { exerciseKey, getExerciseProfile } from "../lib/exercises";
 
 type LoggedSet = {
   weight: number;
@@ -31,7 +31,7 @@ type Workout = {
   summary?: WorkoutSummary;
 };
 
-type WeekStats = {
+export type WeekStats = {
   key: string;
   label: string;
   passCount: number;
@@ -50,7 +50,7 @@ type Props = {
   onOpenHistory: () => void;
 };
 
-function formatMinutes(minutes: number) {
+export function formatMinutes(minutes: number) {
   if (minutes <= 0) return "-";
   if (minutes < 60) return `${minutes} min`;
 
@@ -98,7 +98,7 @@ function getDayLabel(date: Date) {
   }).format(date);
 }
 
-function getMonthKey(date: Date) {
+export function getMonthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
@@ -199,6 +199,119 @@ function getLastMonths(history: Workout[], monthCount = 12): WeekStats[] {
   });
 
   return months;
+}
+
+// Rör inte getLastMonths ovan (den "year"-chartläget bygger på) — filtrerar
+// historiken direkt på månadsnyckel istället, för en godtycklig enskild
+// månad (t.ex. MinCoach Wrapped) snarare än trailing-12.
+export function getMonthStats(history: Workout[], monthKey: string): WeekStats {
+  const bucket = makeEmptyStats(monthKey, monthKey);
+
+  history.forEach((workout) => {
+    if (getMonthKey(new Date(workout.startedAt)) !== monthKey) return;
+    addWorkoutToStats(bucket, workout);
+  });
+
+  return bucket;
+}
+
+export type MonthPersonalBest = {
+  exerciseName: string;
+  weight: number;
+  reps: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
+  createdAt: string;
+  improvementPercent: number;
+};
+
+type PersonalBestAttempt = {
+  weight: number;
+  reps: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
+};
+
+// Speglar isNewPR() i app/page.tsx — duplicerad, inte importerad (page.tsx
+// importerar redan den här filen, så en runtime-import tillbaka skulle bli
+// en cirkelimport). Håll i synk om isNewPR:s jämförelseregel ändras.
+function isBetterAttempt(existing: PersonalBestAttempt, attempt: PersonalBestAttempt) {
+  if (attempt.metricType === "time") {
+    const attemptDuration = attempt.durationSeconds ?? 0;
+    const existingDuration = existing.durationSeconds ?? 0;
+    if (attemptDuration > existingDuration) return true;
+    if (attemptDuration === existingDuration && attempt.weight > existing.weight) return true;
+    return false;
+  }
+
+  if (attempt.weight > existing.weight) return true;
+  if (attempt.weight === existing.weight && attempt.reps > existing.reps) return true;
+  return false;
+}
+
+function getComparisonValue(attempt: PersonalBestAttempt) {
+  return attempt.metricType === "time" ? attempt.durationSeconds ?? 0 : attempt.weight;
+}
+
+// Går igenom ALL historik (måste veta vad föregående bästa var innan
+// målmånaden), kronologiskt per övning. En övnings allra första loggade
+// set sätter bara baslinjen — räknas INTE som ett PB-event, annars ser
+// varje nyloggad övning den månaden ut som ett PB, vilket känns falskt i
+// en höjdpunkts-kontext. Bara set med numeriskt weight/reps (eller
+// durationSeconds för tidsövningar) beaktas.
+export function getMonthPersonalBests(history: Workout[], monthKey: string): MonthPersonalBest[] {
+  const byExercise = new Map<string, { name: string; sets: (LoggedSet & { exerciseName: string })[] }>();
+
+  history.forEach((workout) => {
+    workout.exercises.forEach((exercise) => {
+      const key = exerciseKey(exercise.name);
+      const entry = byExercise.get(key) ?? { name: exercise.name, sets: [] };
+      exercise.sets.forEach((set) => {
+        if (typeof set.weight !== "number" || typeof set.reps !== "number") return;
+        entry.sets.push({ ...set, exerciseName: exercise.name });
+      });
+      byExercise.set(key, entry);
+    });
+  });
+
+  const events: MonthPersonalBest[] = [];
+
+  byExercise.forEach(({ name, sets }) => {
+    const sorted = [...sets].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+
+    let best: (LoggedSet & { exerciseName: string }) | null = null;
+
+    sorted.forEach((set) => {
+      if (!best) {
+        best = set;
+        return;
+      }
+
+      if (isBetterAttempt(best, set)) {
+        if (getMonthKey(new Date(set.createdAt)) === monthKey) {
+          const previousValue = getComparisonValue(best);
+          const newValue = getComparisonValue(set);
+          const improvementPercent =
+            previousValue > 0 ? Math.round(((newValue - previousValue) / previousValue) * 100) : 0;
+
+          events.push({
+            exerciseName: name,
+            weight: set.weight,
+            reps: set.reps,
+            durationSeconds: set.durationSeconds,
+            metricType: set.metricType,
+            createdAt: set.createdAt,
+            improvementPercent,
+          });
+        }
+        best = set;
+      }
+    });
+  });
+
+  return events.sort((a, b) => b.improvementPercent - a.improvementPercent);
 }
 
 function getChartConfig(mode: ChartMode) {
@@ -338,7 +451,7 @@ function getMostTrainedExercise(history: Workout[]) {
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0] ?? null;
 }
 
-function getMuscleGroupBreakdown(history: Workout[]) {
+export function getMuscleGroupBreakdown(history: Workout[]) {
   const counts = new Map<string, number>();
   let total = 0;
 

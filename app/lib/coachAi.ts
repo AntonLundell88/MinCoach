@@ -342,6 +342,31 @@ export type CoachWorkoutReviewResult = {
   lobbyText?: string;
 };
 
+export type CoachWrappedContext = {
+  kind: "wrapped_recap";
+  userName?: string;
+  monthLabel: string;
+  passCount: number;
+  totalMinutes: number;
+  totalVolumeKg: number;
+  topMuscleCategory: string | null;
+  topMuscleCategoryPercent: number | null;
+  biggestPb: {
+    exerciseName: string;
+    weight: number;
+    reps: number;
+    durationSeconds?: number;
+    metricType?: "reps" | "time";
+    improvementPercent: number;
+  } | null;
+};
+
+export type CoachWrappedResult = {
+  activityCaption: string;
+  pbCaption: string;
+  reflectionCaption: string;
+};
+
 export type BuiltProgramExercise = {
   exerciseKey?: string;
   name: string;
@@ -425,7 +450,8 @@ export type CoachPromptPayload = {
     | CoachProgramBuildContext
     | CoachWorkoutReviewContext
     | CoachExerciseIntroContext
-    | CoachSetVideoContext;
+    | CoachSetVideoContext
+    | CoachWrappedContext;
   instruction: string;
   maxCharacters: number;
 };
@@ -433,6 +459,9 @@ export type CoachPromptPayload = {
 export const MAX_COACH_REPLY_CHARACTERS = 620;
 export const MAX_CHAT_REPLY_CHARACTERS = 500;
 export const MAX_EXERCISE_INTRO_CHARACTERS = 500;
+export const MAX_WRAPPED_ACTIVITY_CAPTION_CHARACTERS = 100;
+export const MAX_WRAPPED_PB_CAPTION_CHARACTERS = 100;
+export const MAX_WRAPPED_REFLECTION_CAPTION_CHARACTERS = 160;
 
 function compactWhitespace(text: string) {
   return text
@@ -981,6 +1010,58 @@ export async function requestAiWorkoutReview(args: {
       mode: "fallback" as const,
       reason: "network_error",
       review: fallbackReview,
+    };
+  }
+}
+
+export async function requestAiWrapped(args: {
+  month: string;
+  context: CoachWrappedContext;
+  stats: unknown;
+  fallbackCaptions: CoachWrappedResult;
+  signal?: AbortSignal;
+}) {
+  const { month, context, stats, fallbackCaptions, signal } = args;
+
+  try {
+    const response = await fetch("/api/coach/wrapped", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        month,
+        context,
+        stats,
+        fallbackCaptions,
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      return {
+        mode: "fallback" as const,
+        reason: "request_failed",
+        captions: fallbackCaptions,
+      };
+    }
+
+    const data = (await response.json()) as {
+      mode?: "ai" | "fallback";
+      reason?: string;
+      captions?: CoachWrappedResult | null;
+    };
+
+    return {
+      mode: data.mode ?? "fallback",
+      reason: data.reason,
+      captions: data.captions ?? fallbackCaptions,
+    };
+  } catch {
+    return {
+      mode: "fallback" as const,
+      reason: "network_error",
+      captions: fallbackCaptions,
     };
   }
 }

@@ -17,7 +17,9 @@ import PersonalRecordsScreen from "./components/PersonalRecordsScreen";
 import ProgramReviewScreen from "./components/ProgramReviewScreen";
 import ProgramBuildLoadingScreen from "./components/ProgramBuildLoadingScreen";
 import SettingsScreen from "./components/SettingsScreen";
+import { WrappedStory } from "./components/WrappedStory";
 import { SettingsGlyph } from "./components/IconGlyphs";
+import { useWrappedRecap } from "./hooks/useWrappedRecap";
 import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
 import { syncBetaCoachMemory, syncBetaPersonalRecord } from "./lib/betaMemorySync";
 import {
@@ -6586,6 +6588,9 @@ const {
   setSkippedExercise,
 });
 
+const { wrapped, story: wrappedStory, isOpen: isWrappedOpen, onClose: closeWrapped } =
+  useWrappedRecap(history, userProfile?.name?.trim() || undefined);
+
 function resetWorkoutInputs() {
   setWeightInput("");
   setRepsInput("");
@@ -8604,6 +8609,16 @@ const settingsPanel = showSettings ? (
   />
 ) : null;
 
+const wrappedStoryPanel =
+  isWrappedOpen && wrappedStory ? (
+    <WrappedStory
+      monthLabel={wrappedStory.monthLabel}
+      stats={wrappedStory.stats}
+      captions={wrappedStory.captions}
+      onClose={closeWrapped}
+    />
+  ) : null;
+
 if (showSplash) {
   return (
     <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#0b1018] px-6 text-white">
@@ -9275,6 +9290,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
     daysPerWeek={userProfile.daysPerWeek}
     now={now}
     theme={appTheme}
+    wrapped={wrapped}
     staleDraft={staleDraft ? { startedAt: staleDraft.workout.startedAt, displayName: staleDraft.workout.displayName } : null}
     onResumeStaleDraft={() => {
       if (!staleDraft) return;
@@ -9342,6 +9358,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
   />
 )}
 {settingsPanel}
+{wrappedStoryPanel}
 </main>
 );
 }
