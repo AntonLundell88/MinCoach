@@ -25,8 +25,11 @@ type CoachProgramBuildRequest = {
 };
 
 const PASS_KEYS = ["A", "B", "C", "D", "E", "F"] as const;
+// Netlify hard-kills the function at 30s (confirmed with support 2026-08-12,
+// raised from the 10s default). Must fire well before that so the fallback
+// response actually gets returned instead of an uncontrolled platform kill.
 const PROGRAM_BUILD_TIMEOUT_MS = Number(
-  process.env.OPENAI_PROGRAM_BUILD_TIMEOUT_MS ?? 55000
+  process.env.OPENAI_PROGRAM_BUILD_TIMEOUT_MS ?? 25000
 );
 const PROGRAM_BUILD_ATTEMPTS = Number(
   process.env.OPENAI_PROGRAM_BUILD_ATTEMPTS ?? 1
