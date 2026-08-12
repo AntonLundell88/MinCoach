@@ -139,8 +139,10 @@ export async function POST(request: Request) {
     return fallbackResponse(fallbackReview, "missing_api_key");
   }
 
+  // Was 35000 — above Netlify's confirmed 30s hard kill, so this timeout
+  // could never actually fire before the platform killed the function first.
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 35000);
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {

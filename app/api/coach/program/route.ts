@@ -88,8 +88,10 @@ export async function POST(request: Request) {
     );
   }
 
+  // Netlify hard-kills the function at 30s (confirmed 2026-08-12) — must
+  // fire well before that so a real fallback reply is returned instead.
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {

@@ -113,8 +113,11 @@ export async function POST(request: Request) {
   }
 
   const payload = buildCoachSetVideoPromptPayload(context);
+  // Was 45000 — well above Netlify's confirmed 30s hard kill, so this
+  // timeout could never actually fire before the platform killed the
+  // function first.
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000);
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
