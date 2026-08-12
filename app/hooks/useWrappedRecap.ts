@@ -60,6 +60,7 @@ const WRAPPED_PREVIEW_RECAP: WrappedRecap = {
       createdAt: new Date().toISOString(),
       improvementPercent: 9,
     },
+    pbCount: 3,
   },
   captions: {
     activityCaption: "14 pass loggade i juli — bra tempo genom hela månaden",

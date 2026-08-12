@@ -24,6 +24,10 @@ export type WrappedStoredStats = {
   totalVolumeKg: number;
   muscleBreakdown: { category: string; count: number; percent: number }[];
   biggestPb: MonthPersonalBest | null;
+  // Totalt antal PB den här månaden — biggestPb är bara den största av dem.
+  // getMonthPersonalBests returnerar alla, vi sparar bara längden här; hela
+  // listan behövs inte, bara "hur många fler fanns det".
+  pbCount: number;
 };
 
 // Alltid "kalendermånaden precis innan now" — per konstruktion alltid
@@ -62,14 +66,15 @@ export function buildWrappedStats(history: Workout[], monthKey: string): Wrapped
     (workout) => getMonthKey(new Date(workout.startedAt)) === monthKey
   );
   const muscleBreakdown = getMuscleGroupBreakdown(monthHistory);
-  const biggestPb = getMonthPersonalBests(history, monthKey)[0] ?? null;
+  const monthPersonalBests = getMonthPersonalBests(history, monthKey);
 
   return {
     passCount: monthStats.passCount,
     totalMinutes: monthStats.totalMinutes,
     totalVolumeKg: monthStats.totalVolume,
     muscleBreakdown,
-    biggestPb,
+    biggestPb: monthPersonalBests[0] ?? null,
+    pbCount: monthPersonalBests.length,
   };
 }
 

@@ -21,6 +21,19 @@ function toTons(kg: number) {
   return Math.round((kg / 1000) * 10) / 10;
 }
 
+// Måste kännas uppmuntrande även vid 0 — annars blir sista kortet en
+// besvikelse istället för en avslutning. Skiljer sig medvetet från
+// PB-kortets egen null-text (kort 4) så det inte känns upprepat.
+function getPbCountLine(pbCount: number) {
+  if (pbCount === 0) {
+    return "Inga nya personbästan den här månaden — men varje pass bygger mot nästa";
+  }
+  if (pbCount === 1) {
+    return "1 nytt personbästa den här månaden";
+  }
+  return `${pbCount} nya personbästan den här månaden`;
+}
+
 type SparkleParticle = { left: number; delay: number; duration: number; size: number };
 
 // Slumpen får inte köras under render (React purity-regel) — genereras i en
@@ -67,8 +80,29 @@ function SparkleLayer({ particles, opacity }: { particles: SparkleParticle[]; op
   );
 }
 
-function ShareButton({ onShare }: { onShare: () => void }) {
-  const [state, setState] = useState<"idle" | "sharing">("idle");
+type ShareOutcome = { method: "share" | "download" } | undefined;
+type ShareButtonState = "idle" | "sharing" | "shared" | "downloaded";
+
+// Utan en tydlig "klart"-status ser knappen död ut även när delningen (eller
+// nedladdningen, dess fallback) faktiskt lyckades — särskilt nedladdning
+// syns lätt inte alls om man inte råkar titta i webbläsarens nedladdningar.
+function ShareButton({ onShare }: { onShare: () => Promise<ShareOutcome> }) {
+  const [state, setState] = useState<ShareButtonState>("idle");
+
+  useEffect(() => {
+    if (state !== "shared" && state !== "downloaded") return;
+    const timeout = setTimeout(() => setState("idle"), 1800);
+    return () => clearTimeout(timeout);
+  }, [state]);
+
+  const label =
+    state === "sharing"
+      ? "Delar…"
+      : state === "shared"
+        ? "Delad ✓"
+        : state === "downloaded"
+          ? "Nedladdad ✓"
+          : "Dela";
 
   return (
     <button
@@ -77,11 +111,13 @@ function ShareButton({ onShare }: { onShare: () => void }) {
         event.stopPropagation();
         if (state === "sharing") return;
         setState("sharing");
-        Promise.resolve(onShare()).finally(() => setState("idle"));
+        onShare()
+          .then((result) => setState(result?.method === "share" ? "shared" : "downloaded"))
+          .catch(() => setState("idle"));
       }}
       className="mt-6 rounded-full border border-amber-300/25 bg-amber-400/[0.08] px-5 py-2.5 text-sm font-semibold text-amber-200 shadow-[0_0_28px_rgba(251,191,36,0.12)] transition active:scale-[0.97]"
     >
-      {state === "sharing" ? "Delar…" : "Dela"}
+      {label}
     </button>
   );
 }
@@ -101,10 +137,10 @@ export function WrappedStory({ monthLabel, stats, captions, onClose }: Props) {
   };
 
   const handleShare = (cardType: "pb" | "closing") =>
-    shareWrappedCard(cardType, { monthLabel, stats, captions }).catch(() => {
-      // Delning avbröts eller misslyckades tyst — inget att visa, kortet
-      // finns kvar precis som innan.
-    });
+    // Delning avbröts eller misslyckades tyst — inget att visa, kortet finns
+    // kvar precis som innan. undefined (inte void) håller typen i linje med
+    // vad ShareButton kan hantera.
+    shareWrappedCard(cardType, { monthLabel, stats, captions }).catch(() => undefined);
 
   const topMuscle = stats.muscleBreakdown[0] ?? null;
 
@@ -169,7 +205,7 @@ export function WrappedStory({ monthLabel, stats, captions, onClose }: Props) {
               <p className="mt-5 text-7xl font-bold tabular-nums">{stats.passCount}</p>
               <p className="mt-2 text-xl text-white/70">pass loggade</p>
               <p className="mt-1 text-sm text-white/50">{formatMinutes(stats.totalMinutes)} totalt</p>
-              <p className="mt-8 max-w-xs text-lg text-white/85">{captions.activityCaption}</p>
+              <p className="mt-6 max-w-xs text-lg text-white/85">{captions.activityCaption}</p>
             </>
           )}
 
@@ -180,7 +216,6 @@ export function WrappedStory({ monthLabel, stats, captions, onClose }: Props) {
               </p>
               <p className="mt-5 text-7xl font-bold tabular-nums">
                 {toTons(stats.totalVolumeKg).toLocaleString("sv-SE")}
-                <span className="ml-1 text-3xl font-normal text-white/50">t</span>
               </p>
               <p className="mt-2 text-xl text-white/70">ton lyft den här månaden</p>
             </>
@@ -236,9 +271,7 @@ export function WrappedStory({ monthLabel, stats, captions, onClose }: Props) {
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200/70">
                 Avslutning
               </p>
-              <h2 className="mt-5 text-3xl font-semibold">
-                {stats.passCount} pass · {toTons(stats.totalVolumeKg).toLocaleString("sv-SE")} t lyft
-              </h2>
+              <h2 className="mt-5 max-w-xs text-3xl font-semibold">{getPbCountLine(stats.pbCount)}</h2>
               <p className="mt-4 max-w-xs text-lg text-white/85">Vi ses nästa månad</p>
               <ShareButton onShare={() => handleShare("closing")} />
             </>
