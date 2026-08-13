@@ -931,8 +931,11 @@ function buildProgressionPlan(args: {
   const latestSet = recentBestSets[0];
   const latestHard = isHardOrFailedSet(latestSet);
   const topWeightSets = recentBestSets.filter((set) => set.weight === topSet.weight);
+  // Stabil = konsekvent nära målet, inte nära ditt livstidsbästa på den
+  // vikten. Ett enstaka starkt pass (t.ex. 13 reps mot mål 10) ska inte
+  // sätta en ribba som normala, fullt godkända pass sen aldrig når.
   const topWeightStableSets = topWeightSets.filter(
-    (set) => set.reps >= Math.max(targetReps, topSet.reps - 1) && hasUsefulMargin(set)
+    (set) => set.reps >= targetReps && hasUsefulMargin(set)
   );
   const sessionsAtTopWeight = topWeightStableSets.length;
   // Medvetet bredare än isHardOrFailedSet (RIR<=0): deload ska fånga ett
@@ -2941,8 +2944,27 @@ function getNextSetPlan(args: {
     rir >= 2 &&
     reps < workingRepRange.min &&
     decisionProfile.type !== "technical-heavy";
+  // Spegelbild av finalSetNeedsQualityExtra: planen är ett standardförslag,
+  // inte ett tak. Om marginalen hållit i sig genom alla planerade set (inte
+  // bara det sista) är det coachen och användaren som avgör om det finns
+  // ett set till att hämta — inte det förutbestämda antalet i schemat.
+  // Kapas ändå av decisionProfile.maxHardSets, så det aldrig blir öppet slut.
+  const priorSetsAllHadMargin =
+    (args.previousSets ?? []).every(
+      (set) => typeof set.rir !== "number" || set.rir >= 2
+    );
+  const hasMarginForExtraSet =
+    setNumber >= plannedSetCount &&
+    setNumber < decisionProfile.maxHardSets &&
+    !fail &&
+    rir >= 2 &&
+    reps >= workingRepRange.min &&
+    priorSetsAllHadMargin &&
+    decisionProfile.type !== "technical-heavy";
   const shouldCompleteExercise =
-    (setNumber >= plannedSetCount && !finalSetNeedsQualityExtra) ||
+    (setNumber >= plannedSetCount &&
+      !finalSetNeedsQualityExtra &&
+      !hasMarginForExtraSet) ||
     (setNumber >= decisionProfile.maxHardSets &&
       !activePlannedExtraSet &&
       !finalSetNeedsQualityExtra);
@@ -3058,6 +3080,29 @@ function getNextSetPlan(args: {
       strategy: "hold",
       reason:
         "Det fanns mer kvar, men repsen blev lite låga. Vi slänger in ett set till här och försöker nå repsspannet.",
+    } satisfies NextSetPlan;
+  }
+
+  if (hasMarginForExtraSet) {
+    return {
+      weight,
+      repsText: range(workingRepRange.min, workingRepRange.max),
+      repsInput: reps,
+      rirText: "RIR 1-2",
+      rirInput: 1,
+      restText,
+      techniqueCue,
+      strategy: "hold",
+      reason:
+        "Marginalen har hållit i sig genom alla planerade set. Ett set till kan vara värt det.",
+      opportunity: {
+        type: "optional_last_set_test",
+        confidence: "medium",
+        suggestedWeight: formatWeightInput(weight),
+        reason:
+          "Marginalen har hållit i sig genom alla planerade set — ett extra set kan vara värt det om det känns bra.",
+        tone: "offer",
+      },
     } satisfies NextSetPlan;
   }
 

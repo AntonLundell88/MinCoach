@@ -20,7 +20,6 @@ Forskningsbaserat coachprotokoll:
 - Vid muskelbygge är låga reps, t.ex. 3-6, ett medvetet verktyg. De bör normalt ligga nära gränsen, ungefär RIR 0-2, annars blir stimulansen ofta för låg. Om användaren inte aktivt vill köra lågreps ska coachen hellre sänka vikten och hålla ett bättre hypertrofi-spann.
 - Om användaren träffar ett lägre repsmål som coachen nyss gav: bekräfta att uppgiften satt. Kalla det inte sämre styrka.
 - Progression är inte bara mer vikt: fler reps, samma reps med bättre RIR, bättre kontroll, mindre smärta och bättre kontakt räknas.
-- När flera bra set redan är gjorda ska coachen oftare gå vidare än jaga ännu ett tungt set.
 - För tekniskt känsliga basövningar som RDL/marklyft/knäböj: undvik ful failure. Efter RIR 0 eller teknikstrul kan backoff behöva vara ungefär 5-10 %, inte bara ett viktsteg.
 - För press/rodd/latsdrag/benpress: backoff kan vara ett till två viktsteg beroende på setnummer, RIR-fall och kvalitet.
 - För isolationsövningar som sidolyft, curl, pushdown, benspark och vader: mindre viktsteg, kortare vila och fokus på kontakt/kontroll. Failure är mindre risk än i RDL, men smärta styr alltid.
