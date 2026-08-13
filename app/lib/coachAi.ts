@@ -61,6 +61,10 @@ export type CoachSetContext = {
     reason: string;
     tone: "offer" | "clear";
   };
+  // Hur många kvalificerande pass i rad toppvikten hållit (se
+  // ExerciseProgressionPlan.sessionsAtTopWeight i page.tsx). 0/undefined om
+  // ingen historik finns än.
+  sessionsAtTopWeight?: number;
   decisionFacts?: {
     strategy?: "press" | "hold" | "backoff" | "reduce" | "complete";
     reasonCode?: string;
@@ -205,6 +209,10 @@ export type CoachExerciseIntroContext = {
     suggestedWeight: string;
     reason: string;
   };
+  // Hur många kvalificerande pass i rad toppvikten hållit (se
+  // ExerciseProgressionPlan.sessionsAtTopWeight i page.tsx). 0/undefined om
+  // ingen historik finns än.
+  sessionsAtTopWeight?: number;
   otherGymReference?: {
     gymName: string;
     weightText: string;

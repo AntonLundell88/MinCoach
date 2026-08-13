@@ -54,6 +54,7 @@ import {
 } from "./lib/exercises";
 import { useExerciseSwapActions } from "./hooks/useExerciseSwapActions";
 import { repairMojibake } from "./lib/textEncoding";
+import { triggerHaptic } from "./lib/haptics";
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 type ProgramStartMode = "coach" | "manual";
 type AppTheme = "dark" | "light";
@@ -739,6 +740,10 @@ type ExerciseProgressionPlan = {
   note: string;
   reason: string;
   opportunity?: ProgressionOpportunity;
+  // Hur många av de senaste kvalificerande passen som legat på samma
+  // toppvikt med tillräcklig marginal (se topWeightStableSets nedan). 0 när
+  // ingen historik/toppset finns än (start-grenarna).
+  sessionsAtTopWeight: number;
 };
 
 function formatWeightInput(weight: number) {
@@ -902,6 +907,7 @@ function buildProgressionPlan(args: {
         recentBestSets.length === 0
           ? "Ingen historik än."
           : "Senaste bästa tid.",
+      sessionsAtTopWeight: 0,
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -914,6 +920,7 @@ function buildProgressionPlan(args: {
       rirText: "RIR 2",
       note: "Första setet visar oss var vi ligger.",
       reason: "Ingen historik än.",
+      sessionsAtTopWeight: 0,
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -927,6 +934,7 @@ function buildProgressionPlan(args: {
   const topWeightStableSets = topWeightSets.filter(
     (set) => set.reps >= Math.max(targetReps, topSet.reps - 1) && hasUsefulMargin(set)
   );
+  const sessionsAtTopWeight = topWeightStableSets.length;
   // Medvetet bredare än isHardOrFailedSet (RIR<=0): deload ska fånga ett
   // mönster av slitsamma pass över tid, inte kräva total failure varje gång.
   const recentHardCount = recentBestSets
@@ -993,6 +1001,7 @@ function buildProgressionPlan(args: {
         reason: "Repsen blev för höga med marginal kvar.",
         tone: "clear",
       },
+      sessionsAtTopWeight,
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -1008,6 +1017,7 @@ function buildProgressionPlan(args: {
       rirText: "RIR 2",
       note: "Du har haft flera tunga set. Idag håller vi igen lite.",
       reason: "Flera senaste set har varit nära failure.",
+      sessionsAtTopWeight,
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -1022,6 +1032,7 @@ function buildProgressionPlan(args: {
       rirText: "RIR 1-2",
       note: "Senaste nivån hamnade för lågt i reps för målet. Jag tycker vi sänker lite och bygger bättre arbetsset.",
       reason: "Repsspannet ska passa muskelbygge, inte bli ett tungt styrketest.",
+      sessionsAtTopWeight,
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -1037,11 +1048,12 @@ function buildProgressionPlan(args: {
       rirText: "RIR 1-2",
       note: "Senast tog det stopp. Vi börjar lite lägre här.",
       reason: "Senaste bästa setet var för tungt.",
+      sessionsAtTopWeight,
     } satisfies ExerciseProgressionPlan;
   }
 
   if (canIncrease) {
-    const nextWeight = getNextAvailableWeight(topSet.weight, exerciseName, "up");
+    const nextWeight = scaledProgressionJump(topSet.weight, exerciseName, topSet.reps, targetReps, topSet.rir);
     const maxReps = Math.max(1, topSet.reps - 1);
     const minReps = Math.max(1, topSet.reps - 3);
 
@@ -1061,6 +1073,7 @@ function buildProgressionPlan(args: {
           "Samma toppvikt har suttit flera pass med tillräckligt många reps.",
         tone: "clear",
       },
+      sessionsAtTopWeight,
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -1076,6 +1089,7 @@ function buildProgressionPlan(args: {
       rirText: "RIR 2",
       note: "Du har mer här, men idag börjar vi kontrollerat.",
       reason: "Dagsformen är trött.",
+      sessionsAtTopWeight,
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -1091,6 +1105,7 @@ function buildProgressionPlan(args: {
     note: "Samma vikt som ditt bästa. Vi siktar lite lägre först.",
     reason: `Jag vill se att ${formatWeightInput(topSet.weight)} kg sitter nära ${topSet.reps} reps minst ett pass till innan vi höjer.`,
     opportunity: offerIncreaseOpportunity,
+    sessionsAtTopWeight,
   } satisfies ExerciseProgressionPlan;
 }
 
@@ -3645,6 +3660,7 @@ function buildCoachSetContext(args: {
     rir?: number;
   }[];
   personalRecordText?: string;
+  sessionsAtTopWeight?: number;
   lastCoachMessage?: string;
   memoryInsight?: string;
   limitations?: string;
@@ -3903,6 +3919,7 @@ function buildCoachSetContext(args: {
         }
       : undefined,
     personalRecordText: args.personalRecordText || undefined,
+    sessionsAtTopWeight: args.sessionsAtTopWeight,
     progressionOpportunity: progressionOpportunity
       ? {
           type: progressionOpportunity.type,
@@ -4578,9 +4595,10 @@ export default function Home() {
   const exerciseInputKeyRef = useRef("");
   const exerciseIndexRef = useRef(0);
   const [now, setNow] = useState<Date>(new Date());
-  const [gym, setGym] = useState<string>("Sjöviksgymmet");
+  const [gym, setGym] = useState<string>("");
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [activeGymId, setActiveGymId] = useState<string | null>(null);
+  const [lastGymConfirmedDate, setLastGymConfirmedDate] = useState<string | null>(null);
   const [lastPass, setLastPass] = useState<PassType | null>(null);
   const [lobbyCoachText, setLobbyCoachText] = useState<string>(() => loadJSON<string>("lobbyCoachText", ""));
   const [coachMemory, setCoachMemory] = useState<CoachMemory>({ notes: [] });
@@ -4762,6 +4780,7 @@ if (savedLastPass && ALL_PASS_KEYS.includes(savedLastPass)) {
 }
 
     if (savedGym) setGym(repairMojibake(savedGym));
+    setLastGymConfirmedDate(localStorage.getItem("lastGymConfirmedDate"));
 
     const savedGyms = loadJSON<Gym[]>("gyms", []);
     if (savedGyms.length > 0) {
@@ -5502,6 +5521,7 @@ const progressionPlan = useMemo(() => {
       rirText: "RIR 2",
       note: "Första setet visar oss var vi ligger.",
       reason: "Ingen övning vald.",
+      sessionsAtTopWeight: 0,
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -5669,7 +5689,13 @@ useEffect(() => {
 }, [currentExerciseName, started, adjustedSuggestion.weight, adjustedSuggestion.reps]);
 
 
-function addGym(name: string) {
+function confirmGymForToday() {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    setLastGymConfirmedDate(todayStr);
+    localStorage.setItem("lastGymConfirmedDate", todayStr);
+  }
+
+  function addGym(name: string) {
     const trimmed = name.trim();
     if (!trimmed) return;
     const newGym: Gym = { id: crypto.randomUUID(), name: trimmed, createdAt: new Date().toISOString() };
@@ -5679,6 +5705,7 @@ function addGym(name: string) {
     setGym(newGym.name);
     localStorage.setItem("gyms", JSON.stringify(updated));
     localStorage.setItem("lastGymId", newGym.id);
+    confirmGymForToday();
   }
 
   function selectGym(id: string) {
@@ -5687,6 +5714,7 @@ function addGym(name: string) {
     setActiveGymId(id);
     setGym(found.name);
     localStorage.setItem("lastGymId", id);
+    confirmGymForToday();
   }
 
   function renameGym(id: string, newName: string) {
@@ -5713,8 +5741,18 @@ function addGym(name: string) {
     localStorage.setItem("gyms", JSON.stringify(updated));
   }
 
+  // Ett gym: auto-valt, ingen anledning att fråga. Noll gym: inget att luta
+  // vikt/reps-förslagen mot, måste skapas innan passet kan börja (ingen
+  // hittepå-standard längre). Fler än två: risken att glömma byta ökar,
+  // så en bekräftelse krävs per kalenderdag — bara ett tryck om rätt gym
+  // redan är valt, inte ett nytt val varje gång.
+  const gymConfirmationRequired =
+    gyms.length === 0 ||
+    (gyms.length > 2 && lastGymConfirmedDate !== new Date().toISOString().slice(0, 10));
+
   function startWorkout() {
   if (!nextPlannedPass || !workoutPlan) return;
+  if (gymConfirmationRequired) return;
   const warmupContext = null;
   const conditioningContext = null;
 
@@ -7215,6 +7253,7 @@ function checkWeightBeforeSavingSet({
 
 async function addSet() {
     if (!workout) return;
+    triggerHaptic();
 
     const capturedExerciseIndex = exerciseIndex;
     const exerciseBeingLogged = workout.exercises[exerciseIndex];
@@ -7516,6 +7555,7 @@ const coachSetContext = buildCoachSetContext({
   isLastExercise: exerciseIndex >= updated.exercises.length - 1,
   previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
   personalRecordText,
+  sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
   lastCoachMessage,
   memoryInsight: buildExerciseMemoryInsight({
     coachMemory,
@@ -9221,6 +9261,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
     name={profileName}
     gyms={gyms}
     activeGymId={activeGymId}
+    gymConfirmationRequired={gymConfirmationRequired}
     onSelectGym={selectGym}
     onAddGym={addGym}
     onRenameGym={renameGym}

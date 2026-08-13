@@ -21,6 +21,7 @@ import {
 } from "../lib/coachAi";
 
 import { LibraryBrowser, LIBRARY_CATEGORIES, type LibraryExercise } from "./LibraryBrowser";
+import { triggerHaptic } from "../lib/haptics";
 
 const CUSTOM_EXERCISE_CATEGORIES = [
   "ben",
@@ -494,6 +495,7 @@ function buildExerciseIntroAiContext(args: {
       reason: string;
       tone: "offer" | "clear";
     };
+    sessionsAtTopWeight?: number;
   };
   lastByExercise: Props["lastByExercise"];
   exerciseKey: (name: string) => string;
@@ -543,6 +545,7 @@ function buildExerciseIntroAiContext(args: {
         timedTargetText: formatDurationLabel(targetSeconds),
       },
       history: bestTime > 0 ? { bestTimeText: formatDurationLabel(bestTime) } : undefined,
+      sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
       previousWorkoutSummary: summaryForFirst,
       recentHealthNotes,
       limitations,
@@ -585,6 +588,7 @@ function buildExerciseIntroAiContext(args: {
             reason: progressionPlan.opportunity.reason,
           }
         : undefined,
+    sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
     otherGymReference,
     previousWorkoutSummary: summaryForFirst,
     recentHealthNotes,
@@ -685,7 +689,10 @@ export default function WorkoutScreen({
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
   const [restElapsed, setRestElapsed] = useState(0);
   const [isInlineRestWidgetVisible, setIsInlineRestWidgetVisible] = useState(true);
-  const inlineRestWidgetRef = useRef<HTMLDivElement | null>(null);
+  const inlineRestWidgetRef = useRef<HTMLButtonElement | null>(null);
+  // Sant när användaren själv tryckt på den lilla "Vila"-rutan för att se
+  // den stora timern, oavsett om rutan råkar synas i vyn just då.
+  const [restDockForcedOpen, setRestDockForcedOpen] = useState(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const [manualRestTarget, setManualRestTarget] = useState<{
     min: number;
@@ -719,7 +726,11 @@ export default function WorkoutScreen({
       : restTimerState === "ready"
       ? `Redo · ${restTarget.label}`
       : `Redo om ${formatRestTimer(restSecondsUntilReady)}`;
-  const shouldShowRestDock = showRestTimer && !chatFocusMode && !isInlineRestWidgetVisible;
+  useEffect(() => {
+    if (restTimerState === "ready") triggerHaptic([10, 60, 10]);
+  }, [restTimerState]);
+  const shouldShowRestDock =
+    showRestTimer && !chatFocusMode && (!isInlineRestWidgetVisible || restDockForcedOpen);
   const isLastExercise = exerciseIndex === activePlan.length - 1;
   const currentExerciseReadyToFinish = Boolean(currentExerciseCompleted);
   const isTimedCurrentExercise = isTimedExercise(currentExerciseName);
@@ -961,7 +972,11 @@ useEffect(() => {
 
   return (
     <>
-    <div className={`workout-screen-shell w-full max-w-none space-y-2 sm:max-w-xl sm:space-y-2.5 ${shouldShowRestDock ? "pb-44" : ""}`}>
+    <div
+      className={`workout-screen-shell w-full max-w-none space-y-2 pt-[env(safe-area-inset-top)] sm:max-w-xl sm:space-y-2.5 ${
+        shouldShowRestDock ? "pb-44" : "pb-[env(safe-area-inset-bottom)]"
+      }`}
+    >
 {!chatFocusMode && (
 <div ref={normalChatCardRef} className={isNormalChatHistoryOpen ? "" : "sticky top-2 z-30"}>
 <CoachPanel
@@ -1453,9 +1468,14 @@ useEffect(() => {
               </p>
             )}
           </div>
-          <div
+          <button
+            type="button"
             ref={inlineRestWidgetRef}
-            className="workout-rest-card min-w-[5.8rem] rounded-2xl border border-white/[0.06] bg-slate-950/18 px-3 py-2 text-right"
+            onClick={() => {
+              setShowRestTimer(true);
+              setRestDockForcedOpen(true);
+            }}
+            className="workout-rest-card min-w-[5.8rem] rounded-2xl border border-white/[0.06] bg-slate-950/18 px-3 py-2 text-right transition active:scale-[0.97]"
           >
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/34">
               Vila
@@ -1463,7 +1483,7 @@ useEffect(() => {
             <p className="mt-1 text-sm font-semibold text-white">
               {restTimerHint}
             </p>
-          </div>
+          </button>
         </div>
 
         {/* Inputs (embedded — no card wrapper, no header) */}
@@ -1608,115 +1628,6 @@ useEffect(() => {
         </div>,
         document.body
       )}
-
-      <div
-        className={`rounded-[1.15rem] border border-white/[0.06] bg-white/[0.022] px-3 py-2 backdrop-blur-2xl ${
-          showRestTimer ? "hidden" : ""
-        }`}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => setShowRestTimer((value) => !value)}
-            className="min-w-0 flex-1 text-left"
-          >
-            <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/32">
-              Vila
-              <DoubleChevronDownGlyph className="h-2.5 w-2.5 rotate-180 opacity-60" />
-            </span>
-            <span className="mt-0.5 flex items-center gap-2 text-sm font-semibold text-white/82">
-              {formatRestTimer(restElapsed)}
-              <span className="text-xs font-medium text-white/42">
-                {restTimerHint}
-              </span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={restStartedAt ? restartRestTimer : startRestTimer}
-            className="workout-ai-action inline-flex shrink-0 items-center justify-center rounded-xl border border-blue-400/18 bg-blue-500/[0.075] p-2 text-blue-100 transition hover:bg-[#4f83ff]/[0.13]"
-            aria-label={restStartedAt ? "Starta om" : "Starta"}
-          >
-            {restStartedAt ? <RotateGlyph className="h-4 w-4" /> : <PlayGlyph className="h-4 w-4" />}
-          </button>
-        </div>
-
-        {showRestTimer ? (
-          <div
-            className={`hidden mt-2 rounded-[1.1rem] border p-2.5 transition ${
-              restTimerState === "over"
-                ? "border-orange-300/45 bg-[#2a1d12] shadow-[0_0_30px_rgba(251,146,60,0.22)]"
-                : restTimerState === "ready"
-                ? "border-emerald-300/36 bg-[#10251d] shadow-[0_0_28px_rgba(52,211,153,0.20)]"
-                : "border-blue-400/15 bg-slate-950/22"
-            }`}
-          >
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
-                  Vila
-                </p>
-                <p
-                  className={`mt-0.5 text-2xl font-semibold tracking-[-0.04em] ${
-                    restTimerState === "over"
-                      ? "text-orange-100"
-                      : restTimerState === "ready"
-                      ? "text-emerald-100"
-                      : "text-white"
-                  }`}
-                >
-                  {formatRestTimer(restElapsed)}
-                </p>
-              </div>
-
-              <p
-                className={`pb-0.5 text-xs font-medium ${
-                  restTimerState === "over"
-                    ? "text-orange-100/72"
-                    : restTimerState === "ready"
-                    ? "text-emerald-100/72"
-                    : "text-white/50"
-                }`}
-              >
-                {restTimerHint || (restTimerState === "over"
-                  ? "klart. Kör när du vill."
-                  : restTimerState === "ready"
-                  ? "vilan är klar"
-                  : manualRestTarget
-                  ? `mål ${restTarget.label}`
-                  : `coach ${restTarget.label}`)}
-              </p>
-            </div>
-
-            <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/8">
-              <div
-                className={`workout-rest-progress-fill h-full rounded-full shadow-[0_0_18px_rgba(96,165,250,0.35)] transition-all duration-500 ${
-                  restTimerState === "over"
-                    ? "bg-orange-300"
-                    : restTimerState === "ready"
-                    ? "bg-emerald-400"
-                    : "bg-blue-400"
-                }`}
-                style={{ width: `${restProgress * 100}%` }}
-              />
-            </div>
-
-            <div className="mt-2.5 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={restStartedAt ? restartRestTimer : startRestTimer}
-                className="workout-ai-action inline-flex items-center gap-1.5 rounded-lg border border-blue-400/20 bg-blue-500/[0.10] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.16]"
-              >
-                {restStartedAt ? <RotateGlyph className="h-3.5 w-3.5" /> : <PlayGlyph className="h-3.5 w-3.5" />}
-                {restStartedAt ? "Starta om" : "Starta"}
-              </button>
-
-            </div>
-
-          </div>
-        ) : null}
-      </div>
 
         </>
       )}
@@ -2135,7 +2046,10 @@ useEffect(() => {
               </div>
               <button
                 type="button"
-                onClick={() => setShowRestTimer(false)}
+                onClick={() => {
+                  setShowRestTimer(false);
+                  setRestDockForcedOpen(false);
+                }}
                 className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.06] text-sm font-semibold text-white/52 transition hover:bg-white/[0.09] hover:text-white"
                 aria-label="Dölj vilotimer"
               >

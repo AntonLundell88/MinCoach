@@ -9,6 +9,7 @@ import {
 } from "../lib/exercises";
 import ExerciseInfoModal from "./ExerciseInfoModal";
 import VideoFeedbackInfoModal from "./VideoFeedbackInfoModal";
+import { triggerHaptic } from "../lib/haptics";
 
 type PersonalRecord = {
   exerciseName: string;
@@ -202,8 +203,16 @@ export default function ExerciseCard({
     });
   };
 
+  const weightInputRef = useRef<HTMLInputElement | null>(null);
+  const repsInputRef = useRef<HTMLInputElement | null>(null);
+
   const holdRef = useRef<{ timeout: ReturnType<typeof setTimeout> | null; interval: ReturnType<typeof setInterval> | null }>({ timeout: null, interval: null });
-  const startHold = (fn: () => void) => {
+  // Blur:ar fältet innan repeat-skrivningarna börjar — annars tolkar iOS en
+  // skur av programmatiska värdeändringar i ett fortfarande fokuserat
+  // textfält som "undo-värdiga" och visar shake-undo-dialogen ("Ångra
+  // skriven text") mitt i passet.
+  const startHold = (fn: () => void, inputToBlur?: HTMLInputElement | null) => {
+    inputToBlur?.blur();
     holdRef.current.timeout = setTimeout(() => {
       holdRef.current.interval = setInterval(fn, 80);
     }, 400);
@@ -376,10 +385,10 @@ useEffect(() => {
                 <button
                   type="button"
                   onClick={() => adjustWeight(-weightStep)}
-                  onMouseDown={() => startHold(() => adjustWeight(-weightStep))}
+                  onMouseDown={() => startHold(() => adjustWeight(-weightStep), weightInputRef.current)}
                   onMouseUp={stopHold}
                   onMouseLeave={stopHold}
-                  onTouchStart={() => startHold(() => adjustWeight(-weightStep))}
+                  onTouchStart={() => startHold(() => adjustWeight(-weightStep), weightInputRef.current)}
                   onTouchEnd={stopHold}
                   className="flex h-full items-center justify-center border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
                   aria-label="Sänk vikt"
@@ -387,6 +396,7 @@ useEffect(() => {
                   -
                 </button>
                 <input
+                  ref={weightInputRef}
                   className="h-full min-w-0 bg-transparent px-2 text-center text-lg font-semibold text-white outline-none placeholder:text-white/28"
                   inputMode="decimal"
                   value={weightInput}
@@ -397,10 +407,10 @@ useEffect(() => {
                 <button
                   type="button"
                   onClick={() => adjustWeight(weightStep)}
-                  onMouseDown={() => startHold(() => adjustWeight(weightStep))}
+                  onMouseDown={() => startHold(() => adjustWeight(weightStep), weightInputRef.current)}
                   onMouseUp={stopHold}
                   onMouseLeave={stopHold}
-                  onTouchStart={() => startHold(() => adjustWeight(weightStep))}
+                  onTouchStart={() => startHold(() => adjustWeight(weightStep), weightInputRef.current)}
                   onTouchEnd={stopHold}
                   className="flex h-full items-center justify-center border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
                   aria-label="Höj vikt"
@@ -513,10 +523,10 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => adjustReps(-1)}
-              onMouseDown={() => startHold(() => adjustReps(-1))}
+              onMouseDown={() => startHold(() => adjustReps(-1), repsInputRef.current)}
               onMouseUp={stopHold}
               onMouseLeave={stopHold}
-              onTouchStart={() => startHold(() => adjustReps(-1))}
+              onTouchStart={() => startHold(() => adjustReps(-1), repsInputRef.current)}
               onTouchEnd={stopHold}
               className="flex h-full items-center justify-center border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
               aria-label="Minska reps"
@@ -524,6 +534,7 @@ useEffect(() => {
               −
             </button>
             <input
+              ref={repsInputRef}
               className="h-full min-w-0 bg-transparent px-2 text-center text-lg font-semibold text-white outline-none placeholder:text-white/28"
               inputMode="numeric"
               value={repsInput}
@@ -534,10 +545,10 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => adjustReps(1)}
-              onMouseDown={() => startHold(() => adjustReps(1))}
+              onMouseDown={() => startHold(() => adjustReps(1), repsInputRef.current)}
               onMouseUp={stopHold}
               onMouseLeave={stopHold}
-              onTouchStart={() => startHold(() => adjustReps(1))}
+              onTouchStart={() => startHold(() => adjustReps(1), repsInputRef.current)}
               onTouchEnd={stopHold}
               className="flex h-full items-center justify-center border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
               aria-label="Öka reps"
@@ -600,7 +611,10 @@ useEffect(() => {
       <button
         key={value}
         type="button"
-        onClick={() => setRirInput(value)}
+        onClick={() => {
+          setRirInput(value);
+          triggerHaptic(8);
+        }}
         className={`rounded-xl border px-2 py-1.5 text-sm font-semibold transition ${
           isActive
             ? "workout-rir-selected border-blue-400/25 bg-blue-500/[0.16] text-white shadow-[0_0_16px_rgba(59,130,246,0.10)]"

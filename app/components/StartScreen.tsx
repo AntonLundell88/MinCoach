@@ -62,6 +62,7 @@ type Props = {
 
   gyms: Gym[];
   activeGymId: string | null;
+  gymConfirmationRequired: boolean;
   onSelectGym: (id: string) => void;
   onAddGym: (name: string) => void;
   onRenameGym: (id: string, newName: string) => void;
@@ -105,6 +106,7 @@ export default function StartScreen({
   setEditingProfile,
   gyms,
   activeGymId,
+  gymConfirmationRequired,
   onSelectGym,
   onAddGym,
   onRenameGym,
@@ -115,6 +117,7 @@ export default function StartScreen({
   const [showGymPicker, setShowGymPicker] = useState(false);
   const [addGymInput, setAddGymInput] = useState("");
   const [showAddGymInput, setShowAddGymInput] = useState(false);
+  const [gymConfirmationNudge, setGymConfirmationNudge] = useState(false);
   const [editingGymId, setEditingGymId] = useState<string | null>(null);
   const [editingGymName, setEditingGymName] = useState("");
   const [exerciseInfoName, setExerciseInfoName] = useState<string | null>(null);
@@ -136,6 +139,22 @@ export default function StartScreen({
   );
   const addedExerciseCount =
     visibleTodayExercises.length + visibleSavedCustomExercises.length;
+
+  function tryStartWorkout() {
+    if (gymConfirmationRequired) {
+      setShowGymPicker(true);
+      if (gyms.length === 0) setShowAddGymInput(true);
+      setGymConfirmationNudge(true);
+      return;
+    }
+
+    if (!hasAcceptedTrainingSafety) {
+      setShowSafetyModal(true);
+      return;
+    }
+
+    startWorkout();
+  }
 
 
 
@@ -266,7 +285,13 @@ export default function StartScreen({
           </div>
 
           {/* Gymväljare */}
-          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] px-4 py-3">
+          <div
+            className={`rounded-2xl border px-4 py-3 transition ${
+              gymConfirmationRequired && gymConfirmationNudge
+                ? "border-amber-400/40 bg-amber-400/[0.06]"
+                : "border-white/[0.07] bg-white/[0.03]"
+            }`}
+          >
             <p className="mb-2 text-xs text-white/35">Var tränar vi idag?</p>
             <button
               type="button"
@@ -281,6 +306,14 @@ export default function StartScreen({
               </span>
               <span className="text-white/30 text-xs shrink-0">{showGymPicker ? "▲" : "▼"}</span>
             </button>
+
+            {gymConfirmationRequired && gymConfirmationNudge && (
+              <p className="mt-2 text-xs text-amber-300/80">
+                {gyms.length === 0
+                  ? "Döp ditt gym innan du kör igång, så blir vikterna rätt från start."
+                  : "Bekräfta vilket gym du kör på idag innan du startar."}
+              </p>
+            )}
 
             {showGymPicker && (
               <div className="mt-3 space-y-1 border-t border-white/[0.07] pt-3">
@@ -434,14 +467,7 @@ export default function StartScreen({
 
           <button
             className="w-full rounded-2xl bg-[#2f6df6] py-4 font-semibold text-white transition hover:bg-[#4f83ff]"
-            onClick={() => {
-              if (!hasAcceptedTrainingSafety) {
-                setShowSafetyModal(true);
-                return;
-              }
-
-              startWorkout();
-            }}
+            onClick={tryStartWorkout}
           >
             Starta passet
           </button>

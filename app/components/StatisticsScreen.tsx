@@ -630,7 +630,7 @@ export default function StatisticsScreen({
   ];
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-6 pt-4 text-white sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white sm:px-6 lg:px-8">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(37,99,235,0.06),transparent_28%),linear-gradient(180deg,#0b1018_0%,#111a25_45%,#0b1018_100%)]" />
 
       <div className="flex items-center justify-between gap-3 pt-1 sm:pt-3">
