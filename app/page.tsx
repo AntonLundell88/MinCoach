@@ -731,6 +731,15 @@ type ProgressionOpportunity = {
   tone: "offer" | "clear";
 };
 
+// Skild från ProgressionOpportunity med avsikt: en vanlig höjning är
+// bevisad progression och får förifyllas tyst. Det här är ett medvetet
+// risktagande utanför det bevisade — ska ALDRIG förifylla viktfältet,
+// bara visas som ett aktivt val (se "Testa X kg"-chippen i UI:t).
+type CalibrationTestCandidate = {
+  weight: string;
+  reason: string;
+};
+
 type ExerciseProgressionPlan = {
   action: "start" | "hold" | "increase" | "decrease" | "deload";
   weight: string;
@@ -744,6 +753,7 @@ type ExerciseProgressionPlan = {
   // toppvikt med tillräcklig marginal (se topWeightStableSets nedan). 0 när
   // ingen historik/toppset finns än (start-grenarna).
   sessionsAtTopWeight: number;
+  calibrationTestCandidate?: CalibrationTestCandidate;
 };
 
 function formatWeightInput(weight: number) {
@@ -883,8 +893,12 @@ function buildProgressionPlan(args: {
   exerciseName: string;
   targetReps: number;
   dayForm: DayForm | null;
+  // Gäller HELA det pågående passet, inte bara den här övningen — ett
+  // kalibreringstest ska aldrig föreslås om något annat i passet redan
+  // gjort ont eller avbrutits, oavsett hur säker just den här övningen är.
+  sessionHasPainFlag?: boolean;
 }) {
-  const { history, exerciseName, targetReps, dayForm } = args;
+  const { history, exerciseName, targetReps, dayForm, sessionHasPainFlag } = args;
   const recentBestSets = getExerciseBestSets(history, exerciseName, 6);
 
   if (isTimedExercise(exerciseName)) {
@@ -978,6 +992,33 @@ function buildProgressionPlan(args: {
           reason:
             "Toppsetet har nått målet med marginal nog för att ett försiktigt test upp kan vara rimligt.",
           tone: "offer",
+        }
+      : undefined;
+  // Medvetet skild från canIncrease/offerIncreaseOpportunity: de belönar
+  // bevisad marginal med ett litet, säkert steg. Det här är motsatsen —
+  // ett större, avsiktligt hopp UTANFÖR det bevisade, för att se var
+  // gränsen faktiskt går. Kräver samma stabila grund som canIncrease
+  // (minst två sessioner), men bara när inget annat redan har något
+  // starkare att säga (se var fältet faktiskt sätts, i hold-grenen).
+  const decisionProfile = getExerciseDecisionProfile(exerciseName);
+  const calibrationTestEligible =
+    decisionProfile.type !== "technical-heavy" &&
+    !sessionHasPainFlag &&
+    !shouldDeload &&
+    !latestHard &&
+    dayForm !== "trött" &&
+    topWeightStableSets.length >= 2;
+  const calibrationTestCandidate: CalibrationTestCandidate | undefined =
+    calibrationTestEligible
+      ? {
+          weight: formatWeightInput(
+            Math.max(
+              normalizeSuggestedWeight(topSet.weight * 1.125, exerciseName, "nearest"),
+              getNextAvailableWeight(topSet.weight, exerciseName, "up")
+            )
+          ),
+          reason:
+            "Vikten har suttit stabilt flera pass i rad. Ett kalibreringstest — lite tyngre än vad som är bevisat — kan visa var gränsen faktiskt går just nu.",
         }
       : undefined;
 
@@ -1077,6 +1118,7 @@ function buildProgressionPlan(args: {
         tone: "clear",
       },
       sessionsAtTopWeight,
+      calibrationTestCandidate,
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -1109,6 +1151,7 @@ function buildProgressionPlan(args: {
     reason: `Jag vill se att ${formatWeightInput(topSet.weight)} kg sitter nära ${topSet.reps} reps minst ett pass till innan vi höjer.`,
     opportunity: offerIncreaseOpportunity,
     sessionsAtTopWeight,
+    calibrationTestCandidate,
   } satisfies ExerciseProgressionPlan;
 }
 
@@ -5556,6 +5599,24 @@ const weeklyStats = useMemo(() => {
   };
 }, [history]);
  
+// Skannar hela det pågående passet (inte bara historik) — ett
+// kalibreringstest ska aldrig föreslås om något redan gjort ont eller
+// avbrutits idag, oavsett vilken övning det gällde.
+const sessionHasPainFlag = useMemo(() => {
+  if (!workout) return false;
+  return workout.exercises.some((exercise) =>
+    exercise.sets.some((set) => {
+      if (!set.failNote) return false;
+      const text = set.failNote.toLowerCase();
+      return (
+        text.includes("ont") ||
+        text.includes("smärta") ||
+        text.includes("känning")
+      );
+    })
+  );
+}, [workout]);
+
 const progressionPlan = useMemo(() => {
   if (!currentExerciseName) {
     return {
@@ -5575,8 +5636,9 @@ const progressionPlan = useMemo(() => {
     exerciseName: currentExerciseName,
     targetReps: goalTargets.targetReps,
     dayForm,
+    sessionHasPainFlag,
   });
-}, [currentExerciseName, progressionHistory, goalTargets.targetReps, dayForm]);
+}, [currentExerciseName, progressionHistory, goalTargets.targetReps, dayForm, sessionHasPainFlag]);
 
 
 const suggestion = useMemo(() => {
@@ -6282,6 +6344,7 @@ async function sendChat() {
             tone: progressionPlan.opportunity.tone,
           }
         : undefined,
+      calibrationTestCandidate: progressionPlan.calibrationTestCandidate,
       warmupNote: overrides?.warmupContext?.note ?? activeWarmupContext?.note,
       conditioningNote: overrides?.conditioningContext?.note ?? activeConditioningContext?.note,
       previousCoachReply: lastCoachMessage,

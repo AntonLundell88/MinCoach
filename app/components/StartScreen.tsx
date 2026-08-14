@@ -292,7 +292,9 @@ export default function StartScreen({
                 : "border-white/[0.07] bg-white/[0.03]"
             }`}
           >
-            <p className="mb-2 text-xs text-white/35">Var tränar vi idag?</p>
+            <p className="mb-2 text-xs text-white/35">
+              {gyms.length === 1 ? "Ditt gym" : "Var tränar vi idag?"}
+            </p>
             <button
               type="button"
               className="flex w-full items-center justify-between gap-2"

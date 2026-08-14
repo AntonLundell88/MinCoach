@@ -56,6 +56,7 @@ type Props = {
       reason: string;
       tone: "offer" | "clear";
     };
+    calibrationTestCandidate?: { weight: string; reason: string };
   };
   exerciseIndex: number;
   activePlan: string[];
@@ -366,6 +367,7 @@ function buildExerciseIntroCoachText(args: {
       reason: string;
       tone: "offer" | "clear";
     };
+    calibrationTestCandidate?: { weight: string; reason: string };
   };
   lastByExercise: Props["lastByExercise"];
   exerciseKey: (name: string) => string;
@@ -496,6 +498,7 @@ function buildExerciseIntroAiContext(args: {
       tone: "offer" | "clear";
     };
     sessionsAtTopWeight?: number;
+    calibrationTestCandidate?: { weight: string; reason: string };
   };
   lastByExercise: Props["lastByExercise"];
   exerciseKey: (name: string) => string;
@@ -589,6 +592,7 @@ function buildExerciseIntroAiContext(args: {
           }
         : undefined,
     sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
+    calibrationTestCandidate: progressionPlan.calibrationTestCandidate,
     otherGymReference,
     previousWorkoutSummary: summaryForFirst,
     recentHealthNotes,
@@ -1031,15 +1035,6 @@ useEffect(() => {
             <div className="min-w-0 flex-1 rounded-xl border border-white/[0.06] bg-white/[0.03] px-2.5 py-1.5">
               <p className="truncate text-sm font-semibold text-white">{currentExerciseName}</p>
             </div>
-            <div className="min-w-0 shrink-0 rounded-xl border border-white/[0.06] bg-white/[0.03] px-2.5 py-1.5">
-              <p className="whitespace-nowrap text-[11px] font-semibold text-white">
-                {currentExerciseReadyToFinish
-                  ? "Klar"
-                  : hasNextPrescription
-                  ? [nextWeightLabel, currentMetricLabel, nextRirLabel].filter(Boolean).join(" · ")
-                  : "Första setet"}
-              </p>
-            </div>
             {currentExerciseName ? (
               <button
                 type="button"
@@ -1070,6 +1065,14 @@ useEffect(() => {
               <DoubleChevronDownGlyph className="h-4 w-4 rotate-180" />
             </button>
           </div>
+
+          <p className="mt-1.5 truncate text-lg font-bold text-white">
+            {currentExerciseReadyToFinish
+              ? "Klar"
+              : hasNextPrescription
+              ? [nextWeightLabel, currentMetricLabel, nextRirLabel].filter(Boolean).join(" · ")
+              : "Första setet"}
+          </p>
 
           <div className="mt-2 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2">
             <div className="grid grid-cols-[1fr_auto_1fr] items-baseline">

@@ -84,11 +84,25 @@ function getRandomThinkingWord(current?: string) {
   return options[Math.floor(Math.random() * options.length)] ?? coachThinkingWords[0];
 }
 
+// Modulnivå med avsikt: CoachPanel monteras om helt när man växlar
+// mellan vanligt läge och fokusläge (två separata render-ställen i
+// WorkoutScreen.tsx), vilket annars fick samma meddelande att skrivas
+// ut på nytt varje gång. Ett Set som överlever ommonteringar (men inte
+// en hel sidladdning) räcker — inget nytt state att spara eller synka.
+const typedCoachMessages = new Set<string>();
+
 function useTypewriter(text: string, speed = 20, delay = 500) {
-  const [displayed, setDisplayed] = React.useState("");
-  const [isThinking, setIsThinking] = React.useState(true);
+  const alreadyTyped = typedCoachMessages.has(text);
+  const [displayed, setDisplayed] = React.useState(alreadyTyped ? text : "");
+  const [isThinking, setIsThinking] = React.useState(!alreadyTyped);
 
   React.useEffect(() => {
+    if (typedCoachMessages.has(text)) {
+      setDisplayed(text);
+      setIsThinking(false);
+      return;
+    }
+
     let i = 0;
     let interval: ReturnType<typeof setInterval> | null = null;
 
@@ -104,6 +118,7 @@ function useTypewriter(text: string, speed = 20, delay = 500) {
 
         if (i >= text.length && interval) {
           clearInterval(interval);
+          typedCoachMessages.add(text);
         }
       }, speed);
     }, delay);

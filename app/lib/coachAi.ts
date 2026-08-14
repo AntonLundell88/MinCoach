@@ -171,6 +171,13 @@ export type CoachChatContext = {
     reason: string;
     tone: "offer" | "clear";
   };
+  // Säkert kalibreringstest-tak, om den aktuella övningen kvalificerar.
+  // Facit för VAD som är säkert att föreslå om användaren själv efterfrågar
+  // att testa hårdare — inte en instruktion att ta upp det proaktivt här.
+  calibrationTestCandidate?: {
+    weight: string;
+    reason: string;
+  };
   uiHints?: {
     nextSetCardShowsPlan: boolean;
     avoidRepeatingFullPlan: boolean;
@@ -213,6 +220,14 @@ export type CoachExerciseIntroContext = {
   // ExerciseProgressionPlan.sessionsAtTopWeight i page.tsx). 0/undefined om
   // ingen historik finns än.
   sessionsAtTopWeight?: number;
+  // Skild från opportunity med avsikt: det här är inte bevisad progression,
+  // det är ett medvetet erbjudande om att testa UTANFÖR det bevisade.
+  // Appen fyller ALDRIG i det här i viktfältet automatiskt — bara en synlig
+  // knapp användaren själv väljer att trycka på.
+  calibrationTestCandidate?: {
+    weight: string;
+    reason: string;
+  };
   otherGymReference?: {
     gymName: string;
     weightText: string;
