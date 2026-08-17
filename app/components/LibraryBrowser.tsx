@@ -9,6 +9,7 @@ export const LIBRARY_CATEGORIES = [
   "axlar",
   "armar",
   "mage",
+  "helkropp",
 ] as const;
 
 export type LibraryExercise = {
@@ -18,6 +19,7 @@ export type LibraryExercise = {
   equipment: string;
   primaryMuscle: string;
   logType?: string;
+  aliases?: string[];
 };
 
 export function LibraryBrowser({

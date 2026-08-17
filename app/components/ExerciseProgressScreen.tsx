@@ -3,41 +3,16 @@
 import { useMemo, useState } from "react";
 import ExerciseInfoModal from "./ExerciseInfoModal";
 import { LibraryBrowser, LIBRARY_CATEGORIES, type LibraryExercise } from "./LibraryBrowser";
-
-type LoggedSet = {
-  weight: number;
-  reps: number;
-  durationSeconds?: number;
-  metricType?: "reps" | "time";
-  rir?: number;
-  failNote?: string;
-  createdAt: string;
-};
-
-type LoggedExercise = {
-  name: string;
-  sets: LoggedSet[];
-};
-
-type Workout = {
-  id: string;
-  startedAt: string;
-  displayName: string;
-  exercises: LoggedExercise[];
-};
-
-type ExerciseSession = {
-  workoutId: string;
-  workoutName: string;
-  startedAt: string;
-  sets: LoggedSet[];
-};
-
-type ExerciseProgress = {
-  name: string;
-  sessions: ExerciseSession[];
-  sets: Array<LoggedSet & { workoutId: string; workoutName: string }>;
-};
+import MuscleExplorer from "./MuscleExplorer";
+import type { Workout } from "../page";
+import {
+  getBestSet,
+  getExerciseProgress,
+  getSetLabel,
+  getSetScore,
+  type ExerciseProgress,
+  type LoggedSet,
+} from "../lib/exerciseProgress";
 
 type ExerciseSortMode = "recent" | "most" | "az";
 type ExercisePeriod = "month" | "halfYear" | "all";
@@ -56,28 +31,6 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function formatDuration(seconds = 0) {
-  const safeSeconds = Math.max(0, Math.round(seconds));
-  return `${Math.floor(safeSeconds / 60)}:${String(safeSeconds % 60).padStart(2, "0")}`;
-}
-
-function getSetScore(set: LoggedSet) {
-  if (set.metricType === "time" || typeof set.durationSeconds === "number") {
-    return (set.durationSeconds ?? 0) + set.weight * 0.1;
-  }
-
-  return set.weight * set.reps;
-}
-
-function getSetLabel(set: LoggedSet) {
-  if (set.metricType === "time" || typeof set.durationSeconds === "number") {
-    const base = formatDuration(set.durationSeconds ?? 0);
-    return set.weight > 0 ? `${base} + ${set.weight.toLocaleString("sv-SE")} kg` : base;
-  }
-
-  return `${set.weight.toLocaleString("sv-SE")} × ${set.reps}`;
-}
-
 function getSetEffortLabel(set?: LoggedSet | null) {
   if (!set) return "";
 
@@ -86,19 +39,6 @@ function getSetEffortLabel(set?: LoggedSet | null) {
   }
 
   return `RIR ${set.rir ?? "-"}`;
-}
-
-function getBestSet(sets: LoggedSet[]) {
-  return sets.reduce<LoggedSet | null>((best, set) => {
-    if (!best) return set;
-
-    if (getSetScore(set) > getSetScore(best)) return set;
-    if (getSetScore(set) === getSetScore(best) && set.weight > best.weight) {
-      return set;
-    }
-
-    return best;
-  }, null);
 }
 
 function getLatestSetTime(exercise: ExerciseProgress) {
@@ -212,51 +152,6 @@ function getTrendLabel(
     value: "Jämnt",
     helper: "samma nivå",
   };
-}
-
-function getExerciseProgress(history: Workout[]): ExerciseProgress[] {
-  const byExercise = new Map<string, ExerciseProgress>();
-
-  history
-    .slice()
-    .reverse()
-    .forEach((workout) => {
-      workout.exercises?.forEach((exercise) => {
-        const loggedSets = exercise.sets ?? [];
-        if (loggedSets.length === 0) return;
-
-        const current =
-          byExercise.get(exercise.name) ??
-          {
-            name: exercise.name,
-            sessions: [],
-            sets: [],
-          };
-
-        current.sessions.push({
-          workoutId: workout.id,
-          workoutName: workout.displayName,
-          startedAt: workout.startedAt,
-          sets: loggedSets,
-        });
-
-        loggedSets.forEach((set) => {
-          current.sets.push({
-            ...set,
-            workoutId: workout.id,
-            workoutName: workout.displayName,
-          });
-        });
-
-        byExercise.set(exercise.name, current);
-      });
-    });
-
-  return Array.from(byExercise.values()).sort((a, b) => {
-    const latestA = new Date(a.sets.at(-1)?.createdAt ?? 0).getTime();
-    const latestB = new Date(b.sets.at(-1)?.createdAt ?? 0).getTime();
-    return latestB - latestA;
-  });
 }
 
 function ProgressChart({ exercise }: { exercise: ExerciseProgress }) {
@@ -451,7 +346,7 @@ export default function ExerciseProgressScreen({
       libraryCategory === "alla" || exercise.category === libraryCategory;
     const matchesSearch =
       !normalizedLibrarySearch ||
-      `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment}`
+      `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment} ${(exercise.aliases ?? []).join(" ")}`
         .toLowerCase()
         .includes(normalizedLibrarySearch);
 
@@ -503,6 +398,27 @@ export default function ExerciseProgressScreen({
         </button>
       </div>
 
+      <div className="mt-4">
+        <MuscleExplorer
+          history={history}
+          onSelectExercise={(name, tried) => {
+            if (tried) {
+              setSelectedName(name);
+              setShowExerciseDetail(true);
+            } else {
+              setInfoExerciseName(name);
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => setShowLibraryBrowser(true)}
+          className="mt-3 w-full text-center text-xs font-semibold text-blue-300/85 transition hover:text-blue-200"
+        >
+          Bläddra bland alla övningar
+        </button>
+      </div>
+
       {selected ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-[0.82fr_1.45fr]">
           <section
@@ -514,13 +430,6 @@ export default function ExerciseProgressScreen({
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
                 Övningslista
               </p>
-              <button
-                type="button"
-                onClick={() => setShowLibraryBrowser(true)}
-                className="text-xs font-semibold text-blue-300/85 transition hover:text-blue-200"
-              >
-                Bläddra i alla övningar
-              </button>
             </div>
 
             <div className="mt-3 space-y-2.5">

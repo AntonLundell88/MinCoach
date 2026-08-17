@@ -223,6 +223,13 @@ function cleanText(value: unknown) {
   return repairMojibake(value).replace(/\s+/g, " ").trim();
 }
 
+// AI:t returnerar ibland "RIR 2-3" istället för bara "2-3" trots att UI:t
+// själv sätter dit "RIR "-prefixet vid visning (ProgramReviewScreen) — utan
+// den här normaliseringen blir det synliga resultatet "RIR RIR 2-3".
+function cleanRirText(value: unknown) {
+  return cleanText(value).replace(/^rir[\s:]*/i, "").trim();
+}
+
 function cleanList(value: unknown) {
   return Array.isArray(value)
     ? value.map(cleanText).filter(Boolean).slice(0, 6)
@@ -386,7 +393,7 @@ function normalizeExercise(
         : undefined),
     sets: cleanText(raw.sets) || undefined,
     reps: cleanText(raw.reps) || undefined,
-    rir: cleanText(raw.rir) || undefined,
+    rir: cleanRirText(raw.rir) || undefined,
     caution: caution || profile.caution || undefined,
     alternatives: cleanList(raw.alternatives),
   };

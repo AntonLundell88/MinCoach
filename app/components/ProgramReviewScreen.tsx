@@ -155,6 +155,20 @@ function exerciseCountLabel(count: number) {
   return count === 1 ? "1 övning" : `${count} övningar`;
 }
 
+// AI:t returnerar ibland reps med en kvalificerare inbakad, t.ex.
+// "8–10 per ben" eller "12–16 per sida" — att bara klistra på " reps" sist
+// ger "8–10 per ben reps", bakvänt. Sätt istället "reps" direkt efter den
+// inledande siffran/intervallet, före kvalificeraren.
+function formatRepsLabel(reps: string, isTimed: boolean) {
+  if (isTimed) return reps;
+
+  const match = reps.match(/^(\d+\s*(?:[-–]\s*\d+)?)\s*(.*)$/);
+  if (!match) return `${reps} reps`;
+
+  const [, range, rest] = match;
+  return rest ? `${range} reps ${rest}` : `${range} reps`;
+}
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -847,7 +861,7 @@ export default function ProgramReviewScreen({
     const matchesSearch =
       !normalizedLibrarySearch ||
       normalizeExerciseSearchText(
-        `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment}`
+        `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment} ${exercise.aliases.join(" ")}`
       ).includes(normalizedLibrarySearch);
 
     return matchesCategory && matchesSearch;
@@ -1669,7 +1683,7 @@ export default function ProgramReviewScreen({
                             {[
                               exercise.sets && `${exercise.sets} set`,
                               exercise.reps &&
-                                `${exercise.reps}${isTimedExerciseInList ? "" : " reps"}`,
+                                formatRepsLabel(exercise.reps, isTimedExerciseInList),
                               exercise.rir &&
                                 !isTimedExerciseInList &&
                                 `RIR ${exercise.rir}`,
@@ -2350,7 +2364,7 @@ export default function ProgramReviewScreen({
                 Prata med coachen
               </p>
               <p className="mt-2 text-sm leading-6 text-white/66">
-                Fråga om upplägget eller berätta om något känns fel. Coachen svarar och pekar på var du gör ändringen — du trycker själv på knappen vid övningen.
+                Coachen svarar och pekar på var du gör ändringen — du trycker själv på knappen vid övningen.
               </p>
             </div>
             <button

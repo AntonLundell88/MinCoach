@@ -49,6 +49,8 @@ type Props = {
   embedded?: boolean;
   nextExerciseButton?: React.ReactNode;
   onRecordLastSet?: () => void;
+  blockNewConfirmations?: boolean;
+  onPendingConfirmChange?: (pending: boolean) => void;
 };
 
 const CRAZY_WEIGHT_MESSAGES = [
@@ -106,6 +108,8 @@ export default function ExerciseCard({
   embedded = false,
   nextExerciseButton,
   onRecordLastSet,
+  blockNewConfirmations = false,
+  onPendingConfirmChange,
 }: Props) {
   const [showRirInfo, setShowRirInfo] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
@@ -120,6 +124,13 @@ export default function ExerciseCard({
   const [awaitingDecimalConfirm, setAwaitingDecimalConfirm] = useState(false);
   const [showVideoInfo, setShowVideoInfo] = useState(false);
   const [suggestedDecimalWeight, setSuggestedDecimalWeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const hasPendingConfirm =
+      awaitingWeightConfirm || awaitingRepsConfirm || awaitingDecimalConfirm || confirmSkip;
+    onPendingConfirmChange?.(hasPendingConfirm);
+  }, [awaitingWeightConfirm, awaitingRepsConfirm, awaitingDecimalConfirm, confirmSkip, onPendingConfirmChange]);
+
   const isBodyweight = isBodyweightExercise(currentExerciseName);
   const isTimed = isTimedExercise(currentExerciseName);
   const weightPlaceholder = getStablePlaceholder(
@@ -853,6 +864,7 @@ useEffect(() => {
           <button
             className="workout-primary-action w-full rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
             onClick={() => {
+              if (blockNewConfirmations) return;
               if (weightWayTooHigh) {
                 setAwaitingWeightConfirm(true);
               } else if (decimalErrorSuggestion !== null) {

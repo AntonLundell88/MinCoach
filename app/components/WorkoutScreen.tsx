@@ -681,6 +681,12 @@ export default function WorkoutScreen({
   const [showReorderExercises, setShowReorderExercises] = useState(false);
   const [reorderDraft, setReorderDraft] = useState<string[]>([]);
   const [confirmSkipExercise, setConfirmSkipExercise] = useState(false);
+  const [confirmAdvanceEarly, setConfirmAdvanceEarly] = useState(false);
+  // Fynd 21: ExerciseCard har egna bekräftelsedialoger (vikt/reps/decimal/
+  // hoppa-över). Utan den här flaggan kunde "Gå vidare nu?" och en av de
+  // dialogerna öppnas staplade om två åtgärder triggades tätt inpå
+  // varandra — se project-priorities-minnet.
+  const [exerciseCardHasPendingConfirm, setExerciseCardHasPendingConfirm] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showForraGangen, setShowForraGangen] = useState(false);
@@ -783,7 +789,7 @@ export default function WorkoutScreen({
     const matchesSearch =
       !normalizedLibrarySearch ||
       normalizeExerciseSearchText(
-        `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment}`
+        `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment} ${(exercise.aliases ?? []).join(" ")}`
       ).includes(normalizedLibrarySearch);
 
     return matchesCategory && matchesSearch;
@@ -1516,18 +1522,27 @@ useEffect(() => {
           plannedWeightKg={plannedWeightKg}
           plannedReps={plannedReps}
           onRecordLastSet={currentExerciseName ? () => setShowVideoReview(true) : undefined}
+          blockNewConfirmations={confirmAdvanceEarly}
+          onPendingConfirmChange={setExerciseCardHasPendingConfirm}
           nextExerciseButton={
             <button
               type="button"
-              className={`workout-primary-action flex h-14 w-full items-center justify-center rounded-2xl border text-base font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30 ${
+              className={`workout-primary-action flex h-14 w-full items-center justify-center rounded-2xl border text-base font-semibold transition active:scale-[0.99] ${
                 isLastExercise && currentExerciseReadyToFinish
                   ? "border-emerald-300/25 bg-emerald-400/[0.13] text-emerald-50 hover:bg-emerald-400/[0.18]"
                   : !currentExerciseReadyToFinish
-                  ? "border-white/[0.06] bg-white/[0.03] text-white/30"
+                  ? "border-white/[0.09] bg-white/[0.04] text-white/55 hover:bg-white/[0.07]"
                   : "border-blue-300/20 bg-blue-500/[0.13] text-blue-50 hover:bg-blue-500/[0.20]"
               }`}
-              onClick={isLastExercise ? finishWorkout : nextExercise}
-              disabled={!currentExerciseReadyToFinish}
+              onClick={() => {
+                if (!currentExerciseReadyToFinish) {
+                  if (exerciseCardHasPendingConfirm) return;
+                  setConfirmAdvanceEarly(true);
+                  return;
+                }
+                if (isLastExercise) finishWorkout();
+                else nextExercise();
+              }}
             >
               {isLastExercise && currentExerciseReadyToFinish
                 ? "Passet klart"
@@ -1625,6 +1640,43 @@ useEffect(() => {
                 onClick={() => { setShowSaveConfirm(false); finishWorkout(); }}
               >
                 Avsluta ändå — spara det som loggats
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {confirmAdvanceEarly && createPortal(
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
+          <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" onClick={() => setConfirmAdvanceEarly(false)} />
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl sm:mb-0">
+            <div className="space-y-1.5 text-center">
+              <p className="text-base font-semibold text-white">
+                {isLastExercise ? "Avsluta passet nu?" : "Gå vidare nu?"}
+              </p>
+              <p className="text-sm text-white/55">
+                {currentSets.length > 0
+                  ? <>Du har loggat {currentSets.length} set på <span className="font-semibold text-white/80">{currentExerciseName}</span>. Redan loggade set sparas — resten hoppar du över om du fortsätter.</>
+                  : <>Inga set är loggade än på <span className="font-semibold text-white/80">{currentExerciseName}</span>. Du hoppar över den helt om du fortsätter.</>}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                className="workout-primary-action w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98] hover:bg-blue-500"
+                onClick={() => setConfirmAdvanceEarly(false)}
+              >
+                Fortsätt övningen
+              </button>
+              <button
+                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.08]"
+                onClick={() => {
+                  setConfirmAdvanceEarly(false);
+                  if (isLastExercise) finishWorkout();
+                  else nextExercise();
+                }}
+              >
+                {isLastExercise ? "Avsluta ändå" : "Ja, gå vidare ändå"}
               </button>
             </div>
           </div>

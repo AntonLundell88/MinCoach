@@ -110,7 +110,7 @@ export async function POST(request: Request) {
             ],
           },
         ],
-        max_output_tokens: 800,
+        max_output_tokens: 1400,
       }),
       signal: controller.signal,
     });

@@ -401,62 +401,51 @@ export default function LobbyScreen({
             Senaste 28 dagarna
           </h2>
 
-          <div className="mt-4 flex items-center gap-4">
-            <svg width="148" height="148" viewBox="0 0 220 220" className="shrink-0">
-              <circle cx="110" cy="110" r="100" fill="none" stroke={isLight ? "rgba(96,165,250,0.12)" : "rgba(96,165,250,0.10)"} strokeWidth="18"/>
-              <circle cx="110" cy="110" r="74"  fill="none" stroke={isLight ? "rgba(167,139,250,0.12)" : "rgba(167,139,250,0.10)"} strokeWidth="18"/>
+          <div className="relative mx-auto mt-5 h-[132px] w-[132px]">
+            <svg width="132" height="132" viewBox="0 0 220 220">
+              <defs>
+                <linearGradient id="lobbyProgressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#60a5fa" />
+                  <stop offset="100%" stopColor="#a78bfa" />
+                </linearGradient>
+              </defs>
+              <circle cx="110" cy="110" r="90" fill="none" stroke={isLight ? "rgba(122,101,72,0.12)" : "rgba(255,255,255,0.07)"} strokeWidth="12"/>
               <g transform="rotate(-90 110 110)">
-                <circle cx="110" cy="110" r="100" fill="none"
-                  stroke="#60a5fa" strokeWidth="18" strokeLinecap="round"
-                  strokeDasharray={ringCircumference(100)}
-                  strokeDashoffset={ringOffset(100, passProgress)}/>
-                <circle cx="110" cy="110" r="74" fill="none"
-                  stroke="#a78bfa" strokeWidth="18" strokeLinecap="round"
-                  strokeDasharray={ringCircumference(74)}
-                  strokeDashoffset={ringOffset(74, streak / 52)}/>
+                <circle cx="110" cy="110" r="90" fill="none"
+                  stroke="url(#lobbyProgressGradient)" strokeWidth="12" strokeLinecap="round"
+                  strokeDasharray={ringCircumference(90)}
+                  strokeDashoffset={ringOffset(90, passProgress)}/>
               </g>
             </svg>
-
-            <div className="flex flex-1 flex-col gap-3">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-blue-400"/>
-                  <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${bodyClassName}`}>Pass</span>
-                </div>
-                <p className={`mt-0.5 text-xl font-semibold tracking-tight ${titleClassName}`}>
-                  {passCount28} <span className={`text-sm font-normal ${bodyClassName}`}>/ {passGoal} mål</span>
-                </p>
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-violet-400"/>
-                  <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${bodyClassName}`}>Streak</span>
-                </div>
-                <p className={`mt-0.5 text-xl font-semibold tracking-tight ${titleClassName}`}>
-                  {streak} <span className={`text-sm font-normal ${bodyClassName}`}>veckor i rad</span>
-                </p>
-              </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={`text-[34px] font-bold leading-none tracking-[-0.03em] ${titleClassName}`}>{passCount28}</span>
+              <span className={`mt-1 text-xs ${bodyClassName}`}>av {passGoal} pass</span>
             </div>
           </div>
 
+          {streak > 0 && (
+            <div className={`mx-auto mt-3 flex w-fit items-center gap-1.5 rounded-full px-3 py-1 ${isLight ? "bg-violet-50/70 ring-1 ring-violet-200/60" : "bg-violet-400/10 ring-1 ring-violet-400/20"}`}>
+              <span className="h-1.5 w-1.5 rounded-full bg-violet-400"/>
+              <span className={`text-xs font-medium ${isLight ? "text-violet-700" : "text-violet-200/90"}`}>
+                {streak} {streak === 1 ? "vecka" : "veckor"} i rad
+              </span>
+            </div>
+          )}
+
           <div className={`mt-4 h-px ${isLight ? "bg-[#d8cfc0]/50" : "bg-white/[0.06]"}`}/>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className={`rounded-2xl p-3.5 ${isLight ? "bg-emerald-50/60 ring-1 ring-emerald-200/60" : "bg-emerald-400/[0.07] ring-1 ring-emerald-400/[0.14]"}`}>
-              <div className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>
-                <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isLight ? "text-emerald-700" : "text-emerald-300/60"}`}>Timmar</span>
-              </div>
-              <p className={`mt-1.5 text-2xl font-semibold tracking-tight ${titleClassName}`}>{hours28.toLocaleString("sv-SE")}</p>
-              <p className={`mt-0.5 text-xs ${bodyClassName}`}>i gymmet</p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#34d399" }}/>
+              <span className={`text-sm ${bodyClassName}`}>
+                <span className={`font-semibold ${titleClassName}`}>{hours28.toLocaleString("sv-SE")}</span> tim i gymmet
+              </span>
             </div>
-            <div className={`rounded-2xl p-3.5 ${isLight ? "bg-orange-50/60 ring-1 ring-orange-200/60" : "bg-orange-400/[0.07] ring-1 ring-orange-400/[0.14]"}`}>
-              <div className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-orange-400"/>
-                <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isLight ? "text-orange-700" : "text-orange-300/60"}`}>Lyft</span>
-              </div>
-              <p className={`mt-1.5 text-2xl font-semibold tracking-tight ${titleClassName}`}>{tons28.toLocaleString("sv-SE")} <span className={`text-base font-normal ${bodyClassName}`}>t</span></p>
-              <p className={`mt-0.5 text-xs ${bodyClassName}`}>ton lyft</p>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-orange-400"/>
+              <span className={`text-sm ${bodyClassName}`}>
+                <span className={`font-semibold ${titleClassName}`}>{tons28.toLocaleString("sv-SE")}</span> t lyft
+              </span>
             </div>
           </div>
         </section>
@@ -505,7 +494,7 @@ export default function LobbyScreen({
                 {totalSets} set
               </p>
               <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
-                {formatMinutes(totalMinutes)} loggad träning
+                {totalMinutes > 0 ? `${formatMinutes(totalMinutes)} loggad träning` : "Inget loggat än"}
               </p>
             </div>
           </div>

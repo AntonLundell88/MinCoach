@@ -20,6 +20,7 @@ import SettingsScreen from "./components/SettingsScreen";
 import { WrappedStory } from "./components/WrappedStory";
 import { SettingsGlyph } from "./components/IconGlyphs";
 import { useWrappedRecap } from "./hooks/useWrappedRecap";
+import { useAutoAccountBackup } from "./hooks/useAutoAccountBackup";
 import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
 import { syncBetaCoachMemory, syncBetaPersonalRecord } from "./lib/betaMemorySync";
 import {
@@ -1332,7 +1333,7 @@ function buildLocalWorkoutChatFallback(args: {
     return buildExerciseSafetyReply(exerciseName);
   }
 
-  return shortCoach(["Coachen tänker fortfarande…"]);
+  return shortCoach(["Hörde dig. Känns det okej, kör vidare — annars ta det säkra."]);
 }
 
 function getStagnationInsight(
@@ -2020,6 +2021,7 @@ function getAvailableProgramExercises(profile: UserProfile) {
     return {
       exerciseKey: exercise.exerciseKey,
       name: exercise.name,
+      aliases: exercise.aliases,
       category: profile.category,
       equipment: profile.equipment,
       environment: exercise.environment,
@@ -4757,16 +4759,16 @@ const [ageInput, setAgeInput] = useState("");
 const [genderInput, setGenderInput] =
   useState<UserProfile["gender"]>("vill-inte-saga");
 const [trainingExperienceInput, setTrainingExperienceInput] =
-  useState<NonNullable<UserProfile["trainingExperience"]>>("van");
+  useState<NonNullable<UserProfile["trainingExperience"]> | null>(null);
 const [daysPerWeekInput, setDaysPerWeekInput] = useState("3");
-const [minutesPerSessionInput, setMinutesPerSessionInput] = useState("60");
-const [locationInput, setLocationInput] = useState<UserProfile["location"]>("gym");
+const [minutesPerSessionInput, setMinutesPerSessionInput] = useState("");
+const [locationInput, setLocationInput] = useState<UserProfile["location"] | null>(null);
 const [equipmentInput, setEquipmentInput] = useState<string[]>([]);
 const [exercisePreferencesInput, setExercisePreferencesInput] = useState<string[]>([]);
 const [limitationsInput, setLimitationsInput] = useState("");
-const [goalInput, setGoalInput] = useState< 
-  "muskel" | "styrka" | "fett"
->("muskel");
+const [goalInput, setGoalInput] = useState<
+  "muskel" | "styrka" | "fett" | null
+>(null);
 const [secondaryGoalsInput, setSecondaryGoalsInput] = useState<
   ("muskel" | "styrka" | "fett")[]
 >([]);
@@ -5227,6 +5229,15 @@ async function askProgramCoach(message: string) {
 
   setProgramChatLog((prev) => [...prev, { role: "coach", text: reply.text }]);
 }
+
+const PROGRAM_CHECKIN_OPENER =
+  "Redo att köra igång tillsammans, eller något du undrar över först?";
+
+useEffect(() => {
+  if (!userProfile || !showProgramReview || !workoutPlan) return;
+  if (programChatLog.length > 0) return;
+  setProgramChatLog([{ role: "coach", text: PROGRAM_CHECKIN_OPENER }]);
+}, [userProfile, showProgramReview, workoutPlan, programChatLog.length]);
 
 function applyProfileAndRebuild(profile: UserProfile) {
   saveJSON("userProfile", profile);
@@ -5848,18 +5859,44 @@ function confirmGymForToday() {
     localStorage.setItem("gyms", JSON.stringify(updated));
   }
 
-  // Ett gym: auto-valt, ingen anledning att fråga. Noll gym: inget att luta
-  // vikt/reps-förslagen mot, måste skapas innan passet kan börja (ingen
-  // hittepå-standard längre). Fler än två: risken att glömma byta ökar,
-  // så en bekräftelse krävs per kalenderdag — bara ett tryck om rätt gym
-  // redan är valt, inte ett nytt val varje gång.
+  // Ett gym: auto-valt, ingen anledning att fråga. Fler än två: risken att
+  // glömma byta ökar, så en bekräftelse krävs per kalenderdag — bara ett
+  // tryck om rätt gym redan är valt, inte ett nytt val varje gång. Noll gym
+  // hanteras inte här längre — startWorkout skapar då tyst ett förvalt gym
+  // istället för att blockera (namngivning ska bara krävas när det faktiskt
+  // finns fler än ett att skilja på).
   const gymConfirmationRequired =
-    gyms.length === 0 ||
-    (gyms.length > 2 && lastGymConfirmedDate !== new Date().toISOString().slice(0, 10));
+    gyms.length > 2 && lastGymConfirmedDate !== new Date().toISOString().slice(0, 10);
 
   function startWorkout() {
   if (!nextPlannedPass || !workoutPlan) return;
-  if (gymConfirmationRequired) return;
+
+  let startGyms = gyms;
+  let startGymName = gym;
+  let startGymId = activeGymId;
+
+  if (gyms.length === 0) {
+    // Inget gym finns än. Istället för att kräva att användaren döper ett
+    // manuellt innan hen ens kommit igång (bekräftat i stresstest: blockerade
+    // en förstagångsanvändare) skapar vi ett enda, ärligt namngivet gym
+    // automatiskt utifrån platsen från onboardingen — inte en hittepå-specifik
+    // plats som den borttagna Sjöviksgymmet-defaulten, bara en generisk
+    // etikett användaren när som helst kan döpa om via "Byt namn".
+    const defaultGymName = userProfile?.location === "hemma" ? "Hemma" : "Mitt gym";
+    const newGym: Gym = { id: crypto.randomUUID(), name: defaultGymName, createdAt: new Date().toISOString() };
+    startGyms = [...gyms, newGym];
+    startGymName = newGym.name;
+    startGymId = newGym.id;
+    setGyms(startGyms);
+    setActiveGymId(newGym.id);
+    setGym(newGym.name);
+    localStorage.setItem("gyms", JSON.stringify(startGyms));
+    localStorage.setItem("lastGymId", newGym.id);
+    confirmGymForToday();
+  } else if (gymConfirmationRequired) {
+    return;
+  }
+
   const warmupContext = null;
   const conditioningContext = null;
 
@@ -5867,15 +5904,15 @@ function confirmGymForToday() {
 const w: Workout = {
   id: crypto.randomUUID(),
   startedAt: startedAt.toISOString(),
-  gym,
-  gymId: activeGymId ?? undefined,
+  gym: startGymName,
+  gymId: startGymId ?? undefined,
   pass: nextPass,
   displayName: cleanPassDisplayLabel(
     nextPlannedPass?.displayName ?? `Pass ${nextPass}`
   ),
   planTitle: workoutPlan?.title,
   exercises: plan.map((name: string) => {
-    const activeGym = gyms.find((g) => g.id === activeGymId);
+    const activeGym = startGyms.find((g) => g.id === startGymId);
     const resolvedName = activeGym?.exerciseOverrides?.[name] ?? name;
     const plannedExercise = nextPlannedPass.exercises.find(
       (exercise) => exerciseKey(exercise.name) === exerciseKey(name)
@@ -6737,6 +6774,8 @@ const {
 const { wrapped, story: wrappedStory, isOpen: isWrappedOpen, onClose: closeWrapped } =
   useWrappedRecap(history, userProfile?.name?.trim() || undefined);
 
+useAutoAccountBackup(history, appTheme);
+
 function resetWorkoutInputs() {
   setWeightInput("");
   setRepsInput("");
@@ -7359,12 +7398,33 @@ function checkWeightBeforeSavingSet({
   return { ok: false, message: warning.text };
 }
 
+// isBodyweightExercise() ser bara på övningens loggType ("bodyweight_reps_rir"),
+// inte på om den faktiskt kan köras utan vikt. Höftlyft har t.ex. logType
+// "weight_reps_rir" (den progredieras ofta med tillägg) men equipmentTags
+// inkluderar både "none" och "bodyweight" — den fungerar precis lika bra
+// obelastad. Ändrar inte isBodyweightExercise självt eftersom det styr
+// vikt-förslag/prefyllning på många andra ställen (skulle tysta bort
+// viktförslag för alla som faktiskt belastar Höftlyft). Det här avgör bara
+// om ett tomt viktfält är ett giltigt "0 kg", inte ett fel, vid loggning.
+function allowsUnloadedSet(name: string) {
+  const definition = getExerciseDefinition(name);
+  if (!definition) return false;
+  return definition.equipmentTags.some((tag) => tag === "none" || tag === "bodyweight");
+}
+
 async function addSet() {
     if (!workout) return;
     triggerHaptic();
 
     const capturedExerciseIndex = exerciseIndex;
-    const exerciseBeingLogged = workout.exercises[exerciseIndex];
+    // Läs övningsindex från refen, inte closure-state: om addSet() kördes
+    // från en knapp som hann bli inaktuell (t.ex. Nästa övning hann
+    // committa innan detta klick registrerades) pekar exerciseIndex här
+    // fortfarande på övningen som gällde när DENNA addSet-instans skapades.
+    // exerciseIndexRef uppdateras synkront och är alltid den övning som
+    // faktiskt visas nu — annars kan setet sparas på fel övning.
+    const targetExerciseIndex = exerciseIndexRef.current;
+    const exerciseBeingLogged = workout.exercises[targetExerciseIndex];
 
     const rawWeight = parseNumberInput(weightInput);
     const reps = parseNumberInput(repsInput);
@@ -7374,7 +7434,13 @@ async function addSet() {
     const timedExercise = isTimedExercise(exerciseName);
     const hasLoggedWeight =
       weightInput.trim() !== "" && Number.isFinite(rawWeight) && rawWeight > 0;
-    const weight = bodyweightExercise && !hasLoggedWeight ? 0 : rawWeight;
+    // Höftlyft m.fl. har logType "weight_reps_rir" (progredieras ofta med
+    // tillägg) men klarar sig lika bra obelastad — equipmentTags säger
+    // "none"/"bodyweight". weightOptional avgör bara att ett tomt viktfält
+    // är giltigt "0 kg" här, inte att övningen ALLTID ska behandlas som
+    // bodyweight (en riktig vikt ska fortfarande rimlighetskollas nedan).
+    const weightOptional = bodyweightExercise || allowsUnloadedSet(exerciseName);
+    const weight = weightOptional && !hasLoggedWeight ? 0 : rawWeight;
     const existingPR = personalRecords[prKey];
     const durationSeconds = timedExercise ? Math.round(durationSecondsInput) : undefined;
     if (timedExercise && (!durationSeconds || durationSeconds <= 0)) {
@@ -7402,8 +7468,8 @@ async function addSet() {
     }
     const missingRequiredInput =
       (!timedExercise && (!Number.isFinite(reps) || reps <= 0)) ||
-      (!bodyweightExercise && (!Number.isFinite(weight) || weight <= 0));
-    const missingInputMessagePool = bodyweightExercise
+      (!weightOptional && (!Number.isFinite(weight) || weight <= 0));
+    const missingInputMessagePool = weightOptional
       ? MISSING_REPS_ONLY_MESSAGES
       : MISSING_WEIGHT_AND_REPS_MESSAGES;
 
@@ -7453,7 +7519,11 @@ if (!timedExercise && reps > 200) {
   return;
 }
 
-if (!bodyweightExercise && !timedExercise) {
+if (!timedExercise && weight > 0) {
+  // Rimlighetskollen är till för siffror användaren faktiskt skrev in — kör
+  // den alltid när en riktig vikt angetts, oavsett om övningen normalt är
+  // obelastad. En felskriven "200" på ett belastat Höftlyft ska fångas
+  // precis som på vilken annan vägd övning som helst.
   const lastChatMessage = chatLog[chatLog.length - 1];
   const weightCheck = checkWeightBeforeSavingSet({
     weight,
@@ -7507,8 +7577,8 @@ const painFailure =
 
 
     const updated = structuredClone(workout);
-    updated.exercises[exerciseIndex].sets.push(set);
-   const currentLoggedExercise = updated.exercises[exerciseIndex];
+    updated.exercises[targetExerciseIndex].sets.push(set);
+   const currentLoggedExercise = updated.exercises[targetExerciseIndex];
    const plannedExerciseForCurrent = (workoutPlan?.passes
     .find((pass) => pass.key === updated.pass)
     ?.exercises.find(
@@ -7541,11 +7611,11 @@ const painFailure =
         plannedSetCount,
         targetReps: goalTargets.targetReps,
         exerciseName: currentExerciseName,
-        previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
+        previousSets: updated.exercises[targetExerciseIndex].sets.slice(0, -1),
         dayForm,
       });
    const bodyweightAdjustedPlan =
-    bodyweightExercise && !hasLoggedWeight
+    weightOptional && !hasLoggedWeight
       ? { ...rawNextSetPlan, weight: 0 }
       : rawNextSetPlan;
    const isNextSetLast = setNumber + 1 >= plannedSetCount;
@@ -7638,8 +7708,8 @@ const coachMessage = buildCoachMessage({
   nextWeight: suggestedNextWeight,
   nextSetPlan,
   lastCoachMessage,
-  previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
-  completedExercises: updated.exercises.slice(0, exerciseIndex + 1),
+  previousSets: updated.exercises[targetExerciseIndex].sets.slice(0, -1),
+  completedExercises: updated.exercises.slice(0, targetExerciseIndex + 1),
   goalPrimary: userProfile?.goalPrimary ?? "styrka",
   personalRecordText,
   warmupContext: activeWarmupContext,
@@ -7660,8 +7730,8 @@ const coachSetContext = buildCoachSetContext({
   nextWeight: suggestedNextWeight,
   nextSetPlan,
   plannedSetCount: effectivePlannedSetCount,
-  isLastExercise: exerciseIndex >= updated.exercises.length - 1,
-  previousSets: updated.exercises[exerciseIndex].sets.slice(0, -1),
+  isLastExercise: targetExerciseIndex >= updated.exercises.length - 1,
+  previousSets: updated.exercises[targetExerciseIndex].sets.slice(0, -1),
   personalRecordText,
   sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
   lastCoachMessage,
@@ -7753,7 +7823,7 @@ if (coachReply.mode !== "ai" && coachReply.reason) {
 if (coachReply.text) {
   const isWorkoutFinished =
     nextSetPlan.strategy === "complete" &&
-    exerciseIndex >= updated.exercises.length - 1;
+    targetExerciseIndex >= updated.exercises.length - 1;
 
   const isRealPersonalRecord = personalRecordText.startsWith("Nytt personbästa");
 
@@ -7791,7 +7861,7 @@ if (nextSetPlan.strategy === "complete") {
   setDidFailInput(false);
   // Only update input fields if the user hasn't already advanced to the next exercise
   if (exerciseIndexRef.current === capturedExerciseIndex) {
-    const nextW = bodyweightExercise && !hasLoggedWeight ? "" : formatWeightInput(suggestedNextWeight);
+    const nextW = weightOptional && !hasLoggedWeight ? "" : formatWeightInput(suggestedNextWeight);
     setWeightInput(nextW);
     systemSuggestedWeightRef.current = nextW ? suggestedNextWeight : undefined;
     const completeReps = timedExercise ? "" : String(nextSetPlan.repsInput || reps);
@@ -7810,7 +7880,7 @@ const nextSetRirInput = nextSetPlan.rirInput;
 setRepsInput(String(nextSetRepInput));
 systemSuggestedRepsRef.current = nextSetRepInput ? Number(nextSetRepInput) || undefined : undefined;
 setDurationSecondsInput(0);
-const nextW = bodyweightExercise && !hasLoggedWeight ? "" : formatWeightInput(suggestedNextWeight);
+const nextW = weightOptional && !hasLoggedWeight ? "" : formatWeightInput(suggestedNextWeight);
 setWeightInput(nextW);
 systemSuggestedWeightRef.current = nextW ? suggestedNextWeight : undefined;
 setRirInput(nextSetRirInput);
@@ -8423,7 +8493,24 @@ function buildWorkoutSummary(w: Workout) {
   const isPartial = completedExerciseCount < exerciseCount;
 
   const startedAtMs = new Date(w.startedAt).getTime();
-  const finishedAtMs = Date.now();
+  // Om passet stått öppet långt efter senaste loggade set (avbrott,
+  // appen glömd i bakgrunden, återupptagen nästa dag) ska "avsluta"-
+  // klicket inte räknas som passets faktiska sluttid — det ger orimliga
+  // TID-värden i sammanfattningen och Statistik. Byggd med hänsyn till
+  // ett riktigt fynd: ett pass som låg öppet under en lång paus visade
+  // "203 min" för 9 set. Över tröskeln används istället senaste loggade
+  // setets tid + en kort, rimlig marginal för nedvarvning/packning.
+  const STALE_SESSION_GAP_MS = 30 * 60 * 1000;
+  const SESSION_END_BUFFER_MS = 3 * 60 * 1000;
+  const lastSetAtMs =
+    allSets.length > 0
+      ? Math.max(...allSets.map((set) => new Date(set.createdAt).getTime()))
+      : startedAtMs;
+  const rawFinishedAtMs = Date.now();
+  const finishedAtMs =
+    rawFinishedAtMs - lastSetAtMs > STALE_SESSION_GAP_MS
+      ? lastSetAtMs + SESSION_END_BUFFER_MS
+      : rawFinishedAtMs;
   const durationMinutes = Math.max(
     1,
     Math.round((finishedAtMs - startedAtMs) / 1000 / 60)
@@ -8844,6 +8931,14 @@ if (!userProfile || editingProfile) {
       isEditing={editingProfile}
       onCancel={editingProfile ? () => setEditingProfile(false) : undefined}
       onSubmit={() => {
+if (
+  !trainingExperienceInput ||
+  !goalInput ||
+  !minutesPerSessionInput ||
+  (programStartModeInput === "coach" && !locationInput)
+) {
+  return;
+}
 const parsedAge = Number(ageInput);
 const requestedDays = Number(daysPerWeekInput);
 const maxDays =
@@ -8863,7 +8958,7 @@ const profile: UserProfile = {
   goalSecondary: secondaryGoalsInput.filter((goal) => goal !== goalInput),
   daysPerWeek,
   minutesPerSession: Number(minutesPerSessionInput),
-  location: locationInput,
+  location: locationInput ?? "gym",
   equipment: locationInput === "hemma" ? equipmentInput : [],
   exercisePreferences: exercisePreferencesInput,
   limitations: limitationsInput,

@@ -1098,13 +1098,6 @@ main[data-theme="light"]:has(.workout-screen-shell) > div:not([class*="fixed"]) 
   color: var(--mc-wellness-text) !important;
 }
 
-[data-theme="light"] .workout-screen-shell .coach-set-marker {
-  background: rgba(47, 95, 79, 0.12) !important;
-  border-color: rgba(47, 95, 79, 0.22) !important;
-  color: #244b3e !important;
-  box-shadow: 0 10px 24px rgba(47, 95, 79, 0.12) !important;
-}
-
 [data-theme="light"] .workout-screen-shell .coach-input {
   background: rgba(255, 252, 245, 0.9) !important;
   border-color: rgba(87, 68, 47, 0.14) !important;
@@ -1139,12 +1132,6 @@ main[data-theme="light"]:has(.workout-screen-shell) > div:not([class*="fixed"]) 
     linear-gradient(180deg, var(--mc-wellness-surface-soft), var(--mc-wellness-surface)) !important;
   border-color: var(--mc-wellness-border) !important;
   box-shadow: 0 -14px 32px rgba(80, 62, 42, 0.1) !important;
-}
-
-[data-theme="light"] .workout-screen-shell .workout-state-pill {
-  background: rgba(47, 95, 79, 0.1) !important;
-  border-color: rgba(47, 95, 79, 0.22) !important;
-  color: #244b3e !important;
 }
 
 [data-theme="light"] .workout-screen-shell button[class*="bg-blue-600"],
@@ -1299,22 +1286,6 @@ main[data-theme="light"]:has(.workout-screen-shell) {
   color: rgba(115, 104, 92, 0.58) !important;
 }
 
-[data-theme="light"] .workout-screen-shell :is(.workout-primary-action, .workout-primary-action:not(:disabled)) {
-  background: linear-gradient(180deg, #3f7562, var(--mc-wellness-primary)) !important;
-  border-color: rgba(37, 75, 63, 0.22) !important;
-  color: #fffaf1 !important;
-  box-shadow:
-    0 14px 28px rgba(52, 95, 80, 0.19),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
-}
-
-[data-theme="light"] .workout-screen-shell .workout-primary-action:disabled {
-  background: rgba(104, 92, 78, 0.10) !important;
-  border-color: rgba(77, 58, 39, 0.10) !important;
-  color: rgba(45, 36, 29, 0.36) !important;
-  box-shadow: none !important;
-}
-
 [data-theme="light"] .workout-screen-shell .workout-ai-action {
   background: linear-gradient(180deg, #3b7df3, var(--mc-wellness-ai)) !important;
   border-color: rgba(49, 111, 232, 0.18) !important;
@@ -1324,32 +1295,8 @@ main[data-theme="light"]:has(.workout-screen-shell) {
     inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
 }
 
-[data-theme="light"] .workout-screen-shell .workout-layout-toggle {
-  background: linear-gradient(180deg, rgba(75, 122, 104, 0.96), var(--mc-wellness-primary)) !important;
-  border-color: rgba(37, 75, 63, 0.22) !important;
-  color: #fffaf1 !important;
-  box-shadow:
-    0 10px 22px rgba(52, 95, 80, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
-}
-
 [data-theme="light"] .workout-screen-shell .workout-section-kicker {
   color: var(--mc-wellness-primary-strong) !important;
-}
-
-[data-theme="light"] .workout-screen-shell .workout-rir-selected,
-[data-theme="light"] .workout-screen-shell .workout-state-pill,
-[data-theme="light"] .workout-screen-shell .coach-set-marker {
-  background: var(--mc-wellness-primary-soft) !important;
-  border-color: var(--mc-wellness-primary-border) !important;
-  color: var(--mc-wellness-primary-strong) !important;
-  box-shadow: 0 8px 18px rgba(52, 95, 80, 0.10) !important;
-}
-
-[data-theme="light"] .workout-screen-shell .coach-set-marker {
-  background: linear-gradient(180deg, #3b7df3, var(--mc-wellness-ai)) !important;
-  border-color: rgba(49, 111, 232, 0.18) !important;
-  color: #ffffff !important;
 }
 
 [data-theme="light"] .workout-screen-shell :is(.workout-input-stepper button, .workout-navigation button:not(.workout-primary-action)) {

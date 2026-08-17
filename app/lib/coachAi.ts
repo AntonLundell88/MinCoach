@@ -1,5 +1,3 @@
-import { containsUnsafeCoachPhrase } from "./coachRules";
-
 export type CoachReplyMode = "fallback" | "ai-ready";
 
 export type CoachExerciseLibraryInfo = {
@@ -508,7 +506,6 @@ export function sanitizeCoachReply(
   const compact = compactWhitespace(softenOverusedSurpriseEmoji(reply));
 
   if (!compact) return compactWhitespace(fallback);
-  if (containsUnsafeCoachPhrase(compact)) return compactWhitespace(fallback);
 
   if (compact.length <= maxCharacters) return compact;
 

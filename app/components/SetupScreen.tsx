@@ -18,13 +18,13 @@ type Props = {
   setAgeInput: (v: string) => void;
   genderInput: Gender;
   setGenderInput: (v: Gender) => void;
-  trainingExperienceInput: TrainingExperience;
+  trainingExperienceInput: TrainingExperience | null;
   setTrainingExperienceInput: (v: TrainingExperience) => void;
   daysPerWeekInput: string;
   setDaysPerWeekInput: (v: string) => void;
   minutesPerSessionInput: string;
   setMinutesPerSessionInput: (v: string) => void;
-  locationInput: Location;
+  locationInput: Location | null;
   setLocationInput: (v: Location) => void;
   equipmentInput: string[];
   setEquipmentInput: (v: string[]) => void;
@@ -32,7 +32,7 @@ type Props = {
   setExercisePreferencesInput: (v: string[]) => void;
   limitationsInput: string;
   setLimitationsInput: (v: string) => void;
-  goalInput: Goal;
+  goalInput: Goal | null;
   setGoalInput: (v: Goal) => void;
   secondaryGoalsInput: Goal[];
   setSecondaryGoalsInput: (v: Goal[]) => void;
@@ -170,8 +170,14 @@ export default function SetupScreen({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acceptedAiNotice, setAcceptedAiNotice] = useState(isEditing);
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(!isEditing);
-  const selectedExperienceDescription =
-    experienceDescriptions[trainingExperienceInput];
+  const selectedExperienceDescription = trainingExperienceInput
+    ? experienceDescriptions[trainingExperienceInput]
+    : "Välj ett alternativ ovan så vet coachen var du står.";
+  const missingRequiredChoice =
+    !trainingExperienceInput ||
+    !goalInput ||
+    !minutesPerSessionInput ||
+    (programStartModeInput === "coach" && !locationInput);
 
   function toggleEquipment(value: string) {
     if (value === "none") {
@@ -224,7 +230,7 @@ export default function SetupScreen({
             Nu ska vi sätta ihop ett upplägg som passar dig och dina mål.
           </p>
           <p className="text-sm leading-6 text-white/70">
-            Först behöver jag lära känna dig lite bättre – hur du tränar idag, vad du vill uppnå och vilka förutsättningar du har.
+            Först behöver jag lära känna dig lite bättre – var du står idag, vad du vill uppnå och vilka förutsättningar du har.
           </p>
           <p className="text-sm leading-6 text-white/70">
             Utifrån det bygger jag ett träningsupplägg som vi sedan utvecklar tillsammans. Vill du hellre skapa schemat själv går det förstås också bra.
@@ -351,6 +357,7 @@ export default function SetupScreen({
                         <button
                           key={experience.value}
                           type="button"
+                          aria-pressed={trainingExperienceInput === experience.value}
                           onClick={() => setTrainingExperienceInput(experience.value)}
                           className={`min-h-12 rounded-2xl border px-2 py-2 text-center transition ${
                             trainingExperienceInput === experience.value
@@ -390,6 +397,7 @@ export default function SetupScreen({
                       <button
                         key={option.value}
                         type="button"
+                        aria-pressed={active}
                         onClick={() => {
                           setProgramStartModeInput(option.value);
                           if (
@@ -450,6 +458,9 @@ export default function SetupScreen({
                     value={minutesPerSessionInput}
                     onChange={(e) => setMinutesPerSessionInput(e.target.value)}
                   >
+                    <option value="" disabled>
+                      Välj tid
+                    </option>
                     <option value="30">30 minuter</option>
                     <option value="45">45 minuter</option>
                     <option value="60">60 minuter</option>
@@ -472,6 +483,7 @@ export default function SetupScreen({
                     <button
                       key={location}
                       type="button"
+                      aria-pressed={locationInput === location}
                       onClick={() => {
                         setLocationInput(location);
                         if (location === "gym") setEquipmentInput([]);
@@ -505,6 +517,7 @@ export default function SetupScreen({
                         <button
                           key={equipment.value}
                           type="button"
+                          aria-pressed={active}
                           onClick={() => toggleEquipment(equipment.value)}
                           className={`min-h-12 rounded-2xl border px-3 py-2 text-center transition ${
                             active
@@ -540,6 +553,7 @@ export default function SetupScreen({
                       <button
                         key={preference.value}
                         type="button"
+                        aria-pressed={active}
                         onClick={() => toggleExercisePreference(preference.value)}
                         className={`min-h-12 rounded-2xl border px-3 py-2 text-center transition ${
                           active
@@ -565,6 +579,7 @@ export default function SetupScreen({
                     <button
                       key={goal.value}
                       type="button"
+                      aria-pressed={goalInput === goal.value}
                       onClick={() => {
                         setGoalInput(goal.value);
                         setSecondaryGoalsInput(
@@ -600,6 +615,7 @@ export default function SetupScreen({
                         key={goal.value}
                         type="button"
                         disabled={isPrimary}
+                        aria-pressed={active}
                         onClick={() => toggleSecondaryGoal(goal.value)}
                         className={`min-h-11 rounded-2xl border px-2 py-2 text-center transition ${
                           active
@@ -638,8 +654,7 @@ export default function SetupScreen({
                   <p className="mt-1.5">
                     MinCoach kan göra misstag. Lyssna på kroppen och avbryt om
                     något gör ont eller känns fel. Vid skada, sjukdom eller
-                    medicinska frågor ska du prata med vårdpersonal. I den här
-                    testversionen sparas din data lokalt på enheten.
+                    medicinska frågor ska du prata med vårdpersonal.
                   </p>
 
                   <ToggleSwitch
@@ -665,6 +680,11 @@ export default function SetupScreen({
                 <p className="px-1 text-center text-[12px] leading-5 text-amber-200/72">
                   Bekräfta “Jag förstår” ovan för att fortsätta.
                 </p>
+              ) : !isSubmitting && missingRequiredChoice ? (
+                <p className="px-1 text-center text-[12px] leading-5 text-amber-200/72">
+                  Välj träningsvana, {programStartModeInput === "coach" ? "plats, " : ""}
+                  mål och tid per pass ovan för att fortsätta.
+                </p>
               ) : null}
 
               <button
@@ -672,7 +692,8 @@ export default function SetupScreen({
                 disabled={
                   isSubmitting ||
                   nameInput.trim().length === 0 ||
-                  (!isEditing && !acceptedAiNotice)
+                  (!isEditing && !acceptedAiNotice) ||
+                  missingRequiredChoice
                 }
                 className="w-full rounded-2xl bg-blue-600 py-3.5 text-[15px] font-semibold text-white shadow-[0_0_26px_rgba(37,99,235,0.28)] transition hover:bg-blue-500 disabled:opacity-55"
               >

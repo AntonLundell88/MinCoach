@@ -15,6 +15,10 @@ type Props = {
   theme: "dark" | "light";
 };
 
+// Håller reda på att vi redan laddat om en gång för att hydrera återställd
+// data, så en ofullständig snapshot inte kan loopa inloggningen i evighet.
+const RESTORE_RELOAD_FLAG = "mincoachRestoreReloaded";
+
 function getLoginErrorMessage(message: string) {
   const lower = message.toLowerCase();
 
@@ -94,8 +98,15 @@ export default function AuthStartScreen({
       if (status.mode === "restored" && (status.restoredKeys?.length ?? 0) > 0) {
         // Datan ligger nu i localStorage, men appens state hydrerades redan
         // vid mount — en fräsch inladdning läser in allt korrekt i ett svep.
-        window.location.reload();
-        return;
+        // Spärr: en snapshot som innehåller data men saknar userProfile
+        // skulle annars ge en oändlig loop (återställ → reload → userProfile
+        // saknas fortfarande → återställ igen). Ladda om högst en gång;
+        // flaggan nollställs när vi väl kommit in med en profil.
+        if (!sessionStorage.getItem(RESTORE_RELOAD_FLAG)) {
+          sessionStorage.setItem(RESTORE_RELOAD_FLAG, "1");
+          window.location.reload();
+          return;
+        }
       }
 
       setRestoringAccount(false);
@@ -112,6 +123,9 @@ export default function AuthStartScreen({
       if (!nextSession) return;
 
       if (localStorage.getItem("userProfile")) {
+        // Vi är inne med en profil — släpp spärren så nästa inloggning på
+        // den här fliken får sin hydrerings-omladdning som vanligt.
+        sessionStorage.removeItem(RESTORE_RELOAD_FLAG);
         onAuthenticated();
         return;
       }
@@ -221,7 +235,7 @@ export default function AuthStartScreen({
               MinCoach
             </p>
             <h1 className="mt-1 text-2xl font-semibold leading-tight text-white">
-              Logga in först.
+              Börja med att logga in.
             </h1>
           </div>
         </div>
@@ -338,8 +352,8 @@ export default function AuthStartScreen({
             Fortsätt utan inloggning
           </button>
           <p className="mt-2 px-1 text-center text-[12px] leading-5 text-white/42">
-            Då får du ingen konto-backup. Data kan försvinna om webbläsaren,
-            enheten eller local storage rensas.
+            Då får du ingen konto-backup. Data kan försvinna om du rensar
+            webbläsaren eller byter enhet.
           </p>
         </div>
       </section>

@@ -1,14 +1,3 @@
-export const UNSAFE_COACH_PHRASES = [
-  "Det är nog ingen fara.",
-  "Pressa igenom.",
-  "Jag tror inte du skadar dig.",
-  "göra coachen stolt",
-  "gör coachen stolt",
-  "coachen stolt",
-  "göra mig stolt",
-  "gör mig stolt",
-];
-
 export const TRAINING_DECISION_PROTOCOL = `
 Forskningsbaserat coachprotokoll:
 - RIR är autoreglering: bedöm setet ihop med övning, setnummer, tidigare set, teknikrisk, dagsform, smärta och trötthet.
@@ -113,11 +102,3 @@ Output:
 - Lägg inte in övningar bara för att fylla listan.
 - Om användarens önskemål krockar med begränsningar eller säkerhet: säg det varmt och föreslå en tryggare lösning.
 `.trim();
-
-export function containsUnsafeCoachPhrase(text: string) {
-  const normalized = text.toLowerCase();
-
-  return UNSAFE_COACH_PHRASES.some((phrase) =>
-    normalized.includes(phrase.toLowerCase())
-  );
-}

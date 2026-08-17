@@ -87,10 +87,18 @@ export function restoreBetaSnapshotData(snapshot: Record<string, unknown>) {
   const restoredKeys: string[] = [];
 
   for (const key of BETA_SYNC_KEYS) {
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
-      restoreStoredValue(key, data[key]);
-      restoredKeys.push(key);
-    }
+    if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+
+    // En tom enhet sparar alla nycklar som null (buildSnapshot skriver
+    // hela nyckellistan oavsett om värdet finns). Att "återställa" ett
+    // null raderade lokal data och rapporterade ändå nyckeln som
+    // återställd — vilket fick AuthStartScreen att ladda om i evighet.
+    // Tomt är inte data: hoppa över, radera inte, räkna inte.
+    const value = data[key];
+    if (value === null || typeof value === "undefined") continue;
+
+    restoreStoredValue(key, value);
+    restoredKeys.push(key);
   }
 
   return restoredKeys;

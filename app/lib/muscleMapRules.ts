@@ -1,4 +1,8 @@
-import { getExerciseDefinition, normalizeExerciseSearchText } from "./exercises";
+import {
+  getAllExerciseNames,
+  getExerciseDefinition,
+  normalizeExerciseSearchText,
+} from "./exercises";
 
 export type MuscleMapLevel = "primary" | "active" | "secondary";
 
@@ -24,7 +28,11 @@ export type MuscleMapToken =
   | "hamstrings"
   | "glutes"
   | "adductors"
-  | "calves";
+  | "calves"
+  | "serratus_anterior"
+  | "neck_flexors"
+  | "neck_extensors"
+  | "tibialis_anterior";
 
 export type ReviewedMuscleMap = {
   reviewedAt: string;
@@ -131,6 +139,10 @@ export const BODY_MUSCLE_TOKEN_IDS: Record<MuscleMapToken, string[]> = {
     "calves-gastroc-lateral-right",
     "calves-soleus-right",
   ],
+  serratus_anterior: ["serratus-anterior-left", "serratus-anterior-right"],
+  neck_flexors: ["neck-left", "neck-right"],
+  neck_extensors: ["nape"],
+  tibialis_anterior: ["tibialis-anterior-left", "tibialis-anterior-right"],
 };
 
 const SOURCES = {
@@ -341,6 +353,86 @@ const SOURCES = {
   abWheelRollout: {
     label: "StrengthLog: Kneeling Ab Wheel Roll-Out",
     url: "https://www.strengthlog.com/kneeling-ab-wheel-roll-out/",
+  },
+  coreTwist: {
+    label: "StrengthLog: Core Twist (Russian Twist)",
+    url: "https://www.strengthlog.com/russian-twist/",
+  },
+  lyingLegRaise: {
+    label: "StrengthLog: Lying Leg Raise",
+    url: "https://www.strengthlog.com/lying-leg-raise/",
+  },
+  bicycleCrunch: {
+    label: "StrengthLog: Bicycle Crunch",
+    url: "https://www.strengthlog.com/bicycle-crunch/",
+  },
+  closeGripPushup: {
+    label: "ExRx: Close Grip Push-up (Diamond Push-up)",
+    url: "https://exrx.net/WeightExercises/Triceps/BWCloseGripPushup",
+  },
+  burpee: {
+    label: "ExRx: Burpee",
+    url: "https://exrx.net/Aerobic/Exercises/Burpee",
+  },
+  kettlebellSwing: {
+    label: "StrengthLog: Kettlebell Swing",
+    url: "https://www.strengthlog.com/kettlebell-swing/",
+  },
+  dumbbellChestFly: {
+    label: "StrengthLog: Dumbbell Chest Fly",
+    url: "https://www.strengthlog.com/dumbbell-chest-fly/",
+  },
+  arnoldPress: {
+    label: "StrengthLog: Arnold Press",
+    url: "https://www.strengthlog.com/arnold-press/",
+  },
+  reverseCurl: {
+    label: "ExRx: Barbell Reverse Curl",
+    url: "https://exrx.net/WeightExercises/Brachioradialis/BBReverseCurl",
+  },
+  trapBarDeadlift: {
+    label: "StrengthLog: Trap Bar Deadlift (High Handles)",
+    url: "https://www.strengthlog.com/trap-bar-deadlift-with-high-handles/",
+  },
+  smithBenchPress: {
+    label: "StrengthLog: Smith Machine Bench Press",
+    url: "https://www.strengthlog.com/smith-machine-bench-press/",
+  },
+  cableLateralRaise: {
+    label: "StrengthLog: Cable Lateral Raise",
+    url: "https://www.strengthlog.com/cable-lateral-raise/",
+  },
+  landminePress: {
+    label: "StrengthLog: Landmine Press",
+    url: "https://www.strengthlog.com/landmine-press/",
+  },
+  cableWoodchop: {
+    label: "StrengthLog: Cable Machine Wood Chop (High to Low)",
+    url: "https://www.strengthlog.com/cable-machine-wood-chop-high-to-low/",
+  },
+  lateralLunge: {
+    label: "StrengthLog: Side Lunge (Bodyweight)",
+    url: "https://www.strengthlog.com/side-lunges-bodyweight/",
+  },
+  nordicCurl: {
+    label: "StrengthLog: Nordic Hamstring Curl",
+    url: "https://www.strengthlog.com/stiff-legged-deadlifts-vs-nordic-hamstring-curl/",
+  },
+  pushUpPlus: {
+    label: "ExRx: Push-up Plus",
+    url: "https://exrx.net/WeightExercises/SerratusAnterior/BWPushUpPlus",
+  },
+  lyingNeckCurl: {
+    label: "StrengthLog: Lying Neck Curl",
+    url: "https://www.strengthlog.com/lying-neck-curl/",
+  },
+  lyingNeckExtension: {
+    label: "StrengthLog: Lying Neck Extension",
+    url: "https://www.strengthlog.com/lying-neck-extension/",
+  },
+  tibialisRaise: {
+    label: "StrengthLog: Tibialis Raise",
+    url: "https://www.strengthlog.com/tibialis-raise/",
   },
 } satisfies Record<string, Source>;
 
@@ -1077,6 +1169,281 @@ const REVIEWED_MUSCLE_MAPS: Record<string, ReviewedMuscleMap> = {
     },
     [SOURCES.abWheelRollout]
   ),
+  "viktade dips": review(
+    {
+      primary: "Triceps",
+      active: "Bröst",
+      secondary: "Framsida axel",
+    },
+    {
+      primary: ["triceps"],
+      active: ["chest_sternal", "chest_upper"],
+      secondary: ["front_delts_press"],
+    },
+    [SOURCES.dip]
+  ),
+  "viktade chins": verticalPull,
+  "viktad plankan": review(
+    {
+      primary: "Bål",
+      secondary: "Säte, axlar",
+    },
+    {
+      primary: ["core"],
+      active: [],
+      secondary: ["glutes", "front_delts"],
+    },
+    [SOURCES.plank]
+  ),
+  "russian twist": review(
+    {
+      primary: "Sneda magmuskler",
+      secondary: "Mage",
+    },
+    {
+      primary: ["obliques"],
+      active: [],
+      secondary: ["abs"],
+    },
+    [SOURCES.coreTwist]
+  ),
+  "liggande benlyft": review(
+    {
+      primary: "Mage",
+      active: "Höftböjare",
+      secondary: "Sneda magmuskler",
+    },
+    {
+      primary: ["abs"],
+      active: ["hip_flexors"],
+      secondary: ["obliques"],
+    },
+    [SOURCES.lyingLegRaise]
+  ),
+  "bicycle crunch": review(
+    {
+      primary: "Sneda magmuskler",
+      secondary: "Mage, höftböjare",
+    },
+    {
+      primary: ["obliques"],
+      active: [],
+      secondary: ["abs", "hip_flexors"],
+    },
+    [SOURCES.bicycleCrunch]
+  ),
+  diamantarmhavningar: review(
+    {
+      primary: "Triceps",
+      active: "Bröst",
+      secondary: "Framsida axel",
+    },
+    {
+      primary: ["triceps"],
+      active: ["chest_upper", "chest_sternal"],
+      secondary: ["front_delts_press"],
+    },
+    [SOURCES.closeGripPushup]
+  ),
+  burpees: review(
+    {
+      primary: "Framsida lår",
+      active: "Bröst",
+      secondary: "Bål, framsida axel",
+    },
+    {
+      primary: ["quads"],
+      active: ["chest_sternal"],
+      secondary: ["core", "front_delts_press"],
+    },
+    [SOURCES.burpee],
+    "medium"
+  ),
+  "kettlebell swing": review(
+    {
+      primary: "Säte, ländrygg",
+      active: "Baksida lår",
+      secondary: "Insida lår, övre trapezius, underarm",
+    },
+    {
+      primary: ["glutes", "lower_back"],
+      active: ["hamstrings"],
+      secondary: ["adductors", "upper_traps", "forearms"],
+    },
+    [SOURCES.kettlebellSwing]
+  ),
+  hantelflyes: review(
+    {
+      primary: "Bröst",
+      secondary: "Framsida axel",
+    },
+    {
+      primary: ["chest_upper", "chest_sternal"],
+      active: [],
+      secondary: ["front_delts"],
+    },
+    [SOURCES.dumbbellChestFly]
+  ),
+  "arnold press": review(
+    {
+      primary: "Framsida axel",
+      active: "Sida axel",
+      secondary: "Triceps, övre bröst",
+    },
+    {
+      primary: ["front_delts"],
+      active: ["side_delts"],
+      secondary: ["triceps", "chest_upper"],
+    },
+    [SOURCES.arnoldPress]
+  ),
+  "reverse curl": review(
+    {
+      primary: "Underarm",
+      active: "Biceps",
+    },
+    {
+      primary: ["forearms"],
+      active: ["biceps"],
+      secondary: [],
+    },
+    [SOURCES.reverseCurl]
+  ),
+  trapstangsmarklyft: review(
+    {
+      primary: "Säte",
+      active: "Framsida lår, baksida lår",
+      secondary: "Ländrygg, underarm, övre trapezius",
+    },
+    {
+      primary: ["glutes"],
+      active: ["quads", "hamstrings"],
+      secondary: ["lower_back", "forearms", "upper_traps"],
+    },
+    [SOURCES.trapBarDeadlift]
+  ),
+  "smith bankpress": flatPress([SOURCES.smithBenchPress]),
+  "kabel sidolyft": review(
+    {
+      primary: "Sida axel",
+    },
+    {
+      primary: ["side_delts"],
+      active: [],
+      secondary: [],
+    },
+    [SOURCES.cableLateralRaise]
+  ),
+  "landmine press": review(
+    {
+      primary: "Framsida axel",
+      active: "Sida axel",
+      secondary: "Triceps, övre bröst",
+    },
+    {
+      primary: ["front_delts"],
+      active: ["side_delts"],
+      secondary: ["triceps", "chest_upper"],
+    },
+    [SOURCES.landminePress]
+  ),
+  kabelrotation: review(
+    {
+      primary: "Sneda magmuskler",
+      active: "Mage",
+      secondary: "Bål",
+    },
+    {
+      primary: ["obliques"],
+      active: ["abs"],
+      secondary: ["core"],
+    },
+    [SOURCES.cableWoodchop]
+  ),
+  "stodd benlyft": review(
+    {
+      primary: "Mage",
+      active: "Höftböjare",
+    },
+    {
+      primary: ["abs"],
+      active: ["hip_flexors"],
+      secondary: [],
+    },
+    [SOURCES.legRaise]
+  ),
+  sidoutfall: review(
+    {
+      primary: "Framsida lår",
+      active: "Säte",
+      secondary: "Insida lår",
+    },
+    {
+      primary: ["quads"],
+      active: ["glutes"],
+      secondary: ["adductors"],
+    },
+    [SOURCES.lateralLunge]
+  ),
+  "nordic hamstring curl": review(
+    {
+      primary: "Baksida lår",
+      active: "Säte",
+    },
+    {
+      primary: ["hamstrings"],
+      active: ["glutes"],
+      secondary: [],
+    },
+    [SOURCES.nordicCurl]
+  ),
+  "skulderbladspush up": review(
+    {
+      primary: "Serratus anterior",
+      active: "Bröst",
+      secondary: "Framsida axel",
+    },
+    {
+      primary: ["serratus_anterior"],
+      active: ["chest_sternal", "chest_upper"],
+      secondary: ["front_delts_press"],
+    },
+    [SOURCES.pushUpPlus]
+  ),
+  "nackcurl liggande": review(
+    {
+      primary: "Nacke, framsida",
+    },
+    {
+      primary: ["neck_flexors"],
+      active: [],
+      secondary: [],
+    },
+    [SOURCES.lyingNeckCurl]
+  ),
+  "nackresning liggande": review(
+    {
+      primary: "Nacke, baksida",
+      secondary: "Övre trapezius",
+    },
+    {
+      primary: ["neck_extensors"],
+      active: [],
+      secondary: ["upper_traps"],
+    },
+    [SOURCES.lyingNeckExtension]
+  ),
+  "tibialis lyft": review(
+    {
+      primary: "Framsida smalben",
+    },
+    {
+      primary: ["tibialis_anterior"],
+      active: [],
+      secondary: [],
+    },
+    [SOURCES.tibialisRaise]
+  ),
 };
 
 export function getReviewedExerciseMuscleMap(
@@ -1090,4 +1457,145 @@ export function getReviewedExerciseMuscleMap(
   if (!definition) return null;
 
   return REVIEWED_MUSCLE_MAPS[normalizeExerciseSearchText(definition.name)] ?? null;
+}
+
+export type MuscleTier = "primary" | "active" | "secondary";
+
+export type MuscleTokenExercise = {
+  name: string;
+  tier: MuscleTier;
+};
+
+const TIER_RANK: Record<MuscleTier, number> = { primary: 3, active: 2, secondary: 1 };
+
+// Byggs en gång vid modulladdning: token -> vilka övningar taggar den,
+// och med vilken tyngd (primär/aktiv/sekundär). Går via getAllExerciseNames
+// (riktiga övningsnamn), inte REVIEWED_MUSCLE_MAPS nycklarna direkt, eftersom
+// flera övningar delar samma review()-objekt (t.ex. verticalPull) och en
+// nyckel-baserad iteration inte skulle ge tillbaka de riktiga namnen.
+const EXERCISES_BY_TOKEN: Partial<Record<MuscleMapToken, MuscleTokenExercise[]>> = (() => {
+  const result: Partial<Record<MuscleMapToken, MuscleTokenExercise[]>> = {};
+
+  function addToken(token: MuscleMapToken, name: string, tier: MuscleTier) {
+    const list = result[token] ?? (result[token] = []);
+    if (!list.some((entry) => entry.name === name)) {
+      list.push({ name, tier });
+    }
+  }
+
+  for (const name of getAllExerciseNames()) {
+    const review = getReviewedExerciseMuscleMap(name);
+    if (!review) continue;
+
+    review.map.primary.forEach((token) => addToken(token, name, "primary"));
+    review.map.active.forEach((token) => addToken(token, name, "active"));
+    review.map.secondary.forEach((token) => addToken(token, name, "secondary"));
+  }
+
+  return result;
+})();
+
+// Omvänd av BODY_MUSCLE_TOKEN_IDS: kroppsdel-id -> vilka tokens den tillhör.
+// Vissa id:n (t.ex. abs-upper-left) delas av flera tokens (abs och core) —
+// därför en lista, inte en enda token.
+const TOKENS_BY_BODY_PART_ID: Record<string, MuscleMapToken[]> = (() => {
+  const result: Record<string, MuscleMapToken[]> = {};
+
+  (Object.keys(BODY_MUSCLE_TOKEN_IDS) as MuscleMapToken[]).forEach((token) => {
+    BODY_MUSCLE_TOKEN_IDS[token].forEach((id) => {
+      const list = result[id] ?? (result[id] = []);
+      list.push(token);
+    });
+  });
+
+  return result;
+})();
+
+export function getExercisesForMuscleToken(token: MuscleMapToken): MuscleTokenExercise[] {
+  return EXERCISES_BY_TOKEN[token] ?? [];
+}
+
+// Given ett kroppsdel-id från body-muscles onMuscleClick: alla övningar som
+// tränar någon av de tokens id:t tillhör, sorterat primär -> aktiv ->
+// sekundär. Förekommer en övning via flera tokens vinner den högsta tyngden.
+export function getExercisesForBodyPartId(id: string): MuscleTokenExercise[] {
+  const tokens = TOKENS_BY_BODY_PART_ID[id] ?? [];
+  const merged = new Map<string, MuscleTier>();
+
+  tokens.forEach((token) => {
+    getExercisesForMuscleToken(token).forEach(({ name, tier }) => {
+      const existing = merged.get(name);
+      if (!existing || TIER_RANK[tier] > TIER_RANK[existing]) {
+        merged.set(name, tier);
+      }
+    });
+  });
+
+  return Array.from(merged.entries())
+    .map(([name, tier]) => ({ name, tier }))
+    .sort(
+      (a, b) =>
+        TIER_RANK[b.tier] - TIER_RANK[a.tier] || a.name.localeCompare(b.name, "sv")
+    );
+}
+
+// Svensk visningstext per token, för rubriken när man tryckt på en muskel.
+export const MUSCLE_TOKEN_LABELS: Record<MuscleMapToken, string> = {
+  chest_upper: "Övre bröst",
+  chest_sternal: "Bröst",
+  front_delts: "Framsida axel",
+  front_delts_press: "Framsida axel",
+  side_delts: "Sida axel",
+  rear_delts: "Baksida axel",
+  triceps: "Triceps",
+  biceps: "Biceps",
+  forearms: "Underarm",
+  lats: "Lats",
+  upper_back: "Övre rygg",
+  upper_traps: "Övre trapezius",
+  lower_back: "Ländrygg",
+  abs: "Mage",
+  obliques: "Sneda magmuskler",
+  core: "Bål",
+  hip_flexors: "Höftböjare",
+  quads: "Framsida lår",
+  hamstrings: "Baksida lår",
+  glutes: "Säte",
+  adductors: "Insida lår",
+  calves: "Vader",
+  serratus_anterior: "Serratus anterior",
+  neck_flexors: "Nacke, framsida",
+  neck_extensors: "Nacke, baksida",
+  tibialis_anterior: "Framsida smalben",
+};
+
+// Given ett kroppsdel-id: bästa svenska namnet att visa som rubrik. Väljer
+// den mest specifika token bland de som delar id:t (minst antal id:n i sin
+// egen lista) — annars vinner breda samlingstokens som "core" ofta över
+// mer exakta som "mage"/"sneda magmuskler" för samma kroppsdel.
+// Alla id:n som delar minst en token med det givna id:t (inklusive id:t
+// själv) — används för att highlighta t.ex. både vänster och höger
+// baksida lår när en av dem trycks, inte bara den exakta sidan man rörde.
+export function getRelatedBodyPartIds(id: string): string[] {
+  const tokens = TOKENS_BY_BODY_PART_ID[id] ?? [];
+  const ids = new Set<string>();
+
+  tokens.forEach((token) => {
+    BODY_MUSCLE_TOKEN_IDS[token].forEach((relatedId) => ids.add(relatedId));
+  });
+
+  return Array.from(ids);
+}
+
+export function getMuscleLabelForBodyPartId(id: string): string | null {
+  const tokens = TOKENS_BY_BODY_PART_ID[id] ?? [];
+  if (tokens.length === 0) return null;
+
+  const mostSpecific = tokens.reduce((best, token) =>
+    BODY_MUSCLE_TOKEN_IDS[token].length < BODY_MUSCLE_TOKEN_IDS[best].length
+      ? token
+      : best
+  );
+
+  return MUSCLE_TOKEN_LABELS[mostSpecific];
 }
