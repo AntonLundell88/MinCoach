@@ -368,7 +368,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
 
       <section className="rounded-[1.45rem] border border-white/[0.06] bg-white/[0.032] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-white/35">
-          Till nästa pass
+          Bra att tänka på
         </p>
         <p className="mt-3 text-sm leading-6 text-white/76">{nextSessionTip}</p>
       </section>

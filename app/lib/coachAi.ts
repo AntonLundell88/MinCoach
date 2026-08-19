@@ -209,6 +209,13 @@ export type CoachExerciseIntroContext = {
     lastSession?: { weight: number; reps: number; failNote?: string | null };
     bestTimeText?: string;
   };
+  // Vad appen beslutat om dagens vikt och varför. Utan det här ser coachen
+  // bara den nya siffran, aldrig skälet — och gissar då fel (t.ex. tyst
+  // deload som beskrevs som "bra grund").
+  planDecision?: {
+    action: "start" | "hold" | "increase" | "decrease" | "deload";
+    why: string;
+  };
   opportunity?: {
     type: "offer_increase" | "increase_now" | "optional_last_set_test";
     suggestedWeight: string;
@@ -237,6 +244,10 @@ export type CoachExerciseIntroContext = {
   recentHealthNotes?: string[];
   limitations?: string;
   recentChatNotes?: { duringExercise: string; notes: string[] };
+  // Föregående övnings intro — samma sorts meddelande, samma röst. Utan den
+  // ser intron aldrig sina egna tidigare svar och landar i samma
+  // avslutningsfras övning efter övning.
+  previousCoachReply?: string;
 };
 
 export type CoachProgramContext = {

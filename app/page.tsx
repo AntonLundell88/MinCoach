@@ -763,7 +763,7 @@ function formatWeightInput(weight: number) {
 }
 
 function formatRepRange(min: number, max: number) {
-  if (min === max) return `${min} reps`;
+  if (min === max) return `${min} ${min === 1 ? "rep" : "reps"}`;
   return `${min}-${max} reps`;
 }
 
@@ -998,9 +998,15 @@ function buildProgressionPlan(args: {
   // Medvetet skild från canIncrease/offerIncreaseOpportunity: de belönar
   // bevisad marginal med ett litet, säkert steg. Det här är motsatsen —
   // ett större, avsiktligt hopp UTANFÖR det bevisade, för att se var
-  // gränsen faktiskt går. Kräver samma stabila grund som canIncrease
-  // (minst två sessioner), men bara när inget annat redan har något
-  // starkare att säga (se var fältet faktiskt sätts, i hold-grenen).
+  // gränsen faktiskt går.
+  //
+  // Villkoren nedan är en strikt DELMÄNGD av canIncrease (samma
+  // !shouldDeload/!latestHard/dayForm/stable>=2). Increase-grenen ligger
+  // före hold i kedjan, så ett kalibreringstest följer alltid med en
+  // automatisk höjning — det kan aldrig stå ensamt vid oförändrad vikt.
+  // Därför ankras testvikten på PLANVIKTEN (den som faktiskt fylls i),
+  // inte på topSet: annars kan testet landa på exakt samma vikt som redan
+  // står i rutan, och "skriv in den själv" blir en tom uppmaning.
   const decisionProfile = getExerciseDecisionProfile(exerciseName);
   const calibrationTestEligible =
     decisionProfile.type !== "technical-heavy" &&
@@ -1009,19 +1015,26 @@ function buildProgressionPlan(args: {
     !latestHard &&
     dayForm !== "trött" &&
     topWeightStableSets.length >= 2;
-  const calibrationTestCandidate: CalibrationTestCandidate | undefined =
-    calibrationTestEligible
-      ? {
-          weight: formatWeightInput(
-            Math.max(
-              normalizeSuggestedWeight(topSet.weight * 1.125, exerciseName, "nearest"),
-              getNextAvailableWeight(topSet.weight, exerciseName, "up")
-            )
-          ),
-          reason:
-            "Vikten har suttit stabilt flera pass i rad. Ett kalibreringstest — lite tyngre än vad som är bevisat — kan visa var gränsen faktiskt går just nu.",
-        }
-      : undefined;
+  const buildCalibrationTestCandidate = (
+    planWeight: number
+  ): CalibrationTestCandidate | undefined => {
+    if (!calibrationTestEligible) return undefined;
+
+    const testWeight = Math.max(
+      normalizeSuggestedWeight(planWeight * 1.125, exerciseName, "nearest"),
+      getNextAvailableWeight(planWeight, exerciseName, "up")
+    );
+
+    // Säkring: erbjud aldrig ett "test" som inte är tyngre än vikten
+    // användaren redan har ifylld — då är det inget test att skriva in.
+    if (testWeight <= planWeight) return undefined;
+
+    return {
+      weight: formatWeightInput(testWeight),
+      reason:
+        "Vikten har suttit stabilt flera pass i rad. Ett kalibreringstest — lite tyngre än vad som är bevisat — kan visa var gränsen faktiskt går just nu.",
+    };
+  };
 
   if (topSetTooLight && dayForm !== "trött") {
     const nextWeight = scaledProgressionJump(topSet.weight, exerciseName, topSet.reps, targetReps, topSet.rir);
@@ -1119,7 +1132,7 @@ function buildProgressionPlan(args: {
         tone: "clear",
       },
       sessionsAtTopWeight,
-      calibrationTestCandidate,
+      calibrationTestCandidate: buildCalibrationTestCandidate(nextWeight),
     } satisfies ExerciseProgressionPlan;
   }
 
@@ -1152,7 +1165,6 @@ function buildProgressionPlan(args: {
     reason: `Jag vill se att ${formatWeightInput(topSet.weight)} kg sitter nära ${topSet.reps} reps minst ett pass till innan vi höjer.`,
     opportunity: offerIncreaseOpportunity,
     sessionsAtTopWeight,
-    calibrationTestCandidate,
   } satisfies ExerciseProgressionPlan;
 }
 
@@ -3487,13 +3499,16 @@ function getNextSetPlan(args: {
       previousRir !== null &&
       previousRir <= rir;
     const isBackoff = setNumber >= 2 && !stableRepeat && !closeEnoughToHold;
+    // Håll-grenen föreslår samma vikt som precis lyftes — den är per
+    // definition redan en riktig, tillgänglig vikt och ska inte rundas om
+    // mot en schablonskala (kunde tidigare tysta byta t.ex. 11 kg mot 10 kg).
     const nextWeight = isBackoff
       ? getBackoffWeight({
           weight,
           exerciseName,
           reason: "hard-backoff",
         })
-      : normalizeSuggestedWeight(weight, exerciseName);
+      : weight;
     const min = Math.max(1, reps - 2);
     const max = Math.max(min, isBackoff ? reps : reps - 1);
 

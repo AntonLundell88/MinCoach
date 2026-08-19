@@ -49,6 +49,8 @@ type Props = {
     repsText: string;
     rirText: string;
     note: string;
+    action?: "start" | "hold" | "increase" | "decrease" | "deload";
+    reason?: string;
     opportunity?: {
       type: "offer_increase" | "increase_now" | "optional_last_set_test";
       confidence: "medium" | "high";
@@ -490,6 +492,8 @@ function buildExerciseIntroAiContext(args: {
     repsText: string;
     rirText: string;
     note: string;
+    action?: "start" | "hold" | "increase" | "decrease" | "deload";
+    reason?: string;
     opportunity?: {
       type: "offer_increase" | "increase_now" | "optional_last_set_test";
       confidence: "medium" | "high";
@@ -508,6 +512,7 @@ function buildExerciseIntroAiContext(args: {
   recentHealthNotes?: string[];
   limitations?: string;
   recentChatNotes?: CoachExerciseIntroContext["recentChatNotes"];
+  previousCoachReply?: string;
 }): CoachExerciseIntroContext {
   const {
     exerciseName,
@@ -523,6 +528,7 @@ function buildExerciseIntroAiContext(args: {
     recentHealthNotes,
     limitations,
     recentChatNotes,
+    previousCoachReply,
   } = args;
 
   const key = exerciseKey(exerciseName);
@@ -583,14 +589,22 @@ function buildExerciseIntroAiContext(args: {
         ? { weight: last.weight, reps: last.reps, failNote: last.failNote }
         : undefined,
     },
-    opportunity:
-      progressionPlan.opportunity && topSet && baseWeight === topSet.weight
-        ? {
-            type: progressionPlan.opportunity.type,
-            suggestedWeight: progressionPlan.opportunity.suggestedWeight,
-            reason: progressionPlan.opportunity.reason,
-          }
-        : undefined,
+    planDecision: progressionPlan.action
+      ? {
+          action: progressionPlan.action,
+          why: progressionPlan.note || progressionPlan.reason || "",
+        }
+      : undefined,
+    // Ingen baseWeight === topSet.weight-grind här: den gjorde att
+    // increase-läget aldrig såg sitt eget erbjudande, vilket är just när
+    // coachen behöver kunna skilja plan från erbjudande.
+    opportunity: progressionPlan.opportunity
+      ? {
+          type: progressionPlan.opportunity.type,
+          suggestedWeight: progressionPlan.opportunity.suggestedWeight,
+          reason: progressionPlan.opportunity.reason,
+        }
+      : undefined,
     sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
     calibrationTestCandidate: progressionPlan.calibrationTestCandidate,
     otherGymReference,
@@ -598,6 +612,7 @@ function buildExerciseIntroAiContext(args: {
     recentHealthNotes,
     limitations,
     recentChatNotes,
+    previousCoachReply,
   };
 }
 export default function WorkoutScreen({
@@ -765,7 +780,12 @@ export default function WorkoutScreen({
   const currentMetricLabel = isTimedCurrentExercise
     ? progressionPlan.repsText || "tid"
     : repsInput.trim()
-    ? `${repsInput.trim()} reps`
+    ? // RIR 0 är ett ansträngningsmål, inte en exakt repsiffra — siffran är
+      // ett resultat du inte kan veta i förväg. "+" gör det tydligt att det
+      // är ett golv, inte ett tak.
+      `${repsInput.trim()}${rirInput === 0 ? "+" : ""} ${
+        repsInput.trim() === "1" && rirInput !== 0 ? "rep" : "reps"
+      }`
     : progressionPlan.repsText;
   const nextWeightLabel = weightInput.trim()
     ? `${weightInput.trim().replace(".", ",")} kg`
@@ -942,6 +962,20 @@ useEffect(() => {
       ? { duringExercise: chatNotesSourceExercise, notes: recentUserComments }
       : undefined;
 
+  // Föregående övnings intro, inte bara senaste coachmeddelandet: det är
+  // intro-mot-intro som upprepade sig ("jag hejar på" på tre raka övningar).
+  // Senaste meddelandet är oftast en set-reaktion och avslöjar inte mönstret.
+  const previousIntroText = [...chatLog]
+    .reverse()
+    .find(
+      (m) =>
+        m.role === "coach" &&
+        m.eventKey?.startsWith("exercise_intro:") &&
+        m.text.trim().length > 0
+    )
+    ?.text.trim()
+    .slice(0, 400);
+
   const eventKey = `exercise_intro:${introIdentity}`;
   const introArgs = {
     exerciseName: currentExerciseName,
@@ -957,6 +991,7 @@ useEffect(() => {
     recentHealthNotes: includeStaticHealthContext ? recentHealthNotes : undefined,
     limitations: includeStaticHealthContext ? limitations : undefined,
     recentChatNotes,
+    previousCoachReply: previousIntroText,
   };
   const fallbackText = buildExerciseIntroCoachText(introArgs);
   const controller = new AbortController();
