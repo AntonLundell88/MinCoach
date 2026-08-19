@@ -3647,18 +3647,34 @@ function getExerciseMovementPattern(
   return exercise.category === "mage" ? "bal_stabilitet" : "knaboj";
 }
 
+/** För listor som ska vara filtrerade men inte kapade. */
+export const NO_EXERCISE_LIMIT = Number.MAX_SAFE_INTEGER;
+
 export function getProgramExercisePool(args: {
   location: "gym" | "hemma";
   equipment?: string[];
   exercisePreferences?: string[];
   trainingExperience?: "nyborjare" | "van" | "erfaren";
   limit?: number;
+  /**
+   * Bläddringsläge: visar HELA biblioteket, okapat och ofiltrerat.
+   * Rankningen styr fortfarande ordningen, men ingenting göms.
+   *
+   * Filtren och taket finns för att AI:n ska få en kort, passande lista
+   * att bygga program av. När användaren bläddrar själv vet hen redan vad
+   * hen letar efter — då blir samma filter bara en tyst träfflös sökning.
+   * Det är inte coachens roll att bestämma vad användaren får lägga till.
+   */
+  browseAll?: boolean;
 }) {
   const equipment = args.equipment ?? [];
   const preferences = args.exercisePreferences ?? [];
   const trainingExperience = args.trainingExperience ?? "van";
+  const browseAll = args.browseAll ?? false;
 
   return EXERCISE_LIBRARY.filter((exercise) => {
+    if (browseAll) return true;
+
     if (args.location === "hemma") {
       if (!matchesHomeEquipment(exercise, equipment)) return false;
     } else if (exercise.environment === "hemma") {
@@ -3691,7 +3707,7 @@ export function getProgramExercisePool(args: {
         getExercisePreferenceScore(exercise, preferences),
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, args.limit ?? 80)
+    .slice(0, browseAll ? EXERCISE_LIBRARY.length : args.limit ?? 80)
     .map(({ exercise }) => ({
       exerciseKey: getExerciseKey(exercise.name),
       name: exercise.name,

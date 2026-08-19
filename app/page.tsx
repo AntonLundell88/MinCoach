@@ -2021,12 +2021,13 @@ function buildProgramFallbackPlan(profile: UserProfile): BuiltWorkoutPlan {
   };
 }
 
-function getAvailableProgramExercises(profile: UserProfile) {
+function getAvailableProgramExercises(profile: UserProfile, browseAll?: boolean) {
   return getProgramExercisePool({
     location: profile.location,
     equipment: profile.location === "hemma" ? profile.equipment : [],
     exercisePreferences: profile.exercisePreferences ?? [],
     trainingExperience: profile.trainingExperience,
+    browseAll,
   }).map((exercise) => {
     const profile = getExerciseProfile(exercise.name);
 
@@ -5803,7 +5804,14 @@ else if (!insight && progressionPlan.action === "deload") insight = progressionP
 
 exerciseIndexRef.current = exerciseIndex;
 
-// När du byter övning: fyll i senaste vikt/reps om det finns
+// När du byter övning: fyll i vad du FAKTISKT körde senast på den övningen.
+//
+// Fälten är historik, inte ordination. Coachen säger vad du ska köra, du
+// knappar in det. Tidigare skrev motorn in sitt eget förslag här, vilket
+// gjorde UI:t till en andra röst som kunde säga emot coachen — coachen bad
+// dig sänka medan fältet visade en höjning, eller visade RIR 0 efter att du
+// nämnt smärta. Motorns förslag finns kvar, men bara som underlag TILL
+// coachen (progressionPlan -> coachData), aldrig som en siffra på skärmen.
 useEffect(() => {
   if (!started) return;
   if (!currentExerciseName) return;
@@ -5813,13 +5821,20 @@ useEffect(() => {
 
   exerciseInputKeyRef.current = nextExerciseKey;
 
+  const last = lastByExercise[nextExerciseKey];
+  const lastWeight =
+    last && !isBodyweightExercise(currentExerciseName) && last.weight > 0
+      ? formatWeightInput(last.weight)
+      : "";
+  const lastReps = last && last.reps > 0 ? String(last.reps) : "";
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  const nextExerciseWeight = !isBodyweightExercise(currentExerciseName) ? adjustedSuggestion.weight : "";
-  setWeightInput(nextExerciseWeight);
-  systemSuggestedWeightRef.current = nextExerciseWeight ? parseFloat(nextExerciseWeight) || undefined : undefined;
-  setRepsInput(adjustedSuggestion.reps);
-  systemSuggestedRepsRef.current = adjustedSuggestion.reps ? parseInt(adjustedSuggestion.reps, 10) || undefined : undefined;
-}, [currentExerciseName, started, adjustedSuggestion.weight, adjustedSuggestion.reps]);
+  setWeightInput(lastWeight);
+  systemSuggestedWeightRef.current = lastWeight ? parseFloat(lastWeight) || undefined : undefined;
+  setRepsInput(lastReps);
+  systemSuggestedRepsRef.current = lastReps ? parseInt(lastReps, 10) || undefined : undefined;
+  setRirInput(typeof last?.rir === "number" ? last.rir : 2);
+}, [currentExerciseName, started, lastByExercise]);
 
 
 function confirmGymForToday() {
@@ -5975,16 +5990,20 @@ const firstExercisePlan = firstExerciseName
 setChatLog([]);
 localStorage.setItem("lastGym", gym);
 
-// Fyll direkt första övningens förslag
+// Fyll i vad du faktiskt körde senast på första övningen — se effekten för
+// övningsbyte ovan: fälten är historik, coachen ordinerar.
 exerciseInputKeyRef.current = firstExerciseName ? exerciseKey(firstExerciseName) : "";
-const firstExerciseWeight = firstExerciseName && !isBodyweightExercise(firstExerciseName)
-  ? firstExercisePlan?.weight ?? ""
-  : "";
+const firstLast = firstExerciseName ? lastByExercise[exerciseKey(firstExerciseName)] : undefined;
+const firstExerciseWeight =
+  firstLast && firstExerciseName && !isBodyweightExercise(firstExerciseName) && firstLast.weight > 0
+    ? formatWeightInput(firstLast.weight)
+    : "";
 setWeightInput(firstExerciseWeight);
 systemSuggestedWeightRef.current = firstExerciseWeight ? parseFloat(firstExerciseWeight) || undefined : undefined;
-const firstReps = firstExercisePlan?.reps ?? String(goalTargets.targetReps);
+const firstReps = firstLast && firstLast.reps > 0 ? String(firstLast.reps) : "";
 setRepsInput(firstReps);
 systemSuggestedRepsRef.current = firstReps ? parseInt(firstReps, 10) || undefined : undefined;
+setRirInput(typeof firstLast?.rir === "number" ? firstLast.rir : 2);
     setDidFailInput(false);
   }
 function shouldHoldYouToPlan(opts: {
@@ -6891,15 +6910,16 @@ function commitExerciseReorder(orderedRemainingNames: string[]) {
 
   if (reorderedRemaining.length !== remainingByKey.size) return;
 
-  const currentExercise = workout.exercises[exerciseIndex];
   const nextExercises = [...doneExercises, ...reorderedRemaining];
 
   setWorkout({ ...workout, exercises: nextExercises });
 
-  const newIndexForCurrent = nextExercises.indexOf(currentExercise);
-  if (newIndexForCurrent !== -1 && newIndexForCurrent !== exerciseIndex) {
-    setExerciseIndex(newIndexForCurrent);
-  }
+  // exerciseIndex lämnas medvetet orört: användaren stannar på samma PLATS
+  // i kön, den följer inte med övningen som flyttades. Tidigare letade vi
+  // upp var den aktuella övningen hamnade och hoppade dit — vilket gav två
+  // fel samtidigt. Flyttade du bort övningen du stod på såg det ut som att
+  // inget hände (du stod kvar på den), och övningen som tog dess plats
+  // hamnade bakom dig och hoppades över vid nästa tryck.
 }
 
 function undoSkipExercise() {
@@ -7871,34 +7891,25 @@ if (painFailure) {
   return;
 }
 
+// Vikt, reps och RIR lämnas medvetet orörda efter ett loggat set — de
+// innehåller redan exakt det du just gjorde, vilket är den referens nästa
+// set ska utgå från. Motorns förslag skrivs inte in i fälten; det går till
+// coachen, som säger med ord om något ska ändras.
+// Refarna uppdateras till det loggade värdet så viktspärren jämför mot det
+// du senast körde, inte mot en gammal förifyllning.
+systemSuggestedWeightRef.current = weight > 0 ? weight : undefined;
+systemSuggestedRepsRef.current = reps > 0 ? reps : undefined;
+
 if (nextSetPlan.strategy === "complete") {
   setFailNoteInput("");
   setDidFailInput(false);
-  // Only update input fields if the user hasn't already advanced to the next exercise
   if (exerciseIndexRef.current === capturedExerciseIndex) {
-    const nextW = weightOptional && !hasLoggedWeight ? "" : formatWeightInput(suggestedNextWeight);
-    setWeightInput(nextW);
-    systemSuggestedWeightRef.current = nextW ? suggestedNextWeight : undefined;
-    const completeReps = timedExercise ? "" : String(nextSetPlan.repsInput || reps);
-    setRepsInput(completeReps);
-    systemSuggestedRepsRef.current = completeReps ? parseInt(completeReps, 10) || undefined : undefined;
     setDurationSecondsInput(timedExercise ? durationSeconds ?? 0 : 0);
-    setRirInput(nextSetPlan.rirInput ?? 2);
   }
   return;
 }
 
-    // För nästa set behåll vikt, men nolla reps (valfritt)
-const nextSetRepInput = nextSetPlan.repsInput;
-const nextSetRirInput = nextSetPlan.rirInput;
-
-setRepsInput(String(nextSetRepInput));
-systemSuggestedRepsRef.current = nextSetRepInput ? Number(nextSetRepInput) || undefined : undefined;
 setDurationSecondsInput(0);
-const nextW = weightOptional && !hasLoggedWeight ? "" : formatWeightInput(suggestedNextWeight);
-setWeightInput(nextW);
-systemSuggestedWeightRef.current = nextW ? suggestedNextWeight : undefined;
-setRirInput(nextSetRirInput);
 
   }
 
@@ -9248,7 +9259,7 @@ return (
         swapExerciseInput={swapExerciseInput}
         setSwapExerciseInput={setSwapExerciseInput}
         swapCurrentExerciseDuringWorkout={swapCurrentExerciseDuringWorkout}
-        libraryExercises={userProfile ? getAvailableProgramExercises(userProfile) : []}
+        libraryExercises={userProfile ? getAvailableProgramExercises(userProfile, true) : []}
         pickExerciseForAdd={pickExerciseForAdd}
         pickExerciseForSwap={pickExerciseForSwap}
         pickCustomExerciseForAdd={pickCustomExerciseForAdd}
@@ -9528,7 +9539,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
   <ExerciseProgressScreen
     history={history}
     initialExerciseName={selectedProgressExercise}
-    libraryExercises={userProfile ? getAvailableProgramExercises(userProfile) : []}
+    libraryExercises={userProfile ? getAvailableProgramExercises(userProfile, true) : []}
     onBack={() => {
       setSelectedProgressExercise(null);
       setShowExerciseProgress(false);

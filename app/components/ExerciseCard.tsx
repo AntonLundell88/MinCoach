@@ -156,6 +156,16 @@ export default function ExerciseCard({
   const pbWeight = pbRecord?.weight ?? 0;
   const hasPlan = plannedWeightKg != null && plannedWeightKg > 0;
 
+  // Vikten "Ändra till"-knappen erbjuder. Räknas ut EN gång och används till
+  // både etikett och handling — att de var två separata uttryck var precis
+  // det som gav "ändra till ? kg" och ett fält som tömdes. null = ingen
+  // referens finns, då visas ingen ändra-knapp alls.
+  const weightCorrection: number | null = hasPlan
+    ? plannedWeightKg ?? null
+    : pbWeight > 0
+    ? pbWeight
+    : null;
+
   const weightWayTooHigh =
     showWeightInput &&
     Number.isFinite(enteredWeight) &&
@@ -694,67 +704,59 @@ useEffect(() => {
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
           <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
           <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
-            {weightWayTooHigh ? (
-              <>
-                <div className="space-y-1.5 text-center">
-                  <p className="text-base font-semibold text-white">{CRAZY_WEIGHT_MESSAGES[crazyWeightMessageIndex]}</p>
-                  <p className="text-sm text-white/50">
-                    Du angav <span className="font-semibold text-white/80">{enteredWeight.toLocaleString("sv-SE")} kg</span>
-                    {hasPlan
-                      ? <> — planerat var <span className="font-semibold text-white/80">{plannedWeightKg?.toLocaleString("sv-SE")} kg</span></>
-                      : pbWeight > 0
-                      ? <> — ditt PB är <span className="font-semibold text-white/80">{pbWeight.toLocaleString("sv-SE")} kg</span></>
-                      : null}
-                  </p>
-                </div>
+            {/* En dialog, inte två. Absurd vikt byter bara rubrik — aldrig
+                knappar. Tidigare var "för hög vikt" en egen gren utan
+                Ja-knapp, vilket låste ute den som verkligen kör 320 kg på
+                sitt första benpress-set: enda knappen tömde fältet, och
+                samma vikt gav samma ruta igen. Den grenen räknade dessutom
+                ut korrigeringsvikten en gång för texten och en gång för
+                handlingen, så de kunde glida isär ("ändra till ? kg").
+                Den mjuka bekräftelsen täcker redan behovet: appen frågar,
+                den blockerar inte. */}
+            <div className="space-y-1.5 text-center">
+              <p className="text-base font-semibold text-white">
+                {weightWayTooHigh
+                  ? CRAZY_WEIGHT_MESSAGES[crazyWeightMessageIndex]
+                  : "Stämmer vikten?"}
+              </p>
+              <p className="text-sm text-white/60">
+                Du angav{" "}
+                <span className="font-semibold text-white">{enteredWeight.toLocaleString("sv-SE")} kg</span>
+                {hasPlan
+                  ? <> — planerat var <span className="font-semibold text-white">{plannedWeightKg?.toLocaleString("sv-SE")} kg</span></>
+                  : pbWeight > 0
+                  ? <> — ditt PB är <span className="font-semibold text-white">{pbWeight.toLocaleString("sv-SE")} kg</span></>
+                  : null}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98]"
+                onClick={() => {
+                  setAwaitingWeightConfirm(false);
+                  addSet();
+                }}
+              >
+                Ja, {enteredWeight.toLocaleString("sv-SE")} kg stämmer
+              </button>
+              {weightCorrection !== null && (
                 <button
                   className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
                   onClick={() => {
-                    setWeightInput(String(hasPlan ? plannedWeightKg : pbWeight > 0 ? pbWeight : ""));
+                    setWeightInput(String(weightCorrection));
                     setAwaitingWeightConfirm(false);
                   }}
                 >
-                  Okej, ändra till {hasPlan ? plannedWeightKg?.toLocaleString("sv-SE") : pbWeight > 0 ? pbWeight.toLocaleString("sv-SE") : "?"} kg
+                  Ändra till {weightCorrection.toLocaleString("sv-SE")} kg
                 </button>
-              </>
-            ) : (
-              <>
-                <div className="space-y-1.5 text-center">
-                  <p className="text-base font-semibold text-white">Stämmer vikten?</p>
-                  <p className="text-sm text-white/60">
-                    Du angav{" "}
-                    <span className="font-semibold text-white">{enteredWeight.toLocaleString("sv-SE")} kg</span>
-                    {hasPlan
-                      ? <> — planerat var <span className="font-semibold text-white">{plannedWeightKg?.toLocaleString("sv-SE")} kg</span></>
-                      : pbWeight > 0
-                      ? <> — ditt PB är <span className="font-semibold text-white">{pbWeight.toLocaleString("sv-SE")} kg</span></>
-                      : null}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <button
-                    className="w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.98]"
-                    onClick={() => {
-                      setAwaitingWeightConfirm(false);
-                      addSet();
-                    }}
-                  >
-                    Ja, {enteredWeight.toLocaleString("sv-SE")} kg stämmer
-                  </button>
-                  {(hasPlan || pbWeight > 0) && (
-                    <button
-                      className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
-                      onClick={() => {
-                        setWeightInput(String(hasPlan ? plannedWeightKg : pbWeight));
-                        setAwaitingWeightConfirm(false);
-                      }}
-                    >
-                      Ändra till {(hasPlan ? plannedWeightKg : pbWeight)?.toLocaleString("sv-SE")} kg
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
+              )}
+              <button
+                className="w-full rounded-2xl px-5 py-2.5 text-sm font-medium text-white/45 transition active:scale-[0.98] hover:text-white/70"
+                onClick={() => setAwaitingWeightConfirm(false)}
+              >
+                Avbryt
+              </button>
+            </div>
           </div>
         </div>,
         document.body

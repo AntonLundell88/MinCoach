@@ -852,7 +852,7 @@ export default function ProgramReviewScreen({
     equipment: profile.equipment,
     exercisePreferences: profile.exercisePreferences ?? [],
     trainingExperience: profile.trainingExperience,
-    limit: 120,
+    browseAll: true,
   });
   const normalizedLibrarySearch = normalizeExerciseSearchText(librarySearch);
   const filteredLibraryExercises = libraryExercises.filter((exercise) => {

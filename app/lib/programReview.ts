@@ -1,6 +1,7 @@
 import {
   getExerciseDefinition,
   getExerciseProfile,
+  NO_EXERCISE_LIMIT,
   getProgramExercisePool,
   normalizeExerciseSearchText,
 } from "./exercises";
@@ -264,7 +265,7 @@ export function reviewManualProgram(profile: ReviewProfile, plan: ReviewPlan) {
     equipment: profile.equipment,
     exercisePreferences: profile.exercisePreferences ?? [],
     trainingExperience: profile.trainingExperience,
-    limit: 140,
+    limit: NO_EXERCISE_LIMIT,
   });
   const blockedExerciseKeys = new Set(
     plan.passes.flatMap((pass) =>
