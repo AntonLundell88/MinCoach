@@ -49,8 +49,6 @@ type Props = {
     repsText: string;
     rirText: string;
     note: string;
-    action?: "start" | "hold" | "increase" | "decrease" | "deload";
-    reason?: string;
     opportunity?: {
       type: "offer_increase" | "increase_now" | "optional_last_set_test";
       confidence: "medium" | "high";
@@ -492,8 +490,6 @@ function buildExerciseIntroAiContext(args: {
     repsText: string;
     rirText: string;
     note: string;
-    action?: "start" | "hold" | "increase" | "decrease" | "deload";
-    reason?: string;
     opportunity?: {
       type: "offer_increase" | "increase_now" | "optional_last_set_test";
       confidence: "medium" | "high";
@@ -589,22 +585,14 @@ function buildExerciseIntroAiContext(args: {
         ? { weight: last.weight, reps: last.reps, failNote: last.failNote }
         : undefined,
     },
-    planDecision: progressionPlan.action
-      ? {
-          action: progressionPlan.action,
-          why: progressionPlan.note || progressionPlan.reason || "",
-        }
-      : undefined,
-    // Ingen baseWeight === topSet.weight-grind här: den gjorde att
-    // increase-läget aldrig såg sitt eget erbjudande, vilket är just när
-    // coachen behöver kunna skilja plan från erbjudande.
-    opportunity: progressionPlan.opportunity
-      ? {
-          type: progressionPlan.opportunity.type,
-          suggestedWeight: progressionPlan.opportunity.suggestedWeight,
-          reason: progressionPlan.opportunity.reason,
-        }
-      : undefined,
+    opportunity:
+      progressionPlan.opportunity && topSet && baseWeight === topSet.weight
+        ? {
+            type: progressionPlan.opportunity.type,
+            suggestedWeight: progressionPlan.opportunity.suggestedWeight,
+            reason: progressionPlan.opportunity.reason,
+          }
+        : undefined,
     sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
     calibrationTestCandidate: progressionPlan.calibrationTestCandidate,
     otherGymReference,
