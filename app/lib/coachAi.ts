@@ -947,6 +947,85 @@ export async function requestAiProgramReply(args: {
   }
 }
 
+function postProgramStage(body: unknown, signal?: AbortSignal) {
+  return fetch("/api/coach/program/build", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/**
+ * Bygger programmet i fyra vågor i stället för ett anrop.
+ *
+ * Tidsgränsen är per HTTP-anrop, och det som tar tid är resonemanget: att
+ * välja ett tjugotal övningar över sex pass med balans och begränsningar
+ * sprängde 25 sekunder. Uppdelat blir varje anrop litet nog att köras på
+ * den starkare modellen i stället för den snabba men språksvagare.
+ *
+ *   1. struktur      — hur veckan delas, inga övningar
+ *   2. övningar      — ett anrop per pass, parallellt
+ *   3. prosa/summary — parallellt, best-effort
+ *
+ * Passen i steg 2 behöver inte känna till varandra: samma övning får
+ * återkomma i flera pass, och dubbletter förbjuds bara inom ett pass.
+ */
+async function buildProgramInStages(
+  context: CoachProgramBuildContext,
+  fallbackPlan: BuiltWorkoutPlan,
+  signal?: AbortSignal
+): Promise<BuiltWorkoutPlan | null> {
+  const structureResponse = await postProgramStage(
+    { stage: "structure", context },
+    signal
+  );
+
+  if (!structureResponse.ok) return null;
+
+  const structure = (await structureResponse.json()) as {
+    mode?: string;
+    title?: string;
+    passes?: { key: string; displayName: string; intent?: string }[];
+  };
+
+  if (structure.mode !== "ai" || !structure.passes?.length) return null;
+
+  const passes = await Promise.all(
+    structure.passes.map(async (pass) => {
+      try {
+        const response = await postProgramStage(
+          { stage: "exercises", context, exercisePass: pass },
+          signal
+        );
+
+        if (!response.ok) return null;
+
+        const data = (await response.json()) as {
+          mode?: string;
+          exercises?: BuiltWorkoutPlan["passes"][number]["exercises"];
+        };
+
+        if (data.mode !== "ai" || !data.exercises?.length) return null;
+
+        return { ...pass, exercises: data.exercises } as BuiltWorkoutPlan["passes"][number];
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  // Ett pass utan övningar gör programmet ofullständigt. Hellre ärligt fel
+  // och en försök igen-knapp än ett halvt schema.
+  if (passes.some((pass) => !pass)) return null;
+
+  return {
+    ...fallbackPlan,
+    title: structure.title || fallbackPlan.title,
+    passes: passes as BuiltWorkoutPlan["passes"],
+  };
+}
+
 export async function requestAiProgramBuild(args: {
   context: CoachProgramBuildContext;
   fallbackPlan: BuiltWorkoutPlan;
@@ -955,17 +1034,14 @@ export async function requestAiProgramBuild(args: {
   const { context, fallbackPlan, signal } = args;
 
   try {
-    const response = await fetch("/api/coach/program/build", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        context,
-        fallbackPlan,
-      }),
-      signal,
-    });
+    const staged = await buildProgramInStages(context, fallbackPlan, signal);
+
+    if (staged) {
+      const plan = await addProseToPlan(staged, context, signal);
+      return { mode: "ai" as const, reason: undefined, plan };
+    }
+
+    const response = await postProgramStage({ context, fallbackPlan }, signal);
 
     if (!response.ok) {
       return {

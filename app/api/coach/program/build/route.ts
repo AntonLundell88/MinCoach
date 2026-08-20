@@ -28,8 +28,10 @@ type CoachProgramBuildRequest = {
    * Uppdelningen finns för att tidsgränsen är per HTTP-anrop: hela planen
    * i ett svar sprängde 25 sekunder vid 5-6 dagar.
    */
-  stage?: "skeleton" | "prose" | "summary";
+  stage?: "skeleton" | "structure" | "exercises" | "prose" | "summary";
   summaryPlan?: BuiltWorkoutPlan;
+  /** exercises: passet som ska fyllas med övningar. */
+  exercisePass?: { key: string; displayName: string; intent?: string };
   prosePass?: {
     displayName: string;
     intent?: string;
@@ -99,6 +101,51 @@ Fyll alltid i sets, reps och rir för VARJE övning — det är doseringen och d
 title: en kort rubrik för programmet. intent: en rad om passets fokus. Övrig text (coachSummary, planReason, structureReason, safetyNotes) skrivs i ett separat anrop — skriv den inte här.
 Returnera endast giltig JSON enligt schemat.
 `.trim();
+
+const PROGRAM_STRUCTURE_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    title: { type: "string" },
+    passes: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          key: { type: "string", enum: ["A", "B", "C", "D", "E", "F"] },
+          displayName: { type: "string" },
+          intent: { type: "string" },
+        },
+        required: ["key", "displayName", "intent"],
+      },
+    },
+  },
+  required: ["title", "passes"],
+};
+
+const PROGRAM_EXERCISES_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    exercises: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          exerciseKey: { type: "string" },
+          name: { type: "string" },
+          sets: { type: "string" },
+          reps: { type: "string" },
+          rir: { type: "string" },
+        },
+        required: ["exerciseKey", "name", "sets", "reps", "rir"],
+      },
+    },
+  },
+  required: ["exercises"],
+};
 
 const PROGRAM_SUMMARY_JSON_SCHEMA = {
   type: "object",
@@ -855,6 +902,109 @@ function fallbackResponse(
   });
 }
 
+function buildAllowedExerciseLookup(
+  availableExercises: { exerciseKey?: unknown; name: string }[]
+): AllowedExerciseLookup {
+  return availableExercises.reduce<AllowedExerciseLookup>(
+    (lookup, exercise) => {
+      const exerciseKey =
+        typeof exercise.exerciseKey === "string"
+          ? normalizeExerciseKeyText(exercise.exerciseKey)
+          : getExerciseKey(exercise.name);
+      const normalizedName = normalizeExerciseSearchText(exercise.name);
+
+      lookup.keyToName.set(exerciseKey, exercise.name);
+      lookup.nameToKey.set(normalizedName, exerciseKey);
+      lookup.names.add(normalizedName);
+
+      return lookup;
+    },
+    {
+      keyToName: new Map<string, string>(),
+      nameToKey: new Map<string, string>(),
+      names: new Set<string>(),
+    }
+  );
+}
+
+/**
+ * Ett litet OpenAI-anrop med strukturerat JSON-svar. Delas av de stegvisa
+ * bygg-anropen — de skiljer sig bara i instruktion, schema och indata.
+ */
+async function callProgramStage(args: {
+  apiKey: string;
+  label: string;
+  instruction: string;
+  schemaName: string;
+  schema: unknown;
+  input: unknown;
+  effort: "minimal" | "low" | "medium";
+  maxTokens: number;
+}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), PROGRAM_BUILD_TIMEOUT_MS);
+  const startedAtMs = Date.now();
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${args.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+        instructions: repairMojibake(args.instruction),
+        reasoning: { effort: args.effort },
+        text: {
+          verbosity: "low",
+          format: {
+            type: "json_schema",
+            name: args.schemaName,
+            strict: true,
+            schema: args.schema,
+          },
+        },
+        input: [
+          { role: "user", content: [{ type: "input_text", text: JSON.stringify(args.input) }] },
+        ],
+        max_output_tokens: args.maxTokens,
+      }),
+      signal: controller.signal,
+    });
+
+    const seconds = Number(((Date.now() - startedAtMs) / 1000).toFixed(1));
+
+    if (!response.ok) {
+      console.warn(`Program ${args.label} failed`, { status: response.status, seconds });
+      return null;
+    }
+
+    const data = await response.json();
+    const aiText = extractOutputText(data);
+
+    try {
+      const parsed = JSON.parse(aiText);
+      console.warn(`Program ${args.label} timing`, { seconds });
+      return parsed as Record<string, unknown>;
+    } catch {
+      console.warn(`Program ${args.label} unparsable`, {
+        seconds,
+        incomplete: data?.status === "incomplete",
+        body: aiText.slice(0, 200),
+      });
+      return null;
+    }
+  } catch {
+    console.warn(`Program ${args.label} timeout`, {
+      seconds: Number(((Date.now() - startedAtMs) / 1000).toFixed(1)),
+    });
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /**
  * Prosa för ETT pass. Medvetet best-effort: misslyckas den visar
  * granskningsskärmen bibliotekets text för övningen i stället, samma väg
@@ -981,6 +1131,135 @@ export async function POST(request: Request) {
     return fallbackResponse(undefined, "invalid_json");
   }
 
+  // Steg 1 av bygget: bara veckans indelning, inga övningar. Litet svar och
+  // lite resonemang, så det ryms med god marginal på gpt-5.5.
+  if (body.stage === "structure") {
+    const key = process.env.OPENAI_API_KEY;
+    if (!key || !body.context) {
+      return NextResponse.json({ mode: "fallback", reason: "invalid_structure" });
+    }
+
+    const profile = body.context.profile;
+    const parsed = await callProgramStage({
+      apiKey: key,
+      label: "structure",
+      instruction: [
+        COACH_LANGUAGE_NOTES,
+        "",
+        "Du delar in användarens träningsvecka. Du väljer INGA övningar här — bara hur veckan delas upp.",
+        "- Antal pass ska exakt matcha daysPerWeek, max 6, i ordning A, B, C, ...",
+        "- displayName: \"Pass A — Bröst och triceps\". Rena namn, inga parenteser eller volymtaggar.",
+        "- intent: en rad om passets fokus, skriven för användaren.",
+        "- Vid 5-6 pass ska passen vara smalare och mer återhämtningsvänliga.",
+        "- Täck kroppen rimligt över veckan efter mål, plats och utrustning.",
+        "",
+        "Returnera endast giltig JSON enligt schemat.",
+      ].join("\n"),
+      schemaName: "program_structure",
+      schema: PROGRAM_STRUCTURE_JSON_SCHEMA,
+      input: { profile },
+      effort: "low",
+      maxTokens: 2000,
+    });
+
+    const rawPasses = Array.isArray(parsed?.passes) ? parsed.passes : [];
+    const expected = Math.min(Math.max(1, profile?.daysPerWeek ?? 3), 6);
+
+    if (rawPasses.length !== expected) {
+      console.warn("Program structure wrong pass count", {
+        got: rawPasses.length,
+        expected,
+      });
+      return NextResponse.json({ mode: "fallback", reason: "invalid_structure" });
+    }
+
+    return NextResponse.json({
+      mode: "ai",
+      title: cleanText(parsed?.title) || undefined,
+      passes: rawPasses.map((pass, index) => {
+        const raw = pass as Record<string, unknown>;
+        return {
+          key: PASS_KEYS[index],
+          displayName: cleanPassDisplayName(raw.displayName, `Pass ${PASS_KEYS[index]}`),
+          intent: cleanText(raw.intent) || undefined,
+        };
+      }),
+    });
+  }
+
+  // Steg 2: övningar och dosering för ETT pass. Passen är oberoende — samma
+  // övning får återkomma i flera pass, valideringen förbjuder dubbletter bara
+  // inom ett pass — så alla kan köras parallellt.
+  if (body.stage === "exercises") {
+    const key = process.env.OPENAI_API_KEY;
+    const pass = body.exercisePass;
+
+    if (!key || !body.context || !pass) {
+      return NextResponse.json({ mode: "fallback", reason: "invalid_exercises" });
+    }
+
+    const compact = compactProgramBuildContext(body.context);
+    const lookup = buildAllowedExerciseLookup(compact.availableExercises);
+
+    const parsed = await callProgramStage({
+      apiKey: key,
+      label: `exercises ${pass.key}`,
+      instruction: [
+        PROGRAM_DESIGN_PROTOCOL,
+        "",
+        "Du väljer övningar för ETT pass i användarens program. Passets fokus är redan bestämt — håll dig till det.",
+        "- Normalt 3-5 övningar. Hellre färre bra än utfyllnad.",
+        "- Välj ENDAST från availableExercises. Returnera exerciseKey och name exakt som de står.",
+        "- Samma exerciseKey får inte förekomma två gånger i det här passet.",
+        "- Använd difficulty, beginnerFit och stability aktivt. För nybörjare: prioritera beginnerFit \"bra\", stabila varianter, och undvik \"undvik_som_standard\".",
+        "- Fyll alltid i sets, reps och rir. Exempel: sets \"3\", reps \"8-12\", rir \"1-2\". Är logType \"time_rir\" ska reps innehålla tid, t.ex. \"30-45 sek\".",
+        "- Uppvärmning, mobilitet och rörlighet är aldrig loggbara övningar.",
+        "",
+        "Returnera endast giltig JSON enligt schemat.",
+      ].join("\n"),
+      schemaName: "program_exercises",
+      schema: PROGRAM_EXERCISES_JSON_SCHEMA,
+      input: {
+        profile: compact.profile,
+        pass: { displayName: pass.displayName, intent: pass.intent },
+        availableExercises: compact.availableExercises,
+      },
+      effort: "low",
+      maxTokens: 2500,
+    });
+
+    const rawExercises = Array.isArray(parsed?.exercises) ? parsed.exercises : [];
+    const seen = new Set<string>();
+    const exercises: BuiltProgramExercise[] = [];
+
+    for (const raw of rawExercises) {
+      const normalized = normalizeExercise(raw, lookup);
+      if (!normalized) continue;
+
+      const dedupeKey = normalized.exerciseKey ?? normalized.name;
+      if (seen.has(dedupeKey)) continue;
+
+      const source = (raw ?? {}) as Record<string, unknown>;
+      const sets = cleanText(source.sets);
+      const reps = cleanText(source.reps);
+      const rir = cleanRirText(source.rir);
+
+      // Dosering är strukturell och hör hemma här. Saknas den är passet
+      // ofullständigt — hellre färre övningar än en utan set och reps.
+      if (!sets || !reps || !rir) continue;
+
+      seen.add(dedupeKey);
+      exercises.push({ ...normalized, sets, reps, rir });
+    }
+
+    if (exercises.length === 0) {
+      console.warn("Program exercises empty", { pass: pass.key, raw: rawExercises.length });
+      return NextResponse.json({ mode: "fallback", reason: "invalid_exercises" });
+    }
+
+    return NextResponse.json({ mode: "ai", exercises });
+  }
+
   if (body.stage === "summary") {
     const summaryKey = process.env.OPENAI_API_KEY;
     const plan = body.summaryPlan;
@@ -1003,7 +1282,9 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
           instructions: repairMojibake(PROGRAM_SUMMARY_INSTRUCTION),
-          reasoning: { effort: "medium" },
+          // Low, som prosan: 19 s av 25 på medium var den enda kvarvarande
+          // tunna marginalen. Det här är skrivande, inte resonemang.
+          reasoning: { effort: "low" },
           text: {
             verbosity: "low",
             format: {
@@ -1083,26 +1364,7 @@ export async function POST(request: Request) {
   }
 
   const compactContext = compactProgramBuildContext(context);
-  const allowedExercises = compactContext.availableExercises.reduce<AllowedExerciseLookup>(
-    (lookup, exercise) => {
-      const exerciseKey =
-        typeof exercise.exerciseKey === "string"
-          ? normalizeExerciseKeyText(exercise.exerciseKey)
-          : getExerciseKey(exercise.name);
-      const normalizedName = normalizeExerciseSearchText(exercise.name);
-
-      lookup.keyToName.set(exerciseKey, exercise.name);
-      lookup.nameToKey.set(normalizedName, exerciseKey);
-      lookup.names.add(normalizedName);
-
-      return lookup;
-    },
-    {
-      keyToName: new Map<string, string>(),
-      nameToKey: new Map<string, string>(),
-      names: new Set<string>(),
-    }
-  );
+  const allowedExercises = buildAllowedExerciseLookup(compactContext.availableExercises);
   const rateLimit = checkAiRateLimit(request, "program");
 
   if (!rateLimit.allowed) {
