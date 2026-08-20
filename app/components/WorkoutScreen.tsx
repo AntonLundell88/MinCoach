@@ -785,7 +785,12 @@ export default function WorkoutScreen({
       `${repsInput.trim()}${rirInput === 0 ? "+" : ""} ${
         repsInput.trim() === "1" && rirInput !== 0 ? "rep" : "reps"
       }`
-    : progressionPlan.repsText;
+    : // Ingen fallback till motorns plan. Kortet speglar dina fält — är de
+      // tomma finns inget att spegla, och då visas "Logga första setet"
+      // i stället. Föll det tillbaka på planen blev kortet en andra röst
+      // igen, i just det läge användaren har minst sammanhang: en ny
+      // övning. Det var därför coachen läste upp mål och vila där.
+      "";
   const nextWeightLabel = weightInput.trim()
     ? `${weightInput.trim().replace(".", ",")} kg`
     : "";
@@ -795,11 +800,12 @@ export default function WorkoutScreen({
         ? ""
         : `RIR ${rirInput >= 5 ? "5+" : rirInput}`
       : progressionPlan.rirText;
+  // RIR räknas inte in: den har alltid ett värde (state startar på 2), så
+  // ensam skulle den hålla kortet "ifyllt" även när användaren inte angett
+  // något. Vikt eller reps avgör om det finns ett set att förhandsvisa.
   const hasNextPrescription =
     !currentExerciseReadyToFinish &&
-    (Boolean(nextWeightLabel) ||
-      Boolean(currentMetricLabel) ||
-      Boolean(nextRirLabel));
+    (Boolean(nextWeightLabel) || Boolean(currentMetricLabel));
 
   const normalizedLibrarySearch = normalizeExerciseSearchText(librarySearch);
   const filteredLibraryExercises = libraryExercises.filter((exercise) => {

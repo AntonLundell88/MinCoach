@@ -7730,7 +7730,9 @@ const newLastByExercise: LastByExercise = {
             durationSeconds,
             metricType: prAttempt.metricType,
           })}.`
-        : `Första noteringen i ${currentExerciseName}: ${formatLoggedSetText({
+        // "Notering" är kanslispråk — och coachen ekar texten vi skickar,
+        // så den sa "Första noteringen" rakt av. Skriv det som en människa.
+        : `Första setet i ${currentExerciseName}: ${formatLoggedSetText({
             exerciseName,
             weight,
             reps: timedExercise ? 0 : reps,
