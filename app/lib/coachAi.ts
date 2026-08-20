@@ -981,11 +981,17 @@ export async function requestAiProgramBuild(args: {
       plan?: BuiltWorkoutPlan | null;
     };
 
-    return {
-      mode: data.mode ?? "fallback",
-      reason: data.reason,
-      plan: data.plan ?? fallbackPlan,
-    };
+    if (data.mode !== "ai" || !data.plan) {
+      return {
+        mode: "fallback" as const,
+        reason: data.reason,
+        plan: data.plan ?? fallbackPlan,
+      };
+    }
+
+    const plan = await addProseToPlan(data.plan, context, signal);
+
+    return { mode: "ai" as const, reason: data.reason, plan };
   } catch {
     return {
       mode: "fallback" as const,
@@ -993,6 +999,80 @@ export async function requestAiProgramBuild(args: {
       plan: fallbackPlan,
     };
   }
+}
+
+/**
+ * Hämtar syftes- och varningstext för varje pass i EGNA parallella anrop.
+ *
+ * Tidsgränsen är per HTTP-anrop, så hela planen i ett svar sprängde 25
+ * sekunder vid 5-6 dagar. Prosan är den stora delen och den enda som inte
+ * kräver överblick — texten om en övning behöver inte veta vad andra pass
+ * innehåller — så den kan delas upp och köras samtidigt.
+ *
+ * Best-effort med flit: ett pass vars anrop misslyckas får helt enkelt
+ * ingen AI-text, och granskningsskärmen visar bibliotekets beskrivning i
+ * stället. Programmet blir aldrig fel, bara mindre personligt i den delen.
+ */
+async function addProseToPlan(
+  plan: BuiltWorkoutPlan,
+  context: CoachProgramBuildContext,
+  signal?: AbortSignal
+): Promise<BuiltWorkoutPlan> {
+  const results = await Promise.all(
+    plan.passes.map(async (pass) => {
+      try {
+        const response = await fetch("/api/coach/program/build", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stage: "prose",
+            context,
+            prosePass: {
+              displayName: pass.displayName,
+              intent: pass.intent,
+              exercises: pass.exercises.map((exercise) => ({
+                exerciseKey: exercise.exerciseKey,
+                name: exercise.name,
+              })),
+            },
+          }),
+          signal,
+        });
+
+        if (!response.ok) return null;
+
+        const data = (await response.json()) as {
+          exercises?: { exerciseKey?: string; purpose?: string; caution?: string }[];
+        };
+
+        return Array.isArray(data.exercises) ? data.exercises : null;
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  return {
+    ...plan,
+    passes: plan.passes.map((pass, index) => {
+      const prose = results[index];
+      if (!prose) return pass;
+
+      return {
+        ...pass,
+        exercises: pass.exercises.map((exercise) => {
+          const match = prose.find((item) => item.exerciseKey === exercise.exerciseKey);
+          if (!match) return exercise;
+
+          return {
+            ...exercise,
+            purpose: match.purpose?.trim() || exercise.purpose,
+            caution: match.caution?.trim() || exercise.caution,
+          };
+        }),
+      };
+    }),
+  };
 }
 
 export async function requestAiWorkoutReview(args: {

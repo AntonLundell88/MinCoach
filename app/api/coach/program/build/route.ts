@@ -22,6 +22,39 @@ import { repairMojibake } from "../../../../lib/textEncoding";
 type CoachProgramBuildRequest = {
   context?: CoachProgramBuildContext;
   fallbackPlan?: BuiltWorkoutPlan;
+  /**
+   * Utelämnad = stommen (vilka pass, vilka övningar, dosering).
+   * "prose" = syftes- och varningstext för ETT pass, i ett eget anrop.
+   * Uppdelningen finns för att tidsgränsen är per HTTP-anrop: hela planen
+   * i ett svar sprängde 25 sekunder vid 5-6 dagar.
+   */
+  stage?: "skeleton" | "prose";
+  prosePass?: {
+    displayName: string;
+    intent?: string;
+    exercises: { exerciseKey: string; name: string }[];
+  };
+};
+
+const PROGRAM_PROSE_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    exercises: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          exerciseKey: { type: "string" },
+          purpose: { type: "string" },
+          caution: { type: "string" },
+        },
+        required: ["exerciseKey", "purpose", "caution"],
+      },
+    },
+  },
+  required: ["exercises"],
 };
 
 const PASS_KEYS = ["A", "B", "C", "D", "E", "F"] as const;
@@ -136,26 +169,23 @@ const PROGRAM_PLAN_JSON_SCHEMA = {
               properties: {
                 exerciseKey: { type: "string" },
                 name: { type: "string" },
-                purpose: { type: "string" },
                 sets: { type: "string" },
                 reps: { type: "string" },
                 rir: { type: "string" },
-                caution: { type: "string" },
               },
-              // alternatives genererades förr här men lästes aldrig: listan
-              // med bytesförslag i granskningsskärmen byggs från biblioteket
-              // (substitutions + utrustningsmatchning), inte från AI:n. För
-              // ett 6-dagarsprogram var det 24 arrayer ren genereringstid mot
-              // Netlifys 25-sekundersvägg, utan något på skärmen.
-              required: [
-                "exerciseKey",
-                "name",
-                "purpose",
-                "sets",
-                "reps",
-                "rir",
-                "caution",
-              ],
+              // Stommen innehåller inte purpose/caution. De är prosa, och
+              // prosa är det som gör svaret stort: utdatavolymen skalar med
+              // antal dagar medan tidsgränsen är fast, så 6-dagarsprogram
+              // slog i Netlifys 25-sekundersvägg. De hämtas i separata,
+              // parallella anrop per pass (stage "prose") — ett per pass är
+              // oberoende av de andra, eftersom texten om en övning inte
+              // behöver veta vad de andra passen innehåller. Bara helheten
+              // (vilka övningar, hur veckan delas) kräver överblick, och det
+              // är precis vad som är kvar här.
+              //
+              // alternatives genererades förr men lästes aldrig: bytesförslagen
+              // i granskningsskärmen byggs från biblioteket, inte från AI:n.
+              required: ["exerciseKey", "name", "sets", "reps", "rir"],
             },
           },
         },
@@ -386,11 +416,11 @@ function normalizeExercise(
   return {
     exerciseKey,
     name,
-    purpose:
-      purpose ||
-      (profile.category !== "okänd"
-        ? `Ger tydligt arbete för ${profile.category}.`
-        : undefined),
+    // Ingen generisk reservtext ("Ger tydligt arbete för ben.") här. Saknas
+    // purpose ska fältet vara tomt, för då hämtar granskningsskärmen rätt
+    // bibliotekstext för övningen (whyChosen/detail) — som är bättre än en
+    // schablon. En ifylld schablon hade vunnit över den och blivit sämre.
+    purpose: purpose || undefined,
     sets: cleanText(raw.sets) || undefined,
     reps: cleanText(raw.reps) || undefined,
     rir: cleanRirText(raw.rir) || undefined,
@@ -674,11 +704,14 @@ function getPlanValidationIssues(
         planCategories.add(category);
       }
 
-      if (!cleanText(exercise.purpose) || !cleanText(exercise.sets) || !cleanText(exercise.reps) || !cleanText(exercise.rir)) {
+      // purpose valideras inte här: den kommer från prosa-anropen efteråt,
+      // och saknas den faller granskningsskärmen tillbaka på bibliotekstext.
+      // Doseringen är däremot strukturell och måste finnas i stommen.
+      if (!cleanText(exercise.sets) || !cleanText(exercise.reps) || !cleanText(exercise.rir)) {
         issues.push(
           issue(
             "missing_exercise_dose",
-            `${pass.key}: ${exercise.name} saknar purpose, sets, reps eller RIR.`
+            `${pass.key}: ${exercise.name} saknar sets, reps eller RIR.`
           )
         );
       }
@@ -808,6 +841,120 @@ function fallbackResponse(
   });
 }
 
+/**
+ * Prosa för ETT pass. Medvetet best-effort: misslyckas den visar
+ * granskningsskärmen bibliotekets text för övningen i stället, samma väg
+ * som varje egen tillagd övning redan går. Därför inget retry och inget
+ * fel uppåt — bara tomma fält som faller tillbaka.
+ */
+async function handleProseRequest(
+  body: CoachProgramBuildRequest,
+  apiKey: string
+) {
+  const pass = body.prosePass;
+
+  if (!pass || pass.exercises.length === 0) {
+    return NextResponse.json({ mode: "fallback", reason: "invalid_prose_pass", exercises: [] });
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), PROGRAM_BUILD_TIMEOUT_MS);
+  const startedAtMs = Date.now();
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+        instructions: repairMojibake(
+          [
+            COACH_LANGUAGE_NOTES,
+            "",
+            "Du skriver syftestext för övningarna i ETT pass i användarens program.",
+            "- purpose: en kort mening om varför just den här övningen finns i det här passet. Skriv till användaren, inte om dem.",
+            "- caution: en kort sak att tänka på. Finns inget viktigt, skriv tom sträng.",
+            "Ingen inledning, ingen sammanfattning, inga upprepningar mellan övningarna. Returnera endast giltig JSON enligt schemat.",
+          ].join("\n")
+        ),
+        reasoning: { effort: "medium" },
+        text: {
+          verbosity: "low",
+          format: {
+            type: "json_schema",
+            name: "program_prose",
+            strict: true,
+            schema: PROGRAM_PROSE_JSON_SCHEMA,
+          },
+        },
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: JSON.stringify({
+                  profile: body.context?.profile,
+                  pass: { displayName: pass.displayName, intent: pass.intent },
+                  exercises: pass.exercises,
+                }),
+              },
+            ],
+          },
+        ],
+        // Rikligt tilltaget med flit: reasoning-tokens delar den här budgeten
+        // på resonerande modeller. Med 1200 kapades svaret mitt i JSON:en för
+        // ett av sex pass — HTTP-status 200, men oparsbart innehåll. Samma
+        // fälla som gav avhuggna coachmeddelanden tidigare.
+        max_output_tokens: 3000,
+      }),
+      signal: controller.signal,
+    });
+
+    const seconds = Number(((Date.now() - startedAtMs) / 1000).toFixed(1));
+
+    if (!response.ok) {
+      console.warn("Program prose failed", { pass: pass.displayName, status: response.status, seconds });
+      return NextResponse.json({ mode: "fallback", reason: "api_error", exercises: [] });
+    }
+
+    const data = await response.json();
+    const aiText = extractOutputText(data);
+    let parsed: { exercises?: { exerciseKey?: string; purpose?: string; caution?: string }[] };
+
+    try {
+      parsed = JSON.parse(aiText);
+    } catch {
+      // Loggas separat från nätverksfel: ett kapat svar ser ut som en
+      // lyckad förfrågan och doldes annars bakom "ok: true".
+      console.warn("Program prose unparsable", {
+        pass: pass.displayName,
+        seconds,
+        incomplete: data?.status === "incomplete",
+        body: aiText.slice(0, 200),
+      });
+      return NextResponse.json({ mode: "fallback", reason: "invalid_json_reply", exercises: [] });
+    }
+
+    const exercises = Array.isArray(parsed.exercises) ? parsed.exercises : [];
+    console.warn("Program prose timing", {
+      pass: pass.displayName,
+      exercises: pass.exercises.length,
+      returned: exercises.length,
+      seconds,
+    });
+
+    return NextResponse.json({ mode: "ai", exercises });
+  } catch {
+    return NextResponse.json({ mode: "fallback", reason: "timeout", exercises: [] });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function POST(request: Request) {
   let body: CoachProgramBuildRequest;
 
@@ -815,6 +962,16 @@ export async function POST(request: Request) {
     body = (await request.json()) as CoachProgramBuildRequest;
   } catch {
     return fallbackResponse(undefined, "invalid_json");
+  }
+
+  if (body.stage === "prose") {
+    const proseKey = process.env.OPENAI_API_KEY;
+
+    if (!proseKey) {
+      return NextResponse.json({ mode: "fallback", reason: "missing_api_key", exercises: [] });
+    }
+
+    return handleProseRequest(body, proseKey);
   }
 
   const context = body.context;
