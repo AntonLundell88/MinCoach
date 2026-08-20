@@ -69,7 +69,10 @@ export type CoachSetContext = {
     type: "offer_increase" | "increase_now" | "optional_last_set_test";
     confidence: "medium" | "high";
     suggestedLoadText: string;
-    reason: string;
+    // Ingen prosa här. Ett reason-fält bar tidigare färdiga meningar ("...ett
+    // försiktigt test upp kan vara rimligt") som modellen gjorde mall av — två
+    // olika övningar fick samma skelett. type, confidence och tone bär redan
+    // hela nyansen, strukturerat.
     tone: "offer" | "clear";
   };
   // Hur många kvalificerande pass i rad toppvikten hållit (se
@@ -186,7 +189,10 @@ export type CoachChatContext = {
     type: "offer_increase" | "increase_now" | "optional_last_set_test";
     confidence: "medium" | "high";
     suggestedLoadText: string;
-    reason: string;
+    // Ingen prosa här. Ett reason-fält bar tidigare färdiga meningar ("...ett
+    // försiktigt test upp kan vara rimligt") som modellen gjorde mall av — två
+    // olika övningar fick samma skelett. type, confidence och tone bär redan
+    // hela nyansen, strukturerat.
     tone: "offer" | "clear";
   };
   // Säkert tak för ett tyngre testset, om den aktuella övningen kvalificerar.
@@ -198,9 +204,9 @@ export type CoachChatContext = {
   // — app-jargong ingen tränare använder. "Ett tyngre testset" låter rätt.
   // Internt heter det fortfarande calibrationTestCandidate; bara namnet på
   // tråden till modellen är utbytt.
+  // Bara vikten — ingen färdig mening. Se CalibrationTestCandidate i page.tsx.
   heavierTestSet?: {
     weight: string;
-    reason: string;
   };
   uiHints?: {
     nextSetCardShowsPlan: boolean;
@@ -242,7 +248,6 @@ export type CoachExerciseIntroContext = {
   opportunity?: {
     type: "offer_increase" | "increase_now" | "optional_last_set_test";
     suggestedWeight: string;
-    reason: string;
   };
   // Hur många kvalificerande pass i rad toppvikten hållit (se
   // ExerciseProgressionPlan.sessionsAtTopWeight i page.tsx). 0/undefined om
@@ -251,9 +256,9 @@ export type CoachExerciseIntroContext = {
   // Skild från opportunity med avsikt: det här är inte bevisad progression,
   // det är ett medvetet erbjudande om att testa UTANFÖR det bevisade.
   // Namnvalet: se heavierTestSet i CoachChatContext ovan.
+  // Bara vikten — ingen färdig mening. Se CalibrationTestCandidate i page.tsx.
   heavierTestSet?: {
     weight: string;
-    reason: string;
   };
   otherGymReference?: {
     gymName: string;

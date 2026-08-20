@@ -58,7 +58,7 @@ type Props = {
       reason: string;
       tone: "offer" | "clear";
     };
-    calibrationTestCandidate?: { weight: string; reason: string };
+    calibrationTestCandidate?: { weight: string };
   };
   exerciseIndex: number;
   activePlan: string[];
@@ -354,7 +354,7 @@ function buildExerciseIntroCoachText(args: {
       reason: string;
       tone: "offer" | "clear";
     };
-    calibrationTestCandidate?: { weight: string; reason: string };
+    calibrationTestCandidate?: { weight: string };
   };
   lastByExercise: Props["lastByExercise"];
   exerciseKey: (name: string) => string;
@@ -497,7 +497,7 @@ function buildExerciseIntroAiContext(args: {
       tone: "offer" | "clear";
     };
     sessionsAtTopWeight?: number;
-    calibrationTestCandidate?: { weight: string; reason: string };
+    calibrationTestCandidate?: { weight: string };
   };
   lastByExercise: Props["lastByExercise"];
   exerciseKey: (name: string) => string;
@@ -587,7 +587,6 @@ function buildExerciseIntroAiContext(args: {
         ? {
             type: progressionPlan.opportunity.type,
             suggestedWeight: progressionPlan.opportunity.suggestedWeight,
-            reason: progressionPlan.opportunity.reason,
           }
         : undefined,
     sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,

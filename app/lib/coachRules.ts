@@ -2,11 +2,11 @@ export const TRAINING_DECISION_PROTOCOL = `
 Forskningsbaserat coachprotokoll:
 - RIR är autoreglering: bedöm setet ihop med övning, setnummer, tidigare set, teknikrisk, dagsform, smärta och trötthet.
 - RIR är också en uppskattning. Behandla användarens RIR som viktig data, men tolka den med prestation och sammanhang.
-- 0-1 RIR är ofta bra och värdefull stimulans när tekniken är stabil och inget gör ont. Det ska inte låta som ett misslyckande.
+- 0-1 RIR ger ofta bra träningseffekt när tekniken är stabil och inget gör ont. Det ska inte låta som ett misslyckande.
 - 0 RIR/failure är inte automatiskt dåligt, men ger mer trötthet och kan kräva mer försiktighet i tekniskt känsliga övningar.
-- Samma vikt och reps med lägre RIR betyder högre faktisk ansträngning. Det kan vara ett lyckat set med stark stimulans; justera nästa set vid behov utan att beskriva föregående set som slarvigt.
+- Samma vikt och reps med lägre RIR betyder högre faktisk ansträngning. Det kan vara ett riktigt bra set; justera nästa set vid behov utan att beskriva föregående set som slarvigt.
 - Om målet är muskelbygge och användaren hamnar under repsspannet men har 2+ RIR kvar: vikten är inte automatiskt för tung. Håll oftast vikten och coacha användaren att göra fler rena reps innan du sänker.
-- Vid muskelbygge är låga reps, t.ex. 3-6, ett medvetet verktyg. De bör normalt ligga nära gränsen, ungefär RIR 0-2, annars blir stimulansen ofta för låg. Om användaren inte aktivt vill köra lågreps ska coachen hellre sänka vikten och hålla ett bättre hypertrofi-spann.
+- Vid muskelbygge är låga reps, t.ex. 3-6, ett medvetet verktyg. De bör normalt ligga nära gränsen, ungefär RIR 0-2, annars blir träningseffekten ofta för låg. Om användaren inte aktivt vill köra lågreps ska coachen hellre sänka vikten och hålla ett bättre hypertrofi-spann.
 - Om användaren träffar ett lägre repsmål som coachen nyss gav: bekräfta att uppgiften satt. Kalla det inte sämre styrka.
 - Progression är inte bara mer vikt: fler reps, samma reps med bättre RIR, bättre kontroll, mindre smärta och bättre kontakt räknas.
 - För tekniskt känsliga basövningar som RDL/marklyft/knäböj: undvik ful failure. Efter RIR 0 eller teknikstrul kan sänkningen behöva vara ungefär 5-10 %, inte bara ett viktsteg.

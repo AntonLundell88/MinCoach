@@ -730,6 +730,13 @@ type ProgressionOpportunity = {
   type: "offer_increase" | "increase_now" | "optional_last_set_test";
   confidence: "medium" | "high";
   suggestedWeight: string;
+  /**
+   * Internt spårningsvärde — går INTE till modellen. Fältet skickades förut
+   * på tråden och dess färdiga meningar ("...ett försiktigt test upp kan vara
+   * rimligt") blev en mall som två olika övningar fick samma skelett av.
+   * type, confidence och tone bär nyansen till modellen. Koppla inte in det
+   * här fältet i någon context igen.
+   */
   reason: string;
   tone: "offer" | "clear";
 };
@@ -738,9 +745,15 @@ type ProgressionOpportunity = {
 // bevisad progression och får förifyllas tyst. Det här är ett medvetet
 // risktagande utanför det bevisade — ska ALDRIG förifylla viktfältet,
 // bara visas som ett aktivt val (se "Testa X kg"-chippen i UI:t).
+/**
+ * Bara vikten. Fältet bar tidigare en färdigskriven mening ("Vikten har
+ * suttit stabilt flera pass i rad...") som modellen byggde en mall av — två
+ * olika övningar fick nästan identiska svar. Instruktionen i coachPrompts.ts
+ * förklarar redan vad ett tyngre testset är och hur det ska presenteras, så
+ * meningen tillförde ingenting utom en formulering att kopiera.
+ */
 type CalibrationTestCandidate = {
   weight: string;
-  reason: string;
 };
 
 type ExerciseProgressionPlan = {
@@ -1031,14 +1044,7 @@ function buildProgressionPlan(args: {
     // användaren redan har ifylld — då är det inget test att skriva in.
     if (testWeight <= planWeight) return undefined;
 
-    return {
-      weight: formatWeightInput(testWeight),
-      // Ordet "kalibreringstest" stod här tidigare och kom tillbaka rakt ut ur
-      // coachens mun. Fältet heter redan heavierTestSet på tråden — texten det
-      // bär måste låta likadant.
-      reason:
-        "Vikten har suttit stabilt flera pass i rad. Lite tyngre än vad som är bevisat kan visa var gränsen faktiskt går just nu.",
-    };
+    return { weight: formatWeightInput(testWeight) };
   };
 
   if (topSetTooLight && dayForm !== "trött") {
@@ -4059,7 +4065,6 @@ function buildCoachSetContext(args: {
           type: progressionOpportunity.type,
           confidence: progressionOpportunity.confidence,
           suggestedLoadText: progressionOpportunity.suggestedWeight,
-          reason: progressionOpportunity.reason,
           tone: progressionOpportunity.tone,
         }
       : undefined,
@@ -6457,7 +6462,6 @@ async function sendChat() {
             type: progressionPlan.opportunity.type,
             confidence: progressionPlan.opportunity.confidence,
             suggestedLoadText: `${progressionPlan.opportunity.suggestedWeight} kg`,
-            reason: progressionPlan.opportunity.reason,
             tone: progressionPlan.opportunity.tone,
           }
         : undefined,
