@@ -1200,6 +1200,14 @@ export async function POST(request: Request) {
 
     const compact = compactProgramBuildContext(body.context);
     const lookup = buildAllowedExerciseLookup(compact.availableExercises);
+    // Deterministiskt tak från passlängd och antal pass i stället för ett
+    // fast "3-5": 30 minuter rymmer inte fem övningar. Samma funktion som
+    // valideringen längre ner använder, så bygget inte kan producera ett
+    // pass som vår egen kontroll direkt underkänner.
+    const exerciseTarget = getPassExerciseTarget(
+      compact.profile?.minutesPerSession ?? 60,
+      compact.profile?.daysPerWeek ?? 3
+    );
 
     const parsed = await callProgramStage({
       apiKey: key,
@@ -1208,7 +1216,7 @@ export async function POST(request: Request) {
         PROGRAM_DESIGN_PROTOCOL,
         "",
         "Du väljer övningar för ETT pass i användarens program. Passets fokus är redan bestämt — håll dig till det.",
-        "- Normalt 3-5 övningar. Hellre färre bra än utfyllnad.",
+        `- Passet är ${compact.profile?.minutesPerSession ?? 60} minuter långt. Välj ${exerciseTarget.min}-${exerciseTarget.max} övningar. Hellre färre bra än utfyllnad.`,
         "- Välj ENDAST från availableExercises. Returnera exerciseKey och name exakt som de står.",
         "- Samma exerciseKey får inte förekomma två gånger i det här passet.",
         "- Använd difficulty, beginnerFit och stability aktivt. För nybörjare: prioritera beginnerFit \"bra\", stabila varianter, och undvik \"undvik_som_standard\".",
