@@ -161,11 +161,10 @@ export default function ExerciseCard({
   // både etikett och handling — att de var två separata uttryck var precis
   // det som gav "ändra till ? kg" och ett fält som tömdes. null = ingen
   // referens finns, då visas ingen ändra-knapp alls.
-  const weightCorrection: number | null = hasPlan
-    ? plannedWeightKg ?? null
-    : pbWeight > 0
-    ? pbWeight
-    : null;
+  // PB först: det är den referens vi faktiskt frågar mot. Planen används bara
+  // när övningen aldrig loggats — då finns inget lyft att jämföra med.
+  const weightCorrection: number | null =
+    pbWeight > 0 ? pbWeight : hasPlan ? plannedWeightKg ?? null : null;
 
   const weightWayTooHigh =
     showWeightInput &&
@@ -190,17 +189,24 @@ export default function ExerciseCard({
       ? decimalCandidate
       : null;
 
-  const weightDiffers =
+  // Frågar bara om vikten skulle slå det du faktiskt lyft. Tidigare jämfördes
+  // den mot PLANEN (>15 % avvikelse), vilket gjorde att appen ifrågasatte dig
+  // varje gång du följde coachen — en backoff efter RIR 0 ligger nästan alltid
+  // över 15 %. Planen är default, inte fängelse.
+  //
+  // En vikt nedåt kan inte skada något: inget nytt PB, och raden går att
+  // redigera på sammanfattningen. En vikt uppåt kan sätta ett falskt PB och
+  // förstöra historiken — det är den enda verkliga skadan, och den enda vi
+  // frågar om. Marginalen är övningens eget viktsteg, inte en magisk procent,
+  // så ett normalt progressionssteg (45 -> 47,5) aldrig ifrågasätts.
+  const wouldBeatRecord =
     !weightWayTooHigh &&
     decimalErrorSuggestion === null &&
     showWeightInput &&
     Number.isFinite(enteredWeight) &&
     enteredWeight > 0 &&
-    (
-      (hasPlan &&
-        Math.abs(enteredWeight - (plannedWeightKg ?? 0)) / (plannedWeightKg ?? 1) > 0.15) ||
-      (!hasPlan && pbWeight > 0 && enteredWeight > pbWeight * 1.5)
-    );
+    pbWeight > 0 &&
+    enteredWeight > pbWeight + getExerciseWeightStep(currentExerciseName) * 2;
   const adjustReps = (delta: number) => {
     setRepsInput((prev) => {
       const current = Number(prev);
@@ -723,10 +729,10 @@ useEffect(() => {
               <p className="text-sm text-white/60">
                 Du angav{" "}
                 <span className="font-semibold text-white">{enteredWeight.toLocaleString("sv-SE")} kg</span>
-                {hasPlan
-                  ? <> — planerat var <span className="font-semibold text-white">{plannedWeightKg?.toLocaleString("sv-SE")} kg</span></>
-                  : pbWeight > 0
+                {pbWeight > 0
                   ? <> — ditt PB är <span className="font-semibold text-white">{pbWeight.toLocaleString("sv-SE")} kg</span></>
+                  : hasPlan
+                  ? <> — planerat var <span className="font-semibold text-white">{plannedWeightKg?.toLocaleString("sv-SE")} kg</span></>
                   : null}
               </p>
             </div>
@@ -873,7 +879,7 @@ useEffect(() => {
               } else if (decimalErrorSuggestion !== null) {
                 setSuggestedDecimalWeight(decimalErrorSuggestion);
                 setAwaitingDecimalConfirm(true);
-              } else if (weightDiffers) {
+              } else if (wouldBeatRecord) {
                 setAwaitingWeightConfirm(true);
               } else if (repsTooHigh) {
                 setAwaitingRepsConfirm(true);
