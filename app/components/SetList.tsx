@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { shouldDisplayAsBodyweight } from "../lib/exercises";
 import { createPortal } from "react-dom";
 
 type LoggedSet = {
@@ -14,6 +15,7 @@ type LoggedSet = {
 
 type Props = {
   currentSets: LoggedSet[];
+  exerciseName: string;
   onEditSet?: (
     setIdx: number,
     weight: number,
@@ -32,13 +34,16 @@ function formatDuration(seconds = 0) {
   return `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
-function getSetLabel(set: LoggedSet) {
+function getSetLabel(set: LoggedSet, exerciseName: string) {
   if (set.metricType === "time" || typeof set.durationSeconds === "number") {
     const base = formatDuration(set.durationSeconds ?? 0);
     return set.weight > 0 ? `${base} + ${set.weight.toLocaleString("sv-SE")} kg` : base;
   }
 
-  return `${set.weight.toLocaleString("sv-SE")} × ${set.reps}`;
+  // Kroppsvikt utan extra belastning har ingen vikt att visa — annars blir det "0 × 8".
+  return shouldDisplayAsBodyweight(exerciseName, set.weight)
+    ? `${set.reps} reps`
+    : `${set.weight.toLocaleString("sv-SE")} × ${set.reps}`;
 }
 
 function getEffortLabel(set: LoggedSet) {
@@ -47,7 +52,7 @@ function getEffortLabel(set: LoggedSet) {
   return `RIR ${set.rir}`;
 }
 
-export default function SetList({ currentSets, onEditSet, validateWeight }: Props) {
+export default function SetList({ currentSets, exerciseName, onEditSet, validateWeight }: Props) {
   const setListContainerRef = useRef<HTMLDivElement | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editWeight, setEditWeight] = useState("");
@@ -123,7 +128,7 @@ export default function SetList({ currentSets, onEditSet, validateWeight }: Prop
               className={`flex items-center justify-between rounded-xl border border-white/[0.045] bg-slate-950/24 px-2.5 py-1.5 ${onEditSet ? "cursor-pointer active:bg-white/[0.06]" : ""}`}
             >
               <span className="text-sm font-semibold text-white/90">
-                {index + 1}. {getSetLabel(set)}
+                {index + 1}. {getSetLabel(set, exerciseName)}
               </span>
               {getEffortLabel(set) ? (
                 <span className="text-[11px] text-gray-400">{getEffortLabel(set)}</span>

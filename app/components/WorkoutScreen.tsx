@@ -11,6 +11,8 @@ import ToggleSwitch from "./ToggleSwitch";
 import { CameraGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
   getExerciseProfile,
+  formatSetDisplay,
+  shouldDisplayAsBodyweight,
   isBodyweightExercise,
   isTimedExercise,
   normalizeExerciseSearchText,
@@ -444,9 +446,21 @@ Vila ${rest}.`;
     lines.push("Senast tog det stopp här, så vi öppnar smart.");
     lines.push("");
   } else if (topSet) {
-    lines.push(`Ditt bästa här är ${topSet.weight.toLocaleString("sv-SE")} × ${topSet.reps}.`);
+    lines.push(
+      `Ditt bästa här är ${formatSetDisplay({
+        exerciseName,
+        weight: topSet.weight,
+        reps: topSet.reps,
+      })}.`
+    );
   } else if (last) {
-    lines.push(`Senast låg du på ${last.weight.toLocaleString("sv-SE")} × ${last.reps}.`);
+    lines.push(
+      `Senast låg du på ${formatSetDisplay({
+        exerciseName,
+        weight: last.weight,
+        reps: last.reps,
+      })}.`
+    );
   }
 
   if (baseWeight !== null) {
@@ -1582,7 +1596,7 @@ useEffect(() => {
         {(() => {
           const pr = personalRecords[exerciseKey(currentExerciseName)];
           const label = pr
-            ? isBodyweightExercise(currentExerciseName) && pr.weight <= 0
+            ? shouldDisplayAsBodyweight(currentExerciseName, pr.weight)
               ? `${pr.reps} reps`
               : `${pr.weight.toLocaleString("sv-SE")} × ${pr.reps}`
             : null;
@@ -1637,7 +1651,7 @@ useEffect(() => {
         ) : null}
 
         {/* Set history for this session */}
-        <SetList currentSets={currentSets} onEditSet={updateSet} validateWeight={validateSetWeight} />
+        <SetList currentSets={currentSets} exerciseName={currentExerciseName} onEditSet={updateSet} validateWeight={validateSetWeight} />
 
       </section>
 

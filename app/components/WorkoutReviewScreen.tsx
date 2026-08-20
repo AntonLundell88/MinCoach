@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { formatSetDisplay } from "../lib/exercises";
 
 const NEXT_SESSION_TIPS = [
   "Muskler består till stor del av vatten — se till att du dricker ordentligt idag.",
@@ -93,16 +94,15 @@ function uniqueItems(items: string[]) {
   return [...new Set(items.map((item) => item.trim()).filter(Boolean))];
 }
 
-function formatSet(set: ReviewSet): string {
-  if (set.metricType === "time" && set.durationSeconds != null) {
-    const mins = Math.floor(set.durationSeconds / 60);
-    const secs = set.durationSeconds % 60;
-    const time = mins > 0 ? `${mins}:${String(secs).padStart(2, "0")}` : `${secs} s`;
-    return set.weight > 0 ? `${time} · ${set.weight.toLocaleString("sv-SE")} kg` : time;
-  }
-  const weightStr = set.weight > 0 ? `${set.weight.toLocaleString("sv-SE")} kg × ` : "× ";
-  const rirStr = set.rir != null ? ` · RIR ${set.rir}` : "";
-  return `${weightStr}${set.reps}${rirStr}`;
+function formatSet(set: ReviewSet, exerciseName: string): string {
+  return formatSetDisplay({
+    exerciseName,
+    weight: set.weight,
+    reps: set.reps,
+    durationSeconds: set.durationSeconds,
+    metricType: set.metricType,
+    rir: set.rir,
+  });
 }
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
@@ -285,14 +285,16 @@ function SetRow({
       className="w-full rounded-lg px-1 py-0.5 text-left text-sm text-white/80 transition hover:bg-white/[0.04] hover:text-white"
       onClick={() => onEdit && setEditing(true)}
     >
-      {formatSet(set)}
+      {formatSet(set, exerciseName)}
     </button>
   );
 }
 
 export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Props) {
   const [nextSessionTip] = useState(() => pickRandomLine(NEXT_SESSION_TIPS));
-  const title = review.isPartial
+  const title = review.totalSets === 0
+    ? "Inget loggat den här gången."
+    : review.isPartial
     ? "Passet är sparat."
     : review.totalSets >= 10
     ? "Starkt jobbat idag."

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { CameraGlyph, PauseGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
   getExerciseWeightStep,
+  shouldDisplayAsBodyweight,
   isBodyweightExercise,
   isTimedExercise,
 } from "../lib/exercises";
@@ -257,7 +258,7 @@ export default function ExerciseCard({
       return record.weight > 0 ? `${time} + ${record.weight} kg` : time;
     }
 
-    return isBodyweight && record.weight <= 0
+    return shouldDisplayAsBodyweight(currentExerciseName, record.weight)
       ? `${record.reps} reps`
       : `${record.weight.toLocaleString("sv-SE")} x ${record.reps}`;
 };

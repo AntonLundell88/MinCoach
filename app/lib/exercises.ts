@@ -4096,6 +4096,55 @@ export function isBodyweightExercise(name: string) {
   ].some((bodyweightKey) => key.includes(bodyweightKey));
 }
 
+/**
+ * Enda stället som avgör om ett set ska visas utan vikt. En
+ * kroppsviktsövning utan extra belastning har ingen vikt att visa — den
+ * ska stå som "8 reps", inte "0 × 8".
+ */
+export function shouldDisplayAsBodyweight(exerciseName: string, weight: number) {
+  return isBodyweightExercise(exerciseName) && (!Number.isFinite(weight) || weight <= 0);
+}
+
+/**
+ * Enda stället som formaterar ett loggat set för UI:t.
+ *
+ * Fanns tidigare i tre egna varianter (sammanfattning, PB-rad, passvy) som
+ * alla kollade `weight > 0` i stället för om övningen är kroppsvikt — därav
+ * "0 × 8" på Chins och ett ensamt "× 10" i sammanfattningen. Logiken fanns
+ * korrekt på ett fjärde ställe (coachens text), men delades inte.
+ *
+ * Kroppsvikt räknas medvetet inte om till kilo någonstans: vi frågar inte
+ * efter användarens vikt, så en uppskattning vore påhittad data.
+ */
+export function formatSetDisplay(args: {
+  exerciseName: string;
+  weight: number;
+  reps: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
+  rir?: number | null;
+}) {
+  const withRir = (base: string) =>
+    typeof args.rir === "number" ? `${base} · RIR ${args.rir}` : base;
+
+  if (args.metricType === "time" || isTimedExercise(args.exerciseName)) {
+    const total = args.durationSeconds ?? 0;
+    const mins = Math.floor(total / 60);
+    const secs = total % 60;
+    const time = mins > 0 ? `${mins}:${String(secs).padStart(2, "0")}` : `${secs} s`;
+
+    return args.weight > 0
+      ? `${time} · ${args.weight.toLocaleString("sv-SE")} kg`
+      : time;
+  }
+
+  return withRir(
+    shouldDisplayAsBodyweight(args.exerciseName, args.weight)
+      ? `${args.reps} reps`
+      : `${args.weight.toLocaleString("sv-SE")} kg × ${args.reps}`
+  );
+}
+
 export function isTimedExercise(name: string) {
   const definition = getExerciseDefinition(name);
 

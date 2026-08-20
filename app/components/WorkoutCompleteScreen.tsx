@@ -55,14 +55,18 @@ export default function WorkoutCompleteScreen({
         </p>
 
         <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-[-0.04em] text-white">
-          {isPartial ? "Passet sparat." : "Bra jobbat idag."}
+          {review?.totalSets === 0
+            ? "Inget loggat den här gången."
+            : isPartial
+            ? "Passet sparat."
+            : "Bra jobbat idag."}
         </h1>
 
         <p className="mt-4 text-base leading-7 text-white/78">
           {review?.coachSummary ??
             (isPartial
               ? "Nästa pass tar vi från början."
-              : "Passet är sparat. Bra jobb idag.")}
+              : "Bra jobb idag.")}
         </p>
       </section>
 

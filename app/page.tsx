@@ -47,6 +47,7 @@ import {
   getExerciseProfile,
   getExerciseUserInfo,
   getProgramExercisePool,
+  shouldDisplayAsBodyweight,
   isBodyweightExercise,
   isTimedExercise,
   normalizeExerciseSearchText,
@@ -1938,9 +1939,22 @@ function applyWorkoutPlanEdits(args: {
         .map((exercise) => {
           const overrideName = overrides[exerciseKey(exercise.name)];
 
-          return overrideName
-            ? { ...exercise, exerciseKey: undefined, name: overrideName }
-            : exercise;
+          if (!overrideName) return exercise;
+
+          // purpose/caution/alternatives beskrev den GAMLA övningen och blir
+          // direkt felaktiga vid byte — "stabil maskinlösning" stod kvar när
+          // Bröstpress byttes mot Bänkpress. De tas bort i stället för att
+          // skrivas om: granskningsskärmen har redan en fallback som hämtar
+          // rätt text för den nya övningen ur biblioteket.
+          // sets/reps/rir behålls — de beskriver platsens dos, inte övningen.
+          const {
+            purpose: _purpose,
+            caution: _caution,
+            alternatives: _alternatives,
+            ...slot
+          } = exercise;
+
+          return { ...slot, exerciseKey: undefined, name: overrideName };
         });
 
       const seen = new Set<string>();
@@ -2735,10 +2749,6 @@ function formatDurationText(seconds: number) {
 
   if (minutes <= 0) return `${restSeconds} sek`;
   return `${minutes}:${String(restSeconds).padStart(2, "0")}`;
-}
-
-function shouldDisplayAsBodyweight(exerciseName: string, weight: number) {
-  return isBodyweightExercise(exerciseName) && (!Number.isFinite(weight) || weight <= 0);
 }
 
 function formatLoggedSetText(args: {
@@ -8561,7 +8571,8 @@ function buildWorkoutSummary(w: Workout) {
   let coachSummary = "Passet är sparat. Bra jobbat idag.";
 
   if (totalSets === 0) {
-    coachSummary = "Passet sparat. Nästa pass tar vi från början.";
+    // Inget loggat -> passet sparas inte till historiken, så säg inte att det gjorts.
+    coachSummary = "Inget loggat den här gången. Nästa pass tar vi från början.";
   } else if (isPartial) {
     coachSummary = `Passet sparat. ${totalSets} set är gjort, och vi fortsätter klokt nästa gång.`;
   } else if (allSets.filter((set) => typeof set.rir === "number" && set.rir <= 1).length >= 3) {
@@ -8609,10 +8620,19 @@ function buildWorkoutSummary(w: Workout) {
 };
 
 
-    const newHistory = [workoutWithSummary, ...history].slice(0, 50); // spara senaste 50 pass
+    // Ett pass utan ett enda loggat set är inget pass — det ska inte räknas
+    // i passantal, tid i gymmet eller streaks. Sammanfattningen visar redan
+    // "Inget set loggat.", så det finns ingenting att spara.
+    const hasLoggedSets = workout.exercises.some((exercise) => exercise.sets.length > 0);
+    const newHistory = hasLoggedSets
+      ? [workoutWithSummary, ...history].slice(0, 50) // spara senaste 50 pass
+      : history;
     const progressionComparison = getWorkoutComparison(newHistory);
-    setHistory(newHistory);
-    saveJSON("workoutHistory", newHistory);
+
+    if (hasLoggedSets) {
+      setHistory(newHistory);
+      saveJSON("workoutHistory", newHistory);
+    }
 // COACH MEMORY: spara en kort sammanfattning (per övning)
 const freshNotes = makeCoachNotesFromWorkout(workout);
 saveCoachNotes(freshNotes);
