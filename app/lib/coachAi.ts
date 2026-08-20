@@ -1018,7 +1018,37 @@ async function addProseToPlan(
   context: CoachProgramBuildContext,
   signal?: AbortSignal
 ): Promise<BuiltWorkoutPlan> {
-  const results = await Promise.all(
+  // Plantexterna (coachSummary m.fl.) beskriver det färdiga programmet och
+  // hämtas därför parallellt med övningsprosan — de beror bara på stommen,
+  // inte på varandra. Misslyckas den behåller planen de deterministiska
+  // standardtexterna, precis som prosan faller tillbaka på biblioteket.
+  const summaryRequest = (async () => {
+    try {
+      const response = await fetch("/api/coach/program/build", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: "summary", context, summaryPlan: plan }),
+        signal,
+      });
+
+      if (!response.ok) return null;
+
+      const data = (await response.json()) as {
+        summary?: {
+          coachSummary?: string;
+          planReason?: string;
+          structureReason?: string;
+          safetyNotes?: string[];
+        };
+      };
+
+      return data.summary ?? null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const proseRequests = Promise.all(
     plan.passes.map(async (pass) => {
       try {
         const response = await fetch("/api/coach/program/build", {
@@ -1052,8 +1082,14 @@ async function addProseToPlan(
     })
   );
 
+  const [summary, results] = await Promise.all([summaryRequest, proseRequests]);
+
   return {
     ...plan,
+    coachSummary: summary?.coachSummary?.trim() || plan.coachSummary,
+    planReason: summary?.planReason?.trim() || plan.planReason,
+    structureReason: summary?.structureReason?.trim() || plan.structureReason,
+    safetyNotes: summary?.safetyNotes?.length ? summary.safetyNotes : plan.safetyNotes,
     passes: plan.passes.map((pass, index) => {
       const prose = results[index];
       if (!prose) return pass;

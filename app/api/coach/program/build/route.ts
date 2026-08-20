@@ -28,7 +28,8 @@ type CoachProgramBuildRequest = {
    * Uppdelningen finns för att tidsgränsen är per HTTP-anrop: hela planen
    * i ett svar sprängde 25 sekunder vid 5-6 dagar.
    */
-  stage?: "skeleton" | "prose";
+  stage?: "skeleton" | "prose" | "summary";
+  summaryPlan?: BuiltWorkoutPlan;
   prosePass?: {
     displayName: string;
     intent?: string;
@@ -93,13 +94,36 @@ Varje övning ska ha ett tydligt syfte. Hellre 3-5 bra övningar än ett stökig
 - Om location är hemma gäller det hårt: inga maskiner, kablar, benpress, latsdrag eller cable crunch om de inte finns i availableExercises.
 - Om availableExercises.logType är "time_rir" ska reps-fältet beskriva tid, t.ex. "30-45 sek", inte reps.
 
-Textfältens roller:
-- coachSummary: skriv 2-3 korta meningar direkt till användaren med "du" och "vi". Nämn träningsvana, plats, antal dagar, passlängd, primärt mål och viktiga begränsningar om de finns. Använd inte användarens namn och skriv aldrig om användaren i tredje person. Förklara inte veckans passuppdelning här.
-- planReason: förklara kort varför övningsval, nivå, volym och progression passar just den här profilen. Upprepa inte hela användarprofilen.
-- structureReason: förklara hur veckan är uppdelad med enkelt användarspråk. Undvik interna tränarord som rörelsemönster, horisontell press, dragfokus, knäböjsfokus, basövningar och isolationsövningar. Skriv hellre "bröst och triceps", "ben och bål", "rygg och axlar", "huvudövningar" och "extra övningar". Upprepa inte coachSummary.
-- safetyNotes: skriv 2-4 korta, direkta råd till användaren. Anpassa till begränsningar/skador. Nämn smärta, att inte lägga på för mycket vikt för tidigt och att avbryta eller byta övning om kroppen känns fel. Ge inga medicinska garantier.
+Fyll alltid i sets, reps och rir för VARJE övning — det är doseringen och den hör till stommen. Exempel: sets "3", reps "8-12", rir "1-2". Tidsövningar får tid i reps-fältet, t.ex. "30-45 sek". Lämna dem aldrig tomma.
+
+title: en kort rubrik för programmet. intent: en rad om passets fokus. Övrig text (coachSummary, planReason, structureReason, safetyNotes) skrivs i ett separat anrop — skriv den inte här.
 Returnera endast giltig JSON enligt schemat.
 `.trim();
+
+const PROGRAM_SUMMARY_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    coachSummary: { type: "string" },
+    planReason: { type: "string" },
+    structureReason: { type: "string" },
+    safetyNotes: { type: "array", items: { type: "string" } },
+  },
+  required: ["coachSummary", "planReason", "structureReason", "safetyNotes"],
+};
+
+const PROGRAM_SUMMARY_INSTRUCTION = [
+  COACH_LANGUAGE_NOTES,
+  "",
+  "Du skriver de fyra texterna som beskriver ett färdigt program. Du får programmet som det ser ut — ändra det inte, beskriv det.",
+  "",
+  "- coachSummary: 2-3 korta meningar direkt till användaren med du och vi. Nämn träningsvana, plats, antal dagar, passlängd, primärt mål och viktiga begränsningar om de finns. Använd inte användarens namn och skriv aldrig om användaren i tredje person. Förklara inte veckans passuppdelning här.",
+  "- planReason: förklara kort varför övningsval, nivå, volym och progression passar just den här profilen. Upprepa inte hela användarprofilen.",
+  "- structureReason: förklara hur veckan är uppdelad med enkelt användarspråk. Undvik interna tränarord som rörelsemönster, horisontell press, dragfokus, knäböjsfokus, basövningar och isolationsövningar. Skriv hellre \"bröst och triceps\", \"ben och bål\", \"rygg och axlar\", \"huvudövningar\" och \"extra övningar\". Upprepa inte coachSummary.",
+  "- safetyNotes: 2-4 korta, direkta råd. Anpassa till begränsningar och skador. Nämn smärta, att inte lägga på för mycket vikt för tidigt och att avbryta eller byta övning om kroppen känns fel. Ge inga medicinska garantier.",
+  "",
+  "Returnera endast giltig JSON enligt schemat.",
+].join("\n");
 
 function compactProgramBuildContext(context: CoachProgramBuildContext) {
   return {
@@ -145,13 +169,10 @@ const PROGRAM_PLAN_JSON_SCHEMA = {
   additionalProperties: false,
   properties: {
     title: { type: "string" },
-    coachSummary: { type: "string" },
-    planReason: { type: "string" },
-    structureReason: { type: "string" },
-    safetyNotes: {
-      type: "array",
-      items: { type: "string" },
-    },
+    // coachSummary, planReason, structureReason och safetyNotes ligger inte
+    // här: de är plan-prosa och hämtas i ett eget parallellt anrop (stage
+    // "summary"), av samma skäl som övningsprosan. Kvar i stommen är bara
+    // det som kräver överblick — vilka övningar, hur veckan delas, dosering.
     passes: {
       type: "array",
       items: {
@@ -193,14 +214,7 @@ const PROGRAM_PLAN_JSON_SCHEMA = {
       },
     },
   },
-  required: [
-    "title",
-    "coachSummary",
-    "planReason",
-    "structureReason",
-    "safetyNotes",
-    "passes",
-  ],
+  required: ["title", "passes"],
 };
 
 function extractOutputText(data: unknown) {
@@ -308,7 +322,7 @@ function buildProgramBuildInstruction(args: {
   previousPlan: BuiltWorkoutPlan | null;
 }) {
   if (args.attempt === 1) {
-    return "Bygg ett komplett fÃ¶rsta program. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer Ã¥terhÃ¤mtningsvÃ¤nliga, sÃ¤rskilt fÃ¶r nybÃ¶rjare. Varje pass ska normalt ha 3-5 Ã¶vningar. Samma exerciseKey fÃ¥r inte ligga tvÃ¥ gÃ¥nger i samma pass. Om availableExercises Ã¤r begrÃ¤nsad, sÃ¤rskilt hemma med lite utrustning, hellre 3 bra Ã¶vningar per pass och upprepade trygga Ã¶vningar Ã¤n otillÃ¥tna utfyllnadsÃ¶vningar. AnvÃ¤nd endast Ã¶vningar frÃ¥n availableExercises och returnera bÃ¥de exerciseKey och name exakt frÃ¥n listan. Skriv coachSummary, planReason, structureReason och safetyNotes som fyra olika texter med olika syfte. coachSummary ska prata direkt till anvÃ¤ndaren med du/vi och vara unik fÃ¶r profilen. structureReason ska fÃ¶rklara passuppdelningen. safetyNotes ska vara direkta rÃ¥d om smÃ¤rta, vikt och begrÃ¤nsningar. Om limitation finns ska den synas i Ã¶vningsval, caution och safetyNotes.";
+    return "Bygg ett komplett fÃ¶rsta program. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer Ã¥terhÃ¤mtningsvÃ¤nliga, sÃ¤rskilt fÃ¶r nybÃ¶rjare. Varje pass ska normalt ha 3-5 Ã¶vningar. Samma exerciseKey fÃ¥r inte ligga tvÃ¥ gÃ¥nger i samma pass. Om availableExercises Ã¤r begrÃ¤nsad, sÃ¤rskilt hemma med lite utrustning, hellre 3 bra Ã¶vningar per pass och upprepade trygga Ã¶vningar Ã¤n otillÃ¥tna utfyllnadsÃ¶vningar. AnvÃ¤nd endast Ã¶vningar frÃ¥n availableExercises och returnera bÃ¥de exerciseKey och name exakt frÃ¥n listan. ";
   }
 
   return [
@@ -880,7 +894,10 @@ async function handleProseRequest(
             "Ingen inledning, ingen sammanfattning, inga upprepningar mellan övningarna. Returnera endast giltig JSON enligt schemat.",
           ].join("\n")
         ),
-        reasoning: { effort: "medium" },
+        // Låg effort: prosa är skrivande, inte resonemang. Med medium kröp
+        // anropen till 20,7 s när sju kördes parallellt — för nära väggen.
+        // Språkkvaliteten sitter i modellen (gpt-5.5), inte i tänketiden.
+        reasoning: { effort: "low" },
         text: {
           verbosity: "low",
           format: {
@@ -962,6 +979,90 @@ export async function POST(request: Request) {
     body = (await request.json()) as CoachProgramBuildRequest;
   } catch {
     return fallbackResponse(undefined, "invalid_json");
+  }
+
+  if (body.stage === "summary") {
+    const summaryKey = process.env.OPENAI_API_KEY;
+    const plan = body.summaryPlan;
+
+    if (!summaryKey || !plan) {
+      return NextResponse.json({ mode: "fallback", reason: "invalid_summary" });
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PROGRAM_BUILD_TIMEOUT_MS);
+    const startedAtMs = Date.now();
+
+    try {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${summaryKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+          instructions: repairMojibake(PROGRAM_SUMMARY_INSTRUCTION),
+          reasoning: { effort: "medium" },
+          text: {
+            verbosity: "low",
+            format: {
+              type: "json_schema",
+              name: "program_summary",
+              strict: true,
+              schema: PROGRAM_SUMMARY_JSON_SCHEMA,
+            },
+          },
+          input: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "input_text",
+                  text: JSON.stringify({
+                    profile: body.context?.profile,
+                    passes: plan.passes.map((pass) => ({
+                      displayName: pass.displayName,
+                      intent: pass.intent,
+                      exercises: pass.exercises.map((exercise) => exercise.name),
+                    })),
+                  }),
+                },
+              ],
+            },
+          ],
+          max_output_tokens: 3000,
+        }),
+        signal: controller.signal,
+      });
+
+      const seconds = Number(((Date.now() - startedAtMs) / 1000).toFixed(1));
+
+      if (!response.ok) {
+        console.warn("Program summary failed", { status: response.status, seconds });
+        return NextResponse.json({ mode: "fallback", reason: "api_error" });
+      }
+
+      const data = await response.json();
+      const aiText = extractOutputText(data);
+
+      try {
+        const parsed = JSON.parse(aiText);
+        console.warn("Program summary timing", { seconds });
+        return NextResponse.json({ mode: "ai", summary: parsed });
+      } catch {
+        console.warn("Program summary unparsable", {
+          seconds,
+          incomplete: data?.status === "incomplete",
+          body: aiText.slice(0, 200),
+        });
+        return NextResponse.json({ mode: "fallback", reason: "invalid_json_reply" });
+      }
+    } catch {
+      return NextResponse.json({ mode: "fallback", reason: "timeout" });
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   if (body.stage === "prose") {
@@ -1058,6 +1159,13 @@ export async function POST(request: Request) {
             process.env.OPENAI_PROGRAM_MODEL ??
             "gpt-5-mini",
           instructions: repairMojibake(PROGRAM_BUILD_SYSTEM_PROMPT),
+          // Mätt vid 6 dagar, tak 25 s: gpt-5.5 klarade det ungefär varannan
+          // gång oavsett effort (medium och low timeoutade alltid, minimal
+          // gav 17,1 s en gång och timeout två). gpt-5-mini: 15,4 s.
+          // Stommen väljer övningar och dosering — den skriver ingen prosa,
+          // den går till prosa- och summary-anropen på gpt-5.5. Undantaget
+          // är pass-intent, som fortfarande skrivs här; flytta den också om
+          // språket där visar sig svagt.
           reasoning: { effort: "minimal" },
           text: {
             verbosity: "low",
