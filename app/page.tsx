@@ -39,6 +39,7 @@ import {
   type CoachChatContext,
   type CoachExerciseLibraryInfo,
   type CoachSetContext,
+  type CoachWireStrategy,
   type CoachWorkoutReviewResult,
 } from "./lib/coachAi";
 import {
@@ -992,7 +993,7 @@ function buildProgressionPlan(args: {
             getNextAvailableWeight(topSet.weight, exerciseName, "up")
           ),
           reason:
-            "Toppsetet har nått målet med marginal nog för att ett försiktigt test upp kan vara rimligt.",
+            "Det tyngsta setet har nått målet med marginal nog för att ett försiktigt test upp kan vara rimligt.",
           tone: "offer",
         }
       : undefined;
@@ -1032,8 +1033,11 @@ function buildProgressionPlan(args: {
 
     return {
       weight: formatWeightInput(testWeight),
+      // Ordet "kalibreringstest" stod här tidigare och kom tillbaka rakt ut ur
+      // coachens mun. Fältet heter redan heavierTestSet på tråden — texten det
+      // bär måste låta likadant.
       reason:
-        "Vikten har suttit stabilt flera pass i rad. Ett kalibreringstest — lite tyngre än vad som är bevisat — kan visa var gränsen faktiskt går just nu.",
+        "Vikten har suttit stabilt flera pass i rad. Lite tyngre än vad som är bevisat kan visa var gränsen faktiskt går just nu.",
     };
   };
 
@@ -3752,6 +3756,20 @@ function buildRecoveryContext(args: {
   return { exerciseLastTrainedDays, previousSession };
 }
 
+/**
+ * Strategin heter samma sak internt, men går ut till modellen på svenska.
+ * Modellen ekar värden den ser: "backoff" kom tillbaka som "precis rätt
+ * backoff" mitt i en svensk mening. Samma sak som fick oss att döpa om
+ * topSet till bestSet — bara namnet på tråden byts, logiken är orörd.
+ */
+function toWireStrategy(strategy: NextSetPlan["strategy"]): CoachWireStrategy {
+  if (strategy === "press") return "höj";
+  if (strategy === "hold") return "behåll";
+  if (strategy === "backoff") return "lättare igen";
+  if (strategy === "reduce") return "sänk";
+  return "övningen klar";
+}
+
 function buildCoachSetContext(args: {
   userName?: string;
   goalPrimary: UserProfile["goalPrimary"];
@@ -4046,7 +4064,7 @@ function buildCoachSetContext(args: {
         }
       : undefined,
     decisionFacts: {
-      strategy: args.nextSetPlan.strategy,
+      strategy: toWireStrategy(args.nextSetPlan.strategy),
       reasonCode: decisionReasonCode,
       weightChangeKg,
       repsChange,
@@ -4064,7 +4082,7 @@ function buildCoachSetContext(args: {
       loadText: nextLoadText,
       repsText: args.nextSetPlan.repsText,
       rirText: args.nextSetPlan.rirText,
-      strategy: args.nextSetPlan.strategy,
+      strategy: toWireStrategy(args.nextSetPlan.strategy),
       reason: decisionReasonCode,
       techniqueCue: shouldMentionTechniqueCue
         ? args.nextSetPlan.techniqueCue
@@ -4077,7 +4095,6 @@ function buildCoachSetContext(args: {
     recentWorkingWeights: args.recentWorkingWeights?.length ? args.recentWorkingWeights : undefined,
     warmupNote: args.warmupContext?.note,
     conditioningNote: args.conditioningContext?.note,
-    previousCoachReply: args.lastCoachMessage?.trim() || undefined,
     computedSignals: signals,
     gymComparison: args.gymComparison,
     otherGymReference: args.otherGymReference,
@@ -6381,7 +6398,7 @@ async function sendChat() {
         ? (() => {
             if (currentWorkoutExercise.completed) {
               return {
-                strategy: "complete" as const,
+                strategy: toWireStrategy("complete"),
                 reason: "Övningen är klar. Prata om nästa gång eller nästa övning, inte nästa set.",
               };
             }
@@ -6399,7 +6416,7 @@ async function sendChat() {
               previousSets: currentWorkoutExercise.sets.slice(0, -1),
               dayForm: overrides?.dayForm ?? dayForm,
             });
-            return { strategy: decision.strategy, reason: decision.reason };
+            return { strategy: toWireStrategy(decision.strategy), reason: decision.reason };
           })()
         : undefined;
 
@@ -6447,7 +6464,6 @@ async function sendChat() {
       heavierTestSet: progressionPlan.calibrationTestCandidate,
       warmupNote: overrides?.warmupContext?.note ?? activeWarmupContext?.note,
       conditioningNote: overrides?.conditioningContext?.note ?? activeConditioningContext?.note,
-      previousCoachReply: lastCoachMessage,
       lastCoachMessageWasVideoFeedback,
       recentConversation: chatLog
         .slice(-10)

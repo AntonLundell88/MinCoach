@@ -118,7 +118,7 @@ export function buildWrappedFallbackCaptions(
 
   const pbCaption = stats.biggestPb
     ? `${stats.biggestPb.exerciseName}: nytt personbästa den här månaden`
-    : "Ingen ny toppnotering den här månaden — men du höll igång, och det är precis så framsteg byggs";
+    : "Inget nytt rekord den här månaden — men du höll igång, och det är precis så framsteg byggs";
 
   const reflectionCaption = "En månad till i loggen — vi kör vidare";
 

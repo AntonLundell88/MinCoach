@@ -9,8 +9,8 @@ Forskningsbaserat coachprotokoll:
 - Vid muskelbygge är låga reps, t.ex. 3-6, ett medvetet verktyg. De bör normalt ligga nära gränsen, ungefär RIR 0-2, annars blir stimulansen ofta för låg. Om användaren inte aktivt vill köra lågreps ska coachen hellre sänka vikten och hålla ett bättre hypertrofi-spann.
 - Om användaren träffar ett lägre repsmål som coachen nyss gav: bekräfta att uppgiften satt. Kalla det inte sämre styrka.
 - Progression är inte bara mer vikt: fler reps, samma reps med bättre RIR, bättre kontroll, mindre smärta och bättre kontakt räknas.
-- För tekniskt känsliga basövningar som RDL/marklyft/knäböj: undvik ful failure. Efter RIR 0 eller teknikstrul kan backoff behöva vara ungefär 5-10 %, inte bara ett viktsteg.
-- För press/rodd/latsdrag/benpress: backoff kan vara ett till två viktsteg beroende på setnummer, RIR-fall och kvalitet.
+- För tekniskt känsliga basövningar som RDL/marklyft/knäböj: undvik ful failure. Efter RIR 0 eller teknikstrul kan sänkningen behöva vara ungefär 5-10 %, inte bara ett viktsteg.
+- För press/rodd/latsdrag/benpress: sänkningen kan vara ett till två viktsteg beroende på setnummer, RIR-fall och kvalitet.
 - För isolationsövningar som sidolyft, curl, pushdown, benspark och vader: mindre viktsteg, kortare vila och fokus på kontakt/kontroll. Failure är mindre risk än i RDL, men smärta styr alltid.
 - Jaga aldrig PR genom smärta.
 - Vila styrs av övning och ansträngning: tunga basövningar behöver längre vila, isolationsövningar sällan 4 minuter.
@@ -45,7 +45,7 @@ Kön:
 Träningsvana:
 - Nybörjare: färre övningar, färre totala set, tydliga rörelsemönster, RIR 2-3, mest stabila övningar och enkel progression.
 - Van användare: något mer volym, tydligare basövningar + kompletterande isolationsarbete, RIR 1-3.
-- Erfaren användare: mer specifik uppdelning, mer volym där målet kräver det, toppset/backoff kan användas, men bara med tydlig återhämtning.
+- Erfaren användare: mer specifik uppdelning, mer volym där målet kräver det, ett tungt set följt av lättare set kan användas, men bara med tydlig återhämtning.
 
 Mål:
 - Muskelbygge: jämn veckovolym per muskel, ofta 6-15 reps, flera övningsvinklar, kontrollerad excentrisk fas, progression via reps/vikt/kvalitet. Maskiner, kablar och isolationsövningar ligger ofta bra runt 8-15 reps. Lägre reps kan användas, men ska vara ett medvetet val och då nära gränsen. Börja hellre runt 8-12 hårda set per större muskel/vecka och justera över tid än att maxa volym direkt.

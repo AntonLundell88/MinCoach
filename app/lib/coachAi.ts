@@ -1,5 +1,18 @@
 export type CoachReplyMode = "fallback" | "ai-ready";
 
+/**
+ * Strategin som modellen ser den. Svenska med flit: modellen ekar värden den
+ * får, och det engelska "backoff" kom tillbaka mitt i en svensk mening.
+ * Internt heter strategierna fortfarande press/hold/backoff/reduce/complete —
+ * toWireStrategy i page.tsx är enda stället som översätter.
+ */
+export type CoachWireStrategy =
+  | "höj"
+  | "behåll"
+  | "lättare igen"
+  | "sänk"
+  | "övningen klar";
+
 export type CoachExerciseLibraryInfo = {
   exerciseKey?: string;
   name: string;
@@ -64,7 +77,8 @@ export type CoachSetContext = {
   // ingen historik finns än.
   sessionsAtTopWeight?: number;
   decisionFacts?: {
-    strategy?: "press" | "hold" | "backoff" | "reduce" | "complete";
+    // Svenska med flit — se toWireStrategy i page.tsx.
+    strategy?: CoachWireStrategy;
     reasonCode?: string;
     weightChangeKg?: number;
     repsChange?: number;
@@ -82,7 +96,8 @@ export type CoachSetContext = {
     loadText?: string;
     repsText: string;
     rirText: string;
-    strategy?: "press" | "hold" | "backoff" | "reduce" | "complete";
+    // Svenska med flit — se toWireStrategy i page.tsx.
+    strategy?: CoachWireStrategy;
     reason?: string;
     techniqueCue?: string;
   };
@@ -93,7 +108,11 @@ export type CoachSetContext = {
   recentWorkingWeights?: string[];
   warmupNote?: string;
   conditioningNote?: string;
-  previousCoachReply?: string;
+  // OBS: lägg inte tillbaka previousCoachReply här. Den lades till för att
+  // MINSKA upprepning, men nämndes i noll instruktioner — modellen fick sitt
+  // eget förra svar utan förklaring och behandlade det som en mall att matcha.
+  // Borttagen ur intro-rutten först, sen härifrån och ur chatten. Behovet av
+  // "säg inte samma sak igen" täcks av recentConversation, som ÄR dokumenterad.
   recentConversation?: string[];
   computedSignals: string[];
   gymComparison?: {
@@ -154,7 +173,8 @@ export type CoachChatContext = {
     failNote?: string;
   }>;
   currentCoachDecision?: {
-    strategy: "press" | "hold" | "backoff" | "reduce" | "complete";
+    // Svenska med flit — se toWireStrategy i page.tsx.
+    strategy: CoachWireStrategy;
     reason: string;
     nextWeight?: string;
     targetReps?: string;
@@ -192,7 +212,7 @@ export type CoachChatContext = {
   activePlanExerciseInfo?: CoachExerciseLibraryInfo[];
   warmupNote?: string;
   conditioningNote?: string;
-  previousCoachReply?: string;
+  // Se kommentaren vid recentConversation i CoachSetContext ovan — samma skäl.
   lastCoachMessageWasVideoFeedback?: boolean;
   recentConversation?: string[];
 };
@@ -533,8 +553,8 @@ export function sanitizeCoachReply(
 
 function compactRoutineSetFallback(context: CoachSetContext, fallbackReply: string) {
   const isRoutineDecision =
-    context.nextTarget.strategy === "hold" ||
-    context.nextTarget.strategy === "press";
+    context.nextTarget.strategy === "behåll" ||
+    context.nextTarget.strategy === "höj";
   const hasFailNote = Boolean(context.currentSet.failNote?.trim());
   const isTimed =
     context.currentSet.metricType === "time" ||

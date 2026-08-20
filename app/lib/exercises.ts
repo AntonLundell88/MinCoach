@@ -147,7 +147,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     techniqueCue: "Fokus: jämn pressbana och kontrollerad vändning.",
     techniqueFocus: ["scapular retraction", "leg drive", "controlled descent", "bar to lower chest"],
     progressionRule:
-      "Höj när toppsetet sitter med rimlig marginal. Backoff efter tungt toppset.",
+      "Höj när det tyngsta setet sitter med marginal kvar. Gå lite lättare igen efter ett riktigt tungt set.",
     beginnerNote:
       "Kan fungera, men är inte tryggaste standardvalet för helt nya användare om stabil maskin finns.",
   },
@@ -177,7 +177,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     techniqueCue: "Fokus: stabil handled, kontrollerad sänkning, inga studs.",
     techniqueFocus: ["wrist alignment", "scapular stability", "controlled descent"],
     progressionRule:
-      "Prioritera stabilitet. Toppset plus backoff räcker ofta när det blir tungt.",
+      "Prioritera stabilitet. Ett tungt set och sedan lite lättare räcker ofta när det blir tungt.",
     beginnerNote:
       "Fungerar för många nya användare om lasten är lugn och instruktionen är tydlig.",
   },
@@ -2204,7 +2204,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     techniqueCue: "Fokus: samma bänkvinkel varje gång och kontrollerad sänkning mot övre bröstet.",
     techniqueFocus: ["scapular retraction", "consistent incline angle", "controlled descent"],
     progressionRule:
-      "Höj när toppsetet sitter med rimlig marginal och samma vinkel.",
+      "Höj när det tyngsta setet sitter med marginal kvar och samma vinkel.",
     beginnerNote:
       "Inte förstaval för helt nya. Lutande hantelpress är ofta snällare att lära sig med.",
   },
@@ -3893,7 +3893,7 @@ export function getExerciseProfile(name: string): ExerciseProfile {
       category: "bröst",
       techniqueCue: "Fokus: stabil handled, kontrollerad sänkning, inga studs.",
       progressionRule:
-        "Prioritera stabilitet. Toppset plus backoff räcker ofta när det blir tungt.",
+        "Prioritera stabilitet. Ett tungt set och sedan lite lättare räcker ofta när det blir tungt.",
       caution: "Vid handleds- eller axelstrul: stoppa pressen eller byt variant.",
       isCustom: false,
     };
@@ -3905,7 +3905,7 @@ export function getExerciseProfile(name: string): ExerciseProfile {
       category: "bröst",
       techniqueCue: "Fokus: jämn pressbana och kontrollerad vändning.",
       progressionRule:
-        "Höj när toppsetet sitter med rimlig marginal. Backoff efter tungt toppset.",
+        "Höj när det tyngsta setet sitter med marginal kvar. Gå lite lättare igen efter ett riktigt tungt set.",
       caution: "Vid axel- eller handledssmärta: sänk, korta passet eller byt press.",
       isCustom: false,
     };
