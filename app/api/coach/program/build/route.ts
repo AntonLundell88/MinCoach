@@ -586,15 +586,29 @@ function parsePlan(
   }
 }
 
+/**
+ * Taken är räknade mot vilotimern, inte gissade: ett pass med bara tunga
+ * övningar à 3 set kostar ungefär 12 minuter per övning vid RIR 1 (45 sek
+ * utförande + 3 minuters vila per set). Taket är satt så att även det värsta
+ * tillåtna passet ryms i den valda tiden.
+ *
+ * Gamla tabellen lät 30 minuter bli 42 i verklig tid, och hade en enda hink
+ * över 60 minuter — 75, 90 och 120 gav alla max 7 övningar, så två timmar
+ * gav exakt samma pass som 75 minuter.
+ */
 function getPassExerciseTarget(minutesPerSession: number, daysPerWeek: number) {
   const base =
     minutesPerSession <= 30
-      ? { min: 2, max: 4 }
+      ? { min: 2, max: 3 }
       : minutesPerSession <= 45
-        ? { min: 3, max: 5 }
+        ? { min: 3, max: 4 }
         : minutesPerSession <= 60
-          ? { min: 3, max: 6 }
-          : { min: 4, max: 7 };
+          ? { min: 3, max: 5 }
+          : minutesPerSession <= 75
+            ? { min: 4, max: 6 }
+            : minutesPerSession <= 90
+              ? { min: 4, max: 7 }
+              : { min: 5, max: 8 };
 
   if (daysPerWeek >= 5) {
     return { min: 2, max: Math.min(base.max, 5) };

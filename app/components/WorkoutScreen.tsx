@@ -10,6 +10,7 @@ import VideoFeedbackInfoModal from "./VideoFeedbackInfoModal";
 import ToggleSwitch from "./ToggleSwitch";
 import { CameraGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
+  getExerciseDefinition,
   getExerciseProfile,
   formatSetDisplay,
   shouldDisplayAsBodyweight,
@@ -180,42 +181,27 @@ function getRestTime(exerciseName: string) {
   return "60–90 sek";
 }
 
+/**
+ * Hur mycket vila en övning behöver. Biblioteket klassar redan varje övning
+ * som bas-, isolations- eller kroppsövning — den kurateringen är sanningen.
+ *
+ * Tidigare gissade den här funktionen på nyckelord i namnet, och klassade då
+ * 22 av 44 basövningar som lätta: Militärpress, Latsdrag och Frontböj fick
+ * 90 sek vila medan Bröstpress fick 3 minuter. Felet gick bara åt ett håll —
+ * ingen isolationsövning fick någonsin för lång vila.
+ */
 function getExerciseRestKind(exerciseName: string) {
-  const profile = getExerciseProfile(exerciseName);
-  const lower = exerciseName.toLowerCase();
-  const cue = profile.techniqueCue.toLowerCase();
-
-  if (
-    profile.category === "armar" ||
-    profile.category === "axlar" ||
-    profile.category === "mage" ||
-    lower.includes("vad") ||
-    lower.includes("benspark") ||
-    lower.includes("lårcurl") ||
-    lower.includes("larcurl") ||
-    lower.includes("curl") ||
-    lower.includes("pushdown") ||
-    lower.includes("sidolyft") ||
-    cue.includes("kontakt")
-  ) {
+  // Bålarbete återhämtar sig snabbt oavsett hur övningen annars klassas.
+  if (getExerciseProfile(exerciseName).category === "mage") {
     return "isolation" as const;
   }
 
-  if (
-    lower.includes("mark") ||
-    lower.includes("knäböj") ||
-    lower.includes("knöböj") ||
-    lower.includes("squat") ||
-    lower.includes("benpress") ||
-    lower.includes("bänk") ||
-    lower.includes("bank") ||
-    lower.includes("rodd") ||
-    lower.includes("latsdrag") ||
-    lower.includes("press")
-  ) {
-    return "heavy" as const;
-  }
+  const exerciseType = getExerciseDefinition(exerciseName)?.exerciseType;
 
+  if (exerciseType === "basövning") return "heavy" as const;
+  if (exerciseType === "isolationsövning") return "isolation" as const;
+
+  // Kroppsövningar, tidsövningar och egna övningar utanför biblioteket.
   return "normal" as const;
 }
 

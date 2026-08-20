@@ -95,11 +95,20 @@ function exerciseCountLabel(count: number) {
   return count === 1 ? "1 övning" : `${count} övningar`;
 }
 
+/**
+ * Måste hålla samma siffror som getPassExerciseTarget i
+ * app/api/coach/program/build/route.ts, annars föreslår granskningen att man
+ * lägger tillbaka en övning som bygget medvetet lämnade utanför.
+ * Byggets version tar även hänsyn till antal pass i veckan; den här ser bara
+ * ett pass i taget och stannar därför vid grundtabellen.
+ */
 function getPassExerciseTarget(minutesPerSession: number) {
-  if (minutesPerSession <= 30) return { min: 3, max: 4 };
-  if (minutesPerSession <= 45) return { min: 3, max: 5 };
-  if (minutesPerSession <= 60) return { min: 3, max: 6 };
-  return { min: 4, max: 7 };
+  if (minutesPerSession <= 30) return { min: 2, max: 3 };
+  if (minutesPerSession <= 45) return { min: 3, max: 4 };
+  if (minutesPerSession <= 60) return { min: 3, max: 5 };
+  if (minutesPerSession <= 75) return { min: 4, max: 6 };
+  if (minutesPerSession <= 90) return { min: 4, max: 7 };
+  return { min: 5, max: 8 };
 }
 
 function inferMovementPattern(
