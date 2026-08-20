@@ -522,7 +522,6 @@ function buildExerciseIntroAiContext(args: {
   recentHealthNotes?: string[];
   limitations?: string;
   recentChatNotes?: CoachExerciseIntroContext["recentChatNotes"];
-  previousCoachReply?: string;
 }): CoachExerciseIntroContext {
   const {
     exerciseName,
@@ -538,7 +537,6 @@ function buildExerciseIntroAiContext(args: {
     recentHealthNotes,
     limitations,
     recentChatNotes,
-    previousCoachReply,
   } = args;
 
   const key = exerciseKey(exerciseName);
@@ -594,7 +592,7 @@ function buildExerciseIntroAiContext(args: {
       restText: rest,
     },
     history: {
-      topSet: topSet ?? undefined,
+      bestSet: topSet ?? undefined,
       lastSession: last
         ? { weight: last.weight, reps: last.reps, failNote: last.failNote }
         : undefined,
@@ -608,13 +606,12 @@ function buildExerciseIntroAiContext(args: {
           }
         : undefined,
     sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
-    calibrationTestCandidate: progressionPlan.calibrationTestCandidate,
+    heavierTestSet: progressionPlan.calibrationTestCandidate,
     otherGymReference,
     previousWorkoutSummary: summaryForFirst,
     recentHealthNotes,
     limitations,
     recentChatNotes,
-    previousCoachReply,
   };
 }
 export default function WorkoutScreen({
@@ -964,20 +961,10 @@ useEffect(() => {
       ? { duringExercise: chatNotesSourceExercise, notes: recentUserComments }
       : undefined;
 
-  // Föregående övnings intro, inte bara senaste coachmeddelandet: det är
-  // intro-mot-intro som upprepade sig ("jag hejar på" på tre raka övningar).
-  // Senaste meddelandet är oftast en set-reaktion och avslöjar inte mönstret.
-  const previousIntroText = [...chatLog]
-    .reverse()
-    .find(
-      (m) =>
-        m.role === "coach" &&
-        m.eventKey?.startsWith("exercise_intro:") &&
-        m.text.trim().length > 0
-    )
-    ?.text.trim()
-    .slice(0, 400);
-
+  // Föregående intro skickas medvetet INTE med. Det lades till för att minska
+  // upprepning och gjorde tvärtom: ett komplett exempel på måltexten, utan ett
+  // ord i instruktionen om vad det var, blev en mall modellen matchade — sista
+  // meningen kom tillbaka ordagrant på nästa övning.
   const eventKey = `exercise_intro:${introIdentity}`;
   const introArgs = {
     exerciseName: currentExerciseName,
@@ -993,7 +980,6 @@ useEffect(() => {
     recentHealthNotes: includeStaticHealthContext ? recentHealthNotes : undefined,
     limitations: includeStaticHealthContext ? limitations : undefined,
     recentChatNotes,
-    previousCoachReply: previousIntroText,
   };
   const fallbackText = buildExerciseIntroCoachText(introArgs);
   const controller = new AbortController();

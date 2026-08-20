@@ -6425,7 +6425,7 @@ async function sendChat() {
             tone: progressionPlan.opportunity.tone,
           }
         : undefined,
-      calibrationTestCandidate: progressionPlan.calibrationTestCandidate,
+      heavierTestSet: progressionPlan.calibrationTestCandidate,
       warmupNote: overrides?.warmupContext?.note ?? activeWarmupContext?.note,
       conditioningNote: overrides?.conditioningContext?.note ?? activeConditioningContext?.note,
       previousCoachReply: lastCoachMessage,

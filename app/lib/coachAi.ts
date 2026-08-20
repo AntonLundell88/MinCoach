@@ -169,10 +169,16 @@ export type CoachChatContext = {
     reason: string;
     tone: "offer" | "clear";
   };
-  // Säkert kalibreringstest-tak, om den aktuella övningen kvalificerar.
+  // Säkert tak för ett tyngre testset, om den aktuella övningen kvalificerar.
   // Facit för VAD som är säkert att föreslå om användaren själv efterfrågar
   // att testa hårdare — inte en instruktion att ta upp det proaktivt här.
-  calibrationTestCandidate?: {
+  //
+  // Heter heavierTestSet och inte calibrationTestCandidate med flit: modellen
+  // ekar fältnamn den ser, och den sa "ett medvetet kalibreringsset på 35 kg"
+  // — app-jargong ingen tränare använder. "Ett tyngre testset" låter rätt.
+  // Internt heter det fortfarande calibrationTestCandidate; bara namnet på
+  // tråden till modellen är utbytt.
+  heavierTestSet?: {
     weight: string;
     reason: string;
   };
@@ -205,7 +211,11 @@ export type CoachExerciseIntroContext = {
     timedTargetText?: string;
   };
   history?: {
-    topSet?: { weight: number; reps: number };
+    // Heter bestSet och inte topSet med flit: modellen ekar fältnamn den ser,
+    // och "toppsetet" är app-jargong som låter fel i en coachs mun. Ekar den
+    // det här blir det "bästa setet", vilket är precis vad en människa
+    // hade sagt. Fixa jargong i datan, inte med ett förbud i prompten.
+    bestSet?: { weight: number; reps: number };
     lastSession?: { weight: number; reps: number; failNote?: string | null };
     bestTimeText?: string;
   };
@@ -220,9 +230,8 @@ export type CoachExerciseIntroContext = {
   sessionsAtTopWeight?: number;
   // Skild från opportunity med avsikt: det här är inte bevisad progression,
   // det är ett medvetet erbjudande om att testa UTANFÖR det bevisade.
-  // Appen fyller ALDRIG i det här i viktfältet automatiskt — bara en synlig
-  // knapp användaren själv väljer att trycka på.
-  calibrationTestCandidate?: {
+  // Namnvalet: se heavierTestSet i CoachChatContext ovan.
+  heavierTestSet?: {
     weight: string;
     reason: string;
   };
@@ -237,10 +246,6 @@ export type CoachExerciseIntroContext = {
   recentHealthNotes?: string[];
   limitations?: string;
   recentChatNotes?: { duringExercise: string; notes: string[] };
-  // Föregående övnings intro — samma sorts meddelande, samma röst. Utan den
-  // ser intron aldrig sina egna tidigare svar och landar i samma
-  // avslutningsfras övning efter övning.
-  previousCoachReply?: string;
 };
 
 export type CoachProgramContext = {
