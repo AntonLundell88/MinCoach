@@ -22,9 +22,18 @@ const BUILD_STEPS = [
 
 type Props = {
   theme: "dark" | "light";
+  /** true när bygget misslyckats — visar felläget i stället för stegen. */
+  failed?: boolean;
+  onRetry?: () => void;
+  onBuildManually?: () => void;
 };
 
-export default function ProgramBuildLoadingScreen({ theme }: Props) {
+export default function ProgramBuildLoadingScreen({
+  theme,
+  failed = false,
+  onRetry,
+  onBuildManually,
+}: Props) {
   const [activeStep, setActiveStep] = useState(0);
   const [showReassurance, setShowReassurance] = useState(false);
   const isFinalStep = activeStep >= BUILD_STEPS.length - 1;
@@ -77,6 +86,37 @@ export default function ProgramBuildLoadingScreen({ theme }: Props) {
         <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.28em] text-blue-100/45">
           MinCoach
         </p>
+
+        {failed ? (
+          <>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+              Jag kom inte fram
+            </h1>
+            <p className="mt-5 max-w-[330px] text-sm leading-6 text-blue-100/70">
+              Bygget gick inte igenom den här gången. Det är inget fel på dina
+              svar — jag nådde bara inte hela vägen. Vi provar igen.
+            </p>
+            <div className="mt-8 flex w-full max-w-[300px] flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={onRetry}
+                className="w-full rounded-2xl bg-blue-600 py-3.5 text-[15px] font-semibold text-white shadow-[0_0_26px_rgba(37,99,235,0.28)] transition hover:bg-blue-500 active:scale-[0.98]"
+              >
+                Försök igen
+              </button>
+              {onBuildManually ? (
+                <button
+                  type="button"
+                  onClick={onBuildManually}
+                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] py-3.5 text-sm font-semibold text-white/70 transition hover:bg-white/[0.08] active:scale-[0.98]"
+                >
+                  Bygg schemat själv
+                </button>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">
           Jag bygger ditt schema
         </h1>
@@ -117,6 +157,8 @@ export default function ProgramBuildLoadingScreen({ theme }: Props) {
         <p className="mt-8 max-w-[320px] text-sm leading-6 text-blue-100/52">
           Mål, tid och utrustning vägs ihop innan du får se passet.
         </p>
+          </>
+        )}
       </section>
     </main>
   );

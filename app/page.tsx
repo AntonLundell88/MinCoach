@@ -4824,8 +4824,13 @@ const [programChatInput, setProgramChatInput] = useState("");
 const [programChatLog, setProgramChatLog] = useState<
   { role: "you" | "coach"; text: string }[]
 >([]);
+// "failed": bygget gick inte igenom. Vi sparar då INGET program — tidigare
+// skrevs ett hårdkodat reservprogram in och presenterades som om coachen
+// byggt det ("Jag har byggt ett tryggt grundupplägg"). Det är att hitta på
+// ett författarskap: coachen har inte gjort någonting, anropet dog. Hellre
+// ett ärligt besked och en knapp som försöker igen.
 const [programBuildStatus, setProgramBuildStatus] = useState<
-  "idle" | "building" | "ready" | "fallback"
+  "idle" | "building" | "ready" | "fallback" | "failed"
 >("idle");
 const [programBuildScreenVisible, setProgramBuildScreenVisible] =
   useState(false);
@@ -5203,9 +5208,16 @@ async function buildAiWorkoutPlanForProfile(profile: UserProfile) {
   );
 
   window.setTimeout(() => {
+    if (result.mode !== "ai") {
+      // Se kommentaren vid programBuildStatus: inget program sparas när
+      // bygget misslyckas. Byggskärmen stannar kvar med felet.
+      setProgramBuildStatus("failed");
+      return;
+    }
+
     setCustomWorkoutPlan(nextPlan);
     saveJSON("customWorkoutPlan", nextPlan);
-    setProgramBuildStatus(result.mode === "ai" ? "ready" : "fallback");
+    setProgramBuildStatus("ready");
     setProgramBuildScreenVisible(false);
   }, waitTime);
 }
@@ -5365,9 +5377,16 @@ useEffect(() => {
     finishTimer = window.setTimeout(() => {
       if (cancelled) return;
 
+      if (result.mode !== "ai") {
+        // Spara ingenting och lämna byggskärmen uppe — den visar felet och
+        // en försök igen-knapp i stället för ett program coachen inte byggt.
+        setProgramBuildStatus("failed");
+        return;
+      }
+
       setCustomWorkoutPlan(nextPlan);
       saveJSON("customWorkoutPlan", nextPlan);
-      setProgramBuildStatus(result.mode === "ai" ? "ready" : "fallback");
+      setProgramBuildStatus("ready");
       setProgramBuildScreenVisible(false);
     }, waitTime);
   }
@@ -9068,7 +9087,19 @@ const profile: UserProfile = {
 }
 
 if (userProfile && showProgramReview && programBuildScreenVisible) {
-  return <ProgramBuildLoadingScreen theme={appTheme} />;
+  return (
+    <ProgramBuildLoadingScreen
+      theme={appTheme}
+      failed={programBuildStatus === "failed"}
+      onRetry={() => buildAiWorkoutPlanForProfile(userProfile)}
+      onBuildManually={() => {
+        setProgramStartModeInput("manual");
+        setProgramBuildStatus("idle");
+        setProgramBuildScreenVisible(false);
+        setEditingProfile(true);
+      }}
+    />
+  );
 }
 
 if (userProfile && workoutPlan && showProgramReview) {

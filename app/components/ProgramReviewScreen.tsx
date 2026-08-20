@@ -99,7 +99,7 @@ const LIBRARY_CATEGORIES = [
 type Props = {
   profile: UserProfile;
   workoutPlan: WorkoutPlan;
-  programBuildStatus: "idle" | "building" | "ready" | "fallback";
+  programBuildStatus: "idle" | "building" | "ready" | "fallback" | "failed";
   chatInput: string;
   setChatInput: (value: string) => void;
   chatLog: { role: "you" | "coach"; text: string }[];

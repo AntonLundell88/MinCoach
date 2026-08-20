@@ -141,11 +141,12 @@ const PROGRAM_PLAN_JSON_SCHEMA = {
                 reps: { type: "string" },
                 rir: { type: "string" },
                 caution: { type: "string" },
-                alternatives: {
-                  type: "array",
-                  items: { type: "string" },
-                },
               },
+              // alternatives genererades förr här men lästes aldrig: listan
+              // med bytesförslag i granskningsskärmen byggs från biblioteket
+              // (substitutions + utrustningsmatchning), inte från AI:n. För
+              // ett 6-dagarsprogram var det 24 arrayer ren genereringstid mot
+              // Netlifys 25-sekundersvägg, utan något på skärmen.
               required: [
                 "exerciseKey",
                 "name",
@@ -154,7 +155,6 @@ const PROGRAM_PLAN_JSON_SCHEMA = {
                 "reps",
                 "rir",
                 "caution",
-                "alternatives",
               ],
             },
           },
@@ -395,7 +395,6 @@ function normalizeExercise(
     reps: cleanText(raw.reps) || undefined,
     rir: cleanRirText(raw.rir) || undefined,
     caution: caution || profile.caution || undefined,
-    alternatives: cleanList(raw.alternatives),
   };
 }
 
@@ -875,6 +874,20 @@ export async function POST(request: Request) {
       () => controller.abort(),
       PROGRAM_BUILD_TIMEOUT_MS
     );
+    // Mät hur nära väggen vi ligger, per programstorlek. Utdatavolymen
+    // skalar med antal dagar men tidsgränsen är fast, så det är dagarna
+    // som avgör om bygget hinner. Behövs för att veta hur anropet ska
+    // delas upp — och för att se om ett timeout var marginellt eller inte.
+    const startedAtMs = Date.now();
+    const logDuration = (outcome: string) => {
+      console.warn("Program build timing", {
+        outcome,
+        attempt,
+        daysPerWeek: compactContext.profile?.daysPerWeek,
+        seconds: Number(((Date.now() - startedAtMs) / 1000).toFixed(1)),
+        limitSeconds: PROGRAM_BUILD_TIMEOUT_MS / 1000,
+      });
+    };
 
     try {
       const response = await fetch("https://api.openai.com/v1/responses", {
@@ -958,6 +971,8 @@ export async function POST(request: Request) {
           continue;
         }
 
+        logDuration("ok");
+
         return NextResponse.json({
           mode: "ai",
           plan,
@@ -980,6 +995,7 @@ export async function POST(request: Request) {
         (error as { name?: string })?.name === "AbortError"
           ? "timeout"
           : "api_error";
+      logDuration(lastReason);
       console.error("OpenAI program build request failed", {
         attempt,
         reason: lastReason,

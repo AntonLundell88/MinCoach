@@ -91,9 +91,15 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_INTRO_MODEL ?? "gpt-5-mini",
+        // Samma modell och effort som set- och chattrutten. Låg tröskelnivå
+        // testades som kostnadsoptimering ("duger för enkla coach-texter"),
+        // men den valideringen tittade på innehållet, inte på språket:
+        // gpt-5-mini skrev "som en försiktigt uppstest" och "känner det fel"
+        // — en/ett-fel och hopbyggda ord. Intron är dessutom första
+        // intrycket av varje övning, sämsta stället att spara på.
+        model: process.env.OPENAI_INTRO_MODEL ?? "gpt-5.5",
         instructions: payload.system,
-        reasoning: { effort: "low" },
+        reasoning: { effort: "medium" },
         text: { verbosity: "medium" },
         input: [
           {
