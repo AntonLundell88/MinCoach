@@ -1,5 +1,7 @@
 "use client";
 
+import { formatSetDisplay } from "../lib/exercises";
+
 type PersonalRecord = {
   exerciseName: string;
   weight: number;
@@ -33,14 +35,17 @@ function daysSince(value: string) {
   return `${days} dagar sedan`;
 }
 
+// formatSetDisplay äger hur ett set skrivs ut — den hanterar både tid och
+// kroppsvikt. Den här funktionen hade bara tidsgrenen, så Armhävningar blev
+// "0 × 14".
 function getRecordLabel(record: PersonalRecord) {
-  if (record.metricType === "time" || typeof record.durationSeconds === "number") {
-    const seconds = Math.max(0, Math.round(record.durationSeconds ?? 0));
-    const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-    return record.weight > 0 ? `${time} + ${record.weight.toLocaleString("sv-SE")} kg` : time;
-  }
-
-  return `${record.weight.toLocaleString("sv-SE")} × ${record.reps}`;
+  return formatSetDisplay({
+    exerciseName: record.exerciseName,
+    weight: record.weight,
+    reps: record.reps,
+    durationSeconds: record.durationSeconds,
+    metricType: record.metricType,
+  });
 }
 
 export default function PersonalRecordsScreen({

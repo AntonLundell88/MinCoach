@@ -13,7 +13,6 @@ import {
   getExerciseDefinition,
   getExerciseProfile,
   formatSetDisplay,
-  shouldDisplayAsBodyweight,
   isBodyweightExercise,
   isTimedExercise,
   normalizeExerciseSearchText,
@@ -1573,10 +1572,17 @@ useEffect(() => {
         {/* PB badge */}
         {(() => {
           const pr = personalRecords[exerciseKey(currentExerciseName)];
+          // formatSetDisplay äger hur ett set skrivs ut — den hanterar både
+          // kroppsvikt och tid. Den här brickan hade bara kroppsviktsgrenen,
+          // så Planka blev "Personbästa 0 reps".
           const label = pr
-            ? shouldDisplayAsBodyweight(currentExerciseName, pr.weight)
-              ? `${pr.reps} reps`
-              : `${pr.weight.toLocaleString("sv-SE")} × ${pr.reps}`
+            ? formatSetDisplay({
+                exerciseName: currentExerciseName,
+                weight: pr.weight,
+                reps: pr.reps,
+                durationSeconds: pr.durationSeconds,
+                metricType: pr.metricType,
+              })
             : null;
           return (
             <div className="flex">
