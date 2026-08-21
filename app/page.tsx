@@ -1283,11 +1283,11 @@ function extractWeightRepText(message: string) {
   const match = message
     .toLowerCase()
     .replace(",", ".")
-    .match(/(\d+(?:\.\d+)?)\s*(?:kg)?\s*(?:x|Ã—)\s*(\d+)/);
+    .match(/(\d+(?:\.\d+)?)\s*(?:kg)?\s*(?:x|×)\s*(\d+)/);
 
   if (!match) return "";
 
-  return `${formatCoachWeight(Number(match[1]))} Ã— ${match[2]}`;
+  return `${formatCoachWeight(Number(match[1]))} × ${match[2]}`;
 }
 
 function normalizeCoachFreeText(text: string) {
@@ -1314,9 +1314,14 @@ function buildLocalWorkoutChatFallback(args: {
   const exerciseName = args.exerciseName || "övningen";
   const latestSet = args.currentSets[args.currentSets.length - 1];
   const setText = latestSet
-    ? `${formatCoachWeight(latestSet.weight)} Ã— ${latestSet.reps}${
-        latestSet.rir !== undefined ? ` - RIR ${latestSet.rir}` : ""
-      }`
+    ? formatLoggedSetText({
+        exerciseName,
+        weight: latestSet.weight,
+        reps: latestSet.reps,
+        durationSeconds: latestSet.durationSeconds,
+        metricType: latestSet.metricType,
+        rir: latestSet.rir ?? undefined,
+      })
     : "";
   const askedSetText = extractWeightRepText(args.message);
 
@@ -2781,9 +2786,19 @@ function formatLoggedSetText(args: {
 
   const base = shouldDisplayAsBodyweight(args.exerciseName, args.weight)
     ? `${args.reps} reps`
-    : `${formatCoachWeight(args.weight)} kg x ${args.reps}`;
+    : `${formatCoachWeight(args.weight)} kg × ${args.reps}`;
 
-  return typeof args.rir === "number" ? `${base} - RIR ${args.rir}` : base;
+  if (typeof args.rir !== "number") return base;
+
+  // Skrivet så att det går att citera rakt av mitt i en mening. Formatet var
+  // "35 kg x 15 - RIR 2" — en display-sträng med tankstreck som ingen vill ha
+  // i prosa, så modellen formulerade om den. I omskrivningen blev "15 reps,
+  // RIR 2" till "15 × 2", vilket läses som 15 kg för 2 reps. Rätt siffror,
+  // fel skiljetecken, och en användare kan inte se skillnaden.
+  const effort =
+    args.rir === 0 ? "till stopp" : args.rir === 1 ? "1 rep kvar" : `${args.rir} reps kvar`;
+
+  return `${base}, ${effort}`;
 }
 
 function formatNextLoadText(exerciseName: string, weight: number) {
@@ -8238,7 +8253,7 @@ for (const ex of w.exercises) {
     notes.push({
       ...base,
       exerciseName: ex.name,
-      text: `${ex.name}: bästa set senast var ${best.weight} kg Ã— ${best.reps}.`,
+      text: `${ex.name}: bästa set senast var ${best.weight} kg × ${best.reps}.`,
     });
   }
 }

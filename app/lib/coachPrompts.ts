@@ -80,7 +80,7 @@ const SET_COACH_INSTRUCTION = [
   COACH_LANGUAGE_NOTES,
   "",
   "Data:",
-  "- currentSet / previousSet: vikt, reps, RIR — fakta",
+  "- currentSet / previousSet: vikt, reps, RIR — fakta. setText är samma set färdigskrivet; återger du ett set, skriv det så.",
   "- nextTarget: systemets förslag på nästa steg",
   "- setPlan.plannedSetCount är övningens ursprungliga mål, setPlan.setsCompleted är vad som faktiskt är loggat just nu. De skiljer sig ibland (t.ex. tidigt avslut). Om du nämner antal set: utgå alltid från setsCompleted, aldrig plannedSetCount.",
   "- personalRecordText: PB — reagera",
