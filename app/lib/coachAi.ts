@@ -88,12 +88,6 @@ export type CoachSetContext = {
     rirChange?: number;
     shouldMentionTechniqueCue: boolean;
   };
-  uiHints?: {
-    nextSetCardShowsPlan: boolean;
-    avoidRepeatingFullPlan: boolean;
-    avoidRepeatingRest: boolean;
-    avoidRepeatingTechniqueCue: boolean;
-  };
   nextTarget: {
     weight: number;
     loadText?: string;
@@ -207,12 +201,6 @@ export type CoachChatContext = {
   // Bara vikten — ingen färdig mening. Se CalibrationTestCandidate i page.tsx.
   heavierTestSet?: {
     weight: string;
-  };
-  uiHints?: {
-    nextSetCardShowsPlan: boolean;
-    avoidRepeatingFullPlan: boolean;
-    avoidRepeatingRest: boolean;
-    avoidRepeatingTechniqueCue: boolean;
   };
   activePlan?: string[];
   activePlanExerciseInfo?: CoachExerciseLibraryInfo[];

@@ -4091,12 +4091,6 @@ function buildCoachSetContext(args: {
       rirChange,
       shouldMentionTechniqueCue,
     },
-    uiHints: {
-      nextSetCardShowsPlan: args.nextSetPlan.strategy !== "complete",
-      avoidRepeatingFullPlan: args.nextSetPlan.strategy !== "complete",
-      avoidRepeatingRest: true,
-      avoidRepeatingTechniqueCue: !shouldMentionTechniqueCue,
-    },
     nextTarget: {
       weight: args.nextWeight,
       loadText: nextLoadText,
