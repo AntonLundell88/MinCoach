@@ -44,8 +44,11 @@ import {
 } from "./lib/coachAi";
 import {
   exerciseKey,
+  formatRestProse,
   getExerciseDefinition,
   getExerciseProfile,
+  getExerciseRestKind,
+  getRestTargetRange,
   getExerciseUserInfo,
   getProgramExercisePool,
   shouldDisplayAsBodyweight,
@@ -2808,45 +2811,6 @@ function formatNextLoadText(exerciseName: string, weight: number) {
 }
 
 
-function getExerciseRestKind(exerciseName: string) {
-  const profile = getExerciseProfile(exerciseName);
-  const lower = exerciseName.toLowerCase();
-  const cue = profile.techniqueCue.toLowerCase();
-
-  if (
-    profile.category === "armar" ||
-    profile.category === "axlar" ||
-    profile.category === "mage" ||
-    lower.includes("vad") ||
-    lower.includes("benspark") ||
-    lower.includes("lårcurl") ||
-    lower.includes("larcurl") ||
-    lower.includes("curl") ||
-    lower.includes("pushdown") ||
-    lower.includes("sidolyft") ||
-    cue.includes("kontakt")
-  ) {
-    return "isolation" as const;
-  }
-
-  if (
-    lower.includes("mark") ||
-    lower.includes("knäböj") ||
-    lower.includes("knöböj") ||
-    lower.includes("squat") ||
-    lower.includes("benpress") ||
-    lower.includes("bänk") ||
-    lower.includes("bank") ||
-    lower.includes("rodd") ||
-    lower.includes("latsdrag") ||
-    lower.includes("press")
-  ) {
-    return "heavy" as const;
-  }
-
-  return "normal" as const;
-}
-
 type NextSetPlan = {
   weight: number;
   repsText: string;
@@ -3616,24 +3580,11 @@ function getNextSetPlan(args: {
   } satisfies NextSetPlan;
 }
 
+// Samma intervall som vilotimern visar — formaterat som tal i stället för
+// klocka. Två separata tabeller gav tidigare olika besked till skärmen och
+// till coachen.
 function getRestTextForRir(rir: number, exerciseName = "") {
-  const kind = getExerciseRestKind(exerciseName);
-
-  if (kind === "isolation") {
-    if (rir <= 0) return "2 minuter";
-    if (rir === 1) return "90â€“120 sek.";
-    return "60â€“90 sek.";
-  }
-
-  if (kind === "normal") {
-    if (rir <= 0) return "3 minuter";
-    if (rir === 1) return "2â€“3 minuter";
-    return "2 minuter";
-  }
-
-  if (rir <= 0) return "3â€“4 minuter";
-  if (rir === 1) return "3 minuter";
-  return "2â€“3 minuter";
+  return formatRestProse(getRestTargetRange(exerciseName, rir));
 }
 
 function buildGymComparison(args: {

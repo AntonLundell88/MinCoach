@@ -10,8 +10,10 @@ import VideoFeedbackInfoModal from "./VideoFeedbackInfoModal";
 import ToggleSwitch from "./ToggleSwitch";
 import { CameraGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
-  getExerciseDefinition,
+  formatRestClock,
+  formatRestProse,
   getExerciseProfile,
+  getRestTargetRange,
   formatSetDisplay,
   isBodyweightExercise,
   isTimedExercise,
@@ -174,34 +176,7 @@ function getTopSet(progression: { weight: number; reps: number }[]) {
   })[0];
 }
 function getRestTime(exerciseName: string) {
-  const kind = getExerciseRestKind(exerciseName);
-  if (kind === "heavy") return "2–3 min";
-  if (kind === "normal") return "2 min";
-  return "60–90 sek";
-}
-
-/**
- * Hur mycket vila en övning behöver. Biblioteket klassar redan varje övning
- * som bas-, isolations- eller kroppsövning — den kurateringen är sanningen.
- *
- * Tidigare gissade den här funktionen på nyckelord i namnet, och klassade då
- * 22 av 44 basövningar som lätta: Militärpress, Latsdrag och Frontböj fick
- * 90 sek vila medan Bröstpress fick 3 minuter. Felet gick bara åt ett håll —
- * ingen isolationsövning fick någonsin för lång vila.
- */
-function getExerciseRestKind(exerciseName: string) {
-  // Bålarbete återhämtar sig snabbt oavsett hur övningen annars klassas.
-  if (getExerciseProfile(exerciseName).category === "mage") {
-    return "isolation" as const;
-  }
-
-  const exerciseType = getExerciseDefinition(exerciseName)?.exerciseType;
-
-  if (exerciseType === "basövning") return "heavy" as const;
-  if (exerciseType === "isolationsövning") return "isolation" as const;
-
-  // Kroppsövningar, tidsövningar och egna övningar utanför biblioteket.
-  return "normal" as const;
+  return formatRestProse(getRestTargetRange(exerciseName));
 }
 
 function formatRestTimer(seconds: number) {
@@ -249,30 +224,11 @@ function formatPreviousSetLabel(
   return typeof set.rir === "number" ? `${base} · RIR ${set.rir}` : base;
 }
 
-function getRestTargetRange(exerciseName: string, rir?: number) {
-  const kind = getExerciseRestKind(exerciseName);
-
-  if (typeof rir === "number") {
-    if (kind === "isolation") {
-      if (rir === 0) return { min: 120, max: 120, label: "2:00" };
-      if (rir === 1) return { min: 90, max: 120, label: "1:30–2:00" };
-      return { min: 60, max: 90, label: "1:00–1:30" };
-    }
-
-    if (kind === "normal") {
-      if (rir === 0) return { min: 180, max: 180, label: "3:00" };
-      if (rir === 1) return { min: 120, max: 180, label: "2:00–3:00" };
-      return { min: 120, max: 120, label: "2:00" };
-    }
-
-    if (rir === 0) return { min: 180, max: 240, label: "3:00–4:00" };
-    if (rir === 1) return { min: 180, max: 180, label: "3:00" };
-    return { min: 120, max: 180, label: "2:00–3:00" };
-  }
-
-  if (kind === "heavy") return { min: 120, max: 180, label: "2:00–3:00" };
-  if (kind === "normal") return { min: 120, max: 120, label: "2:00" };
-  return { min: 60, max: 90, label: "1:00–1:30" };
+// Intervallet kommer från biblioteket (exercises.ts) så att timern och texten
+// coachen får alltid är samma siffror. Etiketten är bara klockformatering.
+function getRestTargetWithLabel(exerciseName: string, rir?: number) {
+  const range = getRestTargetRange(exerciseName, rir);
+  return { ...range, label: formatRestClock(range) };
 }
 
 function getManualRestTarget(seconds: number) {
@@ -709,7 +665,7 @@ export default function WorkoutScreen({
   } | null>(null);
   const previousSetCountRef = useRef(currentSets.length);
   const latestSet = currentSets.at(-1);
-  const coachRestTarget = getRestTargetRange(currentExerciseName, latestSet?.rir);
+  const coachRestTarget = getRestTargetWithLabel(currentExerciseName, latestSet?.rir);
   const restTarget = manualRestTarget ?? coachRestTarget;
   const restProgress = Math.min(restElapsed / restTarget.max, 1);
   const restTargetReached = restStartedAt !== null && restElapsed >= restTarget.min;

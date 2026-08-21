@@ -4182,6 +4182,80 @@ export function isBarbellExercise(name: string): boolean {
   return namedBarbell || barbellOnly || equipment === "skivstång";
 }
 
+/**
+ * Hur mycket vila en övning behöver. Biblioteket klassar redan varje övning
+ * som bas-, isolations- eller kroppsövning — den kurateringen är sanningen.
+ *
+ * Tidigare gissade två separata kopior av den här funktionen på nyckelord i
+ * namnet, och 22 av 44 basövningar klassades som lätta: Militärpress och
+ * Latsdrag fick 90 sek medan Bröstpress fick 3 minuter.
+ */
+export function getExerciseRestKind(exerciseName: string) {
+  // Bålarbete återhämtar sig snabbt oavsett hur övningen annars klassas.
+  if (getExerciseProfile(exerciseName).category === "mage") {
+    return "isolation" as const;
+  }
+
+  const exerciseType = getExerciseDefinition(exerciseName)?.exerciseType;
+
+  if (exerciseType === "basövning") return "heavy" as const;
+  if (exerciseType === "isolationsövning") return "isolation" as const;
+
+  // Kroppsövningar, tidsövningar och egna övningar utanför biblioteket.
+  return "normal" as const;
+}
+
+/**
+ * Enda källan till vilotid. Timern i passvyn och texten coachen får läser
+ * båda härifrån — annars kan de säga emot varandra, vilket de gjorde:
+ * timern visade 2:00–3:00 för Latsdrag medan coachen fick höra "60–90 sek",
+ * för att de anropade varsin kopia av klassificeraren ovan.
+ */
+export function getRestTargetRange(exerciseName: string, rir?: number) {
+  const kind = getExerciseRestKind(exerciseName);
+
+  if (typeof rir === "number") {
+    if (kind === "isolation") {
+      if (rir <= 0) return { min: 120, max: 120 };
+      if (rir === 1) return { min: 90, max: 120 };
+      return { min: 60, max: 90 };
+    }
+
+    if (kind === "normal") {
+      if (rir <= 0) return { min: 180, max: 180 };
+      if (rir === 1) return { min: 120, max: 180 };
+      return { min: 120, max: 120 };
+    }
+
+    if (rir <= 0) return { min: 180, max: 240 };
+    if (rir === 1) return { min: 180, max: 180 };
+    return { min: 120, max: 180 };
+  }
+
+  if (kind === "heavy") return { min: 120, max: 180 };
+  if (kind === "normal") return { min: 120, max: 120 };
+  return { min: 60, max: 90 };
+}
+
+/** Klockformat för vilotimern: "2:00" eller "2:00–3:00". */
+export function formatRestClock(range: { min: number; max: number }) {
+  const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  return range.min === range.max ? clock(range.min) : `${clock(range.min)}–${clock(range.max)}`;
+}
+
+/** Talspråk för coachen: "3 minuter", "2–3 minuter", "60–90 sek". */
+export function formatRestProse(range: { min: number; max: number }) {
+  const wholeMinutes = range.min % 60 === 0 && range.max % 60 === 0;
+
+  if (wholeMinutes) {
+    const from = range.min / 60;
+    const to = range.max / 60;
+    return from === to ? `${from} minuter` : `${from}–${to} minuter`;
+  }
+
+  return range.min === range.max ? `${range.min} sek` : `${range.min}–${range.max} sek`;
+}
+
 export function getExerciseWeightStep(name: string): number {
   if (isBarbellExercise(name)) return 5;
 
