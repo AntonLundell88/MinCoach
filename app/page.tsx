@@ -3883,61 +3883,65 @@ function buildCoachSetContext(args: {
     targetReps: 10,
     exerciseName: args.exerciseName,
   });
+  // Koderna gick tidigare ut på engelska snake_case och ekade tillbaka:
+  // "backoff_after_hard_set" kom ut som "precis den kontrollerade backoff".
+  // Läses bara av modellen, aldrig av klienten — alltså skrivs de som en
+  // tränare hade sagt dem. Samma skäl som toWireStrategy.
   const decisionReasonCode = (() => {
     if (args.nextSetPlan.reason.toLowerCase().includes("extraset")) {
-      return "planned_extra_finish";
+      return "extraset som avslut";
     }
 
     if (sameWeightTrend.tooEasy) {
       return args.nextSetPlan.strategy === "complete"
-        ? "too_light_next_time"
-        : "too_light_increase_now";
+        ? "för lätt — höj till nästa gång"
+        : "för lätt — höj nu";
     }
 
     if (isTimedSet) {
       return args.nextSetPlan.strategy === "complete"
-        ? "planned_sets_complete"
-        : "routine_hold";
+        ? "planerade set klara"
+        : "behåller vikten";
     }
 
     if (args.nextSetPlan.strategy === "complete") {
-      if (failText.includes("ont") || failText.includes("smärta")) return "pain_stop";
-      if (args.rir <= 0) return "hard_set_complete";
-      return "planned_sets_complete";
+      if (failText.includes("ont") || failText.includes("smärta")) return "stopp på grund av smärta";
+      if (args.rir <= 0) return "tungt sista set, övningen klar";
+      return "planerade set klara";
     }
 
     if (args.nextSetPlan.strategy === "reduce") {
-      if (hasUserReportedTechniqueOrPain) return "user_reported_issue";
-      if (args.rir <= 0) return "hard_stimulus_reduce";
-      return "reduce_for_more_good_work";
+      if (hasUserReportedTechniqueOrPain) return "användaren sa att något kändes fel";
+      if (args.rir <= 0) return "gick till stopp, sänker vikten";
+      return "sänker för fler bra reps";
     }
 
     if (args.nextSetPlan.strategy === "backoff") {
-      if (typeof rirChange === "number" && rirChange <= -2) return "margin_dropped";
-      if (args.rir <= 0) return "hard_stimulus_backoff";
-      return "backoff_after_hard_set";
+      if (typeof rirChange === "number" && rirChange <= -2) return "tydligt mindre kvar i tanken";
+      if (args.rir <= 0) return "gick till stopp, lättare nu";
+      return "lättare efter ett tungt set";
     }
 
-    if (args.nextSetPlan.strategy === "press") return "room_to_progress";
+    if (args.nextSetPlan.strategy === "press") return "utrymme att höja";
 
     if (
       args.nextSetPlan.strategy === "hold" &&
       args.nextSetPlan.reason.toLowerCase().includes("repsspannet")
     ) {
-      return "under_target_with_margin";
+      return "under repsmålet men med reps kvar";
     }
 
     if (previousSet && args.weight === previousSet.weight && args.reps === previousSet.reps) {
-      if (typeof rirChange === "number" && rirChange > 0) return "same_work_more_margin";
-      if (typeof rirChange === "number" && rirChange < 0) return "same_work_less_margin";
-      return "same_work_repeated";
+      if (typeof rirChange === "number" && rirChange > 0) return "samma jobb, mer kvar i tanken";
+      if (typeof rirChange === "number" && rirChange < 0) return "samma jobb, mindre kvar i tanken";
+      return "samma jobb igen";
     }
 
     if (previousSet && args.weight === previousSet.weight && args.reps > previousSet.reps) {
-      return "reps_up_same_weight";
+      return "fler reps på samma vikt";
     }
 
-    return "routine_hold";
+    return "behåller vikten";
   })();
 
   if (args.personalRecordText) signals.push("personal_record");
