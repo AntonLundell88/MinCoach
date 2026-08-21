@@ -4038,15 +4038,19 @@ function buildCoachSetContext(args: {
       nextSetIsLast,
       isLastExercise: args.isLastExercise,
     },
+    // Betydelsen först, siffrorna sen. Tidigare låg currentSet/previousSet
+    // överst med samma fakta i tre representationer (tal, loadText, setText)
+    // medan PB, utveckling och minne låg längst ner — payloaden var framtung
+    // på siffror och baktung på mening, och svaren speglade den. loadText är
+    // borta helt: den sa exakt vad setText redan säger, och lästes ingenstans.
+    personalRecordText: args.personalRecordText || undefined,
+    sessionsAtTopWeight: args.sessionsAtTopWeight,
     currentSet: {
       weight: args.weight,
       reps: args.reps,
       durationSeconds: args.durationSeconds,
       metricType: args.metricType,
       rir: isTimedSet ? undefined : args.rir,
-      loadText: shouldDisplayAsBodyweight(args.exerciseName, args.weight)
-        ? "kroppsvikt"
-        : `${formatCoachWeight(args.weight)} kg`,
       setText: currentSetText,
       failNote: args.failNote || undefined,
     },
@@ -4060,8 +4064,6 @@ function buildCoachSetContext(args: {
           setText: previousSetText,
         }
       : undefined,
-    personalRecordText: args.personalRecordText || undefined,
-    sessionsAtTopWeight: args.sessionsAtTopWeight,
     progressionOpportunity: progressionOpportunity
       ? {
           type: progressionOpportunity.type,
