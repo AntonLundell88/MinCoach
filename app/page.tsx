@@ -1275,7 +1275,7 @@ function buildExerciseSafetyReply(exerciseName: string) {
   const cue = profile.techniqueCue?.replace(/^Fokus:\s*/i, "").trim();
 
   return shortCoach([
-    `Bra fråga. ${exerciseName} är inte â€œfarligâ€ i sig, men den ska kännas trygg.`,
+    `Bra fråga. ${exerciseName} är inte “farlig” i sig, men den ska kännas trygg.`,
     caution || "Om något gör ont eller känns fel så justerar vi direkt.",
     cue ? `Idag vill jag att du tänker: ${cue}` : "",
     "Börja kontrollerat. Känns något fel stoppar vi direkt.",
@@ -1475,7 +1475,7 @@ function getDeloadInsight(
   const heaviestWeight = Math.max(...latestEight.map((s) => s.weight));
   const deloadWeight = Math.max(0, heaviestWeight * 0.9);
 
-  return `Du har haft flera väldigt tunga set senaste passen. Det kan vara smart att köra en lättare dag runt ${formatWeightInput(deloadWeight)} kg eller ungefär 5â€“10 % lättare.`;
+  return `Du har haft flera väldigt tunga set senaste passen. Det kan vara smart att köra en lättare dag runt ${formatWeightInput(deloadWeight)} kg eller ungefär 5–10 % lättare.`;
 }
 
  function didHitTargets(
@@ -2726,19 +2726,19 @@ function getNextSetRepRange(args: {
 
   if (rir <= 0) {
     const max = Math.max(1, reps - 2);
-    return `${Math.max(1, max - 1)}â€“${max} reps`;
+    return `${Math.max(1, max - 1)}–${max} reps`;
   }
 
   if (rir === 1) {
     const max = Math.max(1, reps - 1);
-    return `${Math.max(1, max - 1)}â€“${max} reps`;
+    return `${Math.max(1, max - 1)}–${max} reps`;
   }
 
   if (rir === 2) {
-    return `${Math.max(1, reps - 1)}â€“${reps} reps`;
+    return `${Math.max(1, reps - 1)}–${reps} reps`;
   }
 
-  return `${Math.max(6, reps - 1)}â€“${reps} reps`;
+  return `${Math.max(6, reps - 1)}–${reps} reps`;
 }
 
 function getNextSetRepInput(args: { reps: number; rir: number }) {
@@ -3048,7 +3048,7 @@ function getNextSetPlan(args: {
     techniqueCue.toLowerCase().includes("sidolyft") ||
     techniqueCue.toLowerCase().includes("kontakt");
   const range = (min: number, max: number) =>
-    min === max ? `${min} reps` : `${min}â€“${max} reps`;
+    min === max ? `${min} reps` : `${min}–${max} reps`;
   const hasTechniqueIssue =
     fail.includes("teknik") ||
     fail.includes("formen") ||
@@ -4717,7 +4717,7 @@ const [showExerciseProgress, setShowExerciseProgress] = useState(false);
     "statistics" | "history" | "personalRecords" | null
   >(null);
 
-  // â€œDatabasâ€
+  // “Databas”
   const [history, setHistory] = useState<Workout[]>([]);
   const [lastByExercise, setLastByExercise] = useState<LastByExercise>({});
 
@@ -7698,7 +7698,7 @@ const painFailure =
 const step = PROGRESSION_STEP;
 
 
-    // Spara â€œsenaste per övningâ€ direkt när du loggar
+    // Spara “senaste per övning” direkt när du loggar
 const newLastByExercise: LastByExercise = {
   ...lastByExercise,
 [exerciseKey(currentExerciseName)]: {

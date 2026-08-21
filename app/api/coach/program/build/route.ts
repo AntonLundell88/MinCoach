@@ -369,18 +369,18 @@ function buildProgramBuildInstruction(args: {
   previousPlan: BuiltWorkoutPlan | null;
 }) {
   if (args.attempt === 1) {
-    return "Bygg ett komplett fÃ¶rsta program. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer Ã¥terhÃ¤mtningsvÃ¤nliga, sÃ¤rskilt fÃ¶r nybÃ¶rjare. Varje pass ska normalt ha 3-5 Ã¶vningar. Samma exerciseKey fÃ¥r inte ligga tvÃ¥ gÃ¥nger i samma pass. Om availableExercises Ã¤r begrÃ¤nsad, sÃ¤rskilt hemma med lite utrustning, hellre 3 bra Ã¶vningar per pass och upprepade trygga Ã¶vningar Ã¤n otillÃ¥tna utfyllnadsÃ¶vningar. AnvÃ¤nd endast Ã¶vningar frÃ¥n availableExercises och returnera bÃ¥de exerciseKey och name exakt frÃ¥n listan. ";
+    return "Bygg ett komplett första program. Antal pass ska matcha daysPerWeek, max 6. Vid 5-6 pass ska passen vara smalare och mer återhämtningsvänliga, särskilt för nybörjare. Varje pass ska normalt ha 3-5 övningar. Samma exerciseKey får inte ligga två gånger i samma pass. Om availableExercises är begränsad, särskilt hemma med lite utrustning, hellre 3 bra övningar per pass och upprepade trygga övningar än otillåtna utfyllnadsövningar. Använd endast övningar från availableExercises och returnera både exerciseKey och name exakt från listan. ";
   }
 
   return [
     "Reparera programmet. Returnera ett helt nytt komplett JSON-svar enligt schemat.",
-    "Du fÃ¥r inte fÃ¶rklara runt JSON och du fÃ¥r inte lÃ¤mna kvar nÃ¥got av felen nedan.",
-    "BehÃ¥ll bara delar av previousPlan som fortfarande Ã¤r korrekta. Byt Ã¶vningar, text, passnamn, volym och struktur om det krÃ¤vs.",
-    "Felen som mÃ¥ste lÃ¶sas:",
+    "Du får inte förklara runt JSON och du får inte lämna kvar något av felen nedan.",
+    "Behåll bara delar av previousPlan som fortfarande är korrekta. Byt övningar, text, passnamn, volym och struktur om det krävs.",
+    "Felen som måste lösas:",
     ...issueText(args.lastIssues).map((item) => `- ${item}`),
     args.previousPlan
-      ? "previousPlan innehÃ¥ller senaste underkÃ¤nda fÃ¶rsÃ¶ket."
-      : "Det senaste svaret gick inte att anvÃ¤nda. Bygg om frÃ¥n grunden.",
+      ? "previousPlan innehåller senaste underkända försöket."
+      : "Det senaste svaret gick inte att använda. Bygg om från grunden.",
   ].join("\n");
 }
 
@@ -687,7 +687,7 @@ function getPlanValidationIssues(
     issues.push(
       issue(
         "wrong_pass_count",
-        `Planen har ${plan.passes.length} pass men profilen krÃ¤ver ${expectedPassCount}.`
+        `Planen har ${plan.passes.length} pass men profilen kräver ${expectedPassCount}.`
       )
     );
   }
@@ -701,7 +701,7 @@ function getPlanValidationIssues(
       issues.push(
         issue(
           "pass_too_small",
-          `${pass.key} har ${pass.exercises.length} Ã¶vningar men bÃ¶r ha minst ${passTarget.min}.`
+          `${pass.key} har ${pass.exercises.length} övningar men bör ha minst ${passTarget.min}.`
         )
       );
     }
@@ -710,7 +710,7 @@ function getPlanValidationIssues(
       issues.push(
         issue(
           "pass_too_large",
-          `${pass.key} har ${pass.exercises.length} Ã¶vningar men bÃ¶r ha max ${passTarget.max}.`
+          `${pass.key} har ${pass.exercises.length} övningar men bör ha max ${passTarget.max}.`
         )
       );
     }
@@ -740,7 +740,7 @@ function getPlanValidationIssues(
         issues.push(
           issue(
             "forbidden_exercise_text",
-            `${pass.key}: ${exercise.name} Ã¤r rÃ¥d/uppvÃ¤rmning, inte en loggbar Ã¶vning.`
+            `${pass.key}: ${exercise.name} är råd/uppvärmning, inte en loggbar övning.`
           )
         );
       }
@@ -881,7 +881,7 @@ function getPlanValidationIssues(
     issues.push(
       issue(
         "missing_posterior_chain",
-        "Underkroppen har framsida lÃ¥r men saknar tydlig baksida lÃ¥r eller sÃ¤te."
+        "Underkroppen har framsida lår men saknar tydlig baksida lår eller säte."
       )
     );
   }
@@ -890,7 +890,7 @@ function getPlanValidationIssues(
     issues.push(
       issue(
         "limitations_not_reflected",
-        "AnvÃ¤ndarens begrÃ¤nsningar mÃ¥ste synas i safetyNotes och pÃ¥verka upplÃ¤gget."
+        "Användarens begränsningar måste synas i safetyNotes och påverka upplägget."
       )
     );
   }
@@ -968,7 +968,7 @@ async function callProgramStage(args: {
       },
       body: JSON.stringify({
         model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
-        instructions: repairMojibake(args.instruction),
+        instructions: args.instruction,
         reasoning: { effort: args.effort },
         text: {
           verbosity: "low",
@@ -1048,16 +1048,14 @@ async function handleProseRequest(
       },
       body: JSON.stringify({
         model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
-        instructions: repairMojibake(
-          [
+        instructions: [
             COACH_LANGUAGE_NOTES,
             "",
             "Du skriver syftestext för övningarna i ETT pass i användarens program.",
             "- purpose: en kort mening om varför just den här övningen finns i det här passet. Skriv till användaren, inte om dem.",
             "- caution: en kort sak att tänka på. Finns inget viktigt, skriv tom sträng.",
             "Ingen inledning, ingen sammanfattning, inga upprepningar mellan övningarna. Returnera endast giltig JSON enligt schemat.",
-          ].join("\n")
-        ),
+        ].join("\n"),
         // Låg effort: prosa är skrivande, inte resonemang. Med medium kröp
         // anropen till 20,7 s när sju kördes parallellt — för nära väggen.
         // Språkkvaliteten sitter i modellen (gpt-5.5), inte i tänketiden.
@@ -1303,7 +1301,7 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
-          instructions: repairMojibake(PROGRAM_SUMMARY_INSTRUCTION),
+          instructions: PROGRAM_SUMMARY_INSTRUCTION,
           // Low, som prosan: 19 s av 25 på medium var den enda kvarvarande
           // tunna marginalen. Det här är skrivande, inte resonemang.
           reasoning: { effort: "low" },
@@ -1404,13 +1402,11 @@ export async function POST(request: Request) {
   let previousInvalidPlan: BuiltWorkoutPlan | null = null;
 
   for (let attempt = 1; attempt <= PROGRAM_BUILD_ATTEMPTS; attempt += 1) {
-    const buildInstruction = repairMojibake(
-      buildProgramBuildInstruction({
-        attempt,
-        lastIssues,
-        previousPlan: previousInvalidPlan,
-      })
-    );
+    const buildInstruction = buildProgramBuildInstruction({
+      attempt,
+      lastIssues,
+      previousPlan: previousInvalidPlan,
+    });
     const controller = new AbortController();
     const timeoutId = setTimeout(
       () => controller.abort(),
@@ -1442,7 +1438,7 @@ export async function POST(request: Request) {
           model:
             process.env.OPENAI_PROGRAM_MODEL ??
             "gpt-5-mini",
-          instructions: repairMojibake(PROGRAM_BUILD_SYSTEM_PROMPT),
+          instructions: PROGRAM_BUILD_SYSTEM_PROMPT,
           // Mätt vid 6 dagar, tak 25 s: gpt-5.5 klarade det ungefär varannan
           // gång oavsett effort (medium och low timeoutade alltid, minimal
           // gav 17,1 s en gång och timeout två). gpt-5-mini: 15,4 s.
