@@ -1,20 +1,20 @@
+/**
+ * Bara MinCoachs egna ställningstaganden. Blocket var 15 punkter och 2181
+ * tecken "forskningsbaserat coachprotokoll" — allmän träningslära som
+ * modellen redan kan, plus två punkter som numera räknas i kod (vila via
+ * getRestTargetRange, viktsteg via getExerciseWeightStep) och tre
+ * omformuleringar av samma sak som COACH_VOICE_BRIEF redan säger.
+ *
+ * Rubriken var en del av problemet: "protokoll" får modellen att skriva som
+ * en kliniker, vilket var precis det register vi ville bort från.
+ *
+ * Kvar står bara det en annan coach hade gjort annorlunda — alltså val, inte
+ * fakta. Övningsspecifika fakta bär biblioteket i progressionRule och caution.
+ */
 export const TRAINING_DECISION_PROTOCOL = `
-Forskningsbaserat coachprotokoll:
-- RIR är autoreglering: bedöm setet ihop med övning, setnummer, tidigare set, teknikrisk, dagsform, smärta och trötthet.
-- RIR är också en uppskattning. Behandla användarens RIR som viktig data, men tolka den med prestation och sammanhang.
-- 0-1 RIR ger ofta bra träningseffekt när tekniken är stabil och inget gör ont. Det ska inte låta som ett misslyckande.
-- 0 RIR/failure är inte automatiskt dåligt, men ger mer trötthet och kan kräva mer försiktighet i tekniskt känsliga övningar.
-- Samma vikt och reps med lägre RIR betyder högre faktisk ansträngning. Det kan vara ett riktigt bra set; justera nästa set vid behov utan att beskriva föregående set som slarvigt.
-- Om målet är muskelbygge och användaren hamnar under repsspannet men har 2+ RIR kvar: vikten är inte automatiskt för tung. Håll oftast vikten och coacha användaren att göra fler rena reps innan du sänker.
-- Vid muskelbygge är låga reps, t.ex. 3-6, ett medvetet verktyg. De bör normalt ligga nära gränsen, ungefär RIR 0-2, annars blir träningseffekten ofta för låg. Om användaren inte aktivt vill köra lågreps ska coachen hellre sänka vikten och hålla ett bättre hypertrofi-spann.
-- Om användaren träffar ett lägre repsmål som coachen nyss gav: bekräfta att uppgiften satt. Kalla det inte sämre styrka.
-- Progression är inte bara mer vikt: fler reps, samma reps med bättre RIR, bättre kontroll, mindre smärta och bättre kontakt räknas.
-- För tekniskt känsliga basövningar som RDL/marklyft/knäböj: undvik ful failure. Efter RIR 0 eller teknikstrul kan sänkningen behöva vara ungefär 5-10 %, inte bara ett viktsteg.
-- För press/rodd/latsdrag/benpress: sänkningen kan vara ett till två viktsteg beroende på setnummer, RIR-fall och kvalitet.
-- För isolationsövningar som sidolyft, curl, pushdown, benspark och vader: mindre viktsteg, kortare vila och fokus på kontakt/kontroll. Failure är mindre risk än i RDL, men smärta styr alltid.
-- Jaga aldrig PR genom smärta.
-- Vila styrs av övning och ansträngning: tunga basövningar behöver längre vila, isolationsövningar sällan 4 minuter.
-- Vikter ska vara praktiskt möjliga för redskapet. Hantlar ska inte föreslås i orimliga mellanvikter.
+Så här coachar MinCoach:
+- Under repsspannet men 2+ RIR kvar: vikten är sällan för tung. Håll den och be om fler rena reps innan du sänker.
+- Jaga aldrig PB genom smärta.
 `.trim();
 
 export const PROGRAM_DESIGN_PROTOCOL = `
