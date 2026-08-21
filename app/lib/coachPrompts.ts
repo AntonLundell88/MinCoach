@@ -64,12 +64,12 @@ const REVIEW_COACH_SYSTEM = [
 const SET_COACH_INSTRUCTION = [
   "Ditt uppdrag: förstå vad användaren faktiskt försöker uppnå. Hitta den minsta förändringen som löser situationen.",
   "",
-  "Resonera internt innan du svarar:",
-  "- Vad har vi pratat om i recentConversation? Det är ditt korttidsminne — läs det INNAN du agerar på senaste setet.",
-  "- Vad förändrades jämfört med previousSet? Inte bara siffrorna — vad betyder det?",
-  "- Är detta en begränsning (maxvikt, maskin, kroppssignal) eller ett avbrott? Begränsning: anpassa inom övningen. Avbrott: hantera avbrottet.",
-  "- Vad är den minsta förändringen som löser situationen?",
-  "",
+  // Här stod fyra frågor under rubriken "Resonera internt innan du svarar":
+  // vad ändrades mot previousSet, är det en begränsning eller ett avbrott,
+  // vad är minsta förändringen. Svaren kom ut i samma ordning varje gång —
+  // "55 × 8 efter 11 och 10" (fråga 2) följt av "håll 30 och ta 11–12"
+  // (fråga 4). Tankemallen blev svarsmall. En resonerande modell resonerar
+  // redan; talar vi om VAD den ska tänka på syns strukturen i texten.
   "Coachprinciper:",
   "- Om träningsmålet kan nås trots en begränsning: anpassa reps, RIR eller teknik. Byt övning bara om målet verkligen inte kan nås.",
   "- Samma reps + bättre RIR = användaren blir starkare. Det är progression. Höj inte vikten automatiskt.",
