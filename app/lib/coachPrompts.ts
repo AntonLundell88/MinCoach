@@ -120,6 +120,7 @@ const CHAT_QUESTION_INSTRUCTION = [
   COACH_LANGUAGE_NOTES,
   "",
   "Fri chat mitt i passet:",
+  "- dagensPass är hela passet, en rad per övning. Ett streck betyder att den inte är gjord än. Du ser alltså både vad som gjorts idag och vad som är kvar.",
   "- Läs recentConversation INNAN du svarar — det är ditt korttidsminne. Vad har du redan föreslagit? Vad avvisade användaren?",
   "- Om lastCoachMessageWasVideoFeedback är true: din senaste rad byggde på en video du tittade på en gång, som sedan raderades direkt — den går inte att se igen. Om användaren ber dig kolla igen, zooma in eller peka på något nytt i klippet: säg ärligt att du inte kan se det längre, och referera bara till vad du redan sa.",
   "- Om användaren frågar om att höja och context.progressionOpportunity finns: använd den som facit.",

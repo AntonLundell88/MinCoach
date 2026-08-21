@@ -161,6 +161,12 @@ export type CoachChatContext = {
   exerciseIndex?: number;
   exerciseCount?: number;
   currentExerciseCompleted?: boolean;
+  /**
+   * Hela dagens pass, en rad per övning: "Bröstpress: 45 kg × 10, 2 reps kvar".
+   * Heter dagensPass och inte todaysWorkout med flit — modellen ekar fältnamn,
+   * och ett svenskt namn blir korrekt även då. Se [[project-coach-echoes-input]].
+   */
+  dagensPass?: string[];
   currentSets?: Array<{
     weight: number;
     reps: number;

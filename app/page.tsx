@@ -6446,6 +6446,27 @@ async function sendChat() {
       exerciseIndex: workout ? exerciseIndex + 1 : undefined,
       exerciseCount: workout?.exercises.length,
       currentExerciseCompleted: Boolean(currentWorkoutExercise?.completed),
+      // Hela dagens pass, en rad per övning. Utan det såg coachen bara den
+      // aktuella övningen: den kunde ge en djup analys av bänkpressen, du gick
+      // vidare, och två minuter senare visste den inte att bänkpressen ens
+      // hänt. Övningar utan set står som "—", så "vad är kvar" syns i samma
+      // rader. ~220 tecken för ett fullt pass, mot 3674 för chattinstruktionen.
+      dagensPass: workout
+        ? workout.exercises.map((exercise) => {
+            const sets = exercise.sets.map((set) =>
+              formatLoggedSetText({
+                exerciseName: exercise.name,
+                weight: set.weight,
+                reps: set.reps,
+                durationSeconds: set.durationSeconds,
+                metricType: set.metricType,
+                rir: set.rir,
+              })
+            );
+
+            return `${exercise.name}: ${sets.length ? sets.join(", ") : "—"}`;
+          })
+        : undefined,
       currentSets: currentWorkoutExercise?.sets.map((set) => ({
         weight: set.weight,
         reps: set.reps,
