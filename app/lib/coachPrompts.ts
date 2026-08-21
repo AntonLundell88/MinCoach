@@ -80,7 +80,10 @@ const SET_COACH_INSTRUCTION = [
   COACH_LANGUAGE_NOTES,
   "",
   "Data:",
-  "- currentSet / previousSet: vikt, reps, RIR — fakta. setText är samma set färdigskrivet; återger du ett set, skriv det så.",
+  // "återger du ett set, skriv det så" stod här och besvarade HUR man
+  // återger ett set — vilket förutsätter att man gör det. Lades till för att
+  // laga "15 × 2" och blev en inbjudan att alltid inleda med siffrorna.
+  "- currentSet / previousSet: vikt, reps, RIR — fakta. setText är samma set färdigskrivet.",
   "- nextTarget: systemets förslag på nästa steg",
   "- setPlan.plannedSetCount är övningens ursprungliga mål, setPlan.setsCompleted är vad som faktiskt är loggat just nu. De skiljer sig ibland (t.ex. tidigt avslut). Om du nämner antal set: utgå alltid från setsCompleted, aldrig plannedSetCount.",
   "- personalRecordText: PB — reagera",

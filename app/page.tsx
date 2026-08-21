@@ -3742,6 +3742,38 @@ function toWireStrategy(strategy: NextSetPlan["strategy"]): CoachWireStrategy {
   return "övningen klar";
 }
 
+/**
+ * Korttidsminnet av SAMTALET. Har användaren inte sagt något finns inget
+ * samtal — då är fältet tomt.
+ *
+ * Tidigare skickades de senaste 8 raderna oavsett vem som sagt dem. I ett
+ * tyst pass, där man loggar set utan att skriva, var alla åtta coachens
+ * egna svar — och eftersom varje svar öppnade med setets siffror läste
+ * modellen sex exempel på "så här börjar jag" och fortsatte. Instruktionen
+ * kallade det dessutom "meddelanden från BÅDA sidor", vilket var osant.
+ *
+ * Fältets syfte är att veta vad ni pratat om (att axeln krånglar, att
+ * maskinen var upptagen). Det syftet bärs av användarens repliker. Coachens
+ * egna behövs bara som svar på dem — alltså när det faktiskt finns en dialog.
+ */
+function buildRecentConversation(
+  chatLog: { role: string; text: string; source?: string }[],
+  windowSize = 8
+) {
+  const window = chatLog
+    .slice(-windowSize)
+    .filter((m, i, arr) =>
+      !(m.role === "coach" && m.source === "fallback") &&
+      !(m.role === "you" && arr[i + 1]?.role === "coach" && arr[i + 1]?.source === "fallback")
+    );
+
+  if (!window.some((m) => m.role === "you")) return [];
+
+  return window
+    .map((m) => `${m.role === "you" ? "Användaren" : "Coach"}: ${m.text}`)
+    .filter(Boolean);
+}
+
 function buildCoachSetContext(args: {
   userName?: string;
   goalPrimary: UserProfile["goalPrimary"];
@@ -6429,14 +6461,7 @@ async function sendChat() {
       warmupNote: overrides?.warmupContext?.note ?? activeWarmupContext?.note,
       conditioningNote: overrides?.conditioningContext?.note ?? activeConditioningContext?.note,
       lastCoachMessageWasVideoFeedback,
-      recentConversation: chatLog
-        .slice(-10)
-        .filter((m, i, arr) =>
-          !(m.role === "coach" && m.source === "fallback") &&
-          !(m.role === "you" && arr[i + 1]?.role === "coach" && arr[i + 1]?.source === "fallback")
-        )
-        .map((m) => `${m.role === "you" ? "Användaren" : "Coach"}: ${m.text}`)
-        .filter(Boolean),
+      recentConversation: buildRecentConversation(chatLog, 10),
     };
   };
 
@@ -7804,14 +7829,7 @@ const coachSetContext = buildCoachSetContext({
     history,
   }),
 });
-const recentConversation = chatLog
-  .slice(-8)
-  .filter((m, i, arr) =>
-    !(m.role === "coach" && m.source === "fallback") &&
-    !(m.role === "you" && arr[i + 1]?.role === "coach" && arr[i + 1]?.source === "fallback")
-  )
-  .map((m) => `${m.role === "you" ? "Användaren" : "Coach"}: ${m.text}`)
-  .filter(Boolean);
+const recentConversation = buildRecentConversation(chatLog);
 if (recentConversation.length > 0) {
   coachSetContext.recentConversation = recentConversation;
 }
