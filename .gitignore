@@ -43,3 +43,6 @@ desktop-check.png
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Codex stresstest-kopior (egen kopia av repot, ska aldrig spåras)
+.codex-retest-*/
