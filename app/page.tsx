@@ -4800,6 +4800,11 @@ const [chatLog, setChatLog] = useState<
   }[]
 >([]);
 const [coachPendingReply, setCoachPendingReply] = useState(false);
+// Övning som coachen presenterat i ett eget chattsvar vid ett byte. Hindrar
+// att passvyn lägger ett intro ovanpå — se replyFromAi.
+const [exerciseAlreadyIntroduced, setExerciseAlreadyIntroduced] = useState<
+  string | null
+>(null);
 const [nameInput, setNameInput] = useState("");
 const [ageInput, setAgeInput] = useState("");
 const [genderInput, setGenderInput] =
@@ -6368,7 +6373,15 @@ async function sendChat() {
         response.action.fromExerciseName,
         response.action.toExerciseName
       );
-      if (result.handled) reply(response.text, "llm");
+      if (result.handled) {
+        // Coachens svar ÄR presentationen av den nya övningen. Utan det här
+        // kom först "Bra, vi kör hantelpress istället" och direkt efter ett
+        // fullt intro av samma övning — två systemmeddelanden i rad.
+        // Sätts bara här: de två andra bytesvägarna säger ingenting alls, och
+        // där är introt den enda rösten.
+        setExerciseAlreadyIntroduced(response.action.toExerciseName);
+        reply(response.text, "llm");
+      }
     } else {
       reply(response.text, response.mode === "ai" ? "llm" : "fallback");
     }
@@ -9427,6 +9440,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
         plannedWeightKg={systemSuggestedWeightRef.current}
         plannedReps={systemSuggestedRepsRef.current}
         updateSet={updateSet}
+        exerciseAlreadyIntroduced={exerciseAlreadyIntroduced}
         validateSetWeight={(weight) => {
           if (isBodyweightExercise(currentExerciseName) || isTimedExercise(currentExerciseName)) return null;
           const warning = buildWeightInputWarningMessage({

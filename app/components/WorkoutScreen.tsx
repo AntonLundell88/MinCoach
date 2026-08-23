@@ -161,6 +161,8 @@ type Props = {
   plannedReps?: number;
   updateSet: (setIdx: number, weight: number, reps: number, rir: number, durationSeconds?: number) => void;
   validateSetWeight: (weight: number) => string | null;
+  /** Övning som coachen redan presenterat i ett chattsvar — hoppa över introt. */
+  exerciseAlreadyIntroduced?: string | null;
   previousWorkoutSummary?: string;
   otherGymReference?: CoachExerciseIntroContext["otherGymReference"];
   recentHealthNotes?: string[];
@@ -614,6 +616,7 @@ export default function WorkoutScreen({
   plannedReps,
   updateSet,
   validateSetWeight,
+  exerciseAlreadyIntroduced,
   previousWorkoutSummary,
   otherGymReference,
   recentHealthNotes,
@@ -882,6 +885,22 @@ useEffect(() => {
   if (isCoachThinking) return;
   const introIdentity = exerciseKey(currentExerciseName);
   if (introSentForIndexRef.current === introIdentity) return;
+
+  // Bytte coachen själv hit har den redan presenterat övningen i sitt svar
+  // ("Bra, vi kör hantelpress istället"). Ett intro direkt efter blir en
+  // andra presentation av samma övning. Vi hoppar över det och markerar
+  // identiteten som avklarad, så nästa övningsbyte fungerar som vanligt.
+  //
+  // Gäller BARA byten där coachen faktiskt sagt något. Byter du via chatten
+  // genom att namnge övningen, eller bekräftar ett föreslaget byte, säger
+  // appen ingenting — då är introt den enda rösten och måste komma.
+  if (
+    exerciseAlreadyIntroduced &&
+    exerciseKey(exerciseAlreadyIntroduced) === introIdentity
+  ) {
+    introSentForIndexRef.current = introIdentity;
+    return;
+  }
 
   // Profil-begränsningar och gamla pass-minnen: nämns max en gång per pass,
   // annars frågar coachen om samma sak på varje övnings-intro.
