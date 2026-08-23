@@ -5566,10 +5566,15 @@ function getProgressionHistoryForExercise(
   return [prWorkout, ...baseHistory];
 }
 
+// Första passet på ett nytt gym ska ge TOM historik, inte hela historiken.
+// Raden här föll tidigare tillbaka på allt när gymmet saknade pass, så
+// motorn planerade från en annan maskins vikter: 52,5 kg föreslogs på ett
+// gym där ingenting loggats. Utan fallbacken behandlas övningen som ny och
+// kalibreras — och otherGymReference, som finns för precis det läget, får
+// göra sitt jobb och berätta vad som togs på det andra gymmet.
 const gymFilteredHistory = useMemo(() => {
   if (!activeGymId) return history;
-  const gymHistory = history.filter((w) => w.gymId === activeGymId);
-  return gymHistory.length > 0 ? gymHistory : history;
+  return history.filter((w) => w.gymId === activeGymId);
 }, [history, activeGymId]);
 
 const otherGymReference = useMemo(() => {
@@ -5601,6 +5606,29 @@ const progressionHistory = useMemo(() => {
 
   if (alreadyHasPr) return baseHistory;
 
+  // personalRecords är globalt, inte per gym. gymFilteredHistory är HELA det
+  // aktuella gymmets historik — inget fönster — så saknas PB:t där sattes det
+  // någon annanstans, och då hör det inte hemma i planeringen för den här
+  // maskinen. Utan kontrollen stoppades PB:t tillbaka in nedan, dessutom
+  // stämplat med dagens gym, och coachen fortsatte föreslå den andra maskinens
+  // vikt även efter att en riktig nivå loggats här.
+  //
+  // Hittas PB:t inte i den fulla historiken heller är det föräldralöst (t.ex.
+  // importerat) — då är injektionen fortfarande rätt.
+  const prBelongsToAnotherGym =
+    Boolean(activeGymId) &&
+    history.some((item) =>
+      item.exercises.some(
+        (exercise) =>
+          exerciseKey(exercise.name) === exerciseKey(currentExerciseName) &&
+          exercise.sets.some(
+            (set) => set.weight === pr.weight && set.reps === pr.reps
+          )
+      )
+    );
+
+  if (prBelongsToAnotherGym) return baseHistory;
+
   const prWorkout: Workout = {
     id: `personal-record-${exerciseKey(currentExerciseName)}`,
     startedAt: pr.createdAt,
@@ -5622,7 +5650,15 @@ const progressionHistory = useMemo(() => {
   };
 
   return [prWorkout, ...baseHistory];
-}, [currentExerciseName, gymFilteredHistory, nextPass, personalRecords, workout]);
+}, [
+  activeGymId,
+  currentExerciseName,
+  gymFilteredHistory,
+  history,
+  nextPass,
+  personalRecords,
+  workout,
+]);
 
 const stagnationInsight = useMemo(() => {
   if (!currentExerciseName) return "";
