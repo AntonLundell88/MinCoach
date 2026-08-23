@@ -4724,6 +4724,9 @@ export default function Home() {
 const [workoutComplete, setWorkoutComplete] = useState(false);
 const [showDailyPlan, setShowDailyPlan] = useState(false);
 const [hasAcceptedTrainingSafety, setHasAcceptedTrainingSafety] = useState(false);
+// Sant så fort användaren loggat sitt allra första set. Enda syftet är att
+// visa uppvärmningshinten en gång — inte varje pass i all framtid.
+const [hasLoggedFirstSetEver, setHasLoggedFirstSetEver] = useState(true);
 const [showExerciseProgress, setShowExerciseProgress] = useState(false);
   const [showStatistics, setShowStatistics] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -4940,6 +4943,7 @@ if (savedLastPass && ALL_PASS_KEYS.includes(savedLastPass)) {
     setHasAcceptedTrainingSafety(
       loadJSON<boolean>("acceptedTrainingSafety", false)
     );
+    setHasLoggedFirstSetEver(loadJSON<boolean>("loggedFirstSetEver", false));
     const savedProfile = loadJSON<UserProfile | null>("userProfile", null);
 if (savedProfile) {
   setUserProfile(savedProfile);
@@ -7782,6 +7786,10 @@ const painFailure =
     ];
    }
     setWorkout(updated);
+    if (!hasLoggedFirstSetEver) {
+      setHasLoggedFirstSetEver(true);
+      saveJSON("loggedFirstSetEver", true);
+    }
    const suggestedNextWeight = nextSetPlan.weight;
 
 
@@ -8905,6 +8913,7 @@ setStarted(false);
     localStorage.removeItem("exerciseOverridesByPass");
     localStorage.removeItem("personalRecords");
     localStorage.removeItem("acceptedTrainingSafety");
+    localStorage.removeItem("loggedFirstSetEver");
     localStorage.removeItem("approvedWorkoutPlan");
     localStorage.removeItem("programPreferences");
     localStorage.removeItem("customWorkoutPlan");
@@ -8931,6 +8940,7 @@ setStarted(false);
     setWorkoutReviewLoading(false);
     setWorkoutComplete(false);
     setStarted(false);
+    setHasLoggedFirstSetEver(false);
     alert("Allt återställt ✅");
     setCoachMemory({ notes: [] });
   setCustomExercisesByPass(createEmptyPassStringMap());
@@ -9450,6 +9460,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
         plannedReps={systemSuggestedRepsRef.current}
         updateSet={updateSet}
         exerciseAlreadyIntroduced={exerciseAlreadyIntroduced}
+        showWarmupHint={!hasLoggedFirstSetEver}
         validateSetWeight={(weight) => {
           if (isBodyweightExercise(currentExerciseName) || isTimedExercise(currentExerciseName)) return null;
           const warning = buildWeightInputWarningMessage({

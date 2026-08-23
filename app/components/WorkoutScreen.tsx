@@ -163,6 +163,8 @@ type Props = {
   validateSetWeight: (weight: number) => string | null;
   /** Övning som coachen redan presenterat i ett chattsvar — hoppa över introt. */
   exerciseAlreadyIntroduced?: string | null;
+  /** Har användaren aldrig loggat ett set? Då visas uppvärmningshinten en gång. */
+  showWarmupHint?: boolean;
   previousWorkoutSummary?: string;
   otherGymReference?: CoachExerciseIntroContext["otherGymReference"];
   recentHealthNotes?: string[];
@@ -617,6 +619,7 @@ export default function WorkoutScreen({
   updateSet,
   validateSetWeight,
   exerciseAlreadyIntroduced,
+  showWarmupHint = false,
   previousWorkoutSummary,
   otherGymReference,
   recentHealthNotes,
@@ -1462,6 +1465,15 @@ useEffect(() => {
             ) : (
               <p className="mt-1 text-sm font-semibold leading-5 text-white">
                 Logga första setet
+              </p>
+            )}
+            {/* Visas tills användaren loggat sitt allra första set, oavsett om
+                övningen har ett förslag eller inte — annars ser bara den som
+                saknar historik den, och det är inte bara nya konton som
+                loggar uppvärmningen av gammal vana. */}
+            {showWarmupHint && !currentExerciseReadyToFinish && (
+              <p className="mt-1.5 text-xs leading-4 text-white/45">
+                Bara arbetsset här — uppvärmningen loggar vi inte.
               </p>
             )}
           </div>
