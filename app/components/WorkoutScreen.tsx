@@ -1472,8 +1472,8 @@ useEffect(() => {
                 saknar historik den, och det är inte bara nya konton som
                 loggar uppvärmningen av gammal vana. */}
             {showWarmupHint && !currentExerciseReadyToFinish && (
-              <p className="mt-1.5 text-xs leading-4 text-white/45">
-                Bara arbetsset här — uppvärmningen loggar vi inte.
+              <p className="mt-2 border-l-2 border-[#2f6df6] pl-2 text-xs font-semibold leading-4 text-white">
+                Logga inte uppvärmningsseten — bara arbetsseten.
               </p>
             )}
           </div>
