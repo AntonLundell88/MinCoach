@@ -787,8 +787,10 @@ export default function StartScreen({
               </p>
               <p>
                 Värm upp innan tunga set — ett par lätta set på vikten du ska
-                köra minskar skaderisk och gör att musklerna presterar bättre.
-                Uppvärmningen loggar du inte, bara arbetsseten.
+                köra minskar skaderisk och gör att musklerna presterar bättre.{" "}
+                <span className="font-semibold text-white">
+                  Uppvärmningen loggar du inte, bara arbetsseten.
+                </span>
               </p>
               <p>
                 Vid skada, sjukdom eller medicinska frågor ska du rådgöra med
