@@ -4170,9 +4170,14 @@ export function isBarbellExercise(name: string): boolean {
   const definition = getExerciseDefinition(name);
   const tags = definition?.equipmentTags ?? [];
   const equipment = definition?.equipment.toLowerCase() ?? "";
+  // Utan diakrit också: egna övningsnamn skrivs ofta "skivstang" eller
+  // "stang". page.tsx hade en egen kopia som täckte det, den här inte —
+  // kopian är borta nu, så täckningen måste finnas här.
   const namedBarbell =
     lower.includes("stång") ||
+    lower.includes("stang") ||
     lower.includes("skivstång") ||
+    lower.includes("skivstang") ||
     lower.includes("barbell");
   const barbellOnly =
     tags.includes("barbell") &&
@@ -4256,19 +4261,18 @@ export function formatRestProse(range: { min: number; max: number }) {
   return range.min === range.max ? `${range.min} sek` : `${range.min}–${range.max} sek`;
 }
 
+/**
+ * Viktsteget för en övning. ENDA källan — page.tsx hade en egen kopia med
+ * andra siffror: den gav 2,5 för maskiner och kablar, den här gav 5. Motorn
+ * använde page-versionen och har alltså producerat all historik i 2,5-steg
+ * (47,5 · 62,5 · 37,5), medan plus-knappen i UI:t läste den här och hoppade
+ * 5. Coachen kunde säga "backa till 47,5" och knappen tog dig till 45.
+ *
+ * Motorns semantik vinner eftersom den är den som all loggad data följer:
+ * skivstång 5 kg, allt annat 2,5.
+ */
 export function getExerciseWeightStep(name: string): number {
-  if (isBarbellExercise(name)) return 5;
-
-  const tags = getExerciseDefinition(name)?.equipmentTags ?? [];
-  const isDumbbellOnly =
-    tags.includes("dumbbells") &&
-    !tags.includes("machines") &&
-    !tags.includes("cables") &&
-    !tags.includes("barbell");
-
-  if (isDumbbellOnly || isBodyweightExercise(name)) return 2.5;
-
-  return 5;
+  return isBarbellExercise(name) ? 5 : 2.5;
 }
 
 function getCustomExerciseCue(category: string) {

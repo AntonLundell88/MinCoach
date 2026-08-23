@@ -46,6 +46,7 @@ import {
   exerciseKey,
   formatRestProse,
   getExerciseDefinition,
+  getExerciseWeightStep,
   getExerciseProfile,
   getExerciseRestKind,
   getRestTargetRange,
@@ -2131,7 +2132,6 @@ function buildExerciseLibraryInfoList(exerciseNames: string[]) {
 const DEFAULT_TARGET_SETS = 3;
 const DEFAULT_TARGET_REPS = 5;
 const PROGRESSION_STEP = 2.5;
-const BARBELL_WEIGHT_STEP = 5;
 const DUMBBELL_WEIGHT_SCALE = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30,
   32.5, 35, 37.5, 40, 42.5, 45, 47.5, 50, 52.5, 55, 57.5, 60,
@@ -2148,36 +2148,6 @@ function isDumbbellWeightExercise(exerciseName: string) {
     lowerName.includes("sidolyft") ||
     equipment.includes("hantel")
   );
-}
-
-function isBarbellWeightExercise(exerciseName: string) {
-  const lowerName = exerciseName.toLowerCase();
-  const definition = getExerciseDefinition(exerciseName);
-  const tags = definition?.equipmentTags ?? [];
-  const equipment = definition?.equipment.toLowerCase() ?? "";
-  const explicitlyNamedBarbell =
-    lowerName.includes("stång") ||
-    lowerName.includes("stang") ||
-    lowerName.includes("skivstång") ||
-    lowerName.includes("skivstang") ||
-    lowerName.includes("barbell");
-  const barbellOnlyDefinition =
-    tags.includes("barbell") &&
-    !tags.includes("dumbbells") &&
-    !tags.includes("machines") &&
-    !tags.includes("cables");
-
-  return (
-    explicitlyNamedBarbell ||
-    barbellOnlyDefinition ||
-    equipment === "skivstång" ||
-    equipment === "skivstang"
-  );
-}
-
-function getExerciseWeightStep(exerciseName: string) {
-  if (isBarbellWeightExercise(exerciseName)) return BARBELL_WEIGHT_STEP;
-  return PROGRESSION_STEP;
 }
 
 // Returns a scaled weight increase when the user was clearly underloaded.
