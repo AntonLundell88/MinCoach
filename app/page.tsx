@@ -4110,16 +4110,16 @@ function pickEarnedExcitement(args: {
 
   if (isNewPersonalBest) {
     if (setNumber >= 3) {
-      if (exerciseCategory === "rygg") return "Okej, ryggen är med på riktigt idag! ðŸš€";
-      if (exerciseCategory === "ben") return "Okej, benen är med på riktigt idag! ðŸš€";
+      if (exerciseCategory === "rygg") return "Okej, ryggen är med på riktigt idag! 🚀";
+      if (exerciseCategory === "ben") return "Okej, benen är med på riktigt idag! 🚀";
       if (exerciseCategory === "bröst" || exerciseCategory === "axlar") {
-        return "Okej, pressen sitter på riktigt idag! ðŸš€";
+        return "Okej, pressen sitter på riktigt idag! 🚀";
       }
 
-      return "Okej, det här är en stark träningsdag! ðŸš€";
+      return "Okej, det här är en stark träningsdag! 🚀";
     }
-    if (setNumber === 2) return "Vänta lite. Ännu ett personbästa! ðŸ”¥";
-    return rir >= 2 ? "Oj. Nu snackar vi! ðŸ”¥" : "Nu snackar vi!";
+    if (setNumber === 2) return "Vänta lite. Ännu ett personbästa! 🔥";
+    return rir >= 2 ? "Oj. Nu snackar vi! 🔥" : "Nu snackar vi!";
   }
 
   if (repsUpSameWeight) return setNumber <= 2 ? "Där satt den!" : "Snyggt. Den repen ville vi ha.";
@@ -4489,7 +4489,7 @@ function buildCoachMessage(args: {
     }
 
     return coachResponse([
-      rir >= 4 ? "Bra jobbat! Det där var starkt ðŸ”¥" : "Bra jobbat. Det där satt fint.",
+      rir >= 4 ? "Bra jobbat! Det där var starkt 🔥" : "Bra jobbat. Det där satt fint.",
       currentText,
       nextSetPlan.reason,
       "",
@@ -7787,7 +7787,7 @@ const painFailure =
 
     setFailNoteInput("");
     setDidFailInput(false);
- // âœ… Coach-reaktion + auto-förslag för nästa set (RIR)
+ // ✅ Coach-reaktion + auto-förslag för nästa set (RIR)
 const step = PROGRESSION_STEP;
 
 
@@ -8201,14 +8201,22 @@ function makeCoachNotesFromWorkout(w: Workout): CoachNote[] {
     gym: w.gym,
   };
 
-  if (dayForm === "trött") {
+  // De här tre säger något om hur träningen gick — de kräver att träning
+  // faktiskt skedde. Utan ett enda loggat set blir "höll det kontrollerat"
+  // och "kan ha påverkat vikterna" påståenden om ingenting. Event-
+  // noteringarna nedan är sanna oavsett: rapporterad smärta är ofta just
+  // anledningen till att passet slutade utan set, och det ska coachen minnas.
+  const loggedAnySet = w.exercises.some((exercise) => exercise.sets.length > 0);
+
+  if (loggedAnySet && dayForm === "trött") {
     notes.push({ ...base, text: "Du kom in trött och höll det kontrollerat." });
   }
-  if (dayForm === "stark") {
+  if (loggedAnySet && dayForm === "stark") {
     notes.push({ ...base, text: "Du kände dig stark idag." });
   }
 
   if (
+    loggedAnySet &&
     w.conditioningContext?.timing === "before" &&
     w.conditioningContext.intensity === "hard"
   ) {
@@ -8400,9 +8408,9 @@ function buildWorkoutReview(args: {
   } else if (summary.isPartial) {
     coachHeadline = "Bra att du sparade där du var.";
   } else if (progression.improved.length >= 2) {
-    coachHeadline = `Det här var en stark dag. ${improvedText} gick framåt ðŸ”¥`;
+    coachHeadline = `Det här var en stark dag. ${improvedText} gick framåt 🔥`;
   } else if (progression.improved.length === 1) {
-    coachHeadline = `${progression.improved[0]} tog ett tydligt steg idag ðŸ”¥`;
+    coachHeadline = `${progression.improved[0]} tog ett tydligt steg idag 🔥`;
   } else if (hardSetCount >= 3 && failedSetCount === 0) {
     coachHeadline = "Tungt jobb, men du höll kontrollen hela vägen.";
   } else if (hardSetCount >= 3) {
@@ -8489,9 +8497,10 @@ function buildWorkoutReview(args: {
   }
 
   if (positives.length === 0) {
-    positives.push(
-      "Du dök upp och passet är sparat. Det räknas."
-    );
+    // Raden når i praktiken bara pass utan loggade set (finns set får
+    // positives alltid "Starkaste träffen idag"). Och de passen sparas inte
+    // — så säg inte att de gjort det.
+    positives.push("Du dök upp. Det räknas.");
   }
 
   if (adjustments.length === 0) {
@@ -8684,7 +8693,7 @@ function buildWorkoutSummary(w: Workout) {
   };
 
   const alertText = [
-    `Pass ${w.pass} sparat âœ…`,
+    `Pass ${w.pass} sparat ✅`,
     `Tid: ${durationMinutes} min`,
     `Övningar: ${exerciseCount}`,
     `Totala set: ${totalSets}`,
@@ -8755,7 +8764,7 @@ const review = buildWorkoutReview({
 });
 
 setWorkoutReview(null);
-setWorkoutReviewLoading(true);
+setWorkoutReviewLoading(hasLoggedSets);
 setLatestCompletedReview(review);
 void syncStructuredBetaWorkout({
   id: workoutWithSummary.id,
@@ -8784,6 +8793,13 @@ void syncStructuredBetaWorkout({
     }))
   ),
 });
+// Samma hasLoggedSets som avgjorde att passet inte sparas i historiken.
+// Utan ett enda set finns ingenting att sammanfatta: den deterministiska
+// recensionen säger redan "Ingen stress. Vi börjar rent nästa gång.", och
+// lobbyhälsningen ska inte skrivas om ett pass som aldrig hände.
+if (!hasLoggedSets) {
+  setWorkoutReview(review);
+} else {
 void requestAiWorkoutReview({
   context: {
     kind: "workout_review",
@@ -8865,6 +8881,7 @@ void requestAiWorkoutReview({
 }).finally(() => {
   setWorkoutReviewLoading(false);
 });
+}
 setWorkoutComplete(false);
 localStorage.removeItem(ACTIVE_WORKOUT_DRAFT_KEY);
 setWorkout(null);
@@ -8914,7 +8931,7 @@ setStarted(false);
     setWorkoutReviewLoading(false);
     setWorkoutComplete(false);
     setStarted(false);
-    alert("Allt återställt âœ…");
+    alert("Allt återställt ✅");
     setCoachMemory({ notes: [] });
   setCustomExercisesByPass(createEmptyPassStringMap());
   setTodayExercisesByPass(createEmptyPassStringMap());
