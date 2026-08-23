@@ -787,10 +787,13 @@ export default function StartScreen({
               </p>
               <p>
                 Värm upp innan tunga set — ett par lätta set på vikten du ska
-                köra minskar skaderisk och gör att musklerna presterar bättre.{" "}
-                <span className="font-semibold text-white">
-                  Uppvärmningen loggar du inte, bara arbetsseten.
-                </span>
+                köra minskar skaderisk och gör att musklerna presterar bättre.
+              </p>
+              {/* Egen rad med accentkant: rutan uppmanar till uppvärmning och
+                  användaren står strax framför en loggknapp. Missas den här
+                  raden räknas uppvärmningsset som arbetsset. */}
+              <p className="border-l-2 border-[#2f6df6] pl-3 text-base font-semibold leading-6 text-white">
+                Logga inte uppvärmningsseten — bara arbetsseten.
               </p>
               <p>
                 Vid skada, sjukdom eller medicinska frågor ska du rådgöra med
