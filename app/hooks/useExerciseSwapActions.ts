@@ -7,7 +7,17 @@ import type { Workout, WorkoutPlan } from "../page";
 type LoggedExerciseShape = Workout["exercises"][number];
 type PlannedExerciseShape = WorkoutPlan["passes"][number]["exercises"][number];
 
-export type ExerciseActionResult = { handled: boolean; message?: string };
+export type ExerciseActionResult = {
+  handled: boolean;
+  message?: string;
+  /**
+   * Övningens namn så som det faktiskt hamnade i passet, efter
+   * resolveExerciseName. AI:n kan säga "rumänsk marklyft" medan biblioteket
+   * heter "Rumänska marklyft" — anroparen måste få det upplösta namnet, annars
+   * jämför den mot fel nyckel.
+   */
+  replacedWith?: string;
+};
 
 type ChatMessage = {
   role: "you" | "coach";
@@ -232,17 +242,25 @@ export function useExerciseSwapActions(args: {
     }
     setSwapFrom(null);
     setSwapToInput("");
-    setChatLog((prev) => [
-      ...prev,
-      {
-        role: "coach",
-        source: "engine" as const,
-        text: resetLoggedExercise
-          ? `Bra, vi kör ${replacementName} istället. Jag sparar ${fromName} som avslutad så loggen blir rätt.`
-          : `Bra, vi kör ${replacementName} istället.`,
-      },
-    ]);
-    return { handled: true };
+
+    // Motorns egen bekräftelse. Hoppas över när anroparen själv tänker svara —
+    // kom coachen med bytet i ett chattsvar blev det annars två meddelanden i
+    // rad: "Bra, vi kör Hantelpress istället" och sedan coachens egen replik
+    // om samma sak. Byten från UI-knappen har ingen annan röst och behöver den.
+    if (!silent) {
+      setChatLog((prev) => [
+        ...prev,
+        {
+          role: "coach",
+          source: "engine" as const,
+          text: resetLoggedExercise
+            ? `Bra, vi kör ${replacementName} istället. Jag sparar ${fromName} som avslutad så loggen blir rätt.`
+            : `Bra, vi kör ${replacementName} istället.`,
+        },
+      ]);
+    }
+
+    return { handled: true, replacedWith: replacementName };
   }
 
   function addExerciseDuringWorkout(): ExerciseActionResult {

@@ -6352,9 +6352,13 @@ async function sendChat() {
       exerciseKey(response.action.fromExerciseName) === exerciseKey(currentExerciseName) &&
       exerciseKey(response.action.toExerciseName) !== exerciseKey(currentExerciseName)
     ) {
+      // silent: coachens egen replik nedan ÄR bekräftelsen. Utan det postar
+      // motorn "Bra, vi kör X istället" och coachen säger samma sak direkt
+      // efter — de två systemmeddelanden Codex reagerade på.
       const result = replaceExerciseInCurrentWorkout(
         response.action.fromExerciseName,
-        response.action.toExerciseName
+        response.action.toExerciseName,
+        { silent: true }
       );
       if (result.handled) {
         // Coachens svar ÄR presentationen av den nya övningen. Utan det här
@@ -6362,7 +6366,12 @@ async function sendChat() {
         // fullt intro av samma övning — två systemmeddelanden i rad.
         // Sätts bara här: de två andra bytesvägarna säger ingenting alls, och
         // där är introt den enda rösten.
-        setExerciseAlreadyIntroduced(response.action.toExerciseName);
+        // Det UPPLÖSTA namnet, inte AI:ns råa. Sa den "rumänsk marklyft" heter
+        // övningen "Rumänska marklyft" i passet — jämför man mot råtexten
+        // matchar nyckeln inte och introt slipper igenom ändå.
+        setExerciseAlreadyIntroduced(
+          result.replacedWith ?? response.action.toExerciseName
+        );
         reply(response.text, "llm");
       }
     } else {
