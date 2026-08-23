@@ -3877,6 +3877,19 @@ function buildCoachSetContext(args: {
     if (args.nextSetPlan.strategy === "complete") {
       if (failText.includes("ont") || failText.includes("smärta")) return "stopp på grund av smärta";
       if (args.rir <= 0) return "tungt sista set, övningen klar";
+
+      // Motorn stryker planens sista set när de föregående gått hårt nog —
+      // ett fjärde set då ger trötthet, inte stimulans. Utan den här raden
+      // fick coachen "planerade set klara", vilket var OSANT (3 av 4) och
+      // dessutom det enda den visste. Den kunde alltså inte förklara varför
+      // ett set försvann, och användaren såg schemat lova fyra och få tre.
+      if (
+        typeof plannedSetCount === "number" &&
+        args.setNumber < plannedSetCount
+      ) {
+        return `${args.setNumber} hårda set räckte, sista i planen stryks`;
+      }
+
       return "planerade set klara";
     }
 
