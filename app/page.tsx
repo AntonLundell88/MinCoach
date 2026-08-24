@@ -8751,8 +8751,14 @@ saveCoachNotes(freshNotes);
 
 
 
-    saveRawValue("lastPass", workout.pass);
-    setLastPass(workout.pass);
+    // lastPass driver ENBART rotationen (getNextPass) och etiketten som visar
+    // vad du körde sist. Ett pass utan loggade set är inget pass — då ska
+    // Pass C fortfarande stå på tur, inte Pass A. Med spärren här hålls
+    // lastPass också i takt med history[0].pass, som skrivs på samma villkor.
+    if (hasLoggedSets) {
+      saveRawValue("lastPass", workout.pass);
+      setLastPass(workout.pass);
+    }
     void syncBetaSnapshotNow({ reason: "workout-finished" });
 
 const videoNotes = chatLog
