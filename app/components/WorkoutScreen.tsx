@@ -908,10 +908,15 @@ useEffect(() => {
 
   // Profil-begränsningar och gamla pass-minnen: nämns max en gång per pass,
   // annars frågar coachen om samma sak på varje övnings-intro.
+  //
+  // Flaggan sätts INTE här. Effekten kan köra om innan svaret landat — den har
+  // isCoachThinking i beroendelistan och avbryter det pågående anropet — och
+  // flippade vi budgeten på försöket åt ett avbrutet anrop upp hela passets
+  // hälsokontext. Anropet som faktiskt landade gick då utan noteringen, varje
+  // gång. Sätts nu tillsammans med introSentForIndexRef, som redan gör rätt.
   const includeStaticHealthContext = !healthContextMentionedRef.current;
-  if (includeStaticHealthContext && ((recentHealthNotes && recentHealthNotes.length > 0) || limitations)) {
-    healthContextMentionedRef.current = true;
-  }
+  const hasStaticHealthContext =
+    (recentHealthNotes && recentHealthNotes.length > 0) || Boolean(limitations);
 
   // Chattkommentarer sen förra övnings-introt: taggas med vilken övning de
   // sas under, så de aldrig läcker in som fakta om en annan övning/maskin
@@ -962,6 +967,9 @@ useEffect(() => {
     if (controller.signal.aborted) return;
     if (introSentForIndexRef.current === introIdentity) return;
     introSentForIndexRef.current = introIdentity;
+    if (includeStaticHealthContext && hasStaticHealthContext) {
+      healthContextMentionedRef.current = true;
+    }
     setIntroLoading(false);
     addCoachMessage(result.text, eventKey, result.mode === "ai" ? "llm" : "engine");
   });

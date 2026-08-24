@@ -25,7 +25,7 @@ const MEMORY_PRECEDENCE_RULE =
   "Om recentConversation motsäger memoryInsight eller något du vetat sedan tidigare — t.ex. användaren säger att något som var ett problem förra gången inte längre är det: lita på recentConversation. Färsk information från den här sessionen vinner alltid över äldre minnen.";
 
 const HEALTH_NOTES_PRECEDENCE_RULE =
-  "limitations är vad användaren angav vid start (skador, begränsningar, oro) och kan vara gammal. recentHealthNotes är skador eller besvär nämnda senare, i tidsordning (äldst först), med daysAgo och vilken övning det gällde. Om de säger emot varandra vinner alltid det senaste — säger den sista raden att ett besvär är bättre eller helt borta, lita på det och sluta vara försiktig eller bygga runt det av gammal vana. Har varken limitations eller recentHealthNotes stöd i recentConversation just nu: gör klart att det är något du minns sen tidigare — fråga hur det känns idag snarare än att påstå att det händer i det här setet.";
+  "limitations är vad användaren angav vid start (skador, begränsningar, oro) och kan vara gammal. recentHealthNotes är skador eller besvär nämnda senare, i tidsordning (äldst först), med daysAgo och vilken övning det gällde. Om de säger emot varandra vinner alltid det senaste — säger den sista raden att ett besvär är bättre eller helt borta, lita på det och sluta vara försiktig eller bygga runt det av gammal vana. Har användaren inte tagit upp besväret nu: gör klart att det är något du minns sen tidigare — fråga hur det känns idag snarare än att anta att det gör ont.";
 
 const RECENT_WORKING_WEIGHTS_NOTE =
   "recentWorkingWeights visar de faktiska arbetsvikterna från senaste passen på den här övningen, i tidsordning (äldst först).";
@@ -154,7 +154,17 @@ const CHAT_ACTION_INSTRUCTION = [
   "note_limitation: sätt när användaren nämner något som låter som en verklig skada eller ett ihållande kroppsligt besvär — nytt, förbättrat eller helt borta. Inte vanlig träningsutmattning eller överdrift (\"benen är helt slut\", \"armarna dog\" är inte skador). text ska vara en kort, saklig sammanfattning av vad som sades, i tredje person, t.ex. \"Ont i höger fot efter vridning, nämnt under pass.\" eller \"Ländryggsvärk som nämndes tidigare är nu helt borta.\" Sätt bara en av de två actions per svar — välj den som är tydligast om båda skulle kunna passa.",
 ].join("\n");
 
-const EXERCISE_INTRO_COACH_SYSTEM = [COACH_HARD_GUARDRAILS].join("\n");
+// HEALTH_NOTES_PRECEDENCE_RULE hörde hemma här hela tiden. Setcoachen och
+// chatten har haft den länge; introt byggdes bara av skyddsräckena, så det var
+// den enda coachrösten som inte visste hur den skulle bete sig kring ett
+// besvär den minns. Resultatet: den föreslog ett PB-försök på ett knä som
+// stoppade användaren dagen innan. Regeln säger fråga, inte anta — beslutet
+// ligger kvar hos användaren.
+const EXERCISE_INTRO_COACH_SYSTEM = [
+  COACH_HARD_GUARDRAILS,
+  "",
+  HEALTH_NOTES_PRECEDENCE_RULE,
+].join("\n");
 
 const EXERCISE_INTRO_INSTRUCTION = [
   "Du skriver det första coachmeddelandet när användaren kommer till en ny övning i passet — innan något set är loggat.",
