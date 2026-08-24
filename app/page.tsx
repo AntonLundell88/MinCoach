@@ -6377,6 +6377,14 @@ async function sendChat() {
           result.replacedWith ?? response.action.toExerciseName
         );
         reply(response.text, "llm");
+      } else {
+        // Bytet gick INTE igenom — namnet behövde förtydligas, övningen låg
+        // redan i passet, eller biblioteket kände inte igen den. Motorn är
+        // tystad här för att coachen ska äga rösten, så säger vi ingenting
+        // blir det en tom bubbla och en snurra som aldrig slutar (reply() är
+        // det enda som nollställer coachPendingReply). Coachens egen text
+        // duger inte: den utgår från att bytet skedde.
+        reply(result.message ?? response.text, "llm");
       }
     } else {
       reply(response.text, response.mode === "ai" ? "llm" : "fallback");
