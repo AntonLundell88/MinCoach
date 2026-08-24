@@ -6552,6 +6552,20 @@ async function sendChat() {
           }
         : undefined,
       heavierTestSet: progressionPlan.calibrationTestCandidate,
+      // Samma personalRecords som avgör den blå PB-ramen på setsvaret. Läser
+      // båda rösterna ur samma lagring kan de inte längre säga emot varandra.
+      personalRecord: currentExerciseName
+        ? (() => {
+            const record = personalRecords[exerciseKey(currentExerciseName)];
+            if (!record) return undefined;
+            return {
+              weight: record.weight,
+              reps: record.reps,
+              durationSeconds: record.durationSeconds,
+              metricType: record.metricType,
+            };
+          })()
+        : undefined,
       warmupNote: overrides?.warmupContext?.note ?? activeWarmupContext?.note,
       conditioningNote: overrides?.conditioningContext?.note ?? activeConditioningContext?.note,
       lastCoachMessageWasVideoFeedback,

@@ -209,6 +209,27 @@ export type CoachChatContext = {
     // hela nyansen, strukturerat.
     tone: "offer" | "clear";
   };
+  /**
+   * Det stående personbästat i den aktuella övningen, ur samma personalRecords
+   * som driver PB-ramen i chatten och Personbästan-skärmen.
+   *
+   * Utan det här fältet fick chatten en faktafråga ("var det pb?") helt utan
+   * facit och svarade från det närmaste den hade — senaste passet. Den kallade
+   * 37,5 × 10 ett PB för att det slog förra gångens 35 × 10, medan systemet
+   * inte hade registrerat något PB alls. Två röster, två svar, och chatten var
+   * den som hade fel.
+   *
+   * Siffror, ingen färdig mening: personalRecordText på setkontexten är en hel
+   * mening och kommer tillbaka ordagrant i svaret. Skickas medvetet INTE till
+   * setrutten — den reagerar på varje set, och ett PB-tal där riskerar att bli
+   * en uppläsning av avstånd till PB på löpande band.
+   */
+  personalRecord?: {
+    weight: number;
+    reps: number;
+    durationSeconds?: number;
+    metricType?: "reps" | "time";
+  };
   // Säkert tak för ett tyngre testset, om den aktuella övningen kvalificerar.
   // Facit för VAD som är säkert att föreslå om användaren själv efterfrågar
   // att testa hårdare — inte en instruktion att ta upp det proaktivt här.
