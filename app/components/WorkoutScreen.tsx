@@ -67,6 +67,12 @@ type Props = {
   activePlan: string[];
   exerciseOrderList: { name: string; hasSets: boolean }[];
   onReorderExercises: (orderedRemainingNames: string[]) => void;
+  /**
+   * Rapporterar att övningsintrot föll tillbaka på motorns mall, med ruttens
+   * egen orsak. Introt är den enda coachrösten som saknat det här — vi såg den
+   * gula pricken men aldrig varför.
+   */
+  onAiFallback?: (reason: string, exerciseName: string) => void;
   passLabel: string;
   coachData: {
     intro: string;
@@ -567,6 +573,7 @@ export default function WorkoutScreen({
   activePlan,
   exerciseOrderList,
   onReorderExercises,
+  onAiFallback,
   passLabel,
   coachData,
   dayForm,
@@ -971,6 +978,12 @@ useEffect(() => {
     introSentForIndexRef.current = introIdentity;
     if (includeStaticHealthContext && hasStaticHealthContext) {
       healthContextMentionedRef.current = true;
+    }
+    // Rapporteras här, inte i katch-grenen: det är först nu vi vet att det
+    // här svaret är det som faktiskt visas. Ett avbrutet anrop har redan
+    // returnerat ovan och ska inte räknas som att coachen tystnade.
+    if (result.mode !== "ai" && result.reason) {
+      onAiFallback?.(result.reason, currentExerciseName);
     }
     setIntroLoading(false);
     addCoachMessage(result.text, eventKey, result.mode === "ai" ? "llm" : "engine");

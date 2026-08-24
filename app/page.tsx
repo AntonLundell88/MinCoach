@@ -5934,6 +5934,35 @@ function confirmGymForToday() {
     localStorage.setItem("lastGymConfirmedDate", todayStr);
   }
 
+  /**
+   * Enda vägen in för ai_fallback-händelser.
+   *
+   * Chatten och setrutten hade var sin nästan identiska kopia av det här
+   * blocket, och övningsintrot hade ingen alls — rutten returnerade en orsak
+   * som klienten kastade i sista steget. Resultatet: en gul prick i chatten
+   * utan att någon kunde se varför coachen tystnade.
+   *
+   * En väg in, så nästa röst vi lägger till inte faller tillbaka osynligt.
+   */
+  function recordAiFallback(
+    route: "set" | "chat" | "exercise_intro",
+    reason?: string,
+    exerciseName?: string
+  ) {
+    if (!reason) return;
+
+    setWorkout((prev) =>
+      prev
+        ? addWorkoutEventToWorkout(prev, {
+            type: "ai_fallback",
+            route,
+            reason,
+            exerciseName: exerciseName || currentExerciseName || undefined,
+          })
+        : prev
+    );
+  }
+
   function addGym(name: string) {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -6591,16 +6620,7 @@ async function sendChat() {
           fallbackReply,
         });
       }
-      setWorkout((prev) =>
-        prev
-          ? addWorkoutEventToWorkout(prev, {
-              type: "ai_fallback",
-              route: "chat",
-              reason: response.reason,
-              exerciseName: currentExerciseName || undefined,
-            })
-          : prev
-      );
+      recordAiFallback("chat", response.reason);
     }
 
     return response;
@@ -7984,16 +8004,7 @@ const coachReply = await requestAiCoachSetReply({
 setCoachPendingReply(false);
 
 if (coachReply.mode !== "ai" && coachReply.reason) {
-  setWorkout((prev) =>
-    prev
-      ? addWorkoutEventToWorkout(prev, {
-          type: "ai_fallback",
-          route: "set",
-          reason: coachReply.reason,
-          exerciseName: currentExerciseName || undefined,
-        })
-      : prev
-  );
+  recordAiFallback("set", coachReply.reason);
 }
 
 if (coachReply.text) {
@@ -9430,6 +9441,9 @@ return (
           hasSets: e.sets.length > 0,
         }))}
         onReorderExercises={commitExerciseReorder}
+        onAiFallback={(reason, exerciseName) =>
+          recordAiFallback("exercise_intro", reason, exerciseName)
+        }
         passLabel={currentPassLabel}
         coachData={coachData}
         dayForm={dayForm}
