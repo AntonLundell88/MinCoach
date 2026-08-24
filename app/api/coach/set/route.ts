@@ -1,4 +1,4 @@
-import { logAiUsage } from "@/app/lib/aiUsageLog";
+import { logAiUsage, logPromptPrefix } from "@/app/lib/aiUsageLog";
 import { NextResponse } from "next/server";
 import {
   sanitizeCoachReply,
@@ -101,6 +101,16 @@ export async function POST(request: Request) {
 
   // Netlify hard-kills the function at 30s (confirmed 2026-08-12) — must
   // fire well before that so a real fallback reply is returned instead.
+  const setInputText = JSON.stringify({
+    instruction: payload.instruction,
+    maxCharacters: payload.maxCharacters,
+    context: payload.context,
+  });
+  logPromptPrefix({
+    route: "set",
+    system: payload.system,
+    inputText: setInputText,
+  });
   const openAiStartedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);
