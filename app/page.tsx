@@ -5469,56 +5469,6 @@ const goalTargets = useMemo(() => {
   return getGoalTargets(userProfile?.goalPrimary ?? "muskel");
 }, [userProfile]);
 
-const progression = useMemo(() => {
-  if (!currentExerciseName) return [];
-
-  const savedProgression = getExerciseProgression(history, currentExerciseName);
-  const currentWorkoutExercise = workout?.exercises.find(
-    (exercise) => exerciseKey(exercise.name) === exerciseKey(currentExerciseName)
-  );
-  const currentWorkoutBest = currentWorkoutExercise
-    ? getBestSetFromSets(currentWorkoutExercise.sets)
-    : null;
-  const pr = personalRecords[exerciseKey(currentExerciseName)];
-
-  const liveBestSets = [
-    ...(currentWorkoutBest
-      ? [
-          {
-            weight: currentWorkoutBest.weight,
-            reps: currentWorkoutBest.reps,
-            rir: currentWorkoutBest.rir,
-            failNote: currentWorkoutBest.failNote,
-            createdAt: currentWorkoutBest.createdAt,
-          },
-        ]
-      : []),
-    ...(pr
-      ? [
-          {
-            weight: pr.weight,
-            reps: pr.reps,
-            createdAt: pr.createdAt,
-          },
-        ]
-      : []),
-    ...savedProgression,
-  ];
-
-  return liveBestSets
-    .filter(
-      (set, index, sets) =>
-        sets.findIndex(
-          (candidate) =>
-            candidate.weight === set.weight && candidate.reps === set.reps
-        ) === index
-    )
-    .sort((a, b) => {
-      if (b.weight !== a.weight) return b.weight - a.weight;
-      return b.reps - a.reps;
-    })
-    .slice(0, 3);
-}, [history, currentExerciseName, workout, personalRecords]);
 
 const previousExerciseSets = useMemo(() => {
   if (!currentExerciseName) return [];
@@ -5662,6 +5612,59 @@ const progressionHistory = useMemo(() => {
   personalRecords,
   workout,
 ]);
+
+const progression = useMemo(() => {
+  if (!currentExerciseName) return [];
+
+  // progressionHistory, inte history. Den här listan blir coachens "ditt bästa
+  // set", och byggd på hela historiken berättade den om en annan maskin på ett
+  // annat gym: "52,5 — samma som ditt bästa" på ett gym där ingenting loggats.
+  // Vikten appen föreslår har varit gymmedveten sedan 02aa866; det var bara
+  // coachens minne av den som inte var det. Samma historik nu, inte två.
+  //
+  // PB:t läggs inte till separat längre — progressionHistory injicerar det
+  // redan när det hör hemma här, och låter bli när det sattes på ett annat
+  // gym. Faktumet går inte förlorat: otherGymReference bär det, med gymnamnet.
+  const savedProgression = getExerciseProgression(
+    progressionHistory,
+    currentExerciseName
+  );
+  const currentWorkoutExercise = workout?.exercises.find(
+    (exercise) => exerciseKey(exercise.name) === exerciseKey(currentExerciseName)
+  );
+  const currentWorkoutBest = currentWorkoutExercise
+    ? getBestSetFromSets(currentWorkoutExercise.sets)
+    : null;
+
+  const liveBestSets = [
+    ...(currentWorkoutBest
+      ? [
+          {
+            weight: currentWorkoutBest.weight,
+            reps: currentWorkoutBest.reps,
+            rir: currentWorkoutBest.rir,
+            failNote: currentWorkoutBest.failNote,
+            createdAt: currentWorkoutBest.createdAt,
+          },
+        ]
+      : []),
+    ...savedProgression,
+  ];
+
+  return liveBestSets
+    .filter(
+      (set, index, sets) =>
+        sets.findIndex(
+          (candidate) =>
+            candidate.weight === set.weight && candidate.reps === set.reps
+        ) === index
+    )
+    .sort((a, b) => {
+      if (b.weight !== a.weight) return b.weight - a.weight;
+      return b.reps - a.reps;
+    })
+    .slice(0, 3);
+}, [progressionHistory, currentExerciseName, workout]);
 
 const stagnationInsight = useMemo(() => {
   if (!currentExerciseName) return "";

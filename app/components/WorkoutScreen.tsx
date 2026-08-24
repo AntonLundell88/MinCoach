@@ -361,9 +361,10 @@ Starta lugnt och håll positionen så länge formen är bra.
 Sikta på ${formatDurationLabel(targetSeconds)}.
 Vila 60–90 sek.`;
   }
-  const topSet = pr
-    ? { weight: pr.weight, reps: pr.reps }
-    : getTopSet(progression);
+  // Inget pr-företräde: progression ÄR gymfiltrerad och lägger redan in PB:t
+  // när det sattes här. Genvägen förbi den gjorde att ett rekord från ett annat
+  // gym presenterades som "ditt bästa set" på en maskin du aldrig rört.
+  const topSet = getTopSet(progression);
   const rest = getRestTime(exerciseName);
   const plannedWeight = Number(progressionPlan.weight);
   const baseWeight = Number.isFinite(plannedWeight) && plannedWeight > 0
@@ -516,7 +517,8 @@ function buildExerciseIntroAiContext(args: {
     };
   }
 
-  const topSet = pr ? { weight: pr.weight, reps: pr.reps } : getTopSet(progression);
+  // Se kommentaren vid samma rad i fallbacktexten ovan — samma skäl.
+  const topSet = getTopSet(progression);
   const plannedWeight = Number(progressionPlan.weight);
   const baseWeight =
     Number.isFinite(plannedWeight) && plannedWeight > 0
