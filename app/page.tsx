@@ -38,6 +38,7 @@ import {
   type CoachChatAction,
   type CoachChatContext,
   type CoachExerciseLibraryInfo,
+  type CoachHealthNote,
   type CoachSetContext,
   type CoachWireStrategy,
   type CoachWorkoutReviewResult,
@@ -3772,7 +3773,7 @@ function buildCoachSetContext(args: {
   lastCoachMessage?: string;
   memoryInsight?: string;
   limitations?: string;
-  recentHealthNotes?: string[];
+  recentHealthNotes?: CoachHealthNote[];
   recentWorkingWeights?: string[];
   warmupContext: WarmupContext | null;
   conditioningContext: ConditioningContext | null;
@@ -4694,12 +4695,22 @@ function buildExerciseMemoryInsight(args: {
   return "";
 }
 
-function getRecentHealthNotes(coachMemory: CoachMemory, limit = 5): string[] {
+function getRecentHealthNotes(
+  coachMemory: CoachMemory,
+  limit = 5
+): CoachHealthNote[] {
   return coachMemory.notes
     .filter((note) => note.kind === "limitation")
     .slice(0, limit)
     .reverse()
-    .map((note) => note.text);
+    .map((note) => ({
+      text: note.text,
+      daysAgo: Math.max(
+        0,
+        Math.round((Date.now() - new Date(note.createdAt).getTime()) / 86400000)
+      ),
+      exerciseName: note.exerciseName,
+    }));
 }
 export default function Home() {
   const [showSplash, setShowSplash] = useState(true);

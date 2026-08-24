@@ -22,6 +22,7 @@ import {
 import {
   requestAiCoachExerciseIntro,
   type CoachExerciseIntroContext,
+  type CoachHealthNote,
 } from "../lib/coachAi";
 
 import { LibraryBrowser, LIBRARY_CATEGORIES, type LibraryExercise } from "./LibraryBrowser";
@@ -167,7 +168,7 @@ type Props = {
   showWarmupHint?: boolean;
   previousWorkoutSummary?: string;
   otherGymReference?: CoachExerciseIntroContext["otherGymReference"];
-  recentHealthNotes?: string[];
+  recentHealthNotes?: CoachHealthNote[];
   limitations?: string;
 };
 
@@ -464,7 +465,7 @@ function buildExerciseIntroAiContext(args: {
   personalRecords: Props["personalRecords"];
   previousWorkoutSummary?: string;
   otherGymReference?: CoachExerciseIntroContext["otherGymReference"];
-  recentHealthNotes?: string[];
+  recentHealthNotes?: CoachHealthNote[];
   limitations?: string;
   recentChatNotes?: CoachExerciseIntroContext["recentChatNotes"];
 }): CoachExerciseIntroContext {

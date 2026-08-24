@@ -30,6 +30,20 @@ export type CoachExerciseLibraryInfo = {
   techniqueFocus?: string[];
 };
 
+/**
+ * En skada eller ett besvär som nämnts tidigare. daysAgo och exerciseName
+ * fanns hela tiden på CoachNote men kastades bort på vägen hit — coachen fick
+ * odaterade strängar och kunde inte skilja ett hugg i knät igår från en axel i
+ * mars, eller se vilken övning det gällde. Utan det kan den bara nämna allt
+ * eller inget. Datumet ligger i ett eget fält med flit: bakas det in i texten
+ * blir det en färdig mening som kommer tillbaka ordagrant i svaret.
+ */
+export type CoachHealthNote = {
+  text: string;
+  daysAgo: number;
+  exerciseName?: string;
+};
+
 export type CoachSetContext = {
   kind: "set_feedback";
   userName?: string;
@@ -101,7 +115,7 @@ export type CoachSetContext = {
   restText?: string;
   memoryInsight?: string;
   limitations?: string;
-  recentHealthNotes?: string[];
+  recentHealthNotes?: CoachHealthNote[];
   recentWorkingWeights?: string[];
   warmupNote?: string;
   conditioningNote?: string;
@@ -156,7 +170,7 @@ export type CoachChatContext = {
   currentExerciseInfo?: CoachExerciseLibraryInfo;
   memoryInsight?: string;
   limitations?: string;
-  recentHealthNotes?: string[];
+  recentHealthNotes?: CoachHealthNote[];
   recentWorkingWeights?: string[];
   exerciseIndex?: number;
   exerciseCount?: number;
@@ -262,7 +276,7 @@ export type CoachExerciseIntroContext = {
     daysAgo: number;
   };
   previousWorkoutSummary?: string;
-  recentHealthNotes?: string[];
+  recentHealthNotes?: CoachHealthNote[];
   limitations?: string;
   recentChatNotes?: { duringExercise: string; notes: string[] };
 };
@@ -279,7 +293,7 @@ export type CoachProgramContext = {
   equipment: string[];
   exercisePreferences?: string[];
   limitations?: string;
-  recentHealthNotes?: string[];
+  recentHealthNotes?: CoachHealthNote[];
   workoutPlan: {
     title: string;
     passes: Array<{
@@ -331,7 +345,7 @@ export type CoachProgramBuildContext = {
     coachReason?: string;
   }>;
   existingPreferences: string[];
-  recentHealthNotes?: string[];
+  recentHealthNotes?: CoachHealthNote[];
 };
 
 export type CoachWorkoutReviewContext = {

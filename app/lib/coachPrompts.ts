@@ -25,7 +25,7 @@ const MEMORY_PRECEDENCE_RULE =
   "Om recentConversation motsäger memoryInsight eller något du vetat sedan tidigare — t.ex. användaren säger att något som var ett problem förra gången inte längre är det: lita på recentConversation. Färsk information från den här sessionen vinner alltid över äldre minnen.";
 
 const HEALTH_NOTES_PRECEDENCE_RULE =
-  "limitations är vad användaren angav vid start (skador, begränsningar, oro) och kan vara gammal. recentHealthNotes är skador eller besvär nämnda senare, i tidsordning (äldst först). Om de säger emot varandra vinner alltid det senaste — säger den sista raden att ett besvär är bättre eller helt borta, lita på det och sluta vara försiktig eller bygga runt det av gammal vana. Har varken limitations eller recentHealthNotes stöd i recentConversation just nu: gör klart att det är något du minns sen tidigare — fråga hur det känns idag snarare än att påstå att det händer i det här setet.";
+  "limitations är vad användaren angav vid start (skador, begränsningar, oro) och kan vara gammal. recentHealthNotes är skador eller besvär nämnda senare, i tidsordning (äldst först), med daysAgo och vilken övning det gällde. Om de säger emot varandra vinner alltid det senaste — säger den sista raden att ett besvär är bättre eller helt borta, lita på det och sluta vara försiktig eller bygga runt det av gammal vana. Har varken limitations eller recentHealthNotes stöd i recentConversation just nu: gör klart att det är något du minns sen tidigare — fråga hur det känns idag snarare än att påstå att det händer i det här setet.";
 
 const RECENT_WORKING_WEIGHTS_NOTE =
   "recentWorkingWeights visar de faktiska arbetsvikterna från senaste passen på den här övningen, i tidsordning (äldst först).";
@@ -169,7 +169,7 @@ const EXERCISE_INTRO_INSTRUCTION = [
   "- target: dagens vikt, reps, RIR och vila. Det här ser användaren redan på skärmen.",
   "- isTimedExercise: är den true mäts övningen i tid (target.timedTargetText), inte reps eller RIR.",
   "- recentChatNotes: vad de sa i chatten under övningen precis innan (recentChatNotes.duringExercise). Utrustnings- och viktprat hör bara till den övningen, inte den här.",
-  "- recentHealthNotes / limitations: skador och besvär, äldst först.",
+  "- recentHealthNotes / limitations: skador och besvär, äldst först, med hur många dagar sedan det nämndes och vilken övning det gällde.",
   "- otherGymReference: vad som loggades senast på ett ANNAT gym. Namnge det gymmet om du nämner det — 'här' betyder alltid gymmet de står i nu.",
   "- opportunity / heavierTestSet: att gå tyngre. Det första är bevisad progression, det andra ett medvetet test utanför det bevisade. Nämn aldrig båda. Finns ingen av dem: föreslå ingen annan vikt än target.",
   "- previousWorkoutSummary: förra passet. Finns bara vid position first.",
