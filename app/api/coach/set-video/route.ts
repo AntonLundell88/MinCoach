@@ -1,3 +1,4 @@
+import { logAiUsage } from "@/app/lib/aiUsageLog";
 import { NextResponse } from "next/server";
 import { sanitizeCoachReply, type CoachSetVideoContext } from "../../../lib/coachAi";
 import {
@@ -116,8 +117,13 @@ export async function POST(request: Request) {
   // Was 45000 — well above Netlify's confirmed 30s hard kill, so this
   // timeout could never actually fire before the platform killed the
   // function first.
+  const openAiStartedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);
+  // Släpper klienten anropet ska OpenAI-anropet dö med det. Utan den här
+  // raden lever förfrågan vidare på servern och faktureras fullt ut — och
+  // intro-effekten avbryter sitt pågående anrop varje gång den kör om.
+  request.signal.addEventListener("abort", () => controller.abort());
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -129,6 +135,10 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL ?? "gpt-5.5",
         instructions: payload.system,
+        // Stabil nyckel per coachröst: routar identiska prefix till samma cache.
+        // Instruktion + systemprompt är oföränderliga per rutt, så allt utom
+        // kontexten längst bak kan återanvändas mellan anrop.
+        prompt_cache_key: "mincoach-set-video",
         reasoning: { effort: "medium" },
         text: {
           verbosity: "medium",
@@ -146,9 +156,11 @@ export async function POST(request: Request) {
               {
                 type: "input_text",
                 text: JSON.stringify({
-                  context: payload.context,
+                  // Instruktionen först, kontexten sist. Prompt-cache träffar bara på stabila
+                  // PREFIX — med den varierande kontexten först cachas ingenting alls.
                   instruction: payload.instruction,
                   maxCharacters: payload.maxCharacters,
+                  context: payload.context,
                 }),
               },
               ...frames.map((frame) => ({
@@ -173,6 +185,13 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
+
+    logAiUsage({
+      route: "set_video",
+      model: process.env.OPENAI_MODEL ?? "gpt-5.5",
+      data,
+      startedAt: openAiStartedAt,
+    });
     const aiText = extractOutputText(data);
 
     if (!aiText.trim()) {

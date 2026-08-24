@@ -1,3 +1,4 @@
+import { logAiUsage } from "@/app/lib/aiUsageLog";
 import { NextResponse } from "next/server";
 import { sanitizeCoachReply, type CoachExerciseIntroContext } from "../../../lib/coachAi";
 import { buildCoachExerciseIntroPromptPayload } from "../../../lib/coachPrompts";
@@ -80,8 +81,13 @@ export async function POST(request: Request) {
     return fallbackResponse(fallbackReply, "missing_api_key", payload.maxCharacters);
   }
 
+  const openAiStartedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 20000);
+  // Släpper klienten anropet ska OpenAI-anropet dö med det. Utan den här
+  // raden lever förfrågan vidare på servern och faktureras fullt ut — och
+  // intro-effekten avbryter sitt pågående anrop varje gång den kör om.
+  request.signal.addEventListener("abort", () => controller.abort());
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -99,6 +105,10 @@ export async function POST(request: Request) {
         // intrycket av varje övning, sämsta stället att spara på.
         model: process.env.OPENAI_INTRO_MODEL ?? "gpt-5.5",
         instructions: payload.system,
+        // Stabil nyckel per coachröst: routar identiska prefix till samma cache.
+        // Instruktion + systemprompt är oföränderliga per rutt, så allt utom
+        // kontexten längst bak kan återanvändas mellan anrop.
+        prompt_cache_key: "mincoach-exercise-intro",
         reasoning: { effort: "medium" },
         text: { verbosity: "medium" },
         input: [
@@ -108,9 +118,11 @@ export async function POST(request: Request) {
               {
                 type: "input_text",
                 text: JSON.stringify({
-                  context: payload.context,
+                  // Instruktionen först, kontexten sist. Prompt-cache träffar bara på stabila
+                  // PREFIX — med den varierande kontexten först cachas ingenting alls.
                   instruction: payload.instruction,
                   maxCharacters: payload.maxCharacters,
+                  context: payload.context,
                 }),
               },
             ],
@@ -132,6 +144,13 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
+
+    logAiUsage({
+      route: "exercise_intro",
+      model: process.env.OPENAI_INTRO_MODEL ?? "gpt-5.5",
+      data,
+      startedAt: openAiStartedAt,
+    });
     const aiText = extractOutputText(data);
     const fallbackText = sanitizeCoachReply(
       fallbackReply,

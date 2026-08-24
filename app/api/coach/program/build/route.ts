@@ -1,3 +1,4 @@
+import { logAiUsage } from "@/app/lib/aiUsageLog";
 import { NextResponse } from "next/server";
 import { checkAiRateLimit } from "../../../../lib/aiRateLimit";
 import {
@@ -955,6 +956,7 @@ async function callProgramStage(args: {
   effort: "minimal" | "low" | "medium";
   maxTokens: number;
 }) {
+  const openAiStartedAt_program_stage = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), PROGRAM_BUILD_TIMEOUT_MS);
   const startedAtMs = Date.now();
@@ -995,6 +997,12 @@ async function callProgramStage(args: {
     }
 
     const data = await response.json();
+    logAiUsage({
+      route: "program_stage",
+      model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+      data,
+      startedAt: openAiStartedAt_program_stage,
+    });
     const aiText = extractOutputText(data);
 
     try {
@@ -1035,6 +1043,7 @@ async function handleProseRequest(
     return NextResponse.json({ mode: "fallback", reason: "invalid_prose_pass", exercises: [] });
   }
 
+  const openAiStartedAt_program_prose = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), PROGRAM_BUILD_TIMEOUT_MS);
   const startedAtMs = Date.now();
@@ -1101,6 +1110,12 @@ async function handleProseRequest(
     }
 
     const data = await response.json();
+    logAiUsage({
+      route: "program_prose",
+      model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+      data,
+      startedAt: openAiStartedAt_program_prose,
+    });
     const aiText = extractOutputText(data);
     let parsed: { exercises?: { exerciseKey?: string; purpose?: string; caution?: string }[] };
 
@@ -1288,6 +1303,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ mode: "fallback", reason: "invalid_summary" });
     }
 
+    const openAiStartedAt_program_summary = Date.now();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), PROGRAM_BUILD_TIMEOUT_MS);
     const startedAtMs = Date.now();
@@ -1345,6 +1361,12 @@ export async function POST(request: Request) {
       }
 
       const data = await response.json();
+      logAiUsage({
+        route: "program_summary",
+        model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+        data,
+        startedAt: openAiStartedAt_program_summary,
+      });
       const aiText = extractOutputText(data);
 
       try {
@@ -1407,6 +1429,7 @@ export async function POST(request: Request) {
       lastIssues,
       previousPlan: previousInvalidPlan,
     });
+    const openAiStartedAt_program_plan = Date.now();
     const controller = new AbortController();
     const timeoutId = setTimeout(
       () => controller.abort(),
@@ -1494,6 +1517,12 @@ export async function POST(request: Request) {
       }
 
       const data = await response.json();
+      logAiUsage({
+        route: "program_plan",
+        model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+        data,
+        startedAt: openAiStartedAt_program_plan,
+      });
       const aiText = extractOutputText(data);
       const plan = parsePlan(aiText, fallbackPlan, allowedExercises);
 
