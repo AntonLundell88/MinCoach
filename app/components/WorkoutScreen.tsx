@@ -172,6 +172,12 @@ type Props = {
   exerciseAlreadyIntroduced?: string | null;
   /** Har användaren aldrig loggat ett set? Då visas uppvärmningshinten en gång. */
   showWarmupHint?: boolean;
+  /**
+   * Har användaren själv ändrat vikt/reps/RIR sedan siffrorna hamnade i
+   * fälten? Falskt betyder att de kommer från något som redan hänt — förra
+   * passet, eller setet du nyss loggade — och då säger kortet SENAST.
+   */
+  inputsTouched?: boolean;
   previousWorkoutSummary?: string;
   otherGymReference?: CoachExerciseIntroContext["otherGymReference"];
   recentHealthNotes?: CoachHealthNote[];
@@ -630,6 +636,7 @@ export default function WorkoutScreen({
   validateSetWeight,
   exerciseAlreadyIntroduced,
   showWarmupHint = false,
+  inputsTouched = false,
   previousWorkoutSummary,
   otherGymReference,
   recentHealthNotes,
@@ -750,11 +757,15 @@ export default function WorkoutScreen({
   const nextWeightLabel = weightInput.trim()
     ? `${weightInput.trim().replace(".", ",")} kg`
     : "";
+  // Följer reps. RIR-state startar alltid på 2, så utan den här gränsen visade
+  // kortet "RIR 2" på en övning där ingenting hänt än — ett tal ingen valt och
+  // som inte kommer från något loggat set. Finns reps finns det ett riktigt
+  // set bakom siffrorna, och då hör RIR till.
   const nextRirLabel =
-    typeof rirInput === "number"
-      ? isTimedCurrentExercise
-        ? ""
-        : `RIR ${rirInput >= 5 ? "5+" : rirInput}`
+    !repsInput.trim() || isTimedCurrentExercise
+      ? ""
+      : typeof rirInput === "number"
+      ? `RIR ${rirInput >= 5 ? "5+" : rirInput}`
       : progressionPlan.rirText;
   // RIR räknas inte in: den har alltid ett värde (state startar på 2), så
   // ensam skulle den hålla kortet "ifyllt" även när användaren inte angett
@@ -1461,8 +1472,16 @@ useEffect(() => {
         {/* Nästa set + Vila */}
         <div className="mt-2.5 grid grid-cols-[1fr_auto] gap-2">
           <div className="workout-next-card rounded-2xl border border-white/[0.075] bg-white/[0.045] px-3 py-2">
+            {/* Etiketten följer var siffrorna kommer ifrån. "Nästa set" lovade
+                framtid och innehöll dåtid: förra veckans vikt, reps och RIR,
+                ibland från ett annat gym, samtidigt som coachen bad om något
+                annat. Nu säger kortet vad det faktiskt visar. */}
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/55">
-              {currentExerciseReadyToFinish ? "Klar" : "Nästa set"}
+              {currentExerciseReadyToFinish
+                ? "Klar"
+                : inputsTouched
+                ? "Ditt set"
+                : "Senast"}
             </p>
             {currentExerciseReadyToFinish ? (
               <p className="mt-1 text-sm font-semibold leading-5 text-white">

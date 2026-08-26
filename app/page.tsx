@@ -1,6 +1,13 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import StartScreen from "./components/StartScreen";
@@ -4738,6 +4745,12 @@ const [hasAcceptedTrainingSafety, setHasAcceptedTrainingSafety] = useState(false
 // Sant så fort användaren loggat sitt allra första set. Enda syftet är att
 // visa uppvärmningshinten en gång — inte varje pass i all framtid.
 const [hasLoggedFirstSetEver, setHasLoggedFirstSetEver] = useState(true);
+// Har användaren själv rört vikt, reps eller RIR sedan siffrorna hamnade där?
+// Avgör om kortet säger SENAST (siffrorna kommer från något du redan gjort)
+// eller DITT SET (du har valt dem). Nollställs vid ny övning och efter varje
+// loggat set — då står fälten kvar med det du just gjorde, vilket är historik
+// igen, inte ett val.
+const [inputsTouched, setInputsTouched] = useState(false);
 const [showExerciseProgress, setShowExerciseProgress] = useState(false);
   const [showStatistics, setShowStatistics] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -5917,14 +5930,19 @@ useEffect(() => {
     last && !isBodyweightExercise(currentExerciseName) && last.weight > 0
       ? formatWeightInput(last.weight)
       : "";
-  const lastReps = last && last.reps > 0 ? String(last.reps) : "";
-
+  // Bara vikten ärvs. Vikt är ett VAL du gör före setet, och "samma som sist"
+  // är en rimlig utgångspunkt. Reps och RIR är UTFALL — de går inte att veta
+  // i förväg, och förifyllda med förra veckans resultat läste de som ett mål:
+  // kortet visade "6+ reps · RIR 0" medan coachen bad om ett kontrollerat
+  // test på tyngre vikt. Plustecknet kom dessutom av en nolla som ärvts från
+  // ett set en vecka tillbaka, på ett annat gym.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   setWeightInput(lastWeight);
   systemSuggestedWeightRef.current = lastWeight ? parseFloat(lastWeight) || undefined : undefined;
-  setRepsInput(lastReps);
-  systemSuggestedRepsRef.current = lastReps ? parseInt(lastReps, 10) || undefined : undefined;
-  setRirInput(typeof last?.rir === "number" ? last.rir : 2);
+  setRepsInput("");
+  systemSuggestedRepsRef.current = undefined;
+  setRirInput(2);
+  setInputsTouched(false);
 }, [currentExerciseName, started, lastByExercise]);
 
 
@@ -5961,6 +5979,21 @@ function confirmGymForToday() {
           })
         : prev
     );
+  }
+
+  /**
+   * Lindar en fältsättare så att varje ändring användaren gör själv räknas som
+   * "rörd". Läggs på när propsen skickas ner, inte i varje knapp i
+   * ExerciseCard — annars hade det blivit ett dussin ställen att glömma.
+   * Appens egna skrivningar (förifyllning, nollställning) går förbi den här.
+   */
+  function markTouched<T>(
+    setter: Dispatch<SetStateAction<T>>
+  ): Dispatch<SetStateAction<T>> {
+    return (value) => {
+      setInputsTouched(true);
+      setter(value);
+    };
   }
 
   function addGym(name: string) {
@@ -6120,10 +6153,12 @@ const firstExerciseWeight =
     : "";
 setWeightInput(firstExerciseWeight);
 systemSuggestedWeightRef.current = firstExerciseWeight ? parseFloat(firstExerciseWeight) || undefined : undefined;
-const firstReps = firstLast && firstLast.reps > 0 ? String(firstLast.reps) : "";
-setRepsInput(firstReps);
-systemSuggestedRepsRef.current = firstReps ? parseInt(firstReps, 10) || undefined : undefined;
-setRirInput(typeof firstLast?.rir === "number" ? firstLast.rir : 2);
+// Bara vikten, samma skäl som i effekten ovan: reps och RIR är utfall, inte
+// val, och förifyllda i förväg läses de som ett mål.
+setRepsInput("");
+systemSuggestedRepsRef.current = undefined;
+setRirInput(2);
+setInputsTouched(false);
     setDidFailInput(false);
   }
 function shouldHoldYouToPlan(opts: {
@@ -8051,6 +8086,9 @@ if (painFailure) {
 // du senast körde, inte mot en gammal förifyllning.
 systemSuggestedWeightRef.current = weight > 0 ? weight : undefined;
 systemSuggestedRepsRef.current = reps > 0 ? reps : undefined;
+// Fälten står kvar med det du just gjorde. Det är historik igen, inte ett
+// val för nästa set — så kortet ska säga SENAST tills du rör något.
+setInputsTouched(false);
 
 if (nextSetPlan.strategy === "complete") {
   setFailNoteInput("");
@@ -9488,13 +9526,13 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
         lastByExercise={lastByExercise}
         exerciseKey={exerciseKey}
         weightInput={weightInput}
-        setWeightInput={setWeightInput}
+        setWeightInput={markTouched(setWeightInput)}
         repsInput={repsInput}
-        setRepsInput={setRepsInput}
+        setRepsInput={markTouched(setRepsInput)}
         durationSecondsInput={durationSecondsInput}
         setDurationSecondsInput={setDurationSecondsInput}
         rirInput={rirInput}
-        setRirInput={setRirInput}
+        setRirInput={markTouched(setRirInput)}
         didFailInput={didFailInput}
         setDidFailInput={setDidFailInput}
         failNoteInput={failNoteInput}
@@ -9517,6 +9555,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
         updateSet={updateSet}
         exerciseAlreadyIntroduced={exerciseAlreadyIntroduced}
         showWarmupHint={!hasLoggedFirstSetEver}
+        inputsTouched={inputsTouched}
         validateSetWeight={(weight) => {
           if (isBodyweightExercise(currentExerciseName) || isTimedExercise(currentExerciseName)) return null;
           const warning = buildWeightInputWarningMessage({
