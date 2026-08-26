@@ -2276,7 +2276,13 @@ function getExerciseDecisionProfile(exerciseName: string) {
       backoffAfterHardSecondSet: 0.94,
       techniqueDrop: 0.88,
       painDrop: 0.8,
-      maxHardSets: 2,
+      // Taket låg på 2 och stängde övningen efter två set oavsett vad coachen
+      // eller användaren tyckte. Det var ingen bedömning av övningen — profilen
+      // väljs på substrängar i namnet, så Goblet squat och Bulgarian split
+      // squat fick marklyftets tak för att de heter "squat". Anton: ingen
+      // övning ska ha det. Backoff-faktorerna ovan är kvar; de justerar, de
+      // avbryter inte.
+      maxHardSets: 3,
       riskNote:
         "Tekniskt känslig basövning: hellre kvalitet och rygg/ledsäkerhet än fler maxreps.",
     };
