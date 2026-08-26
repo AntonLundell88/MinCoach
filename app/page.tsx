@@ -3780,6 +3780,7 @@ function buildCoachSetContext(args: {
   lastCoachMessage?: string;
   memoryInsight?: string;
   limitations?: string;
+  nearestWeights?: { up: number; down: number };
   recentHealthNotes?: CoachHealthNote[];
   recentWorkingWeights?: string[];
   warmupContext: WarmupContext | null;
@@ -4085,6 +4086,7 @@ function buildCoachSetContext(args: {
     restText: args.nextSetPlan.restText,
     memoryInsight: args.memoryInsight?.trim() || undefined,
     limitations: args.limitations?.trim() || undefined,
+    nearestWeights: args.nearestWeights,
     recentHealthNotes: args.recentHealthNotes?.length ? args.recentHealthNotes : undefined,
     recentWorkingWeights: args.recentWorkingWeights?.length ? args.recentWorkingWeights : undefined,
     warmupNote: args.warmupContext?.note,
@@ -7981,6 +7983,18 @@ const coachSetContext = buildCoachSetContext({
     coachMemory,
     exerciseName: currentExerciseName,
   }),
+  // Vad utrustningen faktiskt erbjuder närmast upp och ner. Coachen såg
+  // "nästa steg: 15 kg" utan att kunna veta att det inte finns något mellan
+  // 12,5 och 15 — på ett sidolyft är det en femtedel mer, på en benpress är
+  // samma 2,5 kg försumbart. Bara siffrorna: vad de betyder för just den här
+  // övningen vet coachen redan bättre än vi kan skriva i en regel.
+  nearestWeights:
+    weight > 0
+      ? {
+          up: getNextAvailableWeight(weight, currentExerciseName, "up"),
+          down: getNextAvailableWeight(weight, currentExerciseName, "down"),
+        }
+      : undefined,
   limitations: userProfile?.limitations,
   recentHealthNotes: getRecentHealthNotes(coachMemory),
   recentWorkingWeights: formatRecentWorkingWeights(

@@ -114,6 +114,19 @@ export type CoachSetContext = {
   };
   restText?: string;
   memoryInsight?: string;
+  /**
+   * Närmaste vikt upp och ner som utrustningen faktiskt har. Inget däremellan.
+   *
+   * Coachen fick "nästa steg: 15 kg" utan sätt att veta hur stort det steget
+   * var. På 100 kg är 2,5 kg ingenting; på ett sidolyft är samma 2,5 kg en
+   * femtedel, och nästa hantel är den enda som finns. Utan den fakta går det
+   * inte att avgöra om ett steg upp är litet eller stort.
+   *
+   * Bara siffror, ingen tolkning: vad det betyder för just den övningen vet
+   * modellen redan bättre än vi kan skriva i en regel. Det här ska göra
+   * coachen friare, inte styra den.
+   */
+  nearestWeights?: { up: number; down: number };
   limitations?: string;
   recentHealthNotes?: CoachHealthNote[];
   recentWorkingWeights?: string[];
