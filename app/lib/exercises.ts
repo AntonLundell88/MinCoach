@@ -70,6 +70,22 @@ export type ExerciseDefinition = {
     | "isolationsövning"
     | "kroppsövning"
     | "statisk/tidsövning";
+  /**
+   * Vilobehov, när det skiljer sig från vad exerciseType antyder.
+   *
+   * "basövning" är en hink som rymmer både marklyft och latsdrag, och alla
+   * fick marklyftets tre minuter — 27 av 44 för långt. Vila styrs inte av
+   * antal leder utan av systemisk belastning: hur mycket muskelmassa som
+   * jobbar och om du är understödd. Ett latsdrag gör du sittande med bröstet
+   * mot ett stöd; ett marklyft tar hela kroppen.
+   *
+   * Sätts uttryckligen på de som behöver lång vila i stället för att härledas
+   * ur utrustningstaggar. Taggarna styr utrustningsfiltrering för
+   * hemmaträning och råkar glappa (Smith bänkpress är taggad "machines",
+   * Smith squat är det inte) — att hänga vilotiden på dem hade gjort
+   * vilotiden beroende av ett fält som ändras av andra skäl.
+   */
+  restKind?: "heavy" | "normal";
   movementPattern?: ExerciseMovementPattern;
   logType: ExerciseLogType;
   difficulty: ExerciseProgramMeta["difficulty"];
@@ -131,6 +147,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Plan bänk och skivstång",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     logType: "weight_reps_rir",
     difficulty: "medel",
     beginnerFit: "okej",
@@ -348,6 +365,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Skivstång",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "horisontellt_drag",
     logType: "weight_reps_rir",
     difficulty: "avancerad",
@@ -439,6 +457,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Benpressmaskin",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     logType: "weight_reps_rir",
     difficulty: "enkel",
     beginnerFit: "bra",
@@ -529,6 +548,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Skivstång och rack",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     logType: "weight_reps_rir",
     difficulty: "avancerad",
     beginnerFit: "undvik_som_standard",
@@ -559,6 +579,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Skivstång eller hantlar",
     environment: "båda",
     exerciseType: "basövning",
+    restKind: "heavy",
     logType: "weight_reps_rir",
     difficulty: "avancerad",
     beginnerFit: "undvik_som_standard",
@@ -619,6 +640,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Bänk och skivstång, hantel eller maskin",
     environment: "båda",
     exerciseType: "basövning",
+    restKind: "heavy",
     logType: "weight_reps_rir",
     difficulty: "medel",
     beginnerFit: "okej",
@@ -679,6 +701,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Hantlar, maskin eller skivstång",
     environment: "båda",
     exerciseType: "basövning",
+    restKind: "heavy",
     logType: "weight_reps_rir",
     difficulty: "medel",
     beginnerFit: "okej",
@@ -1475,6 +1498,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "T-bar-maskin eller landmine med stång",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "horisontellt_drag",
     logType: "weight_reps_rir",
     difficulty: "medel",
@@ -1630,6 +1654,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Hack squat-maskin",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "knaboj",
     logType: "weight_reps_rir",
     difficulty: "medel",
@@ -1661,6 +1686,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Smithmaskin",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "knaboj",
     logType: "weight_reps_rir",
     difficulty: "medel",
@@ -2032,6 +2058,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Skivstång",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "hoftfallning",
     logType: "weight_reps_rir",
     difficulty: "avancerad",
@@ -2063,6 +2090,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Skivstång",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "vertikal_press",
     logType: "weight_reps_rir",
     difficulty: "avancerad",
@@ -2187,6 +2215,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Lutande bänk och skivstång",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "horisontell_press",
     logType: "weight_reps_rir",
     difficulty: "medel",
@@ -2218,6 +2247,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Plan bänk och skivstång",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "armstrackning",
     logType: "weight_reps_rir",
     difficulty: "medel",
@@ -2311,6 +2341,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Skivstång och rack",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "knaboj",
     logType: "weight_reps_rir",
     difficulty: "avancerad",
@@ -2528,6 +2559,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Skivstång",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "hoftfallning",
     logType: "weight_reps_rir",
     difficulty: "avancerad",
@@ -2559,6 +2591,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Hantlar eller kettlebells",
     environment: "båda",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "bal_stabilitet",
     logType: "time_rir",
     difficulty: "medel",
@@ -2590,6 +2623,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Skivstång",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "hoftfallning",
     logType: "weight_reps_rir",
     difficulty: "avancerad",
@@ -2683,6 +2717,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Dipsställning och viktbälte eller hantel mellan fötterna",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "armstrackning",
     logType: "weight_reps_rir",
     difficulty: "avancerad",
@@ -2715,6 +2750,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Chinsräcke och viktbälte eller hantel",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "vertikalt_drag",
     logType: "weight_reps_rir",
     difficulty: "avancerad",
@@ -3062,6 +3098,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Trapstång (hexstång)",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "hoftfallning",
     logType: "weight_reps_rir",
     difficulty: "medel",
@@ -3158,6 +3195,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
     equipment: "Skivstång i landmine-fäste",
     environment: "gym",
     exerciseType: "basövning",
+    restKind: "heavy",
     movementPattern: "vertikal_press",
     logType: "weight_reps_rir",
     difficulty: "medel",
@@ -4201,9 +4239,19 @@ export function getExerciseRestKind(exerciseName: string) {
     return "isolation" as const;
   }
 
-  const exerciseType = getExerciseDefinition(exerciseName)?.exerciseType;
+  const definition = getExerciseDefinition(exerciseName);
 
-  if (exerciseType === "basövning") return "heavy" as const;
+  // Uttryckligt vilobehov vinner. Se restKind i typen ovan.
+  if (definition?.restKind) return definition.restKind;
+
+  const exerciseType = definition?.exerciseType;
+
+  // Notera: basövning ger "normal", inte "heavy". Lång vila är numera något
+  // man blir tilldelad, inte något man får på köpet av att vara flerledad —
+  // en ny övning utan restKind hamnar därför på två minuter i stället för
+  // tre. Över-vila var felet vi rättade; det ska inte smyga tillbaka via
+  // nästa övning någon lägger in.
+  if (exerciseType === "basövning") return "normal" as const;
   if (exerciseType === "isolationsövning") return "isolation" as const;
 
   // Kroppsövningar, tidsövningar och egna övningar utanför biblioteket.
