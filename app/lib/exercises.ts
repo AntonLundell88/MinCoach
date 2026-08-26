@@ -154,6 +154,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Bänkpress",
+    technicalLift: true,
     aliases: ["bankpress", "bench", "bench press"],
     primaryMuscle: "bröst",
     secondaryMuscles: ["framsida axel", "triceps"],
@@ -2100,6 +2101,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Militärpress",
+    technicalLift: true,
     aliases: ["military press", "overhead press", "stående skivstångspress", "standing barbell press", "ohp"],
     primaryMuscle: "framsida axel",
     secondaryMuscles: ["triceps", "övre bröst"],
