@@ -1481,7 +1481,13 @@ useEffect(() => {
                 ? "Klar"
                 : inputsTouched
                 ? "Ditt set"
-                : "Senast"}
+                : // "Senast" förutsätter att det FINNS ett senast. På en övning
+                  // utan historik stod det "Senast — Logga första setet", vilket
+                  // säger emot sig självt. Utan siffror finns inget att
+                  // missförstå, så där duger den gamla rubriken.
+                hasNextPrescription
+                ? "Senast"
+                : "Nästa set"}
             </p>
             {currentExerciseReadyToFinish ? (
               <p className="mt-1 text-sm font-semibold leading-5 text-white">
