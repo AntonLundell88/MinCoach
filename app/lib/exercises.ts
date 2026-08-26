@@ -86,6 +86,21 @@ export type ExerciseDefinition = {
    * vilotiden beroende av ett fält som ändras av andra skäl.
    */
   restKind?: "heavy" | "normal";
+  /**
+   * Fri axial belastning där formen bryts före muskeln — och där ett tappat
+   * läge kostar mer än ett missat rep.
+   *
+   * Styr att appen inte erbjuder testset, bonusset eller extraset utöver
+   * planen på just de här lyften. Valdes tidigare på substrängar i namnet
+   * (`includes("squat")`, `includes("marklyft")`), vilket gav Goblet squat
+   * och Bulgarian split squat samma spärrar som ett marklyft.
+   *
+   * Uttryckligt fält av samma skäl som restKind: det är ett omdöme om
+   * övningen, inte något som går att härleda ur namn eller taggar. Varken
+   * movementPattern (saknas på Knäböj och Marklyft) eller "barbell"-taggen
+   * (sveper in bänkpress och militärpress) räcker.
+   */
+  technicalLift?: boolean;
   movementPattern?: ExerciseMovementPattern;
   logType: ExerciseLogType;
   difficulty: ExerciseProgramMeta["difficulty"];
@@ -540,6 +555,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Knäböj",
+    technicalLift: true,
     aliases: ["knaboj", "knoboj", "squat", "back squat"],
     primaryMuscle: "framsida lår",
     secondaryMuscles: ["säte", "bål", "baksida lår"],
@@ -571,6 +587,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Rumänska marklyft",
+    technicalLift: true,
     aliases: ["rdl", "romanian deadlift", "rumanska marklyft", "raka marklyft"],
     primaryMuscle: "baksida lår",
     secondaryMuscles: ["säte", "ländrygg"],
@@ -2050,6 +2067,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Marklyft",
+    technicalLift: true,
     aliases: ["deadlift", "konventionell marklyft", "skivstångsmarklyft", "vanlig marklyft", "conventional deadlift"],
     primaryMuscle: "säte",
     secondaryMuscles: ["baksida lår", "framsida lår", "ländrygg", "underarm"],
@@ -2333,6 +2351,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Frontböj",
+    technicalLift: true,
     aliases: ["front squat"],
     primaryMuscle: "framsida lår",
     secondaryMuscles: ["säte", "bål", "baksida lår"],
@@ -2551,6 +2570,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "God morgon",
+    technicalLift: true,
     aliases: ["good morning", "good mornings"],
     primaryMuscle: "ländrygg",
     secondaryMuscles: ["säte", "baksida lår"],
@@ -2615,6 +2635,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Sumo marklyft",
+    technicalLift: true,
     aliases: ["sumo deadlift"],
     primaryMuscle: "säte",
     secondaryMuscles: ["ländrygg", "framsida lår", "baksida lår", "insida lår"],
@@ -3090,6 +3111,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Trapstångsmarklyft",
+    technicalLift: true,
     aliases: ["trap bar deadlift", "hex bar deadlift", "trapstång marklyft", "hexstång marklyft"],
     primaryMuscle: "säte",
     secondaryMuscles: ["framsida lår", "baksida lår", "ländrygg"],

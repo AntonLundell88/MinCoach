@@ -2256,20 +2256,12 @@ function normalizeSuggestedWeight(
 
 function getExerciseDecisionProfile(exerciseName: string) {
   const profile = getExerciseProfile(exerciseName);
-  const lower = exerciseName.toLowerCase();
   const restKind = getExerciseRestKind(exerciseName);
-  const isTechnicalHinge =
-    lower.includes("rdl") ||
-    lower.includes("marklyft") ||
-    lower.includes("rumänska") ||
-    lower.includes("rumanska") ||
-    lower.includes("deadlift");
-  const isTechnicalSquat =
-    lower.includes("knäböj") ||
-    lower.includes("knöböj") ||
-    lower.includes("squat");
-
-  if (isTechnicalHinge || isTechnicalSquat) {
+  // Uttryckligt fält i biblioteket, inte substrängar i namnet. Den gamla
+  // matchningen på "squat" och "marklyft" gav Goblet squat och Bulgarian
+  // split squat samma spärrar som ett marklyft: inga testset, inga bonusset,
+  // inget extraset utöver planen. Se technicalLift i exercises.ts.
+  if (getExerciseDefinition(exerciseName)?.technicalLift) {
     return {
       type: "technical-heavy" as const,
       backoffAfterFailure: 0.92,
