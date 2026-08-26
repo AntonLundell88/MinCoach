@@ -6042,14 +6042,18 @@ function confirmGymForToday() {
     localStorage.setItem("gyms", JSON.stringify(updated));
   }
 
-  // Ett gym: auto-valt, ingen anledning att fråga. Fler än två: risken att
-  // glömma byta ökar, så en bekräftelse krävs per kalenderdag — bara ett
-  // tryck om rätt gym redan är valt, inte ett nytt val varje gång. Noll gym
-  // hanteras inte här längre — startWorkout skapar då tyst ett förvalt gym
-  // istället för att blockera (namngivning ska bara krävas när det faktiskt
-  // finns fler än ett att skilja på).
+  // Ett gym: auto-valt, ingen anledning att fråga. Två eller fler: bekräftelse
+  // krävs en gång per kalenderdag — bara ett tryck om rätt gym redan är valt,
+  // inte ett nytt val varje gång. Noll gym hanteras inte här längre —
+  // startWorkout skapar då tyst ett förvalt gym istället för att blockera
+  // (namngivning ska bara krävas när det faktiskt finns fler än ett att
+  // skilja på).
+  //
+  // Tröskeln gick tidigare vid fler än TVÅ gym. Men redan vid två är det
+  // sällan självklart vilket man står i, och vikterna skiljer sig mellan dem —
+  // startar man på fel gym planeras hela passet från fel maskin.
   const gymConfirmationRequired =
-    gyms.length > 2 && lastGymConfirmedDate !== new Date().toISOString().slice(0, 10);
+    gyms.length > 1 && lastGymConfirmedDate !== new Date().toISOString().slice(0, 10);
 
   function startWorkout() {
   if (!nextPlannedPass || !workoutPlan) return;
