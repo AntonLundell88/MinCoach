@@ -1158,6 +1158,20 @@ export async function POST(request: Request) {
     return fallbackResponse(undefined, "invalid_json");
   }
 
+  // Före förgreningen, inte i varje våg. Kontrollen fanns bara i prose-vågen
+  // — den billigaste av fyra — medan structure och exercises, som är de
+  // resonerande och dyra, gick helt omätta. Schemabygget är vår dyraste
+  // enskilda händelse, så det var precis fel ände att skydda.
+  //
+  // OBS: räknaren ligger i minnet per funktionsinstans (se aiRateLimit.ts).
+  // Det är en fartguppa mot loopar och buggar, inte en kvot per användare —
+  // en sådan måste ligga i Supabase, nycklad på user_id.
+  const buildRateLimit = checkAiRateLimit(request, "program");
+
+  if (!buildRateLimit.allowed) {
+    return fallbackResponse(body.fallbackPlan, "rate_limited");
+  }
+
   // Steg 1 av bygget: bara veckans indelning, inga övningar. Litet svar och
   // lite resonemang, så det ryms med god marginal på gpt-5.5.
   if (body.stage === "structure") {
@@ -1407,11 +1421,8 @@ export async function POST(request: Request) {
 
   const compactContext = compactProgramBuildContext(context);
   const allowedExercises = buildAllowedExerciseLookup(compactContext.availableExercises);
-  const rateLimit = checkAiRateLimit(request, "program");
-
-  if (!rateLimit.allowed) {
-    return fallbackResponse(fallbackPlan, "rate_limited");
-  }
+  // Rate-limiten låg här förut, alltså efter att de tre dyrare vågorna redan
+  // körts. Den ligger nu överst i POST och gäller alla fyra.
 
   const apiKey = process.env.OPENAI_API_KEY;
 
