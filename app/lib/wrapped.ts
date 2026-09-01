@@ -241,22 +241,41 @@ export function buildWrappedStats(
   };
 }
 
+/** "22 juli" — färdigformaterat, modellen ska inte tolka ISO-datum. */
+function formatDayLabel(isoDate: string) {
+  const parsed = new Date(`${isoDate}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "long" }).format(parsed);
+}
+
+/** "maj" — utan år, banan gäller nästan alltid samma säsong. */
+function formatMonthLabel(isoDate: string) {
+  const parsed = new Date(isoDate);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return new Intl.DateTimeFormat("sv-SE", { month: "long" }).format(parsed);
+}
+
 export function toWrappedAiContext(
   stats: WrappedStoredStats,
   monthLabel: string,
   userName?: string
 ): CoachWrappedContext {
-  const topMuscle = stats.muscleBreakdown[0] ?? null;
-
   return {
     kind: "wrapped_recap",
     userName,
     monthLabel,
     passCount: stats.passCount,
+    plannedPassCount: stats.consistency.plannedPassCount,
+    longestWeekStreak: stats.consistency.longestWeekStreak,
     totalMinutes: stats.totalMinutes,
     totalVolumeKg: stats.totalVolumeKg,
-    topMuscleCategory: topMuscle?.category ?? null,
-    topMuscleCategoryPercent: topMuscle?.percent ?? null,
+    heaviestDayLabel: stats.heaviestDay
+      ? formatDayLabel(stats.heaviestDay.date)
+      : null,
+    pbCount: stats.pbCount,
+    pbExerciseNames: stats.pbExerciseNames,
     biggestPb: stats.biggestPb
       ? {
           exerciseName: stats.biggestPb.exerciseName,
@@ -265,6 +284,10 @@ export function toWrappedAiContext(
           durationSeconds: stats.biggestPb.durationSeconds,
           metricType: stats.biggestPb.metricType,
           improvementPercent: stats.biggestPb.improvementPercent,
+          previousWeight: stats.biggestPb.previous?.weight ?? null,
+          previousMonthLabel: stats.biggestPb.previous
+            ? formatMonthLabel(stats.biggestPb.previous.createdAt)
+            : null,
         }
       : null,
   };

@@ -444,10 +444,15 @@ export type CoachWrappedContext = {
   userName?: string;
   monthLabel: string;
   passCount: number;
+  /** Utan den kan modellen inte veta om närvaron var stark eller tunn. */
+  plannedPassCount: number | null;
+  longestWeekStreak: number;
   totalMinutes: number;
   totalVolumeKg: number;
-  topMuscleCategory: string | null;
-  topMuscleCategoryPercent: number | null;
+  /** "22 juli". Redan formaterat — modellen ska inte tolka ISO-datum. */
+  heaviestDayLabel: string | null;
+  pbCount: number;
+  pbExerciseNames: string[];
   biggestPb: {
     exerciseName: string;
     weight: number;
@@ -455,7 +460,12 @@ export type CoachWrappedContext = {
     durationSeconds?: number;
     metricType?: "reps" | "time";
     improvementPercent: number;
+    /** Rekordet det slog, och månaden det sattes. Banan, inte tillståndet. */
+    previousWeight: number | null;
+    previousMonthLabel: string | null;
   } | null;
+  // topMuscleCategory är borttagen med flit: muskelfördelningen avgörs av
+  // splitten, inte av användaren, och kortet som visade den finns inte kvar.
 };
 
 export type CoachWrappedResult = {

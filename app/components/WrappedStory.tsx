@@ -33,6 +33,10 @@ type WrappedCardId =
 
 type WrappedCard = { id: WrappedCardId; gold?: boolean };
 
+// OBS: Wrapped-prompten i coachPrompts.ts räknar upp vad korten visar, så
+// modellen vet vad den INTE ska upprepa. Ändrar du vad ett kort visar i stor
+// text — uppdatera den meningen också, annars skriver bildtexterna om
+// siffror användaren redan ser.
 function buildWrappedCards(stats: WrappedStoredStats): WrappedCard[] {
   const cards: WrappedCard[] = [{ id: "opening" }, { id: "activity" }];
 
