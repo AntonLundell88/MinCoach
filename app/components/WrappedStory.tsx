@@ -14,24 +14,104 @@ type Props = {
   onClose: () => void;
 };
 
-const CARD_COUNT = 7;
-const GOLD_CARD_INDEXES = [3, 6];
+/**
+ * Korten byggs per månad i stället för att vara sju fasta index.
+ *
+ * En månad med tre pass har ingen svit, ingen utstickande veckodag och
+ * kanske noll rekord — då stod korten där tomma eller ursäktande. Wrapped
+ * ska man se fram emot, inte få smisk av. Ett kort utan något att säga
+ * hoppas därför över helt; färre kort är ett bättre svar än ett tomt.
+ */
+type WrappedCardId =
+  | "opening"
+  | "activity"
+  | "volume"
+  | "pb"
+  | "records"
+  | "reflection"
+  | "closing";
+
+type WrappedCard = { id: WrappedCardId; gold?: boolean };
+
+function buildWrappedCards(stats: WrappedStoredStats): WrappedCard[] {
+  const cards: WrappedCard[] = [{ id: "opening" }, { id: "activity" }];
+
+  if (stats.totalVolumeKg > 0) cards.push({ id: "volume" });
+  if (stats.biggestPb) cards.push({ id: "pb", gold: true });
+  // Bara när det finns FLER rekord än det kortet ovanför redan visat —
+  // annars säger de två korten samma sak med olika typsnitt.
+  if (stats.pbCount >= 2) cards.push({ id: "records" });
+
+  cards.push({ id: "reflection" }, { id: "closing", gold: true });
+
+  return cards;
+}
+
+/**
+ * Jämförelsen mot planen visas bara när den är smickrande.
+ *
+ * "12 av 13 planerade" är ett kvitto. "6 av 13" är en anklagelse, och det
+ * är inte vad man öppnar sin Wrapped för att få höra. Under tröskeln visar
+ * kortet bara antalet — lika sant, utan domen.
+ */
+function getPlannedComparison(stats: WrappedStoredStats) {
+  const planned = stats.consistency.plannedPassCount;
+  if (!planned || planned <= 0) return null;
+  if (stats.passCount / planned < 0.9) return null;
+
+  return `av ${planned} planerade`;
+}
+
+/**
+ * Den starkaste sanna raden om närvaron, i fallande ordning. Sviten först —
+ * den är svårast att få till och därför mest värd att säga.
+ */
+function getActivitySubline(stats: WrappedStoredStats) {
+  const { longestWeekStreak, topWeekday } = stats.consistency;
+
+  if (longestWeekStreak >= 2) {
+    return `${longestWeekStreak} veckor i rad utan lucka`;
+  }
+
+  if (topWeekday) {
+    return `${topWeekday.count} av dem på en ${topWeekday.name}`;
+  }
+
+  return `${formatMinutes(stats.totalMinutes)} totalt`;
+}
+
+/** "juni" — utan år, för banan gäller nästan alltid samma säsong. */
+function formatMonthLabel(isoDate: string) {
+  const parsed = new Date(isoDate);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return new Intl.DateTimeFormat("sv-SE", { month: "long" }).format(parsed);
+}
+
+/** Det slagna rekordet. Egen formatering — formatRecord kräver ett
+ *  PersonalRecord med exerciseName, och här är övningen redan känd. */
+function formatBeatenRecord(
+  previous: NonNullable<NonNullable<WrappedStoredStats["biggestPb"]>["previous"]>
+) {
+  if (typeof previous.durationSeconds === "number" && previous.durationSeconds > 0) {
+    return `${previous.durationSeconds}s`;
+  }
+
+  return `${previous.weight.toLocaleString("sv-SE")} kg × ${previous.reps}`;
+}
+
+function formatDayLabel(isoDate: string) {
+  const parsed = new Date(`${isoDate}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return new Intl.DateTimeFormat("sv-SE", {
+    day: "numeric",
+    month: "long",
+  }).format(parsed);
+}
 
 function toTons(kg: number) {
   return Math.round((kg / 1000) * 10) / 10;
-}
-
-// Måste kännas uppmuntrande även vid 0 — annars blir sista kortet en
-// besvikelse istället för en avslutning. Skiljer sig medvetet från
-// PB-kortets egen null-text (kort 4) så det inte känns upprepat.
-function getPbCountLine(pbCount: number) {
-  if (pbCount === 0) {
-    return "Inga nya personbästan den här månaden — men varje pass bygger mot nästa";
-  }
-  if (pbCount === 1) {
-    return "1 nytt personbästa den här månaden";
-  }
-  return `${pbCount} nya personbästan den här månaden`;
 }
 
 type SparkleParticle = { left: number; delay: number; duration: number; size: number };
@@ -126,23 +206,24 @@ export function WrappedStory({ monthLabel, stats, captions, onClose }: Props) {
   const [index, setIndex] = useState(0);
   const ambientSparkles = useSparkleField(6);
   const burstSparkles = useSparkleField(14);
-  const isGoldCard = GOLD_CARD_INDEXES.includes(index);
+  const cards = buildWrappedCards(stats);
+  const card = cards[Math.min(index, cards.length - 1)];
+  const isGoldCard = Boolean(card.gold);
 
   const goNext = () => {
-    if (index >= CARD_COUNT - 1) {
+    if (index >= cards.length - 1) {
       onClose();
       return;
     }
     setIndex((current) => current + 1);
   };
 
-  const handleShare = (cardType: "pb" | "closing") =>
+  const handleShare = () =>
     // Delning avbröts eller misslyckades tyst — inget att visa, kortet finns
     // kvar precis som innan. undefined (inte void) håller typen i linje med
     // vad ShareButton kan hantera.
-    shareWrappedCard(cardType, { monthLabel, stats, captions }).catch(() => undefined);
+    shareWrappedCard("summary", { monthLabel, stats, captions }).catch(() => undefined);
 
-  const topMuscle = stats.muscleBreakdown[0] ?? null;
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black">
@@ -155,7 +236,7 @@ export function WrappedStory({ monthLabel, stats, captions, onClose }: Props) {
         {isGoldCard && <SparkleLayer particles={burstSparkles} opacity={0.75} />}
 
         <div className="relative z-10 flex gap-1.5 px-4 pt-[calc(env(safe-area-inset-top)+14px)]">
-          {Array.from({ length: CARD_COUNT }, (_, segmentIndex) => (
+          {cards.map((_, segmentIndex) => (
             <div
               key={segmentIndex}
               className="h-1 flex-1 overflow-hidden rounded-full bg-white/15"
@@ -186,7 +267,7 @@ export function WrappedStory({ monthLabel, stats, captions, onClose }: Props) {
         </button>
 
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-8 text-center">
-          {index === 0 && (
+          {card.id === "opening" && (
             <>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">
                 Höjdpunkter
@@ -197,19 +278,21 @@ export function WrappedStory({ monthLabel, stats, captions, onClose }: Props) {
             </>
           )}
 
-          {index === 1 && (
+          {card.id === "activity" && (
             <>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">
                 Aktivitet
               </p>
               <p className="mt-5 text-7xl font-bold tabular-nums">{stats.passCount}</p>
-              <p className="mt-2 text-xl text-white/70">pass loggade</p>
-              <p className="mt-1 text-sm text-white/50">{formatMinutes(stats.totalMinutes)} totalt</p>
+              <p className="mt-2 text-xl text-white/70">
+                {getPlannedComparison(stats) ?? "pass loggade"}
+              </p>
+              <p className="mt-1 text-sm text-white/50">{getActivitySubline(stats)}</p>
               <p className="mt-6 max-w-xs text-lg text-white/85">{captions.activityCaption}</p>
             </>
           )}
 
-          {index === 2 && (
+          {card.id === "volume" && (
             <>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">
                 Volym
@@ -218,15 +301,22 @@ export function WrappedStory({ monthLabel, stats, captions, onClose }: Props) {
                 {toTons(stats.totalVolumeKg).toLocaleString("sv-SE")}
               </p>
               <p className="mt-2 text-xl text-white/70">ton lyft den här månaden</p>
+              {/* Ett totaltal är abstrakt. Ett datum är en minnesbild — du
+                  minns vilket pass det var. */}
+              {stats.heaviestDay && formatDayLabel(stats.heaviestDay.date) && (
+                <p className="mt-6 text-sm text-white/50">
+                  Tyngsta dagen: {formatDayLabel(stats.heaviestDay.date)}
+                </p>
+              )}
             </>
           )}
 
-          {index === 3 && (
+          {card.id === "pb" && (
             <>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200/70">
                 Störst PB
               </p>
-              {stats.biggestPb ? (
+              {stats.biggestPb && (
                 <>
                   <p className="mt-5 text-2xl font-semibold text-white">
                     {stats.biggestPb.exerciseName}
@@ -234,46 +324,53 @@ export function WrappedStory({ monthLabel, stats, captions, onClose }: Props) {
                   <p className="mt-2 text-6xl font-bold tabular-nums text-amber-200">
                     {formatRecord(stats.biggestPb)}
                   </p>
+                  {/* Banan, inte tillståndet. "30 × 12" är var du står;
+                      "slog 20 × 12 från juni" är vad du gjort. Det är den
+                      raden som gör siffran till något att vara stolt över. */}
+                  {stats.biggestPb.previous && (
+                    <p className="mt-4 text-sm text-white/55">
+                      slog {formatBeatenRecord(stats.biggestPb.previous)} från{" "}
+                      {formatMonthLabel(stats.biggestPb.previous.createdAt)}
+                    </p>
+                  )}
                 </>
-              ) : (
-                <p className="mt-5 text-3xl font-semibold text-white">Konsekvens den här månaden</p>
               )}
               <p className="mt-8 max-w-xs text-lg text-white/85">{captions.pbCaption}</p>
-              <ShareButton onShare={() => handleShare("pb")} />
             </>
           )}
 
-          {index === 4 && (
+          {card.id === "records" && (
             <>
+              {/* Ersatte muskelfokus-kortet. Vilken muskelgrupp som fick
+                  mest bestäms av splitten — har du bendag vinner ben, varje
+                  månad, för alltid. Antalet rekord bestäms av dig. */}
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">
-                Muskelfokus
+                Rekord
               </p>
-              {topMuscle ? (
-                <>
-                  <p className="mt-5 text-4xl font-semibold capitalize">{topMuscle.category}</p>
-                  <p className="mt-2 text-xl text-white/70">{topMuscle.percent}% av dina set</p>
-                  <p className="mt-6 max-w-xs text-lg text-white/85">
-                    Tog störst plats i din träning den här månaden
-                  </p>
-                </>
-              ) : (
-                <p className="mt-5 text-2xl text-white/70">Bred spridning den här månaden</p>
+              <p className="mt-5 text-7xl font-bold tabular-nums">{stats.pbCount}</p>
+              <p className="mt-2 text-xl text-white/70">övningar fick nya rekord</p>
+              {stats.pbExerciseNames.length > 0 && (
+                <p className="mt-6 max-w-xs text-lg leading-relaxed text-white/85">
+                  {stats.pbExerciseNames.join(" · ")}
+                </p>
               )}
             </>
           )}
 
-          {index === 5 && (
+          {card.id === "reflection" && (
             <p className="max-w-xs text-3xl font-semibold leading-snug">{captions.reflectionCaption}</p>
           )}
 
-          {index === 6 && (
+          {card.id === "closing" && (
             <>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200/70">
                 Avslutning
               </p>
-              <h2 className="mt-5 max-w-xs text-3xl font-semibold">{getPbCountLine(stats.pbCount)}</h2>
-              <p className="mt-4 max-w-xs text-lg text-white/85">Vi ses nästa månad</p>
-              <ShareButton onShare={() => handleShare("closing")} />
+              {/* Sa förut antalet rekord igen — samma siffra som rekordkortet
+                  två steg tidigare. En avslutning ska avsluta, inte
+                  sammanfatta det man just sett. */}
+              <h2 className="mt-5 max-w-xs text-3xl font-semibold">Vi ses nästa månad</h2>
+              <ShareButton onShare={() => handleShare()} />
             </>
           )}
         </div>

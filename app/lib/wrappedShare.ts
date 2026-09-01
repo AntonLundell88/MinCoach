@@ -1,7 +1,9 @@
 import type { WrappedStoredStats } from "./wrapped";
 import type { CoachWrappedResult } from "./coachAi";
 
-export type ShareableWrappedCard = "pb" | "closing";
+// Ett delningsläge. Förut fanns "pb" och "closing" — två knappar som delade
+// var sin slide. Nu en bild av hela månaden.
+export type ShareableWrappedCard = "summary";
 
 type ShareableCardData = {
   monthLabel: string;
@@ -15,48 +17,6 @@ const NAVY_TOP = "#0b1420";
 const NAVY_BOTTOM = "#050810";
 const GOLD = "#fcd34d"; // amber-300, samma familj som PB-badgens amber-ton
 const GOLD_SOFT = "rgba(252,211,77,0.75)";
-
-function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
-  const words = text.split(" ");
-  const lines: string[] = [];
-  let current = "";
-
-  words.forEach((word) => {
-    const candidate = current ? `${current} ${word}` : word;
-    if (ctx.measureText(candidate).width > maxWidth && current) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = candidate;
-    }
-  });
-
-  if (current) lines.push(current);
-  return lines;
-}
-
-function drawCenteredLines(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  centerX: number,
-  startY: number,
-  maxWidth: number,
-  lineHeight: number
-) {
-  const lines = wrapLines(ctx, text, maxWidth);
-  lines.forEach((line, index) => {
-    ctx.fillText(line, centerX, startY + index * lineHeight);
-  });
-  return startY + lines.length * lineHeight;
-}
-
-function formatRecordValue(pb: NonNullable<WrappedStoredStats["biggestPb"]>) {
-  if (pb.metricType === "time") {
-    const seconds = pb.durationSeconds ?? 0;
-    return `${seconds}s`;
-  }
-  return `${pb.weight.toLocaleString("sv-SE")} kg × ${pb.reps}`;
-}
 
 function drawBackground(ctx: CanvasRenderingContext2D) {
   const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
@@ -73,60 +33,55 @@ function drawWatermark(ctx: CanvasRenderingContext2D) {
   ctx.fillText("MinCoach", CANVAS_WIDTH / 2, CANVAS_HEIGHT - 90);
 }
 
-function drawPbCard(ctx: CanvasRenderingContext2D, data: ShareableCardData) {
+/**
+ * Sammanfattningsbilden — hela månaden på ett kort.
+ *
+ * Delningen satt tidigare på två enskilda kort och renderade just det
+ * kortet. Men man delar inte en slide, man delar sin månad. Anton fångade
+ * det direkt: "ska man inte kunna dela hela? Bara en bild? Skumt."
+ *
+ * Tre-fyra siffror som betyder något, plus banan på det största rekordet —
+ * den raden är det enda här som är en berättelse snarare än ett tillstånd.
+ */
+function drawSummaryCard(ctx: CanvasRenderingContext2D, data: ShareableCardData) {
   const centerX = CANVAS_WIDTH / 2;
+  const { stats } = data;
 
   ctx.textAlign = "center";
   ctx.fillStyle = GOLD_SOFT;
-  ctx.font = "600 34px system-ui, -apple-system, sans-serif";
-  ctx.fillText(`Störst PB i ${data.monthLabel}`, centerX, 620);
+  ctx.font = "600 40px system-ui, -apple-system, sans-serif";
+  ctx.fillText(data.monthLabel.toUpperCase(), centerX, 620);
 
-  if (data.stats.biggestPb) {
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "600 54px system-ui, -apple-system, sans-serif";
-    drawCenteredLines(ctx, data.stats.biggestPb.exerciseName, centerX, 740, 860, 64);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "700 96px system-ui, -apple-system, sans-serif";
+  ctx.fillText(
+    `${stats.passCount} pass · ${Math.round((stats.totalVolumeKg / 1000) * 10) / 10} ton`,
+    centerX,
+    780
+  );
 
+  if (stats.pbCount > 0) {
     ctx.fillStyle = GOLD;
-    ctx.font = "700 96px system-ui, -apple-system, sans-serif";
-    ctx.fillText(formatRecordValue(data.stats.biggestPb), centerX, 920);
-  } else {
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "600 48px system-ui, -apple-system, sans-serif";
-    drawCenteredLines(ctx, "Konsekvens den här månaden", centerX, 820, 820, 60);
+    ctx.font = "700 64px system-ui, -apple-system, sans-serif";
+    ctx.fillText(
+      stats.pbCount === 1 ? "1 nytt rekord" : `${stats.pbCount} nya rekord`,
+      centerX,
+      900
+    );
   }
 
-  ctx.fillStyle = "rgba(255,255,255,0.82)";
-  ctx.font = "400 36px system-ui, -apple-system, sans-serif";
-  drawCenteredLines(ctx, data.captions.pbCaption, centerX, 1080, 780, 48);
-}
+  if (stats.biggestPb) {
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "600 52px system-ui, -apple-system, sans-serif";
+    ctx.fillText(stats.biggestPb.exerciseName, centerX, 1080);
 
-function drawClosingCard(ctx: CanvasRenderingContext2D, data: ShareableCardData) {
-  const centerX = CANVAS_WIDTH / 2;
-
-  ctx.textAlign = "center";
-  ctx.fillStyle = GOLD_SOFT;
-  ctx.font = "600 34px system-ui, -apple-system, sans-serif";
-  ctx.fillText(`Din ${data.monthLabel} är klar`, centerX, 640);
-
-  ctx.fillStyle = GOLD;
-  ctx.font = "700 140px system-ui, -apple-system, sans-serif";
-  ctx.fillText(`${data.stats.passCount}`, centerX, 840);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "500 40px system-ui, -apple-system, sans-serif";
-  ctx.fillText("pass loggade", centerX, 900);
-
-  ctx.fillStyle = GOLD;
-  ctx.font = "700 72px system-ui, -apple-system, sans-serif";
-  ctx.fillText(`${Math.round(data.stats.totalVolumeKg).toLocaleString("sv-SE")} kg`, centerX, 1020);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "500 34px system-ui, -apple-system, sans-serif";
-  ctx.fillText("totalt lyft", centerX, 1064);
-
-  ctx.fillStyle = "rgba(255,255,255,0.82)";
-  ctx.font = "400 36px system-ui, -apple-system, sans-serif";
-  drawCenteredLines(ctx, data.captions.reflectionCaption, centerX, 1200, 780, 48);
+    ctx.fillStyle = GOLD;
+    ctx.font = "700 88px system-ui, -apple-system, sans-serif";
+    const trajectory = stats.biggestPb.previous
+      ? `${stats.biggestPb.previous.weight} → ${stats.biggestPb.weight} kg`
+      : `${stats.biggestPb.weight} kg × ${stats.biggestPb.reps}`;
+    ctx.fillText(trajectory, centerX, 1180);
+  }
 }
 
 export async function renderShareableWrappedCard(
@@ -142,11 +97,7 @@ export async function renderShareableWrappedCard(
 
   drawBackground(ctx);
 
-  if (cardType === "pb") {
-    drawPbCard(ctx, data);
-  } else {
-    drawClosingCard(ctx, data);
-  }
+  drawSummaryCard(ctx, data);
 
   drawWatermark(ctx);
 

@@ -57,12 +57,12 @@ const WRAPPED_PREVIEW_RECAP: WrappedRecap = {
       exerciseName: "Marklyft",
       weight: 120,
       reps: 5,
-      createdAt: new Date().toISOString(),
+      createdAt: "2026-07-22T17:00:00.000Z",
       improvementPercent: 9,
       previous: {
         weight: 110,
         reps: 5,
-        createdAt: new Date(Date.now() - 62 * 86400000).toISOString(),
+        createdAt: "2026-05-14T17:00:00.000Z",
       },
     },
     pbCount: 3,
@@ -74,7 +74,7 @@ const WRAPPED_PREVIEW_RECAP: WrappedRecap = {
       topWeekday: { name: "tisdag", count: 5 },
     },
     heaviestDay: {
-      date: new Date(Date.now() - 9 * 86400000).toISOString().slice(0, 10),
+      date: "2026-07-22",
       volumeKg: 6420,
     },
   },
