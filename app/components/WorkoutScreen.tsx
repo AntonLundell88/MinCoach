@@ -565,7 +565,6 @@ function buildExerciseIntroAiContext(args: {
           }
         : undefined,
     sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
-    heavierTestSet: progressionPlan.calibrationTestCandidate,
     otherGymReference,
     previousWorkoutSummary: summaryForFirst,
     recentHealthNotes,

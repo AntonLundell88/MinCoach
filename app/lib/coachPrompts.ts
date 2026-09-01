@@ -183,7 +183,12 @@ const EXERCISE_INTRO_INSTRUCTION = [
   "- recentChatNotes: vad de sa i chatten under övningen precis innan (recentChatNotes.duringExercise). Utrustnings- och viktprat hör bara till den övningen, inte den här.",
   "- recentHealthNotes / limitations: skador och besvär, äldst först, med hur många dagar sedan det nämndes och vilken övning det gällde.",
   "- otherGymReference: vad som loggades senast på ett ANNAT gym. Namnge det gymmet om du nämner det — 'här' betyder alltid gymmet de står i nu.",
-  "- opportunity / heavierTestSet: att gå tyngre. Det första är bevisad progression, det andra ett medvetet test utanför det bevisade. Nämn aldrig båda. Finns ingen av dem: föreslå ingen annan vikt än target.",
+  // heavierTestSet togs bort ur introt: fältet är facit för vad som är säkert
+  // att föreslå NÄR ANVÄNDAREN SJÄLV frågar om att testa tyngre (så står det i
+  // chattens instruktion). I introt har de inte frågat något — de har just
+  // kommit fram till maskinen. Resultatet blev tre vikter i en mening:
+  // "57,5 är ett rejält kliv från dina 50-set, innan vi ens flirtar med 65".
+  "- opportunity: bevisad progression, alltså att gå tyngre. Finns den inte: föreslå ingen annan vikt än target.",
   "- previousWorkoutSummary: förra passet. Finns bara vid position first.",
   "",
   "Det mesta av det är oftast inte värt att nämna. Hitta det ENDA som betyder något just nu och säg det. Har inget särskilt hänt räcker en rad som får dem att sätta igång.",

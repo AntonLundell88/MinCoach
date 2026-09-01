@@ -295,13 +295,12 @@ export type CoachExerciseIntroContext = {
   // ExerciseProgressionPlan.sessionsAtTopWeight i page.tsx). 0/undefined om
   // ingen historik finns än.
   sessionsAtTopWeight?: number;
-  // Skild från opportunity med avsikt: det här är inte bevisad progression,
-  // det är ett medvetet erbjudande om att testa UTANFÖR det bevisade.
-  // Namnvalet: se heavierTestSet i CoachChatContext ovan.
-  // Bara vikten — ingen färdig mening. Se CalibrationTestCandidate i page.tsx.
-  heavierTestSet?: {
-    weight: string;
-  };
+  // heavierTestSet finns med flit INTE här, bara på CoachChatContext. Fältet
+  // är facit för vad som är säkert att föreslå när användaren själv frågar om
+  // att testa tyngre. I introt har de inte frågat något — de har just kommit
+  // fram till maskinen — och med fältet på bordet blev öppningsraden tre
+  // vikter lång: "57,5 är ett rejält kliv från dina 50-set, innan vi ens
+  // flirtar med 65". Lägg inte tillbaka det utan att den meningen är löst.
   otherGymReference?: {
     gymName: string;
     weightText: string;
