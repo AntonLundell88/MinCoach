@@ -386,6 +386,15 @@ export type CoachWorkoutReviewContext = {
   kind: "workout_review";
   userName?: string;
   passLabel: string;
+  /**
+   * Passet som står på tur NÄSTA gång — det enda framåtblickande i hela den
+   * här kontexten.
+   *
+   * lobbyText ska möta användaren när de öppnar appen, alltså i ett läge där
+   * de är på väg att träna. Utan den här hade modellen bara det avslutade
+   * passet att utgå från och skrev därför en recap som visades som hälsning.
+   */
+  nextPassLabel?: string;
   summary: {
     durationMinutes: number;
     totalSets: number;

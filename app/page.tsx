@@ -8924,6 +8924,18 @@ void requestAiWorkoutReview({
     kind: "workout_review",
     userName: profileName,
     passLabel: workoutWithSummary.displayName,
+    // Räknas fram här och inte från nextPassLabel ovan: den härleds ur
+    // lastPass, som sätts i den här funktionen och alltså inte hunnit
+    // uppdateras när kontexten byggs.
+    nextPassLabel: (() => {
+      const nextKey = getNextPass(
+        workoutWithSummary.pass,
+        userProfile?.daysPerWeek ?? 3
+      );
+      const planned = workoutPlan?.passes.find((pass) => pass.key === nextKey);
+
+      return cleanPassDisplayLabel(planned?.displayName ?? `Pass ${nextKey}`);
+    })(),
     summary: {
       durationMinutes: summary.durationMinutes,
       totalSets: summary.totalSets,
