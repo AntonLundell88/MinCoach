@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatRecord } from "./LobbyScreen";
 import { formatMinutes } from "./StatisticsScreen";
-import type { WrappedStoredStats } from "../lib/wrapped";
+import { isPlannedComparisonFlattering, type WrappedStoredStats } from "../lib/wrapped";
 import type { CoachWrappedResult } from "../lib/coachAi";
 import { shareWrappedCard } from "../lib/wrappedShare";
 
@@ -59,11 +59,9 @@ function buildWrappedCards(stats: WrappedStoredStats): WrappedCard[] {
  * kortet bara antalet — lika sant, utan domen.
  */
 function getPlannedComparison(stats: WrappedStoredStats) {
-  const planned = stats.consistency.plannedPassCount;
-  if (!planned || planned <= 0) return null;
-  if (stats.passCount / planned < 0.9) return null;
+  if (!isPlannedComparisonFlattering(stats)) return null;
 
-  return `av ${planned} planerade`;
+  return `av ${stats.consistency.plannedPassCount} planerade`;
 }
 
 /**

@@ -444,11 +444,24 @@ export type CoachWrappedContext = {
   userName?: string;
   monthLabel: string;
   passCount: number;
-  /** Utan den kan modellen inte veta om närvaron var stark eller tunn. */
+  /**
+   * Skickas BARA när jämförelsen är smickrande — samma tröskel som kortet
+   * använder. Modellen jämförde annars rakt av ("9 av 13 planerade pass",
+   * "lite ojämnt mot planen"), alltså exakt den tillrättavisning kortet är
+   * byggt för att undvika. Enklare att inte lägga fakta på bordet än att
+   * förbjuda den när den redan ligger där.
+   */
   plannedPassCount: number | null;
-  longestWeekStreak: number;
-  totalMinutes: number;
-  totalVolumeKg: number;
+  /**
+   * Antal VECKOR i rad med minst ett pass. Hette longestWeekStreak och lästes
+   * då som "3 pass samma vecka" — modellen ekar fältnamn, så namnet måste
+   * bära betydelsen självt.
+   */
+  weeksInARow: number;
+  /** "9 timmar". Rå totalMinutes gav "540 minuter", vilket ingen säger. */
+  totalTimeLabel: string;
+  /** "48,3 ton". Rå kg gav "48 250 kg totalt" mitt i en mening. */
+  totalVolumeLabel: string;
   /** "22 juli". Redan formaterat — modellen ska inte tolka ISO-datum. */
   heaviestDayLabel: string | null;
   pbCount: number;

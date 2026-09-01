@@ -5,6 +5,7 @@ import {
   getMonthPersonalBests,
   getMonthStats,
   getMuscleGroupBreakdown,
+  formatMinutes,
   type MonthPersonalBest,
 } from "../components/StatisticsScreen";
 import type { CoachWrappedContext, CoachWrappedResult } from "./coachAi";
@@ -241,6 +242,21 @@ export function buildWrappedStats(
   };
 }
 
+/**
+ * En källa till tröskeln, delad av kortet och AI-kontexten.
+ *
+ * "12 av 13" är ett kvitto. "9 av 13" är en anklagelse, och en Wrapped ska
+ * man se fram emot. Kortet döljer jämförelsen under tröskeln — och modellen
+ * får inte ens se siffran, annars säger den den ändå ("lite ojämnt mot
+ * planen"). Två ställen som läser samma funktion kan inte glida isär.
+ */
+export function isPlannedComparisonFlattering(stats: WrappedStoredStats) {
+  const planned = stats.consistency.plannedPassCount;
+  if (!planned || planned <= 0) return false;
+
+  return stats.passCount / planned >= 0.9;
+}
+
 /** "22 juli" — färdigformaterat, modellen ska inte tolka ISO-datum. */
 function formatDayLabel(isoDate: string) {
   const parsed = new Date(`${isoDate}T12:00:00`);
@@ -267,10 +283,14 @@ export function toWrappedAiContext(
     userName,
     monthLabel,
     passCount: stats.passCount,
-    plannedPassCount: stats.consistency.plannedPassCount,
-    longestWeekStreak: stats.consistency.longestWeekStreak,
-    totalMinutes: stats.totalMinutes,
-    totalVolumeKg: stats.totalVolumeKg,
+    // Bara när den smickrar. Se kommentaren vid fältet i coachAi.ts —
+    // tröskeln är densamma som kortets getPlannedComparison använder.
+    plannedPassCount: isPlannedComparisonFlattering(stats)
+      ? stats.consistency.plannedPassCount
+      : null,
+    weeksInARow: stats.consistency.longestWeekStreak,
+    totalTimeLabel: formatMinutes(stats.totalMinutes),
+    totalVolumeLabel: `${(Math.round((stats.totalVolumeKg / 1000) * 10) / 10).toLocaleString("sv-SE")} ton`,
     heaviestDayLabel: stats.heaviestDay
       ? formatDayLabel(stats.heaviestDay.date)
       : null,
