@@ -223,6 +223,19 @@ export type MonthPersonalBest = {
   metricType?: "reps" | "time";
   createdAt: string;
   improvementPercent: number;
+  /**
+   * Rekordet det här slog, och när det sattes.
+   *
+   * Utan det är ett PB bara ett tillstånd: "30 × 12". Med det blir det en
+   * bana: "20 → 30 sedan i juni". Loopen nedan höll redan reda på föregående
+   * bästa i `best` — värdet kastades bara bort när eventet skapades.
+   */
+  previous: {
+    weight: number;
+    reps: number;
+    durationSeconds?: number;
+    createdAt: string;
+  } | null;
 };
 
 type PersonalBestAttempt = {
@@ -296,6 +309,8 @@ export function getMonthPersonalBests(history: Workout[], monthKey: string): Mon
           const improvementPercent =
             previousValue > 0 ? Math.round(((newValue - previousValue) / previousValue) * 100) : 0;
 
+          const beatenRecord = best as LoggedSet & { exerciseName: string };
+
           events.push({
             exerciseName: name,
             weight: set.weight,
@@ -304,6 +319,12 @@ export function getMonthPersonalBests(history: Workout[], monthKey: string): Mon
             metricType: set.metricType,
             createdAt: set.createdAt,
             improvementPercent,
+            previous: {
+              weight: beatenRecord.weight,
+              reps: beatenRecord.reps,
+              durationSeconds: beatenRecord.durationSeconds,
+              createdAt: beatenRecord.createdAt,
+            },
           });
         }
         best = set;

@@ -18,6 +18,29 @@ export const MIN_WRAPPED_PASSES = 3;
 // ingen juli-Wrapped — väl en augusti, om man loggar tillräckligt då).
 export const MIN_ACCOUNT_AGE_DAYS_IN_MONTH = 15;
 
+/**
+ * Närvaron som mönster, inte som antal.
+ *
+ * "12 pass" är schemat, inte en prestation — det stod i planen innan månaden
+ * började. Det som är förtjänat är att du faktiskt kom: hur många av de
+ * planerade som blev av, och om du höll ihop veckorna utan lucka.
+ */
+export type WrappedConsistency = {
+  /** Null när vi inte vet användarens daysPerWeek. */
+  plannedPassCount: number | null;
+  /** Längsta svit av sammanhängande veckor med minst ett pass. */
+  longestWeekStreak: number;
+  weeksInMonth: number;
+  /** Bara när en veckodag sticker ut tydligt — annars null. */
+  topWeekday: { name: string; count: number } | null;
+};
+
+/** Månadens tyngsta dag. Ett datum är en minnesbild, ett totaltal är abstrakt. */
+export type WrappedHeaviestDay = {
+  date: string;
+  volumeKg: number;
+};
+
 export type WrappedStoredStats = {
   passCount: number;
   totalMinutes: number;
@@ -25,9 +48,15 @@ export type WrappedStoredStats = {
   muscleBreakdown: { category: string; count: number; percent: number }[];
   biggestPb: MonthPersonalBest | null;
   // Totalt antal PB den här månaden — biggestPb är bara den största av dem.
-  // getMonthPersonalBests returnerar alla, vi sparar bara längden här; hela
-  // listan behövs inte, bara "hur många fler fanns det".
   pbCount: number;
+  /**
+   * Vilka övningar som fick nya rekord. "Fem övningar fick nya rekord" är det
+   * man faktiskt berättar för någon — det största enskilda PB:t är bara en av
+   * dem. Max 6, sorterade som getMonthPersonalBests returnerar dem.
+   */
+  pbExerciseNames: string[];
+  consistency: WrappedConsistency;
+  heaviestDay: WrappedHeaviestDay | null;
 };
 
 // Alltid "kalendermånaden precis innan now" — per konstruktion alltid
@@ -54,7 +83,138 @@ export function isAccountOldEnoughForMonth(accountCreatedAt: Date, monthKey: str
 // null om passCount < MIN_WRAPPED_PASSES. Kontoålder är en separat gate
 // (isAccountOldEnoughForMonth) eftersom den här funktionen bara ser
 // history, inte Supabase-sessionen — hooken kombinerar båda.
-export function buildWrappedStats(history: Workout[], monthKey: string): WrappedStoredStats | null {
+const WEEKDAY_NAMES = [
+  "söndag",
+  "måndag",
+  "tisdag",
+  "onsdag",
+  "torsdag",
+  "fredag",
+  "lördag",
+];
+
+/**
+ * Lokalt datum som "YYYY-MM-DD". Inte toISOString() — den konverterar till
+ * UTC, och i svensk sommartid blir lokal midnatt föregående dygn. Det gjorde
+ * att kalenderns veckonycklar hamnade en dag fel medan passens hamnade rätt,
+ * så de aldrig överlappade och sviten alltid blev noll.
+ */
+function toLocalDateKey(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** ISO-veckonummer räcker inte över årsskiften — vi vill bara gruppera pass
+ *  inom en månad, så veckans måndag som nyckel är enklare och lika säkert. */
+function getWeekStartKey(date: Date) {
+  const monday = new Date(date);
+  const offset = (date.getDay() + 6) % 7;
+  monday.setDate(date.getDate() - offset);
+
+  return toLocalDateKey(monday);
+}
+
+export function buildWrappedConsistency(
+  monthHistory: Workout[],
+  monthKey: string,
+  daysPerWeek: number | null
+): WrappedConsistency {
+  const [year, month] = monthKey.split("-").map(Number);
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+
+  // Alla veckor som månaden rör vid, i ordning. Vi går på måndagsnycklar så
+  // en vecka som spänner över månadsskiftet räknas en gång.
+  const weekKeys: string[] = [];
+  for (
+    let day = new Date(firstDay);
+    day <= lastDay;
+    day.setDate(day.getDate() + 1)
+  ) {
+    const key = getWeekStartKey(day);
+    if (!weekKeys.includes(key)) weekKeys.push(key);
+  }
+
+  const trainedWeeks = new Set(
+    monthHistory.map((workout) => getWeekStartKey(new Date(workout.startedAt)))
+  );
+
+  let longestWeekStreak = 0;
+  let running = 0;
+  weekKeys.forEach((key) => {
+    if (trainedWeeks.has(key)) {
+      running += 1;
+      longestWeekStreak = Math.max(longestWeekStreak, running);
+    } else {
+      running = 0;
+    }
+  });
+
+  const weekdayCounts = new Map<number, number>();
+  monthHistory.forEach((workout) => {
+    const day = new Date(workout.startedAt).getDay();
+    weekdayCounts.set(day, (weekdayCounts.get(day) ?? 0) + 1);
+  });
+
+  const ranked = [...weekdayCounts.entries()].sort((a, b) => b[1] - a[1]);
+  const [topDay, topCount] = ranked[0] ?? [];
+  const runnerUpCount = ranked[1]?.[1] ?? 0;
+  // Bara när dagen faktiskt sticker ut. Tre pass i veckan ger tre dagar med
+  // samma antal, och då är "din tisdag" en slumpmässig av dem — inte ett
+  // mönster användaren känner igen.
+  const topWeekday =
+    typeof topDay === "number" && topCount && topCount > runnerUpCount
+      ? { name: WEEKDAY_NAMES[topDay], count: topCount }
+      : null;
+
+  return {
+    plannedPassCount:
+      daysPerWeek && daysPerWeek > 0
+        ? Math.round((daysPerWeek * lastDay.getDate()) / 7)
+        : null,
+    longestWeekStreak,
+    weeksInMonth: weekKeys.length,
+    topWeekday,
+  };
+}
+
+export function buildWrappedHeaviestDay(
+  monthHistory: Workout[]
+): WrappedHeaviestDay | null {
+  const byDate = new Map<string, number>();
+
+  monthHistory.forEach((workout) => {
+    // Lokalt datum, samma skäl som i getWeekStartKey: ett pass klockan 09 på
+    // morgonen ska inte hamna på gårdagen bara för att UTC ligger efter.
+    const date = toLocalDateKey(new Date(workout.startedAt));
+    const volume = workout.exercises.reduce(
+      (sum, exercise) =>
+        sum +
+        exercise.sets.reduce((setSum, set) => {
+          if (set.metricType === "time" || typeof set.durationSeconds === "number") {
+            return setSum;
+          }
+          return setSum + set.weight * set.reps;
+        }, 0),
+      0
+    );
+    byDate.set(date, (byDate.get(date) ?? 0) + volume);
+  });
+
+  const ranked = [...byDate.entries()].sort((a, b) => b[1] - a[1]);
+  const [date, volumeKg] = ranked[0] ?? [];
+
+  return date && volumeKg > 0 ? { date, volumeKg } : null;
+}
+
+export function buildWrappedStats(
+  history: Workout[],
+  monthKey: string,
+  /** Från profilen. Utan den kan vi inte säga "12 av 13 planerade". */
+  daysPerWeek?: number | null
+): WrappedStoredStats | null {
   const monthStats = getMonthStats(history, monthKey);
   if (monthStats.passCount < MIN_WRAPPED_PASSES) return null;
 
@@ -75,6 +235,9 @@ export function buildWrappedStats(history: Workout[], monthKey: string): Wrapped
     muscleBreakdown,
     biggestPb: monthPersonalBests[0] ?? null,
     pbCount: monthPersonalBests.length,
+    pbExerciseNames: monthPersonalBests.slice(0, 6).map((pb) => pb.exerciseName),
+    consistency: buildWrappedConsistency(monthHistory, monthKey, daysPerWeek ?? null),
+    heaviestDay: buildWrappedHeaviestDay(monthHistory),
   };
 }
 

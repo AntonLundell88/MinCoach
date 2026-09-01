@@ -59,8 +59,24 @@ const WRAPPED_PREVIEW_RECAP: WrappedRecap = {
       reps: 5,
       createdAt: new Date().toISOString(),
       improvementPercent: 9,
+      previous: {
+        weight: 110,
+        reps: 5,
+        createdAt: new Date(Date.now() - 62 * 86400000).toISOString(),
+      },
     },
     pbCount: 3,
+    pbExerciseNames: ["Marklyft", "Bänkpress", "Latsdrag"],
+    consistency: {
+      plannedPassCount: 13,
+      longestWeekStreak: 4,
+      weeksInMonth: 5,
+      topWeekday: { name: "tisdag", count: 5 },
+    },
+    heaviestDay: {
+      date: new Date(Date.now() - 9 * 86400000).toISOString().slice(0, 10),
+      volumeKg: 6420,
+    },
   },
   captions: {
     activityCaption: "14 pass loggade i juli — bra tempo genom hela månaden",
@@ -79,7 +95,12 @@ function isWithinSpotlightWindow(now: Date) {
   return now.getDate() <= SPOTLIGHT_WINDOW_DAYS;
 }
 
-export function useWrappedRecap(history: Workout[], userName?: string) {
+export function useWrappedRecap(
+  history: Workout[],
+  userName?: string,
+  /** Från profilen — används för "12 av 13 planerade". */
+  daysPerWeek?: number | null
+) {
   const [previewOverride] = useState(readWrappedPreviewOverride);
   const [previewQuietOverride] = useState(readWrappedPreviewQuietOverride);
   const [supabase] = useState(() =>
@@ -126,7 +147,7 @@ export function useWrappedRecap(history: Workout[], userName?: string) {
     // och skickar ett andra parallellt AI-anrop.
     if (checkedMonthKeyRef.current === monthKey) return;
 
-    const stats = buildWrappedStats(history, monthKey);
+    const stats = buildWrappedStats(history, monthKey, daysPerWeek);
     if (!stats) return;
 
     const accountCreatedAt = session.user.created_at

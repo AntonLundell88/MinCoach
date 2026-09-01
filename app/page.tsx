@@ -7007,7 +7007,11 @@ const {
 });
 
 const { wrapped, story: wrappedStory, isOpen: isWrappedOpen, onClose: closeWrapped } =
-  useWrappedRecap(history, userProfile?.name?.trim() || undefined);
+  useWrappedRecap(
+    history,
+    userProfile?.name?.trim() || undefined,
+    userProfile?.daysPerWeek ?? null
+  );
 
 useAutoAccountBackup(history, appTheme);
 
