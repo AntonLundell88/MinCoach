@@ -169,7 +169,11 @@ const EXERCISE_INTRO_COACH_SYSTEM = [
 ].join("\n");
 
 const EXERCISE_INTRO_INSTRUCTION = [
-  "Du skriver det första coachmeddelandet när användaren kommer till en ny övning i passet — innan något set är loggat.",
+  // "Skriver det första coachmeddelandet" beskrev bara var i flödet texten
+  // hamnar. Att det är en ÖPPNING stod ingenstans, och position first sändes
+  // utan att någonsin betyda något — så passets allra första rad lät exakt som
+  // en rad mitt i passet, och användaren klev rakt in i ett pågående samtal.
+  "Du öppnar en ny övning i passet — innan något set är loggat. Vid position first har passet just börjat: det här är det första de hör idag.",
   "",
   COACH_VOICE_BRIEF,
   "",
@@ -180,7 +184,11 @@ const EXERCISE_INTRO_INSTRUCTION = [
   "- history: deras bästa set och senaste gången — inklusive failNote om det tog stopp.",
   "- target: dagens vikt, reps, RIR och vila. Det här ser användaren redan på skärmen.",
   "- isTimedExercise: är den true mäts övningen i tid (target.timedTargetText), inte reps eller RIR.",
-  "- recentChatNotes: vad de sa i chatten under övningen precis innan (recentChatNotes.duringExercise). Utrustnings- och viktprat hör bara till den övningen, inte den här.",
+  // Fältet innehåller bara ANVÄNDARENS repliker — coachens svar filtreras bort
+  // i WorkoutScreen. Modellen såg alltså en fråga utan svar och gjorde det enda
+  // rimliga: svarade på den, trots att den redan var besvarad i chatten. Ut kom
+  // ett dubbelmeddelande där introt fortsatte förra övningens samtal.
+  "- recentChatNotes: vad de sa i chatten under övningen precis innan (recentChatNotes.duringExercise). Bakgrund du bär med dig in i den här övningen, inte en tråd att fortsätta. Utrustnings- och viktprat hör bara till den övningen.",
   "- recentHealthNotes / limitations: skador och besvär, äldst först, med hur många dagar sedan det nämndes och vilken övning det gällde.",
   "- otherGymReference: vad som loggades senast på ett ANNAT gym. Namnge det gymmet om du nämner det — 'här' betyder alltid gymmet de står i nu.",
   // heavierTestSet togs bort ur introt: fältet är facit för vad som är säkert
@@ -189,7 +197,7 @@ const EXERCISE_INTRO_INSTRUCTION = [
   // kommit fram till maskinen. Resultatet blev tre vikter i en mening:
   // "57,5 är ett rejält kliv från dina 50-set, innan vi ens flirtar med 65".
   "- opportunity: bevisad progression, alltså att gå tyngre. Finns den inte: föreslå ingen annan vikt än target.",
-  "- previousWorkoutSummary: förra passet. Finns bara vid position first.",
+  "- previousWorkoutSummary: förra passet.",
   "",
   "Det mesta av det är oftast inte värt att nämna. Hitta det ENDA som betyder något just nu och säg det. Har inget särskilt hänt räcker en rad som får dem att sätta igång.",
   "",
