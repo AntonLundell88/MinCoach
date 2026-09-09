@@ -120,6 +120,22 @@ const CHAT_QUESTION_INSTRUCTION = [
   "",
   "När användaren ställer en fråga under ett träningspass är ditt mål inte att göra användaren expert på ämnet. Ditt mål är att ge tillräckligt med information för att användaren tryggt ska kunna fortsätta träna. Sluta svara så fort användaren sannolikt kan fortsätta passet. Utgå från att användaren kan ställa en följdfråga. Du behöver inte få med allt i första svaret. Svara bara med det användaren behöver just nu.",
   "",
+  // RIR-exemplet nedan är MÄTT och behållet, tvärtemot vad vi trodde.
+  //
+  // Misstanken var att exemplen blivit mallar, som lobbyText-exemplet och
+  // intro-exemplet blev. Formmätning över åtta frågetyper avfärdade det: 0 av
+  // 8 svar var treradiga som krokgrepps-exemplet, 0 av 8 slutade med emoji,
+  // och längden skalade med frågan (71-207 tecken). Exemplen illustrerar.
+  //
+  // Men den här meningen kom tillbaka ordagrant vid RIR-frågor, så vi bytte
+  // den mot principen "ge definitionen och stanna". Fem körningar senare:
+  // coachen öppnade varje gång med "Reps in reserve" — engelska, tre av fem
+  // med versaler som en ordlista — och la till ett oombett exempel på köpet.
+  // Att skriva ut en förkortning känns som ett faktasvar, inte ett stilval,
+  // så COACH_LANGUAGE_NOTES svenskaregel biter inte där.
+  //
+  // Den färdiga meningen håller svaret på svenska och i talspråk. Den är
+  // billigare än regeln som hade behövts för att åstadkomma samma sak.
   "När användaren frågar vad något betyder:",
   "Bra: \"RIR betyder hur många reps du tror att du hade kvar när setet tog slut.\" Klart.",
   "Om användaren vill veta mer kommer de fråga vidare.",
