@@ -1450,44 +1450,6 @@ function getFatigueInsight(
   return "Du har haft flera tunga set senaste passen. Det kan vara läge att hålla igen lite idag.";
 }
 
-function getDeloadInsight(
-  history: Workout[],
-  exerciseName: string
-) {
-  const key = exerciseKey(exerciseName);
-
-  const recentSets: { rir?: number; weight: number }[] = [];
-
-  for (const w of history) {
-    const ex = w.exercises.find((e) => exerciseKey(e.name) === key);
-
-    if (!ex || ex.sets.length === 0) continue;
-
-    for (const s of ex.sets) {
-      recentSets.push({
-        rir: s.rir,
-        weight: s.weight,
-      });
-    }
-
-    if (recentSets.length >= 8) break;
-  }
-
-  const latestEight = recentSets.slice(0, 8);
-
-  if (latestEight.length < 6) return "";
-
-  const failureCount = latestEight.filter((s) => s.rir === 0).length;
-  const hardCount = latestEight.filter((s) => s.rir === 0 || s.rir === 1).length;
-
-  if (failureCount < 2 && hardCount < 5) return "";
-
-  const heaviestWeight = Math.max(...latestEight.map((s) => s.weight));
-  const deloadWeight = Math.max(0, heaviestWeight * 0.9);
-
-  return `Du har haft flera väldigt tunga set senaste passen. Det kan vara smart att köra en lättare dag runt ${formatWeightInput(deloadWeight)} kg eller ungefär 5–10 % lättare.`;
-}
-
  function didHitTargets(
   last: { weight: number; reps: number } | undefined,
   targetReps: number
@@ -5684,24 +5646,6 @@ const progression = useMemo(() => {
     .slice(0, 3);
 }, [progressionHistory, currentExerciseName, workout]);
 
-const stagnationInsight = useMemo(() => {
-  if (!currentExerciseName) return "";
-
-  return getStagnationInsight(history, currentExerciseName);
-}, [history, currentExerciseName]);
-
-const fatigueInsight = useMemo(() => {
-  if (!currentExerciseName) return "";
-
-  return getFatigueInsight(history, currentExerciseName);
-}, [history, currentExerciseName]);
-
-const deloadInsight = useMemo(() => {
-  if (!currentExerciseName) return "";
-
-  return getDeloadInsight(history, currentExerciseName);
-}, [history, currentExerciseName]);
-
 
 
 const weeklyStats = useMemo(() => {
@@ -5788,57 +5732,7 @@ const adjustedSuggestion = useMemo(() => {
   return suggestion;
 }, [suggestion]);
 
-const latestCoachNoteForExercise = useMemo(() => {
-  if (!currentExerciseName) return "";
-  const found = coachMemory.notes.find(
-   (n) => n.exerciseName && exerciseKey(n.exerciseName) === exerciseKey(currentExerciseName)
 
-  );
-  return found?.text ?? "";
-}, [coachMemory, currentExerciseName]);
-
-
-function getProgressionSuggestion(
-  last: {
-    weight: number;
-    reps: number;
-    rir: number | null;
-  } | undefined,
-  targetReps: number
-) {
-  if (!last) {
-    return {
-      targetWeight: 40,
-      reason: "Ingen historik än. Första setet visar nivån.",
-    };
-  }
-
-  if (last.rir === 0) {
-    return {
-      targetWeight: Math.max(0, last.weight - 2.5),
-      reason: "Senast nådde du failure. Vi börjar lite lättare.",
-    };
-  }
-
-    if (typeof last.rir === "number" && last.rir >= 3 && last.reps >= targetReps) {
-    return {
-      targetWeight: scaledProgressionJump(last.weight, currentExerciseName, last.reps, targetReps, last.rir),
-      reason: "Senast hade du marginal kvar. Du kan testa att höja.",
-    };
-  }
-
-    if ((last.rir === 1 || last.rir === 2) && last.reps >= targetReps) {
-    return {
-      targetWeight: last.weight,
-      reason: "Senast låg du nära rätt marginal. Vi håller vikten.",
-    };
-  }
-
-  return {
-    targetWeight: last.weight,
-    reason: "Utgå från samma vikt som senast.",
-  };
-}
 
 
 
@@ -6187,26 +6081,6 @@ function shouldHoldYouToPlan(opts: {
   if (opts.lastHadTargets) return true;
   return false;
   }
-  function pickOne(arr: string[]) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function coachPushbackText() {
-  return pickOne([
-    "Jag hör dig.",
-    "Okej.",
-    "Jag fattar.",
-  ]);
-}
-
-function coachDealText() {
-  return pickOne([
-    "Första setet visar nivån.",
-    "Första setet visar nivån.",
-    "Vi låter första setet bestämma.",
-  ]);
-}
-
 function getExerciseMentionIndex(message: string, exercises: LoggedExercise[]) {
   const lower = message.toLowerCase();
 
@@ -6214,22 +6088,6 @@ function getExerciseMentionIndex(message: string, exercises: LoggedExercise[]) {
     const key = exerciseKey(exercise.name);
     return lower.includes(key) || key.includes(exerciseKey(message));
   });
-}
-
-function extractExerciseNameAfter(message: string, triggers: string[]) {
-  const lower = message.toLowerCase();
-
-  for (const trigger of triggers) {
-    const index = lower.indexOf(trigger);
-    if (index === -1) continue;
-
-    return message
-      .slice(index + trigger.length)
-      .replace(/[.!?]+$/g, "")
-      .trim();
-  }
-
-  return "";
 }
 
 function extractExerciseNameAfterNormalized(message: string, triggers: string[]) {
@@ -6960,20 +6818,6 @@ function removeTodayExercise(pass: PassType, nameToRemove: string) {
   }));
 }
 
-function getPlannedSetCountForLoggedExercise(exercise: LoggedExercise) {
-  const plannedExercise = (workoutPlan?.passes
-    .find((pass) => pass.key === workout?.pass)
-    ?.exercises.find(
-      (planned) => exerciseKey(planned.name) === exerciseKey(exercise.name)
-    ) ?? null) as PlannedExercise | null;
-
-  return (
-    exercise.plannedSets ??
-    parsePlannedSetCount(plannedExercise?.sets) ??
-    goalTargets.targetSets
-  );
-}
-
 
 function addWorkoutEventToWorkout(
   current: Workout,
@@ -7300,19 +7144,6 @@ function suggestReplacementFor(exName: string): string {
   return fallbackCandidates.find(isDifferentExercise) ?? "";
 }
 
-function isVagueProgramExerciseName(name: string) {
-  const key = normalizeExerciseSearchText(name);
-  return (
-    !key ||
-    key.includes("narmsta liknande") ||
-    key.includes("liknande ovning") ||
-    key === "alternativ" ||
-    key === "ersattning" ||
-    key === "annan ovning" ||
-    key === "nagot annat"
-  );
-}
-
 
 function clearExerciseOverride(pass: PassType, fromName: string) {
   const fromKey = exerciseKey(fromName);
@@ -7329,57 +7160,6 @@ function clearExerciseOverride(pass: PassType, fromName: string) {
     saveJSON("exerciseOverridesByPass", next);
     return next;
   });
-}
-
-function getNextSetWeight(args: {
-  weight: number;
-  reps?: number;
-  rir: number;
-  failNote?: string;
-  setNumber?: number;
-  exerciseName?: string;
-}) {
-  const { weight, rir, failNote, setNumber = 1 } = args;
-  if (typeof args.reps === "number") {
-    return getNextSetPlan({
-      weight,
-      reps: args.reps,
-      rir,
-      failNote,
-      setNumber,
-      exerciseName: args.exerciseName,
-    }).weight;
-  }
-
-  const fail = failNote?.trim().toLowerCase() ?? "";
-
-  if (fail) {
-    if (fail.includes("grepp")) {
-      return weight; // kroppen hade mer, behåll vikten
-    }
-
-    if (fail.includes("teknik") || fail.includes("formen")) {
-      return getBackoffWeight({ weight, exerciseName: args.exerciseName ?? "", reason: "technique" });
-    }
-
-    if (fail.includes("ont") || fail.includes("smärta")) {
-      return getBackoffWeight({ weight, exerciseName: args.exerciseName ?? "", reason: "pain" });
-    }
-
-    if (
-      fail.includes("ork") ||
-      fail.includes("muskel") ||
-      fail.includes("slut")
-    ) {
-      return getBackoffWeight({ weight, exerciseName: args.exerciseName ?? "", reason: "failure" });
-    }
-
-    return getBackoffWeight({ weight, exerciseName: args.exerciseName ?? "", reason: "failure" });
-  }
-
-  if (rir === 0) return getBackoffWeight({ weight, exerciseName: args.exerciseName ?? "", reason: "failure" });
-  if (rir === 1 || rir === 2) return weight;
-  return getNextAvailableWeight(weight, args.exerciseName ?? "", "up");
 }
 
 function isNewPR(
