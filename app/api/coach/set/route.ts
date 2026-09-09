@@ -101,6 +101,12 @@ export async function POST(request: Request) {
 
   // Netlify hard-kills the function at 30s (confirmed 2026-08-12) — must
   // fire well before that so a real fallback reply is returned instead.
+  // Instruktionen först, kontexten sist. Prompt-cache träffar bara på stabila
+  // PREFIX — med den varierande kontexten först cachas ingenting alls.
+  //
+  // Byggs EN gång och används både till diagnostiken och till anropet. Den låg
+  // tidigare i två identiska kopior, så varje set serialiserade appens största
+  // objekt två gånger för att skicka det en.
   const setInputText = JSON.stringify({
     instruction: payload.instruction,
     maxCharacters: payload.maxCharacters,
@@ -139,16 +145,7 @@ export async function POST(request: Request) {
           {
             role: "user",
             content: [
-              {
-                type: "input_text",
-                text: JSON.stringify({
-                  // Instruktionen först, kontexten sist. Prompt-cache träffar bara på stabila
-                  // PREFIX — med den varierande kontexten först cachas ingenting alls.
-                  instruction: payload.instruction,
-                  maxCharacters: payload.maxCharacters,
-                  context: payload.context,
-                }),
-              },
+              { type: "input_text", text: setInputText },
             ],
           },
         ],

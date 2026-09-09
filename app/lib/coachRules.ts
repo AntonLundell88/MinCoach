@@ -43,16 +43,25 @@ Så här coachar MinCoach:
  * svarighetsgrad"). Vi matade modellen bruten svenska och bad den skriva
  * korrekt — och den ekar det den får.
  *
+ * Borttaget i en andra runda, som dubbletter av en BÄTTRE formulering:
+ * PROGRAM_BUILD_SYSTEM_PROMPT bäddar in hela den här konstanten och upprepar
+ * sedan flera av dess regler i fältform. Övningssteget gör samma sak. Den
+ * abstrakta versionen förlorar varje gång — "prioritera beginnerFit 'bra'"
+ * är körbart, "stabila övningar ska vara förstaval" är en åsikt.
+ * - Hela "Övningssvårighet". Alla tre punkter finns som fältregler i både
+ *   byggprompten (difficulty/beginnerFit/stability) och övningssteget.
+ * - "Välj övningar som användaren faktiskt kan utföra med angiven utrustning.
+ *   Hitta inte på maskiner hemma." Poolen är redan filtrerad på plats och
+ *   utrustning, båda prompterna säger "välj ENDAST från availableExercises",
+ *   och normalizeExercise slänger allt annat i kod. Fyra lager, samma regel.
+ * - "Varje övning ska ha ett tydligt syfte" stod ordagrant i byggprompten
+ *   också. Kvar står bara den actionbara halvan.
+ *
  * Kvar står fortfarande mycket allmän träningslära som modellen redan kan
  * (Kön, Ålder, Mål, Volym). Den frågan är ett eget steg som ska mätas mot
  * riktiga bygg-profiler, inte klippas på känsla.
  */
 export const PROGRAM_DESIGN_PROTOCOL = `
-Övningssvårighet:
-- Väg alltid in övningens svårighetsgrad, stabilitet och nybörjarvänlighet. Träningserfarenhet handlar inte bara om volym och RIR, utan också om hur lätt övningen är att göra bra.
-- För nybörjare ska stabila övningar vara förstaval när utrustningen finns: maskiner, kablar och tydliga hantelvarianter före tekniskt krävande fria lyft.
-- En tekniskt krävande övning ska inte väljas till en ny användare som standard om det finns en enklare variant med samma syfte.
-
 Grundprincip:
 - Bygg upplägg från användarens mål, ålder, kön, träningsvana, antal dagar, passlängd, plats, utrustning, begränsningar och preferenser. Alla dessa parametrar ska väga in i beslutet.
 - Programmet ska vara effektivt, repeterbart och lätt att följa i verkligheten. Ett upplägg som användaren faktiskt genomför slår ett "optimalt" upplägg som blir för krångligt.
@@ -90,8 +99,7 @@ Volym och intensitet:
 - Börja pass med de viktigaste och mest tekniskt krävande övningarna.
 - Stora flerledsövningar först, isolationsövningar senare, om inte smärta eller mål säger annat.
 - Välj stabila varianter när användaren är ny, äldre, osäker, har smärta eller tränar hemma med begränsad utrustning.
-- Välj övningar som användaren faktiskt kan utföra med angiven utrustning. Hitta inte på maskiner hemma.
-- Varje övning ska ha ett tydligt syfte. Om syftet är oklart ska övningen bort.
+- Om syftet med en övning är oklart ska den bort.
 
 Begränsningar och skador:
 - Begränsningar ska väga tungt. Bygg runt smärta, tidigare skador, osäkerhet och utrustningsbrist.

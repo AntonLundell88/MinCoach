@@ -21,8 +21,12 @@ import {
   type CoachWrappedContext,
 } from "./coachAi";
 
+// Regeln sa samma sak tre gånger i en mening: principen, ett exempel, och
+// principen igen. Exemplet ("något som var ett problem förra gången är det
+// inte längre") är dessutom exakt hälsofallet, som HEALTH_NOTES_PRECEDENCE_RULE
+// beskriver utförligt två rader ner i samma systemprompt.
 const MEMORY_PRECEDENCE_RULE =
-  "Om recentConversation motsäger memoryInsight eller något du vetat sedan tidigare — t.ex. användaren säger att något som var ett problem förra gången inte längre är det: lita på recentConversation. Färsk information från den här sessionen vinner alltid över äldre minnen.";
+  "Motsäger recentConversation något du vetat sedan tidigare: lita på recentConversation. Den här sessionen vinner över äldre minnen.";
 
 const HEALTH_NOTES_PRECEDENCE_RULE =
   "limitations är vad användaren angav vid start (skador, begränsningar, oro) och kan vara gammal. recentHealthNotes är skador eller besvär nämnda senare, i tidsordning (äldst först), med daysAgo och vilken övning det gällde. Om de säger emot varandra vinner alltid det senaste — säger den sista raden att ett besvär är bättre eller helt borta, lita på det och sluta vara försiktig eller bygga runt det av gammal vana. Har användaren inte tagit upp besväret nu: gör klart att det är något du minns sen tidigare — fråga hur det känns idag snarare än att anta att det gör ont.";
