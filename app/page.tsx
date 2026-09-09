@@ -29,6 +29,7 @@ import { SettingsGlyph } from "./components/IconGlyphs";
 import { useWrappedRecap } from "./hooks/useWrappedRecap";
 import { useAutoAccountBackup } from "./hooks/useAutoAccountBackup";
 import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
+import { reportAiFallback } from "./lib/aiFallbackReport";
 import { syncBetaCoachMemory, syncBetaPersonalRecord } from "./lib/betaMemorySync";
 import {
   syncStructuredBetaProfile,
@@ -5217,6 +5218,10 @@ async function requestAiWorkoutPlanWithRetry(
 
   if (result.mode !== "ai") {
     console.warn(`Program build fallback after retry: ${result.reason ?? "unknown"}`);
+    // De enskilda stegen rapporterar VARFÖR, en rad per försök. Den här säger
+    // vad användaren faktiskt fick, en gång per bygge — utan den läser man två
+    // misslyckade försök som två drabbade användare.
+    reportAiFallback("program_build", result.reason ?? "unknown");
   }
 
   return result;
@@ -5968,6 +5973,14 @@ function confirmGymForToday() {
     exerciseName?: string
   ) {
     if (!reason) return;
+
+    // Passets event är för passet: de följer med i sammanfattningen och når
+    // Supabase via insertStructuredWorkout. Men bara om passet blir FÄRDIGT —
+    // och ett pass någon bryter är precis det fall vi vill veta om. Därför går
+    // samma fynd också iväg direkt, oberoende av om passet avslutas.
+    reportAiFallback(route, reason, {
+      exerciseName: exerciseName || currentExerciseName || undefined,
+    });
 
     setWorkout((prev) =>
       prev

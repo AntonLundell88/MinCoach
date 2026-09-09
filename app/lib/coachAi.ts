@@ -1,3 +1,5 @@
+import { isAbortError, reportAiFallback } from "./aiFallbackReport";
+
 export type CoachReplyMode = "fallback" | "ai-ready";
 
 /**
@@ -1079,7 +1081,12 @@ async function buildProgramInStages(
     signal
   );
 
-  if (!structureResponse.ok) return null;
+  // Faller strukturen faller HELA bygget till reservplanen — det dyraste
+  // misslyckandet i appen, och det som en ny användare möter först.
+  if (!structureResponse.ok) {
+    reportAiFallback("program_structure", `http_${structureResponse.status}`);
+    return null;
+  }
 
   const structure = (await structureResponse.json()) as {
     mode?: string;
@@ -1087,7 +1094,10 @@ async function buildProgramInStages(
     passes?: { key: string; displayName: string; intent?: string }[];
   };
 
-  if (structure.mode !== "ai" || !structure.passes?.length) return null;
+  if (structure.mode !== "ai" || !structure.passes?.length) {
+    reportAiFallback("program_structure", structure.mode ?? "empty_structure");
+    return null;
+  }
 
   const passes = await Promise.all(
     structure.passes.map(async (pass) => {
@@ -1097,17 +1107,35 @@ async function buildProgramInStages(
           signal
         );
 
-        if (!response.ok) return null;
+        if (!response.ok) {
+          reportAiFallback("program_exercises", `http_${response.status}`, {
+            pass: pass.displayName,
+          });
+          return null;
+        }
 
         const data = (await response.json()) as {
           mode?: string;
           exercises?: BuiltWorkoutPlan["passes"][number]["exercises"];
         };
 
-        if (data.mode !== "ai" || !data.exercises?.length) return null;
+        if (data.mode !== "ai" || !data.exercises?.length) {
+          reportAiFallback("program_exercises", data.mode ?? "empty_exercises", {
+            pass: pass.displayName,
+          });
+          return null;
+        }
 
         return { ...pass, exercises: data.exercises } as BuiltWorkoutPlan["passes"][number];
-      } catch {
+      } catch (error) {
+        // Ett avbrutet anrop är inte ett fel — användaren gick vidare, eller
+        // så byggde vi om. Rapporteras det ändå mäter vi vår egen avbrytning
+        // och tror att schemabygget är trasigare än det är.
+        if (!isAbortError(error)) {
+          reportAiFallback("program_exercises", "network_error", {
+            pass: pass.displayName,
+          });
+        }
         return null;
       }
     })
@@ -1205,7 +1233,10 @@ async function addProseToPlan(
         signal,
       });
 
-      if (!response.ok) return null;
+      if (!response.ok) {
+        reportAiFallback("program_summary", `http_${response.status}`);
+        return null;
+      }
 
       const data = (await response.json()) as {
         summary?: {
@@ -1216,8 +1247,11 @@ async function addProseToPlan(
         };
       };
 
+      if (!data.summary) reportAiFallback("program_summary", "empty_summary");
+
       return data.summary ?? null;
-    } catch {
+    } catch (error) {
+      if (!isAbortError(error)) reportAiFallback("program_summary", "network_error");
       return null;
     }
   })();
@@ -1243,14 +1277,31 @@ async function addProseToPlan(
           signal,
         });
 
-        if (!response.ok) return null;
+        if (!response.ok) {
+          reportAiFallback("program_prose", `http_${response.status}`, {
+            pass: pass.displayName,
+          });
+          return null;
+        }
 
         const data = (await response.json()) as {
           exercises?: { exerciseKey?: string; purpose?: string; caution?: string }[];
         };
 
-        return Array.isArray(data.exercises) ? data.exercises : null;
-      } catch {
+        if (!Array.isArray(data.exercises)) {
+          reportAiFallback("program_prose", "empty_prose", {
+            pass: pass.displayName,
+          });
+          return null;
+        }
+
+        return data.exercises;
+      } catch (error) {
+        if (!isAbortError(error)) {
+          reportAiFallback("program_prose", "network_error", {
+            pass: pass.displayName,
+          });
+        }
         return null;
       }
     })
