@@ -17,14 +17,41 @@ Så här coachar MinCoach:
 - Jaga aldrig PB genom smärta.
 `.trim();
 
+/**
+ * Skickas till övningssteget i programbygget — ETT anrop per pass, alltså
+ * tre till sex gånger per bygge. Allt som ligger här kostar den mängden.
+ *
+ * Borttaget som direkt fel:
+ * - Rubriken "Forskningsbaserat programprotokoll". Se kommentaren ovanför
+ *   TRAINING_DECISION_PROTOCOL: "protokoll" får modellen att skriva som en
+ *   kliniker. Samma lärdom gällde här hela tiden.
+ * - "Passlängd". Sa "60 min: oftast 5-6 övningar" medan getPassExerciseTarget
+ *   räknar fram 3-5 och valideringen underkänner 6. Alla fyra intervall var
+ *   oense med koden — prompten pekade mot ett tal vi själva slänger.
+ * - "Frekvens och split". Splitten är redan bestämd i steg 1; det här steget
+ *   får passets fokus färdigt och väljer bara övningar i det.
+ * - "Output". Beskrev hur prosan skulle skrivas. Steget returnerar JSON utan
+ *   ett enda textfält.
+ * - Fjärde punkten under Övningssvårighet, som stod ordagrant i
+ *   PROGRAM_BUILD_SYSTEM_PROMPT också — där i en bättre version som namnger
+ *   de faktiska fälten (beginnerFit, difficulty, stability).
+ * - Två dubbletter i slutet: "fyll inte listan" (samma som "om syftet är
+ *   oklart ska övningen bort") och "önskemål krockar med säkerhet" (samma som
+ *   "om preferenser och säkerhet krockar vinner säkerheten").
+ *
+ * Första avsnittet saknade alla svenska diakriter ("Vaga alltid in ovningens
+ * svarighetsgrad"). Vi matade modellen bruten svenska och bad den skriva
+ * korrekt — och den ekar det den får.
+ *
+ * Kvar står fortfarande mycket allmän träningslära som modellen redan kan
+ * (Kön, Ålder, Mål, Volym). Den frågan är ett eget steg som ska mätas mot
+ * riktiga bygg-profiler, inte klippas på känsla.
+ */
 export const PROGRAM_DESIGN_PROTOCOL = `
-Forskningsbaserat programprotokoll:
-
-Ovningssvarighet:
-- Vaga alltid in ovningens svarighetsgrad, stabilitet och nyborjarvanlighet. Traningserfarenhet handlar inte bara om volym och RIR, utan ocksa om hur latt ovningen ar att gora bra.
-- For nyborjare ska stabila ovningar vara forstaval nar utrustningen finns: maskiner, kablar och tydliga hantelvarianter fore tekniskt kravande fria lyft.
-- En tekniskt kravande ovning ska inte valjas till en ny anvandare som standard om det finns en enklare variant med samma syfte.
-- Om coachen valjer en medelsvar eller avancerad ovning till en ny anvandare ska det finnas ett tydligt skal, lugn start och helst ett enklare alternativ.
+Övningssvårighet:
+- Väg alltid in övningens svårighetsgrad, stabilitet och nybörjarvänlighet. Träningserfarenhet handlar inte bara om volym och RIR, utan också om hur lätt övningen är att göra bra.
+- För nybörjare ska stabila övningar vara förstaval när utrustningen finns: maskiner, kablar och tydliga hantelvarianter före tekniskt krävande fria lyft.
+- En tekniskt krävande övning ska inte väljas till en ny användare som standard om det finns en enklare variant med samma syfte.
 
 Grundprincip:
 - Bygg upplägg från användarens mål, ålder, kön, träningsvana, antal dagar, passlängd, plats, utrustning, begränsningar och preferenser. Alla dessa parametrar ska väga in i beslutet.
@@ -52,13 +79,6 @@ Mål:
 - Styrka: prioritera mätbara baslyft eller stabila huvudövningar, lägre till medelhöga reps, längre vila, färre huvudmål per pass och tydlig progressionslogik.
 - Fettminskning: styrketräningen ska bevara/bygga muskelmassa och vara lätt att upprepa. Påstå aldrig att styrketräning ensam styr viktnedgång; kost, vardagsrörelse och återhämtning spelar stor roll.
 - Om flera mål finns: primärmål styr strukturen, sekundärmål påverkar detaljerna.
-
-Frekvens och split:
-- 2 dagar/vecka: oftast helkropp eller två balanserade pass.
-- 3 dagar/vecka: helkropp, över/under/helkropp eller push/pull/ben beroende på mål, vana och tid.
-- 4 dagar/vecka: över/under eller push/pull/ben + kompletterande pass kan fungera bra.
-- Varje större muskelgrupp bör normalt stimuleras minst 1-2 gånger per vecka om målet är muskler eller styrka.
-- Välj split som gör passen rimliga inom angiven tid. 60 minuter betyder oftast 4-6 övningar, inte 8-10.
 
 Volym och intensitet:
 - Bygg med arbetsset som användaren hinner göra med kvalitet.
@@ -89,16 +109,4 @@ Utrustning och plats:
 - Om användaren inte väljer kroppsvikt ska programmet inte bygga runt armhävningar, planka eller liknande om det finns rimliga alternativ.
 - Om preferenser och säkerhet krockar vinner säkerheten. Förklara kort varför.
 - Om preferenser och utrustning krockar vinner utrustningen. Hitta inte på redskap som inte finns.
-
-Passlängd:
-- 30 min: 3-4 övningar, tydlig prioritering.
-- 45 min: 4-5 övningar.
-- 60 min: oftast 5-6 övningar.
-- 75+ min: 6-7 övningar kan fungera för vana användare, men inte om det blir stökigt.
-
-Output:
-- Förklara varför upplägget passar användaren med enkel svenska.
-- Skriv inte som en studie eller manual. Ge känslan av att coachen gjort ett riktigt val.
-- Lägg inte in övningar bara för att fylla listan.
-- Om användarens önskemål krockar med begränsningar eller säkerhet: säg det varmt och föreslå en tryggare lösning.
 `.trim();
