@@ -76,11 +76,16 @@ Så här coachar MinCoach:
  * blev "RIR 1-2" till "RIR 2" på flera ställen), och "Gör en led ont". Med
  * dem: hantelpress 5/6, face pull 6/6.
  *
- * ROTORSAKEN ligger i datan, inte här: Bänkpress och Hantelpress är
- * IDENTISKA på difficulty, beginnerFit och stability. Inget fältbaserat
- * resonemang kan skilja dem åt, så prompten kompenserar för något
- * biblioteket inte kan uttrycka. Löser vi det i exercises.ts kan raden
- * "Gör en led ont" troligen bort.
+ * Bänkpress och Hantelpress är identiska på difficulty, beginnerFit och
+ * stability — men INTE på equipment ("skivstång" mot "hantlar") eller
+ * equipmentTags (["barbell",...] mot ["dumbbells",...]), och båda fälten
+ * skickas till övningssteget. Datan räcker alltså.
+ *
+ * Det som saknades var kopplingen, inte informationen: att en öm led mår
+ * bättre av varianten som låter den röra sig fritt. Därför är "Gör en led
+ * ont" en princip applicerad på befintlig data, inte ett plåster för ett
+ * fält som fattas. Något nytt fält i exercises.ts behövs inte — och hade
+ * fallit på femproblemstestet ändå.
  */
 export const PROGRAM_DESIGN_PROTOCOL = `
 Så här bygger MinCoach program:
