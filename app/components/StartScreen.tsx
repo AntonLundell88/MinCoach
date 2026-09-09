@@ -303,8 +303,19 @@ export default function StartScreen({
                 setShowAddGymInput(false);
               }}
             >
-              <span className="truncate text-sm font-medium text-white/80">
-                {gyms.find((g) => g.id === activeGymId)?.name ?? "Välj gym"}
+              {/* Kräver appen att gymmet bekräftas idag är det INTE valt än,
+                  hur väl vi än minns var man körde sist. Visade vi namnet ändå
+                  såg valet gjort ut, och sedan vägrade Starta passet tills man
+                  valde precis det som redan stod där. Etiketten följer det
+                  tillstånd som redan finns — ingen ny logik. */}
+              <span
+                className={`truncate text-sm font-medium ${
+                  gymConfirmationRequired ? "text-white/45" : "text-white/80"
+                }`}
+              >
+                {gymConfirmationRequired
+                  ? "Välj gym"
+                  : gyms.find((g) => g.id === activeGymId)?.name ?? "Välj gym"}
               </span>
               <span className="text-white/30 text-xs shrink-0">{showGymPicker ? "▲" : "▼"}</span>
             </button>
