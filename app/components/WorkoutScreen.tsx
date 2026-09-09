@@ -773,6 +773,26 @@ export default function WorkoutScreen({
     !currentExerciseReadyToFinish &&
     (Boolean(nextWeightLabel) || Boolean(currentMetricLabel));
 
+  // Etiketten följer var siffrorna kommer ifrån. "Nästa set" lovade framtid och
+  // innehöll dåtid: förra veckans vikt, reps och RIR, ibland från ett annat
+  // gym, samtidigt som coachen bad om något annat.
+  //
+  // Bor här och inte i JSX:en för att BÅDA vyerna ska säga samma sak. Vanligt
+  // läge fick etiketten, fokusläget skrev ut samma siffror helt utan — och
+  // frågan blev omöjlig att svara på från skärmen: är det här senaste setet
+  // eller vad coachen vill? Det är senaste. Därför finns + och −.
+  const setSourceLabel = currentExerciseReadyToFinish
+    ? "Klar"
+    : inputsTouched
+    ? "Ditt set"
+    : // "Senast" förutsätter att det FINNS ett senast. På en övning utan
+      // historik stod det "Senast — Logga första setet", vilket säger emot sig
+      // självt. Utan siffror finns inget att missförstå, så där duger den gamla
+      // rubriken.
+    hasNextPrescription
+    ? "Senast"
+    : "Nästa set";
+
   const normalizedLibrarySearch = normalizeExerciseSearchText(librarySearch);
   const filteredLibraryExercises = libraryExercises.filter((exercise) => {
     const matchesCategory =
@@ -1097,13 +1117,20 @@ useEffect(() => {
             </button>
           </div>
 
-          <p className="mt-1.5 truncate text-lg font-bold text-white">
-            {currentExerciseReadyToFinish
-              ? "Klar"
-              : hasNextPrescription
-              ? [nextWeightLabel, currentMetricLabel, nextRirLabel].filter(Boolean).join(" · ")
-              : "Första setet"}
-          </p>
+          <div className="mt-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/55">
+              {setSourceLabel}
+            </p>
+            <p className="mt-0.5 truncate text-lg font-bold text-white">
+              {currentExerciseReadyToFinish
+                ? isLastExercise
+                  ? "Passet kan avslutas"
+                  : "Gå vidare när du är redo"
+                : hasNextPrescription
+                ? [nextWeightLabel, currentMetricLabel, nextRirLabel].filter(Boolean).join(" · ")
+                : "Logga första setet"}
+            </p>
+          </div>
 
           <div className="mt-2 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2">
             <div className="grid grid-cols-[1fr_auto_1fr] items-baseline">
@@ -1471,22 +1498,8 @@ useEffect(() => {
         {/* Nästa set + Vila */}
         <div className="mt-2.5 grid grid-cols-[1fr_auto] gap-2">
           <div className="workout-next-card rounded-2xl border border-white/[0.075] bg-white/[0.045] px-3 py-2">
-            {/* Etiketten följer var siffrorna kommer ifrån. "Nästa set" lovade
-                framtid och innehöll dåtid: förra veckans vikt, reps och RIR,
-                ibland från ett annat gym, samtidigt som coachen bad om något
-                annat. Nu säger kortet vad det faktiskt visar. */}
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/55">
-              {currentExerciseReadyToFinish
-                ? "Klar"
-                : inputsTouched
-                ? "Ditt set"
-                : // "Senast" förutsätter att det FINNS ett senast. På en övning
-                  // utan historik stod det "Senast — Logga första setet", vilket
-                  // säger emot sig självt. Utan siffror finns inget att
-                  // missförstå, så där duger den gamla rubriken.
-                hasNextPrescription
-                ? "Senast"
-                : "Nästa set"}
+              {setSourceLabel}
             </p>
             {currentExerciseReadyToFinish ? (
               <p className="mt-1 text-sm font-semibold leading-5 text-white">
