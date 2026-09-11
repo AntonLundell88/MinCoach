@@ -1120,13 +1120,22 @@ function buildProgressionPlan(args: {
 
   if (latestHard && latestSet.weight >= topSet.weight) {
     const loweredWeight = getNextAvailableWeight(topSet.weight, exerciseName, "down");
-    const maxReps = Math.max(1, topSet.reps - 1);
 
+    // Reps räknades tidigare från det TUNGA setet (topSet.reps - 1 som tak),
+    // men på den SÄNKTA vikten. På hantlar är ett steg stort: 12,5 × 8 till
+    // stopp gav "10 kg × 5-7 reps" — på en vikt användaren gjort 12 reps med
+    // i samma pass, efter att redan ha gått till stopp. Lättare vikt ska ge
+    // fler reps, inte färre. Därför siktar vi på övningens vanliga arbetsspann,
+    // precis som grenen ovanför (topSetBelowWorkingRange) redan gör.
+    //
+    // Motorn UNDER passet (getNextSetPlan) har liknande "färre reps på lägre
+    // vikt"-formler, men där stämmer premissen: efter ett hårt set är man
+    // trött. Till nästa pass är man utvilad — därför bara den här grenen.
     return {
       action: "decrease",
       weight: formatWeightInput(loweredWeight),
-      reps: String(Math.max(1, maxReps - 1)),
-      repsText: formatRepRange(Math.max(1, maxReps - 2), maxReps),
+      reps: String(workingRepRange.min),
+      repsText: formatRepRange(workingRepRange.min, workingRepRange.max),
       rirText: "RIR 1-2",
       note: "Senast tog det stopp. Vi börjar lite lägre här.",
       reason: "Senaste bästa setet var för tungt.",
@@ -4705,9 +4714,6 @@ export default function Home() {
 const [workoutComplete, setWorkoutComplete] = useState(false);
 const [showDailyPlan, setShowDailyPlan] = useState(false);
 const [hasAcceptedTrainingSafety, setHasAcceptedTrainingSafety] = useState(false);
-// Sant så fort användaren loggat sitt allra första set. Enda syftet är att
-// visa uppvärmningshinten en gång — inte varje pass i all framtid.
-const [hasLoggedFirstSetEver, setHasLoggedFirstSetEver] = useState(true);
 // Har användaren själv rört vikt, reps eller RIR sedan siffrorna hamnade där?
 // Avgör om kortet säger SENAST (siffrorna kommer från något du redan gjort)
 // eller DITT SET (du har valt dem). Nollställs vid ny övning och efter varje
@@ -4930,7 +4936,6 @@ if (savedLastPass && ALL_PASS_KEYS.includes(savedLastPass)) {
     setHasAcceptedTrainingSafety(
       loadJSON<boolean>("acceptedTrainingSafety", false)
     );
-    setHasLoggedFirstSetEver(loadJSON<boolean>("loggedFirstSetEver", false));
     const savedProfile = loadJSON<UserProfile | null>("userProfile", null);
 if (savedProfile) {
   setUserProfile(savedProfile);
@@ -5455,49 +5460,6 @@ const previousExerciseSets = useMemo(() => {
 
   return getPreviousExerciseSets(history, currentExerciseName);
 }, [history, currentExerciseName]);
-
-function getProgressionHistoryForExercise(
-  exerciseName: string,
-  baseHistory: Workout[],
-  fallback?: { gym: string; pass: PassType; displayName: string }
-) {
-  const pr = personalRecords[exerciseKey(exerciseName)];
-  if (!pr) return baseHistory;
-
-  const alreadyHasPr = baseHistory.some((item) =>
-    item.exercises.some(
-      (exercise) =>
-        exerciseKey(exercise.name) === exerciseKey(exerciseName) &&
-        exercise.sets.some(
-          (set) => set.weight === pr.weight && set.reps === pr.reps
-        )
-    )
-  );
-
-  if (alreadyHasPr) return baseHistory;
-
-  const prWorkout: Workout = {
-    id: `personal-record-${exerciseKey(exerciseName)}`,
-    startedAt: pr.createdAt,
-    gym: fallback?.gym ?? workout?.gym ?? "",
-    pass: fallback?.pass ?? workout?.pass ?? nextPass,
-    displayName: fallback?.displayName ?? workout?.displayName ?? "Personbästa",
-    exercises: [
-      {
-        name: exerciseName,
-        sets: [
-          {
-            weight: pr.weight,
-            reps: pr.reps,
-            createdAt: pr.createdAt,
-          },
-        ],
-      },
-    ],
-  };
-
-  return [prWorkout, ...baseHistory];
-}
 
 // Första passet på ett nytt gym ska ge TOM historik, inte hela historiken.
 // Raden här föll tidigare tillbaka på allt när gymmet saknade pass, så
@@ -6038,18 +6000,6 @@ const w: Workout = {
     setActiveConditioningContext(conditioningContext);
     setNow(startedAt);
 const firstExerciseName = plan[0] ?? "";
-const firstExercisePlan = firstExerciseName
-  ? buildProgressionPlan({
-      history: getProgressionHistoryForExercise(firstExerciseName, gymFilteredHistory, {
-        gym,
-        pass: nextPass,
-        displayName: nextPassLabel,
-      }),
-      exerciseName: firstExerciseName,
-      targetReps: goalTargets.targetReps,
-      dayForm: "normal",
-    })
-  : null;
 
 setChatLog([]);
 localStorage.setItem("lastGym", gym);
@@ -7678,10 +7628,6 @@ const painFailure =
     ];
    }
     setWorkout(updated);
-    if (!hasLoggedFirstSetEver) {
-      setHasLoggedFirstSetEver(true);
-      saveJSON("loggedFirstSetEver", true);
-    }
    const suggestedNextWeight = nextSetPlan.weight;
 
 
@@ -8856,7 +8802,6 @@ setStarted(false);
     setWorkoutReviewLoading(false);
     setWorkoutComplete(false);
     setStarted(false);
-    setHasLoggedFirstSetEver(false);
     alert("Allt återställt ✅");
     setCoachMemory({ notes: [] });
   setCustomExercisesByPass(createEmptyPassStringMap());
@@ -9379,7 +9324,10 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
         plannedReps={systemSuggestedRepsRef.current}
         updateSet={updateSet}
         exerciseAlreadyIntroduced={exerciseAlreadyIntroduced}
-        showWarmupHint={!hasLoggedFirstSetEver}
+        // Passets första set, varje pass — inte bara ditt första set någonsin.
+        // Villkoret gällde tidigare hela kontot, så efter första passet såg
+        // ingen texten igen, fast vanan att logga uppvärmning inte går över.
+        showWarmupHint={!workout?.exercises.some((exercise) => exercise.sets.length > 0)}
         inputsTouched={inputsTouched}
         validateSetWeight={(weight) => {
           if (isBodyweightExercise(currentExerciseName) || isTimedExercise(currentExerciseName)) return null;

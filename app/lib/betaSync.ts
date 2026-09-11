@@ -16,7 +16,6 @@ export const BETA_SYNC_KEYS = [
   "exerciseOverridesByPass",
   "passDisplayNamesByPass",
   "acceptedTrainingSafety",
-  "loggedFirstSetEver",
   "approvedWorkoutPlan",
   "lastPass",
   "lastGym",

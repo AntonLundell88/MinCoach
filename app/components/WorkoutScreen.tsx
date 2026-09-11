@@ -170,7 +170,7 @@ type Props = {
   validateSetWeight: (weight: number) => string | null;
   /** Övning som coachen redan presenterat i ett chattsvar — hoppa över introt. */
   exerciseAlreadyIntroduced?: string | null;
-  /** Har användaren aldrig loggat ett set? Då visas uppvärmningshinten en gång. */
+  /** Inga set loggade än i passet? Då visas uppvärmningshinten — varje pass, i båda lägena. */
   showWarmupHint?: boolean;
   /**
    * Har användaren själv ändrat vikt/reps/RIR sedan siffrorna hamnade i
@@ -1130,6 +1130,14 @@ useEffect(() => {
                 ? [nextWeightLabel, currentMetricLabel, nextRirLabel].filter(Boolean).join(" · ")
                 : "Logga första setet"}
             </p>
+            {/* Samma text som i vanligt läge. Den fanns bara där, så den som
+                körde fokusläget såg den aldrig — samma en-av-två-kopior som
+                SENAST-etiketten. */}
+            {showWarmupHint && !currentExerciseReadyToFinish && (
+              <p className="mt-2 border-l-2 border-[#2f6df6] pl-2 text-xs font-semibold leading-4 text-white">
+                Logga inte uppvärmningsseten — bara arbetsseten.
+              </p>
+            )}
           </div>
 
           <div className="mt-2 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2">
@@ -1528,10 +1536,9 @@ useEffect(() => {
                 Logga första setet
               </p>
             )}
-            {/* Visas tills användaren loggat sitt allra första set, oavsett om
-                övningen har ett förslag eller inte — annars ser bara den som
-                saknar historik den, och det är inte bara nya konton som
-                loggar uppvärmningen av gammal vana. */}
+            {/* Visas på passets första set, varje pass, oavsett om övningen har
+                ett förslag eller inte. Vanan att logga uppvärmningen går inte
+                över efter första passet, så texten ska inte heller göra det. */}
             {showWarmupHint && !currentExerciseReadyToFinish && (
               <p className="mt-2 border-l-2 border-[#2f6df6] pl-2 text-xs font-semibold leading-4 text-white">
                 Logga inte uppvärmningsseten — bara arbetsseten.
