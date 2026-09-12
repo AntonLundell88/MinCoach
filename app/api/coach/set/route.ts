@@ -192,18 +192,13 @@ export async function POST(request: Request) {
       });
     }
 
-    const sanitizedText = sanitizeCoachSetReply(
-      context,
-      aiText,
-      fallbackReply,
-      payload.maxCharacters
-    );
-    const usedSanitizedFallback = sanitizedText === fallbackText;
-
+    // Här jämfördes svaret med reservtexten för att se om saneringen kastat
+    // det. Det kunde den när containsUnsafeCoachPhrase fanns. I dag rör
+    // saneringen bara blanksteg, dubbletter och längd, så jämförelsen blev
+    // aldrig sann — "sanitized_reply" kunde inte längre rapporteras.
     return NextResponse.json({
-      mode: usedSanitizedFallback ? "fallback" : "ai",
-      reason: usedSanitizedFallback ? "sanitized_reply" : undefined,
-      text: sanitizedText,
+      mode: "ai",
+      text: sanitizeCoachSetReply(context, aiText, fallbackReply, payload.maxCharacters),
     });
   } catch {
     return fallbackResponse(

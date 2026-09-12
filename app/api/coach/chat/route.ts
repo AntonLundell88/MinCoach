@@ -285,13 +285,6 @@ export async function POST(request: Request) {
     }
 
     const parsed = parseChatAiResponse(aiText);
-    const sanitizedText = sanitizeCoachReply(
-      parsed.text,
-      fallbackReply,
-      payload.maxCharacters
-    );
-    const usedSanitizedFallback =
-      Boolean(aiText.trim()) && sanitizedText === fallbackText;
 
     logTiming({
       route: "chat",
@@ -300,15 +293,16 @@ export async function POST(request: Request) {
       openAiRequestMs,
       totalMs: Date.now() - startMs,
       promptSizeChars: promptSize,
-      errorType: usedSanitizedFallback ? "sanitized_reply" : undefined,
-      errorMessage: usedSanitizedFallback ? aiText.slice(0, 100) : undefined,
     });
 
+    // Se samma kommentar i set-rutten: jämförelsen med reservtexten kunde bara
+    // slå till när saneringen kastade svar, och det gör den inte längre.
+    // parseChatAiResponse faller dessutom tillbaka på den råa texten, så
+    // parsed.text är aldrig tom här.
     return NextResponse.json({
-      mode: usedSanitizedFallback ? "fallback" : "ai",
-      reason: usedSanitizedFallback ? "sanitized_reply" : undefined,
-      text: sanitizedText,
-      action: usedSanitizedFallback ? null : parsed.action,
+      mode: "ai",
+      text: sanitizeCoachReply(parsed.text, fallbackReply, payload.maxCharacters),
+      action: parsed.action,
     });
   } catch (error) {
     const message =

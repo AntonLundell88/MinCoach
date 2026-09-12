@@ -184,8 +184,11 @@ AI ska resonera fritt inom verkligheten, men aldrig hitta på fakta.
 1. `gpt-5-mini` med `effort: "minimal"` → bytt till `gpt-5.4` med
    `effort: "medium"`, `verbosity: "medium"` i `app/api/coach/*/route.ts`.
 2. ~15–20 regex-baserade sanitize-funktioner i `app/lib/coachAi.ts` →
-   borttagna. Kvar: whitespace-trim, längdcap, `containsUnsafeCoachPhrase`
-   (bara för säkerhetskritiska fraser — inte för stil).
+   borttagna. De sista stil-regexarna på AI:ns svar togs bort 2026-09-12:
+   😳-filtret, PB-berömsdedupen och chattens omskrivning av "nästa set" till
+   "nästa gång" — som förstörde legitima meningar om nästa övning. Kvar på
+   AI:ns svar: blanksteg, dubbla rader och längdtak. Dubbelreaktions-dedupen
+   körs bara på reservmallarna. `containsUnsafeCoachPhrase` finns inte längre.
 3. (juli 2026) Chattens prompt hade svällt till ~9 000 tecken statisk
    instruktion med samma regler upprepade 3–4 gånger på olika ställen
    (smärta, "upprepa inte UI:t", tidsövningar, teknikcue) plus en

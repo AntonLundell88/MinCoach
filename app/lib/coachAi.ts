@@ -601,16 +601,12 @@ function compactWhitespace(text: string) {
     .trim();
 }
 
-function softenOverusedSurpriseEmoji(text: string) {
-  return text.replace(/^😳\s*\n+(?=Där ja\.?\s*$|Där ja\.?\s*\n)/gim, "");
-}
-
 export function sanitizeCoachReply(
   reply: string,
   fallback: string,
   maxCharacters = MAX_COACH_REPLY_CHARACTERS
 ) {
-  const compact = compactWhitespace(softenOverusedSurpriseEmoji(reply));
+  const compact = compactWhitespace(reply);
 
   if (!compact) return compactWhitespace(fallback);
 
@@ -680,23 +676,6 @@ function removeDuplicateShortReactions(reply: string) {
     );
 }
 
-function removeStackedRecordPraise(reply: string) {
-  if (!/\bNytt PB:/i.test(reply)) return reply;
-
-  return reply
-    .replace(
-      /\b(D[äa]r ja|Bra|Snyggt|Nu snackar vi|Oj)([.!])?\s*(👊|🔥|✅|😳)?\s*\r?\n\s*\r?\n\s*(Nytt PB:[^\r\n]+)\s*\r?\n\s*\r?\n\s*\1[.!]?\s*(?:👊|🔥|✅|😳)?/gi,
-      (_, reaction: string, punctuation = "", emoji = "", record: string) =>
-        `${reaction}${punctuation}${emoji ? ` ${emoji}` : ""}\n\n${record}`
-    )
-    .replace(
-      /\b(Nytt PB:[^\r\n]+)\s*\r?\n\s*\r?\n\s*(?:D[äa]r ja[.!]?|Bra[.!]?|Snyggt[.!]?|Okej\. Nu snackar vi\.?|Nu snackar vi[.!]?|Oj[.!]?)\s*(?:👊|🔥|✅|😳)?\s*(?=\r?\n\s*\r?\n)/gi,
-      "$1"
-    )
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
 function removeDuplicateAdjacentLines(reply: string) {
   const lines = reply.split("\n");
   const deduped: string[] = [];
@@ -721,12 +700,13 @@ export function sanitizeCoachSetReply(
   fallback: string,
   maxCharacters = MAX_COACH_REPLY_CHARACTERS
 ) {
-  const deduped = removeDuplicateAdjacentLines(reply);
-  const withoutDuplicateReaction = removeDuplicateShortReactions(deduped);
-  const withRecordPraiseDedupe = removeStackedRecordPraise(withoutDuplicateReaction);
-
+  // Två stil-regexar körde här på varje svar: en som strök upprepat beröm runt
+  // en "Nytt PB:"-rad, och dubbelreaktions-dedupen. Båda skrevs för
+  // mallmotorns format. Ingen mall skriver "Nytt PB:" längre (sökt i hela
+  // kodbasen), så den första kunde bara träffa AI:ns egna ord. Dubbelreaktions-
+  // dedupen ligger kvar, men bara på reservtexterna — se sanitizeCoachSetFallback.
   return sanitizeCoachReply(
-    withRecordPraiseDedupe,
+    removeDuplicateAdjacentLines(reply),
     fallback,
     maxCharacters
   );
@@ -737,7 +717,9 @@ export function sanitizeCoachSetFallback(
   fallbackReply: string,
   maxCharacters = MAX_COACH_REPLY_CHARACTERS
 ) {
-  const compactFallback = compactRoutineSetFallback(context, fallbackReply);
+  const compactFallback = removeDuplicateShortReactions(
+    compactRoutineSetFallback(context, fallbackReply)
+  );
 
   return sanitizeCoachSetReply(
     context,
@@ -745,27 +727,6 @@ export function sanitizeCoachSetFallback(
     compactFallback,
     maxCharacters
   );
-}
-
-export function sanitizeCoachChatReply(
-  context: CoachChatContext,
-  reply: string,
-  fallback: string,
-  maxCharacters = MAX_CHAT_REPLY_CHARACTERS
-) {
-  let text = reply;
-
-  if (context.currentExerciseCompleted) {
-    text = text
-      .replace(/\bTesta ([^.\n]+?) p[åa] n[aä]sta set\b/gi, "Vi testar $1 nästa gång")
-      .replace(/\bK[öo]r ([^.\n]+?) p[åa] n[aä]sta set\b/gi, "Vi tar $1 nästa gång")
-      .replace(/\bp[åa] n[aä]sta set\b/gi, "nästa gång")
-      .replace(/\bn[aä]sta set\b/gi, "nästa gång")
-      .replace(/\boch s[aä]g RIR direkt efter\.?/gi, "")
-      .replace(/\bk[öo]r n[aä]r du [aä]r redo\.?/gi, "");
-  }
-
-  return sanitizeCoachReply(text, fallback, maxCharacters);
 }
 
 
@@ -917,8 +878,13 @@ export async function requestAiCoachChatReply(args: {
     return {
       mode: data.mode ?? "fallback",
       reason: data.reason,
-      text: sanitizeCoachChatReply(
-        context,
+      // Klienten skrev tidigare om coachens ord när övningen var klar ("nästa
+      // set" -> "nästa gång"). Prompten säger redan samma sak och modellen
+      // följer den — 0 av 6 svar behövde ändras. Regexen förstörde däremot
+      // legitima meningar om NÄSTA övning: "vila 2 minuter innan nästa set på
+      // sidolyften" blev "…innan nästa gång på sidolyften". Lägg inte tillbaka
+      // en omskrivning av coachens ord; ändra prompten eller datan i stället.
+      text: sanitizeCoachReply(
         data.text ?? "",
         fallbackText,
         MAX_CHAT_REPLY_CHARACTERS
