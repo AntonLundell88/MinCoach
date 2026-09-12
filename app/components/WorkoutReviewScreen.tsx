@@ -292,13 +292,12 @@ function SetRow({
 
 export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Props) {
   const [nextSessionTip] = useState(() => pickRandomLine(NEXT_SESSION_TIPS));
-  const title = review.totalSets === 0
-    ? "Inget loggat den här gången."
-    : review.isPartial
-    ? "Passet är sparat."
-    : review.totalSets >= 10
-    ? "Starkt jobbat idag."
-    : "Bra jobbat idag.";
+  // Coachens egen rubrik. Här stod tidigare en fast rad — "Starkt jobbat
+  // idag." vid tio set eller fler, annars "Bra jobbat idag." — medan
+  // coachHeadline skrevs vid varje granskning utan att visas någonstans.
+  // Granskningen har alltid en rubrik: coachens, eller reservgranskningens
+  // när AI:n inte svarar.
+  const title = review.coachHeadline;
 
   const takeaways = uniqueItems(review.positives).slice(0, 3);
   const nextTime = uniqueItems(
@@ -318,7 +317,9 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
         </p>
         <div className="mt-4 space-y-3">
           <p className="text-sm text-white/48">{review.passLabel}</p>
-          <h1 className="text-3xl font-semibold leading-tight tracking-normal text-white">
+          {/* Coachens rubrik är en hel mening, inte tre ord som den fasta var.
+              I 3xl blev den fyra rader på en telefon. */}
+          <h1 className="text-2xl font-semibold leading-snug tracking-normal text-white">
             {title}
           </h1>
           <p className="max-w-lg text-base leading-7 text-white/76">
