@@ -385,7 +385,7 @@ useEffect(() => {
       <div className="grid grid-cols-2 items-end gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex h-5 items-center justify-between gap-2">
-            <label className="text-xs text-gray-300">
+            <label className="text-xs text-white/50">
               {isBodyweight ? "Belastning" : "Vikt (kg)"}
             </label>
             {isBodyweight ? (
@@ -421,7 +421,7 @@ useEffect(() => {
                   className="flex h-full items-center justify-center border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
                   aria-label="Sänk vikt"
                 >
-                  -
+                  −
                 </button>
                 <input
                   ref={weightInputRef}
@@ -458,7 +458,7 @@ useEffect(() => {
           {isTimed ? (
             <div className="space-y-1">
               <div className="flex h-5 items-center">
-                <label className="text-xs text-gray-300">Tid</label>
+                <label className="text-xs text-white/50">Tid</label>
               </div>
               <div className="workout-timer-card rounded-2xl border border-blue-300/15 bg-slate-950/50 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
                 {isEditingDuration ? (
@@ -545,7 +545,7 @@ useEffect(() => {
           ) : (
             <>
           <div className="flex h-5 items-center">
-            <label className="text-xs text-gray-300">Reps</label>
+            <label className="text-xs text-white/50">Reps</label>
           </div>
           <div className="workout-input-stepper grid h-12 grid-cols-[2.55rem_minmax(0,1fr)_2.55rem] overflow-hidden rounded-2xl border border-white/[0.075] bg-slate-950/50 transition focus-within:border-blue-300/35">
             <button
@@ -568,7 +568,7 @@ useEffect(() => {
               value={repsInput}
               onChange={(e) => setRepsInput(e.target.value)}
               onFocus={(e) => e.target.select()}
-              placeholder="t.ex. 5"
+              placeholder="reps"
             />
             <button
               type="button"
@@ -605,7 +605,7 @@ useEffect(() => {
       <>
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-  <label className="text-xs text-gray-300">
+  <label className="text-xs text-white/50">
     RIR (reps kvar i tanken)
   </label>
 
@@ -695,7 +695,7 @@ useEffect(() => {
 
       {rirInput === 0 && (
         <div className="min-w-0 space-y-1">
-          <label className="text-sm text-gray-300">Vad hände? (valfritt)</label>
+          <label className="text-sm text-white/50">Vad hände? (valfritt)</label>
           <input
             className="w-full rounded-xl border border-white/[0.09] bg-slate-950/55 p-2.5 text-base text-white outline-none focus:border-blue-300/35 sm:text-sm"
             value={failNoteInput}

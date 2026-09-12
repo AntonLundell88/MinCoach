@@ -294,15 +294,9 @@ html[data-theme="light"],
     inset 0 1px 0 rgba(255, 255, 255, 0.022) !important;
 }
 
-[data-theme="dark"] .workout-next-card {
-  background: rgba(47, 109, 246, 0.072) !important;
-  border-color: rgba(96, 165, 250, 0.16) !important;
-}
-
-[data-theme="dark"] .workout-rest-card {
-  background: rgba(3, 7, 18, 0.24) !important;
-  border-color: rgba(255, 255, 255, 0.066) !important;
-}
+/* Nästa set har ingen egen mörk regel. Den som stod här vann aldrig: de
+   generella klassreglerna längre ned (bg-white/, bg-slate-950 med flera) har
+   samma specificitet och står senare i filen. Vila är inte längre en egen ruta. */
 
 [data-theme="light"] [class*="rounded-"][class*="border"] {
   border-color: var(--mc-border) !important;
@@ -347,11 +341,6 @@ html[data-theme="light"],
   background:
     linear-gradient(180deg, rgba(47, 109, 246, 0.09), rgba(47, 109, 246, 0.055)) !important;
   border-color: rgba(47, 109, 246, 0.18) !important;
-}
-
-[data-theme="light"] .workout-rest-card {
-  background: rgba(255, 255, 255, 0.48) !important;
-  border-color: var(--mc-border) !important;
 }
 
 [data-theme="light"] .workout-status-panel [class*="text-white"],
@@ -670,8 +659,7 @@ html[data-theme="light"],
 }
 
 [data-theme="light"] .workout-status-panel .workout-next-card,
-[data-theme="light"] .workout-status-panel .workout-history-card,
-[data-theme="light"] .workout-status-panel .workout-rest-card {
+[data-theme="light"] .workout-status-panel .workout-history-card {
   background:
     linear-gradient(180deg, rgba(255, 254, 250, 0.82), rgba(244, 240, 231, 0.72)) !important;
   border-color: rgba(82, 69, 51, 0.13) !important;
@@ -681,14 +669,12 @@ html[data-theme="light"],
 }
 
 [data-theme="light"] .workout-status-panel .workout-next-card *,
-[data-theme="light"] .workout-status-panel .workout-history-card *,
-[data-theme="light"] .workout-status-panel .workout-rest-card * {
+[data-theme="light"] .workout-status-panel .workout-history-card * {
   color: var(--mc-text) !important;
 }
 
 [data-theme="light"] .workout-status-panel .workout-next-card p:first-child,
-[data-theme="light"] .workout-status-panel .workout-history-card p:first-child,
-[data-theme="light"] .workout-status-panel .workout-rest-card p:first-child {
+[data-theme="light"] .workout-status-panel .workout-history-card p:first-child {
   color: var(--mc-muted) !important;
 }
 
@@ -1117,8 +1103,7 @@ main[data-theme="light"]:has(.workout-screen-shell) > div:not([class*="fixed"]) 
 }
 
 [data-theme="light"] .workout-screen-shell .workout-next-card,
-[data-theme="light"] .workout-screen-shell .workout-history-card,
-[data-theme="light"] .workout-screen-shell .workout-rest-card {
+[data-theme="light"] .workout-screen-shell .workout-history-card {
   background:
     linear-gradient(180deg, rgba(255, 252, 245, 0.9), rgba(246, 238, 226, 0.8)) !important;
   border-color: rgba(87, 68, 47, 0.13) !important;
@@ -1223,7 +1208,6 @@ main[data-theme="light"]:has(.workout-screen-shell) {
   .coach-history-toggle,
   .workout-next-card,
   .workout-history-card,
-  .workout-rest-card,
   .workout-mini-input,
   .workout-input-stepper,
   .workout-timer-card

@@ -679,16 +679,17 @@ export default function WorkoutScreen({
     ? "ready"
     : "resting";
   const restSecondsUntilReady = Math.max(restTarget.min - restElapsed, 0);
-  const restTargetLabel = manualRestTarget
-    ? `mål ${restTarget.label}`
-    : `coach ${restTarget.label}`;
+  // Samma ord som coachen säger ("2–3 minuter"). Här stod "coach 2:00–3:00",
+  // klockformat med ett ord framför, som lästes som kod i en ruta som redan
+  // heter Vila. Klockformatet står kvar där det är en timer: i fokusläget.
+  const restTargetLabel = formatRestProse(restTarget);
   const restTimerHint =
     restStartedAt === null
       ? restTargetLabel
       : restTimerState === "over"
       ? `Lite lång vila · ${formatRestTimer(restElapsed)}`
       : restTimerState === "ready"
-      ? `Redo · ${restTarget.label}`
+      ? `Redo · ${restTargetLabel}`
       : `Redo om ${formatRestTimer(restSecondsUntilReady)}`;
   useEffect(() => {
     if (restTimerState === "ready") triggerHaptic([10, 60, 10]);
@@ -1081,7 +1082,7 @@ useEffect(() => {
           </div>
 
           <div className="mt-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/55">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
               {setSourceLabel}
             </p>
             <p className="mt-0.5 truncate text-lg font-bold text-white">
@@ -1177,7 +1178,7 @@ useEffect(() => {
                         className="flex h-9 items-center justify-center border-r border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
                         aria-label="Sänk vikt"
                       >
-                        -
+                        −
                       </button>
                       <input
                         className="h-9 min-w-0 bg-transparent px-2 text-center text-lg font-semibold text-white outline-none placeholder:text-white/28"
@@ -1466,10 +1467,12 @@ useEffect(() => {
           </div>
         )}
 
-        {/* Nästa set + Vila */}
-        <div className="mt-2.5 grid grid-cols-[1fr_auto] gap-2">
-          <div className="workout-next-card rounded-2xl border border-white/[0.075] bg-white/[0.045] px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/55">
+        {/* Nästa set + Vila — en ruta med två kolumner. Det var två rutor med
+            olika bakgrund, etikettfärg och justering: vänster och överst mot
+            höger och centrerat, eftersom vilarutan är en knapp. */}
+        <div className="workout-next-card mt-2.5 grid grid-cols-[minmax(0,1fr)_auto] rounded-2xl border border-white/[0.075] bg-white/[0.045]">
+          <div className="min-w-0 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
               {setSourceLabel}
             </p>
             {currentExerciseReadyToFinish ? (
@@ -1499,15 +1502,9 @@ useEffect(() => {
                 Logga första setet
               </p>
             )}
-            {/* Visas på passets första set, varje pass, oavsett om övningen har
-                ett förslag eller inte. Vanan att logga uppvärmningen går inte
-                över efter första passet, så texten ska inte heller göra det. */}
-            {showWarmupHint && !currentExerciseReadyToFinish && (
-              <p className="mt-2 border-l-2 border-[#2f6df6] pl-2 text-xs font-semibold leading-4 text-white">
-                Logga inte uppvärmningsseten — bara arbetsseten.
-              </p>
-            )}
           </div>
+          {/* Ingen bakgrundsklass här, inte ens för tryck: de mörka temareglerna
+              matchar på klassnamnet (bg-white/…) och skulle färga kolumnen jämt. */}
           <button
             type="button"
             ref={inlineRestWidgetRef}
@@ -1515,16 +1512,26 @@ useEffect(() => {
               setShowRestTimer(true);
               setRestDockForcedOpen(true);
             }}
-            className="workout-rest-card min-w-[5.8rem] rounded-2xl border border-white/[0.06] bg-slate-950/18 px-3 py-2 text-right transition active:scale-[0.97]"
+            className="flex min-w-[5.8rem] flex-col items-start border-l border-white/[0.075] px-3 py-2 text-left transition active:opacity-60"
           >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/34">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
               Vila
             </p>
-            <p className="mt-1 text-sm font-semibold text-white">
+            <p className="mt-1 text-sm font-semibold leading-5 text-white">
               {restTimerHint}
             </p>
           </button>
         </div>
+        {/* Visas på passets första set, varje pass, oavsett om övningen har
+            ett förslag eller inte. Vanan att logga uppvärmningen går inte
+            över efter första passet, så texten ska inte heller göra det.
+            Full bredd under rutan: i den smala kolumnen bröts den över tre
+            rader på en telefon. */}
+        {showWarmupHint && !currentExerciseReadyToFinish && (
+          <p className="mt-2 border-l-2 border-[#2f6df6] pl-2 text-xs font-semibold leading-4 text-white">
+            Logga inte uppvärmningsseten — bara arbetsseten.
+          </p>
+        )}
 
         {/* Inputs (embedded — no card wrapper, no header) */}
         <ExerciseCard
@@ -2088,7 +2095,7 @@ useEffect(() => {
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
                 Vila
               </p>
               <p
@@ -2111,13 +2118,10 @@ useEffect(() => {
                     : "text-white/48"
                 }`}
               >
-                {restTimerHint || (restTimerState === "over"
-                  ? "över målet"
-                  : restTimerState === "ready"
-                  ? "vilan är klar"
-                  : manualRestTarget
-                  ? `mål ${restTarget.label}`
-                  : `coach ${restTarget.label}`)}
+                {/* Här stod en reservtext efter restTimerHint ||, med en egen kopia
+                    av "mål …"/"coach …". restTimerHint är aldrig tom, så den kunde
+                    aldrig visas. */}
+                {restTimerHint}
               </p>
             </div>
 
