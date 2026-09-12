@@ -4959,6 +4959,19 @@ setExerciseOverridesByPass(
   }
 );
 
+// Den tredje per-pass-kartan. De två ovanför lästes in, den här glömdes. Den
+// sparades vid varje borttagning, synkades till Supabase och nollställs vid
+// ombyggnad precis som syskonen — men lästes aldrig tillbaka. Tog man bort en
+// övning (Redigera på startskärmen, eller i programgranskningen) låg den borta
+// så länge iOS lät appen ligga kvar i minnet, och kom tillbaka vid nästa
+// omladdning. Samma sak efter en återställning från servern på en ny enhet.
+setRemovedExercisesByPass(
+  {
+    ...createEmptyPassStringMap(),
+    ...loadJSON<Partial<RemovedExercisesByPass>>("removedExercisesByPass", {}),
+  }
+);
+
 const activeWorkoutDraft = loadJSON<ActiveWorkoutDraft | null>(
   ACTIVE_WORKOUT_DRAFT_KEY,
   null
