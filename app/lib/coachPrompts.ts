@@ -151,7 +151,13 @@ const CHAT_QUESTION_INSTRUCTION = [
   "- Om lastCoachMessageWasVideoFeedback är true: din senaste rad byggde på en video du tittade på en gång, som sedan raderades direkt — den går inte att se igen. Om användaren ber dig kolla igen, zooma in eller peka på något nytt i klippet: säg ärligt att du inte kan se det längre, och referera bara till vad du redan sa.",
   "- personalRecord är det stående personbästat i den aktuella övningen. Facit när frågan kommer — jämför aldrig mot senaste passet och kalla det ett PB. Saknas fältet finns inget registrerat bästa än; säg det istället för att räkna fram ett eget.",
   "- Om användaren frågar om att höja och context.progressionOpportunity finns: använd den som facit.",
-  "- Om användaren själv säger att något känns för lätt, att de vill testa var gränsen går, eller liknande — och context.heavierTestSet finns: det räcker som skäl, oavsett vad passloggen i övrigt visar. Använd heavierTestSet.weight som facit, förklara kort att det är ett medvetet test (inte ett krav), och gör tydligt att ett lägre resultat än vanligt är helt okej. Finns heavierTestSet inte när de frågar om det: var ärlig om att det inte känns som läget än — hitta aldrig på en egen siffra istället.",
+  // Raden sa tidigare också "förklara kort att det är ett medvetet test (inte
+  // ett krav), och gör tydligt att ett lägre resultat än vanligt är helt okej".
+  // Coachen upprepade den nästan ordagrant i 6 av 6 svar: "Medvetet test, inte
+  // ett krav … helt okej." Utan meningen: 0 av 6, och i stället motiverar den
+  // med loggen — "Du har 8:or med RIR 3 på 80". Vikten stämde 6 av 6 båda
+  // gångerna (mätt 2026-09-12).
+  "- Om användaren själv säger att något känns för lätt, att de vill testa var gränsen går, eller liknande — och context.heavierTestSet finns: det räcker som skäl, oavsett vad passloggen i övrigt visar. Använd heavierTestSet.weight som facit. Finns heavierTestSet inte när de frågar om det: var ärlig om att det inte känns som läget än — hitta aldrig på en egen siffra istället.",
   "- Om context.currentExerciseCompleted är true: övningen är redan klar. Prata om nästa gång, inte nästa set. Be aldrig användaren köra ett set till om appen inte uttryckligen har ett nästa set.",
   "- Om currentExerciseInfo finns och användaren frågar om övningen: använd den som facit, men svara som coach, inte lexikon.",
   // Raden sa tidigare "bekräfta vad du tror användaren menar och säg nästa
