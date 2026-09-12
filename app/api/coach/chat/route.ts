@@ -6,6 +6,7 @@ import {
   type CoachChatContext,
 } from "../../../lib/coachAi";
 import { buildCoachChatPromptPayload } from "../../../lib/coachPrompts";
+import { CUSTOM_EXERCISE_CATEGORIES } from "../../../lib/exercises";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
 
 type CoachChatRequest = {
@@ -27,7 +28,13 @@ function normalizeChatAction(value: unknown): CoachChatAction | null {
     const toExerciseName = cleanText(action.toExerciseName);
     if (!fromExerciseName || !toExerciseName) return null;
 
-    return { type: "replace_exercise", fromExerciseName, toExerciseName };
+    // En kategori utanför listan tappas, men bytet står kvar. Utan kategori
+    // gör appen som innan fältet fanns: frågar när namnet är okänt.
+    const category = CUSTOM_EXERCISE_CATEGORIES.find(
+      (value) => value === cleanText(action.category).toLowerCase()
+    );
+
+    return { type: "replace_exercise", fromExerciseName, toExerciseName, category };
   }
 
   if (action.type === "note_limitation") {

@@ -5680,7 +5680,7 @@ async function sendChat() {
       const result = replaceExerciseInCurrentWorkout(
         response.action.fromExerciseName,
         response.action.toExerciseName,
-        { silent: true }
+        { silent: true, category: response.action.category }
       );
       if (result.handled) {
         // Coachens svar ÄR presentationen av den nya övningen. Utan det här
@@ -5688,16 +5688,17 @@ async function sendChat() {
         // fullt intro av samma övning — två systemmeddelanden i rad.
         // Sätts bara här: de två andra bytesvägarna säger ingenting alls, och
         // där är introt den enda rösten.
-        // Det UPPLÖSTA namnet, inte AI:ns råa. Sa den "rumänsk marklyft" heter
-        // övningen "Rumänska marklyft" i passet — jämför man mot råtexten
+        // Det UPPLÖSTA namnet, inte AI:ns råa. Sa den "landmine row" heter
+        // övningen "Landmine row (rygg)" i passet — jämför man mot råtexten
         // matchar nyckeln inte och introt slipper igenom ändå.
         setExerciseAlreadyIntroduced(
           result.replacedWith ?? response.action.toExerciseName
         );
         reply(response.text, "llm");
       } else {
-        // Bytet gick INTE igenom — namnet behövde förtydligas, övningen låg
-        // redan i passet, eller biblioteket kände inte igen den. Motorn är
+        // Bytet gick INTE igenom — övningen låg redan i passet, eller
+        // biblioteket kände inte igen namnet och coachen angav ingen
+        // kategori (med kategori blir den en egen övning). Motorn är
         // tystad här för att coachen ska äga rösten, så säger vi ingenting
         // blir det en tom bubbla och en snurra som aldrig slutar (reply() är
         // det enda som nollställer coachPendingReply). Coachens egen text

@@ -1,4 +1,5 @@
 import { isAbortError, reportAiFallback } from "./aiFallbackReport";
+import type { CustomExerciseCategory } from "./exercises";
 
 /**
  * Strategin som modellen ser den. Svenska med flit: modellen ekar värden den
@@ -563,6 +564,8 @@ export type CoachChatAction =
       type: "replace_exercise";
       fromExerciseName: string;
       toExerciseName: string;
+      /** Vad den nya övningen främst tränar. Gör den till en egen övning när biblioteket inte känner igen namnet. */
+      category?: CustomExerciseCategory;
     }
   | {
       type: "note_limitation";

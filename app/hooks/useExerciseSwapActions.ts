@@ -1,7 +1,7 @@
 "use client";
 
 import { type Dispatch, type SetStateAction, useState } from "react";
-import { exerciseKey, parsePlannedSetCount, resolveExerciseName } from "../lib/exercises";
+import { type CustomExerciseCategory, exerciseKey, parsePlannedSetCount, resolveExerciseName } from "../lib/exercises";
 import type { Workout, WorkoutPlan } from "../page";
 
 type LoggedExerciseShape = Workout["exercises"][number];
@@ -131,7 +131,7 @@ export function useExerciseSwapActions(args: {
   function replaceExerciseInCurrentWorkout(
     fromName: string,
     toNameRaw: string,
-    options?: { silent?: boolean }
+    options?: { silent?: boolean; category?: CustomExerciseCategory }
   ): ExerciseActionResult {
     const silent = options?.silent ?? false;
     if (!workout) return { handled: true };
@@ -139,6 +139,21 @@ export function useExerciseSwapActions(args: {
     const resolved = resolveExerciseName(toNameRaw);
 
     if (resolved.status === "empty") return { handled: true };
+
+    // Coachen skickar med vad övningen tränar. Känner biblioteket inte igen
+    // namnet blir den en egen övning — samma väg som "egen rygg: …" i
+    // byt-rutan. Det gäller även "suggest": gissningen är gjord för att en
+    // människa ska bekräfta den, och i chatten finns ingen som gör det.
+    // Gissningen för "Rumänsk marklyft" är Marklyft och för "Vadpress i
+    // benpress" Benpress — att godta den hade gett fel övnings vikter. Utan
+    // kategori gäller det gamla: appen frågar.
+    if (resolved.status !== "known" && options?.category) {
+      return replaceExerciseInCurrentWorkout(
+        fromName,
+        `egen ${options.category}: ${resolved.name}`,
+        { silent }
+      );
+    }
 
     if (resolved.status === "suggest") {
       if (silent) {

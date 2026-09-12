@@ -1,5 +1,6 @@
 import "server-only";
 import { PROGRAM_DESIGN_PROTOCOL, TRAINING_DECISION_PROTOCOL } from "./coachRules";
+import { CUSTOM_EXERCISE_CATEGORIES } from "./exercises";
 import {
   COACH_HARD_GUARDRAILS,
   COACH_LANGUAGE_NOTES,
@@ -178,12 +179,17 @@ const CHAT_QUESTION_INSTRUCTION = [
   "(Inte: en lista med varför det är bättre än mixat grepp, plus separata punkter om att tummen kan göra ont, plus råd för en annan övning. En fråga, ett svar.)",
 ].join("\n");
 
+// category är data, inte en regel: coachen vet vad en övning tränar även när
+// biblioteket inte känner igen namnet. Av 60 bytesnamn vi testade (2026-09-12)
+// gick 28 inte igenom utan fältet — 7 var okända, och i 21 gissade biblioteket,
+// ofta på fel variant: gissningen för "Rumänsk marklyft" var Marklyft. Appen
+// gör nu en egen övning av namnet i stället; se replaceExerciseInCurrentWorkout.
 const CHAT_ACTION_INSTRUCTION = [
-  'Returnera JSON, inte markdown. Format: {"text":"ditt vanliga coachsvar","action":null eller {"type":"replace_exercise","fromExerciseName":"...","toExerciseName":"..."} eller {"type":"note_limitation","text":"..."}}.',
+  `Returnera JSON, inte markdown. Format: {"text":"ditt vanliga coachsvar","action":null eller {"type":"replace_exercise","fromExerciseName":"...","toExerciseName":"...","category":"${CUSTOM_EXERCISE_CATEGORIES.join("|")}"} eller {"type":"note_limitation","text":"..."}}.`,
   "text-fältet är exakt samma fria, naturliga svar du annars skulle skriva enligt allt ovan — JSON-formatet ska inte göra svaret kortare, längre, mer formellt eller mindre naturligt.",
   "replace_exercise: sätt bara när användaren just nu tydligt bytt eller vill byta den aktuella övningen mot en annan — oavsett hur de uttrycker det: \"jag kör X istället\", \"byter till X\", \"X funkar bättre för mig\", \"kan inte göra det, provar X\" och liknande. Använd currentExerciseInfo för att bedöma om X är en rimlig övning för samma syfte. Sätter du den är bytet redan gjort när användaren läser svaret — skriv som att ni redan står vid den nya övningen, be dem aldrig byta själva.",
   "Sätt inte replace_exercise vid frågor, skämt, funderingar eller om användaren bara beskriver ett problem utan att säga vad de gör istället. Då svarar du bara i text, som vanligt.",
-  "fromExerciseName ska vara currentExerciseName. toExerciseName ska vara övningen användaren namngav eller tydligt syftade på.",
+  "fromExerciseName ska vara currentExerciseName. toExerciseName ska vara övningen användaren namngav eller tydligt syftade på. category är vilken kroppsdel den nya övningen främst tränar.",
   "note_limitation: sätt när användaren nämner något som låter som en verklig skada eller ett ihållande kroppsligt besvär — nytt, förbättrat eller helt borta. Inte vanlig träningsutmattning eller överdrift (\"benen är helt slut\", \"armarna dog\" är inte skador). text ska vara en kort, saklig sammanfattning av vad som sades, i tredje person, t.ex. \"Ont i höger fot efter vridning, nämnt under pass.\" eller \"Ländryggsvärk som nämndes tidigare är nu helt borta.\" Sätt bara en av de två actions per svar — välj den som är tydligast om båda skulle kunna passa.",
 ].join("\n");
 

@@ -5,6 +5,12 @@ export type ExerciseResolveResult =
   | { status: "needsCategory"; name: string; suggestion: "" }
   | { status: "unknown"; name: string; suggestion: "" };
 
+// Kategorierna en egen övning kan ha — de som "egen <kategori>: namn" tar i
+// resolveExerciseName. Coachen väljer en av dem när den byter till en övning
+// biblioteket inte känner igen.
+export const CUSTOM_EXERCISE_CATEGORIES = ["ben", "rygg", "bröst", "axlar", "armar", "mage", "helkropp"] as const;
+export type CustomExerciseCategory = (typeof CUSTOM_EXERCISE_CATEGORIES)[number];
+
 export type ExerciseInfo = {
   equipment: string;
   detail: string;
@@ -4559,7 +4565,11 @@ export function resolveExerciseName(rawName: string): ExerciseResolveResult {
     const category = rawCategory === "brost" ? "bröst" : rawCategory;
     return {
       status: "known",
-      name: `${manualMatch[3].trim()} (${category})`,
+      // Stor bokstav först, som i bibliotekets namn. Coachen skriver ibland
+      // användarens ord rakt av, och då stod "landmine row (rygg)" med gemener
+      // bredvid "Bänkpress". exerciseKey gör om till gemener, så historiken
+      // hittar övningen oavsett.
+      name: `${manualMatch[3].trim().replace(/^./, (first) => first.toUpperCase())} (${category})`,
       suggestion: "",
     };
   }
