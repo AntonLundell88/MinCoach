@@ -10,7 +10,6 @@ import {
   MAX_COACH_REPLY_CHARACTERS,
   MAX_EXERCISE_INTRO_CHARACTERS,
   MAX_WRAPPED_REFLECTION_CAPTION_CHARACTERS,
-  sanitizeCoachSetReply,
   type CoachChatContext,
   type CoachExerciseIntroContext,
   type CoachProgramContext,
@@ -383,25 +382,5 @@ export function buildCoachWrappedPromptPayload(
     instruction:
       `Du har precis tittat igenom din elevs träningslogg för ${context.monthLabel} och berättar vad du ser. Du sammanfattar inte för att inspirera eller låta snygg — du läser loggen och pratar direkt med eleven som en vanlig tränare.\n\nReturnera ENDAST giltig JSON, inte markdown. Format: {"activityCaption":"...","pbCaption":"...","reflectionCaption":"..."}\n\nSkriv som du pratar. Konkret, enkelt och rakt. Använd siffror, övningsnamn och sådant som faktiskt står i context.\n\nDu får reagera och tycka till kort: "bra", "starkt", "riktigt bra", "lite ojämnt", "snyggt" osv.\n\nFörklara däremot inte vad resultaten "betyder", "visar", "säger om dig" eller vad kroppen/träningen "svarar" med. Undvik metaforer, slogans och coachklyschor.\n\nactivityCaption (max 100 tecken): vad loggen säger om träningsnärvaron den här månaden. Jämför bara med plan/mål om det faktiskt finns i context.\n\npbCaption (max 100 tecken): din spontana reaktion på månadens största rekord. Skriv som du hade sagt det direkt efter setet. Om biggestPb saknas: säg bara det. Gör inte frånvaron av PB till något positivt eller negativt som context inte stödjer.\n\nreflectionCaption (max 160 tecken): sammanfatta månaden i 1-2 vanliga meningar. Nämn det mest relevanta du såg och säg kort vad du tycker om månaden. Undvik att bara upprepa activityCaption och pbCaption ord för ord.\n\n0-2 emoji totalt. Använd dem bara vid en naturlig reaktion, framför allt PB.`,
     maxCharacters: MAX_WRAPPED_REFLECTION_CAPTION_CHARACTERS,
-  };
-}
-
-export function createAiReadyCoachReply(args: {
-  context: CoachSetContext;
-  fallbackReply: string;
-  mode?: "fallback" | "ai-ready";
-}) {
-  const { context, fallbackReply, mode = "fallback" } = args;
-  const payload = buildCoachPromptPayload(context);
-
-  return {
-    mode,
-    payload,
-    text: sanitizeCoachSetReply(
-      context,
-      fallbackReply,
-      fallbackReply,
-      payload.maxCharacters
-    ),
   };
 }

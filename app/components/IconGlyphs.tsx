@@ -28,34 +28,6 @@ export function SettingsGlyph({ className = "" }: IconProps) {
   );
 }
 
-export function ProfileGlyph({ className = "" }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-      className={className}
-    >
-      <path
-        d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
-        stroke="currentColor"
-        strokeWidth="1.9"
-      />
-      <path
-        d="M12 12.1a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Z"
-        stroke="currentColor"
-        strokeWidth="1.9"
-      />
-      <path
-        d="M5.95 18.1c1.05-2.65 3.2-4.05 6.05-4.05s5 1.4 6.05 4.05"
-        stroke="currentColor"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 export function CloseGlyph({ className = "" }: IconProps) {
   return (
@@ -184,19 +156,6 @@ export function CheckGlyph({ className = "" }: IconProps) {
   );
 }
 
-export function FlagGlyph({ className = "" }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
-      <path
-        d="M6.7 20V5.2m0 0c3.55-1.55 5.7 1.85 9.6.1v8.05c-3.9 1.75-6.05-1.65-9.6-.1V5.2Z"
-        stroke="currentColor"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 export function CameraGlyph({ className = "" }: IconProps) {
   return (

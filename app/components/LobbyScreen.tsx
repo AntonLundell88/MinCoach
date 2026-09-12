@@ -71,16 +71,6 @@ type Props = {
   wrapped?: { monthLabel: string; onOpen: () => void; isSpotlight: boolean } | null;
 };
 
-function getLatestPR(personalRecords: Record<string, PersonalRecord>) {
-  const records = Object.values(personalRecords);
-
-  if (records.length === 0) return null;
-
-  return records.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )[0];
-}
-
 function formatMinutes(minutes: number) {
   if (minutes <= 0) return "-";
   if (minutes < 60) return `${minutes} min`;
@@ -154,9 +144,6 @@ export default function LobbyScreen({
   const cardClassName = isLight
     ? "border border-[#7a6548]/15 bg-white/56 shadow-[0_18px_46px_rgba(91,72,48,0.07)] backdrop-blur-xl"
     : "border border-white/[0.045] bg-white/[0.045] shadow-[0_14px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl";
-  const smallCardClassName = isLight
-    ? "border border-[#7a6548]/14 bg-white/50 backdrop-blur-xl"
-    : "border border-white/[0.045] bg-white/[0.036] backdrop-blur-xl";
   const labelClassName = isLight
     ? "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a7661]"
     : "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35";
@@ -168,11 +155,7 @@ export default function LobbyScreen({
   const overviewButtonClassName = isLight
     ? "rounded-xl border border-[#7a6548]/14 bg-white/48 px-3 py-2.5 text-left text-sm text-[#2d251c] transition hover:bg-white/70"
     : "rounded-xl border border-white/[0.045] bg-white/[0.036] px-3 py-2.5 text-left text-sm text-white/78 transition hover:border-white/10 hover:bg-white/[0.05]";
-  const passPillClassName = isLight
-    ? "rounded-xl border border-blue-200/70 bg-blue-50/80 px-3 py-1.5 text-xs font-medium text-blue-700"
-    : "rounded-xl border border-blue-400/20 bg-blue-500/[0.07] px-3 py-1.5 text-xs font-medium text-blue-100";
   const latestWorkout = history[0];
-  const latestPR = getLatestPR(personalRecords);
   const totalMinutes = history.reduce(
     (sum, workout) => sum + (workout.summary?.durationMinutes ?? 0),
     0
@@ -181,13 +164,6 @@ export default function LobbyScreen({
     (sum, workout) => sum + (workout.summary?.totalSets ?? 0),
     0
   );
-
-  const progressTitle =
-    weeklyStats.passCount >= daysPerWeek
-      ? "Veckan är klar"
-      : weeklyStats.passCount > 0
-      ? "Du är igång"
-      : "Redo för första steget";
 
   const coachReflection = lobbyCoachText
     ?? (latestWorkout

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
@@ -153,22 +153,6 @@ function createEmptyPassStringMap(): Record<PassType, string[]> {
 function createEmptyPassOverrideMap(): Record<PassType, Record<string, string>> {
   return ALL_PASS_KEYS.reduce(
     (map, key) => ({ ...map, [key]: {} }),
-    {} as Record<PassType, Record<string, string>>
-  );
-}
-
-function copyPassStringMap(map: Partial<Record<PassType, string[]>>) {
-  return ALL_PASS_KEYS.reduce(
-    (next, key) => ({ ...next, [key]: [...(map[key] ?? [])] }),
-    {} as Record<PassType, string[]>
-  );
-}
-
-function copyPassOverrideMap(
-  map: Partial<Record<PassType, Record<string, string>>>
-) {
-  return ALL_PASS_KEYS.reduce(
-    (next, key) => ({ ...next, [key]: { ...(map[key] ?? {}) } }),
     {} as Record<PassType, Record<string, string>>
   );
 }
@@ -337,7 +321,6 @@ type PassDisplayNamesByPass = Partial<Record<PassType, string>>;
 
 type PersonalRecords = Record<string, PersonalRecord>;
 
-
 type LoggedSet = {
   weight: number;
   reps: number;
@@ -347,9 +330,6 @@ type LoggedSet = {
   failNote?: string;
   createdAt: string;
 };
-
-
-
 
 type LoggedExercise = {
   name: string;
@@ -501,7 +481,6 @@ type ActiveWorkoutDraft = {
   savedAt: string;
 };
 
-
 type LastByExercise = Record<
   string,
   {
@@ -515,11 +494,9 @@ type LastByExercise = Record<
   }
 >;
 
-
 type CustomExercisesByPass = Record<PassType, string[]>;
 
 type RemovedExercisesByPass = Record<PassType, string[]>;
-
 
 function getNextPass(
   lastPass: PassType | null,
@@ -529,24 +506,6 @@ function getNextPass(
   const currentIndex = lastPass ? passKeys.indexOf(lastPass) : -1;
 
   return passKeys[(currentIndex + 1) % passKeys.length] ?? "A";
-}
-
-function getWorkoutIntro(dayForm: DayForm | null) {
-  if (dayForm === "trött") {
-    return "Vi startar lugnt idag.";
-  }
-
-  if (dayForm === "stark") {
-    return "Du verkar pigg idag. Första setet visar hur offensiva vi kan vara.";
-  }
-
- const options = [
-  "Första setet visar oss var vi ligger.",
-  "Vi öppnar lugnt och höjer om det sitter.",
-  "Första setet först. Lugnt och tydligt.",
-];
-
-return options[Math.floor(Math.random() * options.length)];
 }
 
 function getPreviousWorkoutSummaryLine(history: Workout[]): string | null {
@@ -628,8 +587,6 @@ function buildWarmupContext(input: string): WarmupContext | null {
     mentionedAt: new Date().toISOString(),
   };
 }
-
-
 
 function getPainCoachContextText(warmup: WarmupContext | null) {
   if (!warmup || warmup.status === "unknown") {
@@ -1201,34 +1158,6 @@ function buildProgressionPlan(args: {
   } satisfies ExerciseProgressionPlan;
 }
 
-function buildProgressionCoachExplanation(args: {
-  plan: ExerciseProgressionPlan;
-  exerciseName: string;
-}) {
-  const { plan, exerciseName } = args;
-  const target = plan.weight
-    ? `${plan.weight} kg - ${plan.repsText} - ${plan.rirText}`
-    : `${plan.repsText} - ${plan.rirText}`;
-
-  if (plan.action === "increase") {
-    return `Ja. I ${exerciseName} har samma vikt suttit flera pass, så nu testar vi upp lite.\n\nIdag: ${target}.`;
-  }
-
-  if (plan.action === "hold") {
-    return `Inte än: ${plan.reason}\n\nIdag vill jag se ${target}.`;
-  }
-
-  if (plan.action === "decrease") {
-    return `Inte idag. ${plan.reason}\n\nVi börjar på ${target} och ser hur första setet känns.`;
-  }
-
-  if (plan.action === "deload") {
-    return `Idag håller vi igen. ${plan.reason}\n\nMålet är ${target}.`;
-  }
-
-  return `Jag saknar historik här än. Första setet visar oss var vi ligger: ${target}.`;
-}
-
 function isProgressionQuestion(message: string) {
   const lower = message
     .trim()
@@ -1301,17 +1230,6 @@ function buildExerciseSafetyReply(exerciseName: string) {
   ]);
 }
 
-function extractWeightRepText(message: string) {
-  const match = message
-    .toLowerCase()
-    .replace(",", ".")
-    .match(/(\d+(?:\.\d+)?)\s*(?:kg)?\s*(?:x|×)\s*(\d+)/);
-
-  if (!match) return "";
-
-  return `${formatCoachWeight(Number(match[1]))} × ${match[2]}`;
-}
-
 function normalizeCoachFreeText(text: string) {
   return text
     .trim()
@@ -1334,18 +1252,6 @@ function buildLocalWorkoutChatFallback(args: {
 }) {
   const normalized = normalizeCoachFreeText(args.message);
   const exerciseName = args.exerciseName || "övningen";
-  const latestSet = args.currentSets[args.currentSets.length - 1];
-  const setText = latestSet
-    ? formatLoggedSetText({
-        exerciseName,
-        weight: latestSet.weight,
-        reps: latestSet.reps,
-        durationSeconds: latestSet.durationSeconds,
-        metricType: latestSet.metricType,
-        rir: latestSet.rir ?? undefined,
-      })
-    : "";
-  const askedSetText = extractWeightRepText(args.message);
 
   if (
     hasCoachFreeText(normalized, [
@@ -1386,79 +1292,6 @@ function buildLocalWorkoutChatFallback(args: {
   return shortCoach(["Hörde dig. Känns det okej, kör vidare — annars ta det säkra."]);
 }
 
-function getStagnationInsight(
-  history: Workout[],
-  exerciseName: string
-) {
-  const key = exerciseKey(exerciseName);
-
-  const recentBestSets: { weight: number; reps: number }[] = [];
-
-  for (const w of history) {
-    const ex = w.exercises.find((e) => exerciseKey(e.name) === key);
-
-    if (!ex || ex.sets.length === 0) continue;
-
-    const best = ex.sets.reduce((best, s) => {
-      if (s.weight > best.weight) return s;
-      if (s.weight === best.weight && s.reps > best.reps) return s;
-      return best;
-    });
-
-    recentBestSets.push({
-      weight: best.weight,
-      reps: best.reps,
-    });
-  }
-
-  if (recentBestSets.length < 3) return "";
-
-  const latestThree = recentBestSets.slice(0, 3);
-
-  const sameWeightAllThree = latestThree.every(
-    (set) => set.weight === latestThree[0].weight
-  );
-
-  if (!sameWeightAllThree) return "";
-
-  return `Du har legat på ${latestThree[0].weight} kg i 3 pass. Om tekniken känns bra kan vi testa +${formatWeightInput(
-    getExerciseWeightStep(exerciseName)
-  )} kg nästa gång.`;
-}
-
-function getFatigueInsight(
-  history: Workout[],
-  exerciseName: string
-) {
-  const key = exerciseKey(exerciseName);
-
-  const recentSets: { rir?: number }[] = [];
-
-  for (const w of history) {
-    const ex = w.exercises.find((e) => exerciseKey(e.name) === key);
-
-    if (!ex || ex.sets.length === 0) continue;
-
-    for (const s of ex.sets) {
-      recentSets.push({ rir: s.rir });
-    }
-
-    if (recentSets.length >= 6) break;
-  }
-
-  const latestSix = recentSets.slice(0, 6);
-
-  if (latestSix.length < 4) return "";
-
-  const hardSets = latestSix.filter(
-    (s) => s.rir === 0 || s.rir === 1
-  ).length;
-
-  if (hardSets < 3) return "";
-
-  return "Du har haft flera tunga set senaste passen. Det kan vara läge att hålla igen lite idag.";
-}
-
  function didHitTargets(
   last: { weight: number; reps: number } | undefined,
   targetReps: number
@@ -1480,18 +1313,6 @@ function mergePlan(base: string[], custom: string[]) {
 
   return out;
 }
-
-
-
-const PASS_TEMPLATES: Record<PassType, string[]> = {
-  A: ["Hantelpress", "Skivstångsrodd", "Sidolyft"],
-  B: ["Rumänska marklyft", "Benpress", "Benspark"],
-  C: ["Lutande hantelpress", "Latsdrag", "Cable cross"],
-  D: ["Benpress", "Utfall", "Vadpress"],
-  E: ["Bröstpress", "Maskinrodd", "Sidolyft"],
-  F: ["Benpress", "Lårcurl", "Machine crunch"],
-  G: ["Planka", "Höftlyft", "Upphöjda armhävningar"],
-};
 function hasHomeEquipment(profile: UserProfile, equipment: string) {
   return profile.equipment?.includes(equipment) ?? false;
 }
@@ -2108,9 +1929,6 @@ function buildExerciseLibraryInfoList(exerciseNames: string[]) {
     .slice(0, 24)
     .map(({ techniqueFocus: _tf, ...rest }) => rest);
 }
-
-const DEFAULT_TARGET_SETS = 3;
-const DEFAULT_TARGET_REPS = 5;
 const PROGRESSION_STEP = 2.5;
 const DUMBBELL_WEIGHT_SCALE = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30,
@@ -2412,7 +2230,6 @@ type CoachNote = {
   kind?: "limitation"; // skada/besvär nämnt i chatten, ovärderat mot annan minnesanteckning
 };
 
-
 type CoachMemory = {
   notes: CoachNote[]; // senaste 50
 };
@@ -2424,237 +2241,6 @@ type CoachMemory = {
 function getExerciseCue(exerciseName: string) {
   return getExerciseProfile(exerciseName).techniqueCue;
 }
-
-function getLegacyExerciseCue(exerciseName: string) {
-  const name = exerciseName.toLowerCase();
-
-  if (name.includes("hantelpress")) {
-    return "Fokus: stabil handled, kontrollerad sänkning, inga studs.";
-  }
-
-  if (name.includes("rumänska") || name.includes("rdl")) {
-    return "Fokus: höften bak, ryggen låst och ingen ful failure.";
-  }
-
-  if (name.includes("benspark")) {
-    return "Fokus: paus i toppen och kontakt innan vi höjer.";
-  }
-
-  if (name.includes("vad")) {
-    return "Fokus: stretch i botten och paus i toppen.";
-  }
-
-  if (name.includes("biceps") || name.includes("curl")) {
-    return "Fokus: ren curl, stilla armbågar och ingen sving.";
-  }
-
-  if (name.includes("triceps") || name.includes("pushdown")) {
-    return "Fokus: kontakt i triceps och smärtfritt grepp.";
-  }
-
-  if (name.includes("knäböj") || name.includes("squat")) {
-    return "Fokus på kontroll hela vägen och stabilitet i botten.";
-  }
-
-  if (name.includes("marklyft") || name.includes("deadlift")) {
-    return "Håll ryggen låst och lyftet jämnt från golvet.";
-  }
-
-  if (name.includes("bänk") || name.includes("bench")) {
-    return "Tänk kontroll genom hela pressen och håll banan jämn.";
-  }
-
-  if (name.includes("rodd") || name.includes("row")) {
-    return "Håll tempot kontrollerat och få med ryggen i varje rep.";
-  }
-
-  if (name.includes("latsdrag") || name.includes("pulldown")) {
-    return "Dra med kontroll och håll kontakt hela vägen ner.";
-  }
-
-  if (name.includes("militärpress") || name.includes("axelpress") || name.includes("overhead")) {
-    return "Håll kroppen stabil och pressa rakt genom hela rörelsen.";
-  }
-
-  return "Fokus på ren teknik och jämn kontroll.";
-}
-
-function pickDifferentOption(options: string[], lastCoachMessage: string) {
-  if (options.length === 0) return "";
-
-  const filtered = options.filter((option) => option !== lastCoachMessage);
-
-  if (filtered.length === 0) {
-    return options[Math.floor(Math.random() * options.length)];
-  }
-
-  return filtered[Math.floor(Math.random() * filtered.length)];
-}
-function getSetTrend(args: {
-  previousSets: {
-    weight: number;
-    reps: number;
-    durationSeconds?: number;
-    metricType?: "reps" | "time";
-    rir?: number;
-  }[];
-  weight: number;
-  reps: number;
-  durationSeconds?: number;
-  metricType?: "reps" | "time";
-  rir: number;
-}) {
-  const { previousSets, weight, reps, durationSeconds, metricType, rir } = args;
-
-  if (previousSets.length === 0) {
-    return "";
-  }
-
-  const previousSet = previousSets[previousSets.length - 1];
-  const previousRir =
-    typeof previousSet.rir === "number" ? previousSet.rir : null;
-
-  if (metricType === "time" || typeof durationSeconds === "number") {
-    const currentDuration = durationSeconds ?? 0;
-    const previousDuration = previousSet.durationSeconds ?? 0;
-
-    if (currentDuration > previousDuration) {
-      return "Du höll längre än förra setet.";
-    }
-
-    if (currentDuration < previousDuration && previousDuration > 0) {
-      return "Tiden sjönk lite efter jobbet innan.";
-    }
-
-    return "Samma tid som förra setet.";
-  }
-
-  if (weight === previousSet.weight && reps === previousSet.reps) {
-    if (previousRir !== null) {
-      if (rir > previousRir) {
-        return "Det här såg lättare ut än förra setet.";
-      }
-
-      if (rir < previousRir) {
-        return "Nu blev det tyngre än förra setet.";
-      }
-
-      return "Samma nivå som förra setet.";
-    }
-
-    return "Samma nivå som förra setet.";
-  }
-
-  if (weight > previousSet.weight) {
-    return "Du har gått upp i vikt jämfört med förra setet.";
-  }
-
-  if (weight < previousSet.weight) {
-    return "Du har backat lite i vikt jämfört med förra setet.";
-  }
-
-  if (reps > previousSet.reps) {
-    return "Fler reps än i förra setet. Bra.";
-  }
-
-  if (reps < previousSet.reps) {
-    return "Lite färre reps än i förra setet.";
-  }
-
-  return "";
-}
-function getExerciseFatigueSignal(args: {
-  previousSets: {
-    weight: number;
-    reps: number;
-    durationSeconds?: number;
-    metricType?: "reps" | "time";
-    rir?: number;
-  }[];
-  rir: number;
-}) {
-  const { previousSets, rir } = args;
-
-  if (previousSets.length < 2) {
-    return "";
-  }
-
-  const previousRirs = previousSets
-    .map((set) => (typeof set.rir === "number" ? set.rir : null))
-    .filter((rirValue): rirValue is number => rirValue !== null);
-
-  if (previousRirs.length < 2) {
-    return "";
-  }
-
-  const averagePreviousRir =
-    previousRirs.reduce((sum, value) => sum + value, 0) / previousRirs.length;
-
-  if (averagePreviousRir >= 2 && rir <= 1) {
-    return "Nu börjar det bli tungt genom övningen.";
-  }
-
-  if (averagePreviousRir <= 1.5 && rir >= 2) {
-    return "Bra återhämtat set. Du håller ihop det fint.";
-  }
-
-  if (averagePreviousRir >= 2 && rir >= 2) {
-    return "Seten ser jämna ut.";
-  }
-
-  return "";
-}
-function getWorkoutFatigueSignal(args: {
-  completedExercises: { sets: { rir?: number }[] }[];
-}) {
-  const { completedExercises } = args;
-
-  const allRirs = completedExercises
-    .flatMap((exercise) => exercise.sets)
-    .map((set) => (typeof set.rir === "number" ? set.rir : null))
-    .filter((rirValue): rirValue is number => rirValue !== null);
-
-  if (allRirs.length < 4) {
-    return "";
-  }
-
-  const averageRir =
-    allRirs.reduce((sum, value) => sum + value, 0) / allRirs.length;
-
-  if (averageRir <= 1) {
-    return "Du börjar bli rätt sliten genom passet nu.";
-  }
-
-  if (averageRir <= 1.75) {
-    return "Ansträngningen börjar märkas nu, så håll tekniken ren.";
-  }
-
-  if (averageRir >= 2.5) {
-    return "Du håller energin bra genom passet.";
-  }
-
-  return "";
-}
-function getGoalTone(goalPrimary: UserProfile["goalPrimary"]) {
-  if (goalPrimary === "styrka") {
-    return {
-      rir2: "Bra kvalitet. Håll det rent.",
-      cueStyle: "Fokus på stark och ren teknik.",
-    };
-  }
-
-  if (goalPrimary === "muskel") {
-    return {
-      rir2: "Bra stimulans. Håll kontrollen hög.",
-      cueStyle: "Fokus på kontakt och jämn kontroll.",
-    };
-  }
-
-  return {
-    rir2: "Bra arbete. Håll jämn nivå och ren teknik.",
-    cueStyle: "Fokus på tempo, kontroll och disciplin.",
-  };
-}
 function shortCoach(lines: string[]) {
   return lines.filter(Boolean).join("\n");
 }
@@ -2663,44 +2249,6 @@ function rirAsCoachText(rir: number) {
   if (rir <= 0) return "ingen rep kvar";
   if (rir === 1) return "en rep kvar";
   return `${rir} reps kvar`;
-}
-
-function getNextSetRepRange(args: {
-  reps: number;
-  rir: number;
-  sameWeight?: boolean;
-}) {
-  const { reps, rir } = args;
-
-  if (rir <= 0) {
-    const max = Math.max(1, reps - 2);
-    return `${Math.max(1, max - 1)}–${max} reps`;
-  }
-
-  if (rir === 1) {
-    const max = Math.max(1, reps - 1);
-    return `${Math.max(1, max - 1)}–${max} reps`;
-  }
-
-  if (rir === 2) {
-    return `${Math.max(1, reps - 1)}–${reps} reps`;
-  }
-
-  return `${Math.max(6, reps - 1)}–${reps} reps`;
-}
-
-function getNextSetRepInput(args: { reps: number; rir: number }) {
-  const { reps, rir } = args;
-
-  if (rir <= 0) return Math.max(1, reps - 3);
-  if (rir === 1) return Math.max(1, reps - 2);
-  if (rir === 2) return Math.max(1, reps - 1);
-  return Math.max(1, reps - 1);
-}
-
-function getNextSetRirInput(rir: number) {
-  if (rir <= 1) return 1;
-  return 2;
 }
 
 function formatCoachWeight(weight: number) {
@@ -2757,7 +2305,6 @@ function formatNextLoadText(exerciseName: string, weight: number) {
     ? "kroppsvikt"
     : `${formatCoachWeight(weight)} kg`;
 }
-
 
 type NextSetPlan = {
   weight: number;
@@ -4626,19 +4173,6 @@ function getWorkoutComparison(history: Workout[]) {
 
   return result;
 }
-function buildRemovedExercisesCoachNote(removedExercises: string[]) {
-  if (removedExercises.length === 0) return "";
-
-  if (removedExercises.length === 1) {
-    return `Vi hoppar över ${removedExercises[0]} idag.`;
-  }
-
-  if (removedExercises.length === 2) {
-    return `Vi hoppar över ${removedExercises[0]} och ${removedExercises[1]} idag.`;
-  }
-
-  return `Vi hoppar över några övningar idag.`;
-}
 function buildExerciseMemoryInsight(args: {
   coachMemory: CoachMemory;
   exerciseName: string;
@@ -4740,15 +4274,12 @@ const [showExerciseProgress, setShowExerciseProgress] = useState(false);
 
   const [personalRecords, setPersonalRecords] = useState<PersonalRecords>({});
 
-
   // Pågående pass
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [skippedExercise, setSkippedExercise] = useState<SkippedExercise | null>(null);
 
-
 const [dayForm, setDayForm] = useState<DayForm | null>(null);
-
 
   // Inputs för set
   const [weightInput, setWeightInput] = useState<string>("");
@@ -4760,11 +4291,7 @@ const [rirInput, setRirInput] = useState<number>(2);
 const [didFailInput, setDidFailInput] = useState(false);
 const [failNoteInput, setFailNoteInput] = useState<string>("");
 
-
 const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-
-
-
 
 const [chatInput, setChatInput] = useState("");
 const [chatLog, setChatLog] = useState<
@@ -5103,7 +4630,6 @@ if (!userProfile) return;
   setLimitationsInput(userProfile.limitations);
 }, [userProfile]);
 
-
   const recommendedNextPass = useMemo(() => {
   const days = userProfile?.daysPerWeek ?? 3;
   return getNextPass(lastPass, days);
@@ -5118,24 +4644,6 @@ useEffect(() => {
 
   return () => window.clearTimeout(resetFrame);
 }, [lastPass, userProfile?.daysPerWeek]);
-
-const nextPassDefinition = useMemo(() => {
-  if (!userProfile) return null;
-
-return buildPassDefinition({
-  profile: userProfile,
-  pass: nextPass,
-  customExercises: customExercisesByPass[nextPass] ?? [],
-  overrides: exerciseOverridesByPass[nextPass] ?? {},
-  removedExercises: removedExercisesByPass[nextPass] ?? [],
-});
-}, [
-  userProfile,
-  nextPass,
-  customExercisesByPass,
-  exerciseOverridesByPass,
-  removedExercisesByPass,
-]);
 const workoutPlan = useMemo(() => {
   if (!userProfile) return null;
 
@@ -5438,11 +4946,6 @@ const savedPlan: string[] =
   nextPlannedPass?.exercises.map((exercise: PlannedExercise) => exercise.name) ?? [];
 const plan: string[] = mergePlan(savedPlan, todayExercisesByPass[nextPass] ?? []);
 
-  const removedExercisesForNextPass = useMemo(
-    () => removedExercisesByPass[nextPass] ?? [],
-    [removedExercisesByPass, nextPass]
-  );
-
 const activePlan = workout ? workout.exercises.map((e) => e.name) : plan;
 
 const currentPassLabel = cleanPassDisplayLabel(
@@ -5453,20 +4956,11 @@ const nextPassLabel = cleanPassDisplayLabel(
   nextPlannedPass?.displayName ?? `Pass ${nextPass}`
 );
 
-const lastPassLabel = cleanPassDisplayLabel(
-  userProfile && lastPass
-    ? getDefaultPassDisplayName(userProfile, lastPass)
-    : lastPass
-    ? `Pass ${lastPass}`
-    : ""
-);
-
 const currentExerciseName = activePlan[exerciseIndex] ?? "";
 
 const goalTargets = useMemo(() => {
   return getGoalTargets(userProfile?.goalPrimary ?? "muskel");
 }, [userProfile]);
-
 
 const previousExerciseSets = useMemo(() => {
   if (!currentExerciseName) return [];
@@ -5621,8 +5115,6 @@ const progression = useMemo(() => {
     .slice(0, 3);
 }, [progressionHistory, currentExerciseName, workout]);
 
-
-
 const weeklyStats = useMemo(() => {
   const now = new Date();
 
@@ -5695,7 +5187,6 @@ const progressionPlan = useMemo(() => {
   });
 }, [currentExerciseName, progressionHistory, goalTargets.targetReps, dayForm, sessionHasPainFlag]);
 
-
 const suggestion = useMemo(() => {
   return {
     weight: progressionPlan.weight,
@@ -5707,79 +5198,6 @@ const adjustedSuggestion = useMemo(() => {
   return suggestion;
 }, [suggestion]);
 
-
-
-
-
- const coachData = useMemo(() => {
-  if (!workout) return null;
-
-  const last = lastByExercise[exerciseKey(currentExerciseName)];
-  const bodyweightCurrentExercise = isBodyweightExercise(currentExerciseName);
-
-  const targetWeight =
-    !bodyweightCurrentExercise && adjustedSuggestion.weight && adjustedSuggestion.weight !== ""
-      ? adjustedSuggestion.weight
-      : bodyweightCurrentExercise
-      ? ""
-      : progressionPlan.weight;
-
-const removedExercisesNote = buildRemovedExercisesCoachNote(
-  removedExercisesForNextPass
-);
-
-const introBase = getWorkoutIntro(dayForm);
-
-const intro = removedExercisesNote
-  ? `${introBase} ${removedExercisesNote}`
-  : introBase;
-
-  const lastText = last
-    ? formatLoggedSetText({
-        exerciseName: currentExerciseName,
-        weight: last.weight,
-        reps: last.reps,
-        rir: last.rir ?? undefined,
-      })
-    : "ingen data än";
-
-const stagnation = getStagnationInsight(history, currentExerciseName);
-const fatigue = getFatigueInsight(history, currentExerciseName);
-const memoryInsight = buildExerciseMemoryInsight({
-  coachMemory,
-  exerciseName: currentExerciseName,
-});
-
-let insight = memoryInsight;
-if (!insight && fatigue) insight = fatigue;
-else if (!insight && stagnation) insight = stagnation;
-else if (!insight && progressionPlan.action === "increase") insight = progressionPlan.reason;
-else if (!insight && progressionPlan.action === "deload") insight = progressionPlan.reason;
-
-  return {
-    intro,
-    pass: workout.pass,
-    gym: workout.gym,
-    exercise: currentExerciseName,
-    lastText,
-    plan: progressionPlan.reason,
-       target: targetWeight
-      ? `${targetWeight} kg - ${progressionPlan.repsText} - ${progressionPlan.rirText}`
-      : `${progressionPlan.repsText} - ${progressionPlan.rirText}`,
-    insight,
-  };
-}, [
-  workout,
-  lastByExercise,
-  currentExerciseName,
-  adjustedSuggestion.weight,
-  progressionPlan,
-  dayForm,
-  history,
-  removedExercisesForNextPass,
-  coachMemory,
-]);
-
 exerciseIndexRef.current = exerciseIndex;
 
 // När du byter övning: fyll i vad du FAKTISKT körde senast på den övningen.
@@ -5789,7 +5207,8 @@ exerciseIndexRef.current = exerciseIndex;
 // gjorde UI:t till en andra röst som kunde säga emot coachen — coachen bad
 // dig sänka medan fältet visade en höjning, eller visade RIR 0 efter att du
 // nämnt smärta. Motorns förslag finns kvar, men bara som underlag TILL
-// coachen (progressionPlan -> coachData), aldrig som en siffra på skärmen.
+// coachen (introt och chatten läser progressionPlan), aldrig som en siffra på
+// skärmen.
 useEffect(() => {
   if (!started) return;
   if (!currentExerciseName) return;
@@ -5818,7 +5237,6 @@ useEffect(() => {
   setRirInput(2);
   setInputsTouched(false);
 }, [currentExerciseName, started, lastByExercise]);
-
 
 function confirmGymForToday() {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -5907,21 +5325,6 @@ function confirmGymForToday() {
     setGyms(updated);
     localStorage.setItem("gyms", JSON.stringify(updated));
     if (id === activeGymId) setGym(trimmed);
-  }
-
-  function updateGymOverride(gymId: string, originalName: string, overrideName: string) {
-    const updated = gyms.map((g) => {
-      if (g.id !== gymId) return g;
-      const overrides = { ...(g.exerciseOverrides ?? {}) };
-      if (overrideName.trim()) {
-        overrides[originalName] = overrideName.trim();
-      } else {
-        delete overrides[originalName];
-      }
-      return { ...g, exerciseOverrides: overrides };
-    });
-    setGyms(updated);
-    localStorage.setItem("gyms", JSON.stringify(updated));
   }
 
   // Ett gym: auto-valt, ingen anledning att fråga. Två eller fler: bekräftelse
@@ -6126,7 +5529,6 @@ function parseWorkoutChatIntent(args: {
     swapFrom: "",
     swapTo: "",
   };
-
 
   if (
     includesAnyIntent(lower, [
@@ -6561,7 +5963,6 @@ async function sendChat() {
     return;
   }
 
-
   if (routedIntent.topic === "equipment") {
     if (!workout || routedIntent.targetIndex === null) {
       reply("Okej. Vilken övning gäller det?");
@@ -6781,7 +6182,6 @@ function removeTodayExercise(pass: PassType, nameToRemove: string) {
   }));
 }
 
-
 function addWorkoutEventToWorkout(
   current: Workout,
   event: Omit<WorkoutEvent, "createdAt">
@@ -6979,8 +6379,6 @@ function undoSkipExercise() {
   setSkippedExercise(null);
 }
 
-
-
 function removeCustomExercise(pass: PassType, nameToRemove: string) {
   const keyToRemove = exerciseKey(nameToRemove);
 
@@ -7106,7 +6504,6 @@ function suggestReplacementFor(exName: string): string {
 
   return fallbackCandidates.find(isDifferentExercise) ?? "";
 }
-
 
 function clearExerciseOverride(pass: PassType, fromName: string) {
   const fromKey = exerciseKey(fromName);
@@ -7571,7 +6968,6 @@ const painFailure =
     failNoteInput.toLowerCase().includes("smärta") ||
     failNoteInput.toLowerCase().includes("känning"));
 
-
     const updated = structuredClone(workout);
     updated.exercises[targetExerciseIndex].sets.push(set);
    const currentLoggedExercise = updated.exercises[targetExerciseIndex];
@@ -7643,12 +7039,8 @@ const painFailure =
     setWorkout(updated);
    const suggestedNextWeight = nextSetPlan.weight;
 
-
     setFailNoteInput("");
     setDidFailInput(false);
- // ✅ Coach-reaktion + auto-förslag för nästa set (RIR)
-const step = PROGRESSION_STEP;
-
 
     // Spara “senaste per övning” direkt när du loggar
 const newLastByExercise: LastByExercise = {
@@ -7800,9 +7192,9 @@ if (isNewPR(existingPR, prAttempt)) {
     achievedAt: newPR.createdAt,
   });
 
-
 }
 
+// ✅ Coach-reaktion på setet
 setCoachPendingReply(true);
 const coachReply = await requestAiCoachSetReply({
   context: coachSetContext,
@@ -8043,7 +7435,6 @@ setDurationSecondsInput(0);
   }
 }
 
-
   function prevExercise() {
     if (exerciseIndex > 0) {
       setExerciseIndex(exerciseIndex - 1);
@@ -8161,7 +7552,6 @@ for (const ex of w.exercises) {
     });
   }
 }
-
 
   return notes;
 }
@@ -8580,7 +7970,6 @@ function buildWorkoutSummary(w: Workout) {
   summary,
 };
 
-
     // Ett pass utan ett enda loggat set är inget pass — det ska inte räknas
     // i passantal, tid i gymmet eller streaks. Sammanfattningen visar redan
     // "Inget set loggat.", så det finns ingenting att spara.
@@ -8597,8 +7986,6 @@ function buildWorkoutSummary(w: Workout) {
 // COACH MEMORY: spara en kort sammanfattning (per övning)
 const freshNotes = makeCoachNotesFromWorkout(workout);
 saveCoachNotes(freshNotes);
-
-
 
     // lastPass driver ENBART rotationen (getNextPass) och etiketten som visar
     // vad du körde sist. Ett pass utan loggade set är inget pass — då ska
@@ -9236,7 +8623,6 @@ if (userProfile && workoutPlan && showProgramReview) {
   );
 }
 
-
 return (
   <main
     data-theme={appTheme}
@@ -9266,7 +8652,6 @@ return (
           recordAiFallback("exercise_intro", reason, exerciseName)
         }
         passLabel={currentPassLabel}
-        coachData={coachData}
         dayForm={dayForm}
         setDayForm={setDayForm}
         currentSets={workout?.exercises?.[exerciseIndex]?.sets ?? []}

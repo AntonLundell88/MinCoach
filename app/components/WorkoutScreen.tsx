@@ -12,7 +12,6 @@ import { CameraGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph
 import {
   formatRestClock,
   formatRestProse,
-  getExerciseProfile,
   getRestTargetRange,
   formatSetDisplay,
   isBodyweightExercise,
@@ -74,16 +73,6 @@ type Props = {
    */
   onAiFallback?: (reason: string, exerciseName: string) => void;
   passLabel: string;
-  coachData: {
-    intro: string;
-    pass: string;
-    gym: string;
-    exercise: string;
-    lastText: string;
-    plan: string;
-    target: string;
-    insight: string;
-  } | null;
   dayForm: "trött" | "normal" | "stark" | null;
   setDayForm: (v: "trött" | "normal" | "stark") => void;
   chatLog: {
@@ -248,14 +237,6 @@ function getRestTargetWithLabel(exerciseName: string, rir?: number) {
   return { ...range, label: formatRestClock(range) };
 }
 
-function getManualRestTarget(seconds: number) {
-  return {
-    min: seconds,
-    max: seconds,
-    label: formatRestTimer(seconds),
-  };
-}
-
 function getIntroTarget(args: {
   last: { reps: number; rir: number | null } | undefined;
   topSet: { weight: number; reps: number } | null;
@@ -332,7 +313,6 @@ function buildExerciseIntroCoachText(args: {
   lastByExercise: Props["lastByExercise"];
   exerciseKey: (name: string) => string;
   personalRecords: Props["personalRecords"];
-  previousWorkoutSummary?: string;
 }) {
   const {
     exerciseName,
@@ -343,7 +323,6 @@ function buildExerciseIntroCoachText(args: {
     lastByExercise,
     exerciseKey,
     personalRecords,
-    previousWorkoutSummary,
   } = args;
 
   const key = exerciseKey(exerciseName);
@@ -580,7 +559,6 @@ export default function WorkoutScreen({
   onReorderExercises,
   onAiFallback,
   passLabel,
-  coachData,
   dayForm,
   setDayForm,
   chatLog,
@@ -902,19 +880,6 @@ export default function WorkoutScreen({
     setRestElapsed(0);
     setRestStartedAt(Date.now());
   }
-
-  function startManualRestTimer(seconds: number) {
-    setManualRestTarget(getManualRestTarget(seconds));
-    setRestElapsed(0);
-    setRestStartedAt(Date.now());
-    setShowRestTimer(true);
-  }
-
-  function resetRestTimer() {
-    setRestStartedAt(null);
-    setRestElapsed(0);
-    setManualRestTarget(null);
-  }
   
 const introSentForIndexRef = useRef<string | null>(null);
 const healthContextMentionedRef = useRef(false);
@@ -1035,7 +1000,6 @@ useEffect(() => {
 {!chatFocusMode && (
 <div ref={normalChatCardRef} className={isNormalChatHistoryOpen ? "" : "sticky top-2 z-30"}>
 <CoachPanel
-  coachData={coachData}
   dayForm={dayForm}
   setDayForm={setDayForm}
   chatLog={chatLog}
@@ -1070,7 +1034,6 @@ useEffect(() => {
           <div className="flex min-h-0 flex-1 flex-col px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <CoachPanel
               variant="focus"
-              coachData={coachData}
               dayForm={dayForm}
               setDayForm={setDayForm}
               chatLog={chatLog}

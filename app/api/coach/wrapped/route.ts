@@ -1,6 +1,9 @@
 import { logAiUsage } from "@/app/lib/aiUsageLog";
 import { NextResponse } from "next/server";
 import {
+  MAX_WRAPPED_ACTIVITY_CAPTION_CHARACTERS,
+  MAX_WRAPPED_PB_CAPTION_CHARACTERS,
+  MAX_WRAPPED_REFLECTION_CAPTION_CHARACTERS,
   sanitizeCoachReply,
   type CoachWrappedContext,
   type CoachWrappedResult,
@@ -20,8 +23,6 @@ type CoachWrappedRequest = {
 };
 
 const MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/;
-const MAX_ACTIVITY_PB_CAPTION_CHARACTERS = 100;
-const MAX_REFLECTION_CAPTION_CHARACTERS = 160;
 
 function extractOutputText(data: unknown) {
   if (!data || typeof data !== "object") return "";
@@ -215,17 +216,17 @@ export async function POST(request: Request) {
     activityCaption = sanitizeCoachReply(
       typeof parsed.activityCaption === "string" ? parsed.activityCaption : "",
       fallbackCaptions.activityCaption,
-      MAX_ACTIVITY_PB_CAPTION_CHARACTERS
+      MAX_WRAPPED_ACTIVITY_CAPTION_CHARACTERS
     );
     pbCaption = sanitizeCoachReply(
       typeof parsed.pbCaption === "string" ? parsed.pbCaption : "",
       fallbackCaptions.pbCaption,
-      MAX_ACTIVITY_PB_CAPTION_CHARACTERS
+      MAX_WRAPPED_PB_CAPTION_CHARACTERS
     );
     reflectionCaption = sanitizeCoachReply(
       typeof parsed.reflectionCaption === "string" ? parsed.reflectionCaption : "",
       fallbackCaptions.reflectionCaption,
-      MAX_REFLECTION_CAPTION_CHARACTERS
+      MAX_WRAPPED_REFLECTION_CAPTION_CHARACTERS
     );
     mode = "ai";
   } catch {

@@ -121,10 +121,6 @@ export async function restoreBetaSnapshotFromServer() {
         httpStatus: response.status,
         result,
       };
-      window.localStorage.setItem(
-        "mincoachBetaRestoreStatus",
-        JSON.stringify(status)
-      );
       return status;
     }
 
@@ -135,10 +131,6 @@ export async function restoreBetaSnapshotFromServer() {
         mode: String(result.mode ?? "empty"),
         restoredKeys: [] as string[],
       };
-      window.localStorage.setItem(
-        "mincoachBetaRestoreStatus",
-        JSON.stringify(status)
-      );
       return status;
     }
 
@@ -153,10 +145,6 @@ export async function restoreBetaSnapshotFromServer() {
       lastSeenAt:
         typeof result.lastSeenAt === "string" ? result.lastSeenAt : null,
     };
-    window.localStorage.setItem(
-      "mincoachBetaRestoreStatus",
-      JSON.stringify(status)
-    );
     return status;
   } catch {
     const status = {
@@ -164,10 +152,6 @@ export async function restoreBetaSnapshotFromServer() {
       ok: false,
       result: "network-error",
     };
-    window.localStorage.setItem(
-      "mincoachBetaRestoreStatus",
-      JSON.stringify(status)
-    );
     return status;
   }
 }

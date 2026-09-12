@@ -113,7 +113,6 @@ export type ExerciseDefinition = {
   substitutions: string[];
   detail: string;
   coachReason: string;
-  userFacingWhy?: string;
   techniqueCue: string;
   techniqueFocus?: string[];
   progressionRule: string;
@@ -3600,7 +3599,7 @@ export function getExerciseUserInfo(identifier: string) {
     name: definition.name,
     trains: `${definition.primaryMuscle}${secondary}`,
     equipment: definition.equipment,
-    whyChosen: definition.userFacingWhy ?? definition.coachReason,
+    whyChosen: definition.coachReason,
     logTypeText:
       definition.logType === "time_rir"
         ? "Loggas med tid. Extra vikt kan läggas till senare om positionen sitter."

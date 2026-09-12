@@ -1,7 +1,5 @@
 import { isAbortError, reportAiFallback } from "./aiFallbackReport";
 
-export type CoachReplyMode = "fallback" | "ai-ready";
-
 /**
  * Strategin som modellen ser den. Svenska med flit: modellen ekar värden den
  * får, och det engelska "backoff" kom tillbaka mitt i en svensk mening.

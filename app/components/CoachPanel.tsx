@@ -14,19 +14,7 @@ type ChatMessage = {
   emphasis?: boolean;
 };
 
-type CoachData = {
-  intro: string;
-  pass: string;
-  gym: string;
-  exercise: string;
-  lastText: string;
-  plan: string;
-  target: string;
-  insight: string;
-} | null;
-
 type Props = {
-  coachData: CoachData;
   dayForm: DayForm;
   setDayForm: (v: "trött" | "normal" | "stark") => void;
   chatLog: ChatMessage[];
@@ -213,7 +201,6 @@ function CoachText({ text, isPrimary = false }: { text: string; isPrimary?: bool
 }
 
 export default function CoachPanel({
-  coachData,
   chatLog,
   chatInput,
   setChatInput,
@@ -300,7 +287,7 @@ export default function CoachPanel({
     // typewriter tick pushes the start of the message out of view as it types.
     // Scroll once when the message begins, then let it type in place.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatLog, coachData, isCoachThinking]);
+  }, [chatLog, isCoachThinking]);
 
   useEffect(() => {
     if (chatInput.trim()) return;
