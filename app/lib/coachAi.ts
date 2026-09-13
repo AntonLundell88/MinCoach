@@ -50,6 +50,8 @@ export type CoachSetContext = {
   userName?: string;
   goalPrimary: "muskel" | "styrka" | "fett";
   passLabel?: string;
+  // Hela dagens pass, en rad per övning — samma som chatten får.
+  dagensPass?: string[];
   exerciseName: string;
   exerciseCategory?: string;
   setNumber: number;

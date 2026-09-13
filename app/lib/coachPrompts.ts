@@ -65,6 +65,10 @@ const REVIEW_COACH_SYSTEM = [
   TRAINING_DECISION_PROTOCOL,
 ].join("\n");
 
+// Chatten och setrösten får samma dagensPass, så de läser samma beskrivning.
+const DAGENS_PASS_NOTE =
+  "- dagensPass är hela passet, en rad per övning. Ett streck betyder att den inte är gjord än. Du ser alltså både vad som gjorts idag och vad som är kvar.";
+
 const SET_COACH_INSTRUCTION = [
   "Ditt uppdrag: förstå vad användaren faktiskt försöker uppnå. Hitta den minsta förändringen som löser situationen.",
   "",
@@ -95,6 +99,7 @@ const SET_COACH_INSTRUCTION = [
   "- nextTarget: systemets förslag på nästa steg",
   "- nearestWeights: närmaste vikt upp och ner som utrustningen faktiskt har. Det finns inget däremellan.",
   "- setPlan.plannedSetCount är övningens ursprungliga mål, setPlan.setsCompleted är vad som faktiskt är loggat just nu. De skiljer sig ibland (t.ex. tidigt avslut). Om du nämner antal set: utgå alltid från setsCompleted, aldrig plannedSetCount.",
+  DAGENS_PASS_NOTE,
   "- personalRecordText: PB — reagera",
   "- computedSignals / decisionFacts: maskintolkade mönster — underlag, inte sanning",
   "- memoryInsight: din historia med användaren",
@@ -106,13 +111,15 @@ const SET_COACH_INSTRUCTION = [
   "",
   "Utöver hårda gränser (systeminstruktion), specifikt för set-svar:",
   "- Säg bara 'sista setet' om setPlan.isLastSet är true.",
-  "- Om nextTarget.strategy är 'övningen klar': övningen är klar. Reagera på setet och avsluta naturligt — nämn inga fler set-vikter, reps eller vilotider för den här övningen. Namnge aldrig vilken övning som kommer härnäst — den informationen finns inte i din kontext här, appen visar den separat. Undantag: om progressionOpportunity finns kan du erbjuda ett extraset. Om setPlan.isLastExercise är true: passet är klart.",
+  // Här stod "Namnge aldrig vilken övning som kommer härnäst — den informationen
+  // finns inte i din kontext här". Nu finns den, i dagensPass.
+  "- Om nextTarget.strategy är 'övningen klar': övningen är klar. Reagera på setet och avsluta naturligt — nämn inga fler set-vikter, reps eller vilotider för den här övningen. Undantag: om progressionOpportunity finns kan du erbjuda ett extraset. Om setPlan.isLastExercise är true: passet är klart.",
   // Här stod att bara "Nytt person…" var ett PB. Fältet bär nu bara riktiga
   // PB; första setet i en ny övning heter firstTimeThisExercise.
   "- Om nextTarget.rirText är 'RIR 0' (eller antyder failure): repsiffran är en uppskattning, inte ett facit — ingen vet exakt hur många rena reps som blir kvar förrän man är där. Beskriv det som ett ansträngningsmål i egna ord istället för att läsa upp repssiffran som om den vore bestämd.",
   "- Om currentSet.failNote finns: användaren har sagt vad som stoppade setet. Bekräfta det direkt i svaret — det väger tyngre än setnumret.",
-  // Signalen säger själv vad den betyder, så meningen som återgav den är borta.
-  "- Saknas signalen om dagens enda övning för muskelgruppen: du vet inte om fler övningar för samma muskelgrupp väntar senare i passet — reagera på övningen, men påstå aldrig att muskelgruppen är klar för dagen.",
+  // Här stod att setrösten inte vet om fler övningar för samma muskelgrupp
+  // väntar, och aldrig får säga att muskelgruppen är klar. Nu ser den passet.
 ].join("\n");
 
 const CHAT_QUESTION_INSTRUCTION = [
@@ -148,7 +155,7 @@ const CHAT_QUESTION_INSTRUCTION = [
   COACH_LANGUAGE_NOTES,
   "",
   "Fri chat mitt i passet:",
-  "- dagensPass är hela passet, en rad per övning. Ett streck betyder att den inte är gjord än. Du ser alltså både vad som gjorts idag och vad som är kvar.",
+  DAGENS_PASS_NOTE,
   "- Läs recentConversation INNAN du svarar — det är ditt korttidsminne. Vad har du redan föreslagit? Vad avvisade användaren?",
   "- Om lastCoachMessageWasVideoFeedback är true: din senaste rad byggde på en video du tittade på en gång, som sedan raderades direkt — den går inte att se igen. Om användaren ber dig kolla igen, zooma in eller peka på något nytt i klippet: säg ärligt att du inte kan se det längre, och referera bara till vad du redan sa.",
   "- personalRecord är det stående personbästat i den aktuella övningen. Facit när frågan kommer — jämför aldrig mot senaste passet och kalla det ett PB. Saknas fältet finns inget registrerat bästa än; säg det istället för att räkna fram ett eget.",

@@ -2301,6 +2301,28 @@ function formatLoggedSetText(args: {
   return `${base}, ${effort}`;
 }
 
+// Hela dagens pass, en rad per övning: "Bänkpress: 80 kg × 8, 2 reps kvar", eller
+// "Sidolyft: —" för det som inte är gjort än. Chatten och setrösten får samma
+// rader. Setrösten fick tidigare inga alls, och hade två förbud för att den
+// inte såg passet: att namnge nästa övning, och att säga att en muskelgrupp
+// var klar för dagen.
+function buildDagensPass(exercises: Workout["exercises"]) {
+  return exercises.map((exercise) => {
+    const sets = exercise.sets.map((set) =>
+      formatLoggedSetText({
+        exerciseName: exercise.name,
+        weight: set.weight,
+        reps: set.reps,
+        durationSeconds: set.durationSeconds,
+        metricType: set.metricType,
+        rir: set.rir,
+      })
+    );
+
+    return `${exercise.name}: ${sets.length ? sets.join(", ") : "—"}`;
+  });
+}
+
 function formatNextLoadText(exerciseName: string, weight: number) {
   return shouldDisplayAsBodyweight(exerciseName, weight)
     ? "kroppsvikt"
@@ -3290,6 +3312,7 @@ function buildCoachSetContext(args: {
   nextSetPlan: NextSetPlan;
   plannedSetCount?: number;
   isLastExercise?: boolean;
+  dagensPass?: string[];
   previousSets: {
     weight: number;
     reps: number;
@@ -3507,6 +3530,9 @@ function buildCoachSetContext(args: {
       nextSetIsLast,
       isLastExercise: args.isLastExercise,
     },
+    // Hela passet, samma rader som chatten får. Utan dem visste setrösten inte
+    // vad som kom efter, och hade två förbud för att inte gissa.
+    dagensPass: args.dagensPass,
     // Betydelsen först, siffrorna sen. Tidigare låg currentSet/previousSet
     // överst med samma fakta i tre representationer (tal, loadText, setText)
     // medan PB, utveckling och minne låg längst ner — payloaden var framtung
@@ -5784,22 +5810,7 @@ async function sendChat() {
       // vidare, och två minuter senare visste den inte att bänkpressen ens
       // hänt. Övningar utan set står som "—", så "vad är kvar" syns i samma
       // rader. ~220 tecken för ett fullt pass, mot 3674 för chattinstruktionen.
-      dagensPass: workout
-        ? workout.exercises.map((exercise) => {
-            const sets = exercise.sets.map((set) =>
-              formatLoggedSetText({
-                exerciseName: exercise.name,
-                weight: set.weight,
-                reps: set.reps,
-                durationSeconds: set.durationSeconds,
-                metricType: set.metricType,
-                rir: set.rir,
-              })
-            );
-
-            return `${exercise.name}: ${sets.length ? sets.join(", ") : "—"}`;
-          })
-        : undefined,
+      dagensPass: workout ? buildDagensPass(workout.exercises) : undefined,
       currentSets: currentWorkoutExercise?.sets.map((set) => ({
         weight: set.weight,
         reps: set.reps,
@@ -7085,6 +7096,7 @@ const coachSetContext = buildCoachSetContext({
   nextSetPlan,
   plannedSetCount: effectivePlannedSetCount,
   isLastExercise: targetExerciseIndex >= updated.exercises.length - 1,
+  dagensPass: buildDagensPass(updated.exercises),
   previousSets: updated.exercises[targetExerciseIndex].sets.slice(0, -1),
   personalRecordText,
   isFirstSetInExercise,
