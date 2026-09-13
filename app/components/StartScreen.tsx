@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ExerciseInfoModal from "./ExerciseInfoModal";
 import { LibraryBrowser, LIBRARY_CATEGORIES, filterLibraryExercises, type LibraryExercise } from "./LibraryBrowser";
+import { CloseGlyph } from "./IconGlyphs";
 import { CUSTOM_EXERCISE_CATEGORIES, resolveExerciseName } from "../lib/exercises";
 
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
@@ -34,17 +35,12 @@ type Props = {
   plan: string[];
   exerciseKey: (name: string) => string;
 
-  swapFrom: string | null;
-  setSwapFrom: (v: string | null) => void;
-  swapToInput: string;
-  setSwapToInput: (v: string) => void;
-
-  setExerciseOverride: (
-    pass: PassType,
-    fromName: string,
-    toName: string
-  ) => void;
-  clearExerciseOverride: (pass: PassType, fromName: string) => void;
+  todaySwaps: Record<string, string>;
+  swapPlannedExercise: (
+    scheduleName: string,
+    toName: string,
+    scope: "today" | "schedule"
+  ) => string | null;
 
   customExerciseInput: string;
   setCustomExerciseInput: (v: string) => void;
@@ -80,6 +76,31 @@ const cardClassName =
 const secondaryButtonClassName =
   "rounded-lg px-2.5 py-1 text-xs font-medium text-white/42 transition hover:bg-white/5 hover:text-white/78";
 
+const unknownExerciseFeedback =
+  "Den finns inte i biblioteket. Bläddra i listan, eller lägg in den som egen övning:";
+
+const suggestionFeedback = (suggestion: string) =>
+  `Menar du ${suggestion}? Tryck igen om det stämmer.`;
+
+// Kategoriknappar för en egen övning. Utan hover:bg-blue-500: den klassen
+// matchar en ljus-regel i globals.css och gör knapparna helblå.
+function CustomCategoryButtons({ onPick }: { onPick: (category: string) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-1.5">
+      {CUSTOM_EXERCISE_CATEGORIES.map((category) => (
+        <button
+          key={category}
+          type="button"
+          onClick={() => onPick(category)}
+          className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
+        >
+          {category}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function StartScreen({
   nextPass,
   nextPassLabel,
@@ -88,12 +109,8 @@ export default function StartScreen({
   onSelectPass,
   plan,
   exerciseKey,
-  swapFrom,
-  setSwapFrom,
-  swapToInput,
-  setSwapToInput,
-  setExerciseOverride,
-  clearExerciseOverride,
+  todaySwaps,
+  swapPlannedExercise,
   customExerciseInput,
   setCustomExerciseInput,
   addCustomExercise,
@@ -136,18 +153,25 @@ export default function StartScreen({
     useState<(typeof LIBRARY_CATEGORIES)[number]>("alla");
   const [addFeedback, setAddFeedback] = useState<string | null>(null);
   const [addCustomMode, setAddCustomMode] = useState<"today" | "schedule" | null>(null);
+  // Byte av en övning i listan: vilken plats som byts (schemats namn), och om
+  // man väljer i biblioteket eller bekräftar namnet.
+  const [swapTarget, setSwapTarget] = useState<string | null>(null);
+  const [swapStep, setSwapStep] = useState<"browse" | "choose">("browse");
+  const [swapToInput, setSwapToInput] = useState("");
+  const [swapFeedback, setSwapFeedback] = useState<string | null>(null);
+  const [swapCustomScope, setSwapCustomScope] = useState<"today" | "schedule" | null>(null);
 
   // Namnet går genom biblioteket innan det läggs till. Tidigare hände ingenting
   // alls när biblioteket inte kände igen namnet.
   function addFromInput(mode: "today" | "schedule") {
     const resolved = resolveExerciseName(customExerciseInput);
     if (resolved.status === "unknown" || resolved.status === "needsCategory") {
-      setAddFeedback("Den finns inte i biblioteket. Bläddra i listan, eller lägg in den som egen övning:");
+      setAddFeedback(unknownExerciseFeedback);
       setAddCustomMode(mode);
       return;
     }
     setAddFeedback(
-      resolved.status === "suggest" ? `Menar du ${resolved.suggestion}? Tryck igen om det stämmer.` : null
+      resolved.status === "suggest" ? suggestionFeedback(resolved.suggestion) : null
     );
     setAddCustomMode(null);
     (mode === "today" ? addTodayExercise : addCustomExercise)(nextPass, customExerciseInput);
@@ -169,10 +193,63 @@ export default function StartScreen({
     setAddCustomMode(null);
   }
 
+  function openSwap(scheduleName: string) {
+    setSwapTarget(scheduleName);
+    setSwapStep("browse");
+    setSwapToInput("");
+    setSwapFeedback(null);
+    setSwapCustomScope(null);
+    setLibrarySearch("");
+    setLibraryCategory("alla");
+  }
+
+  function finishSwap(toName: string, scope: "today" | "schedule") {
+    if (!swapTarget) return;
+    const problem = swapPlannedExercise(swapTarget, toName, scope);
+    if (problem) {
+      setSwapFeedback(problem);
+      setSwapCustomScope(null);
+      return;
+    }
+    setSwapTarget(null);
+  }
+
+  // Samma väg genom biblioteket som när man lägger till. Bara idag eller Spara
+  // i schemat avgör hur länge bytet gäller.
+  function swapFromInput(scope: "today" | "schedule") {
+    const resolved = resolveExerciseName(swapToInput);
+    if (resolved.status === "empty") return;
+    if (resolved.status === "unknown" || resolved.status === "needsCategory") {
+      setSwapFeedback(unknownExerciseFeedback);
+      setSwapCustomScope(scope);
+      return;
+    }
+    if (resolved.status === "suggest") {
+      setSwapToInput(resolved.suggestion);
+      setSwapFeedback(suggestionFeedback(resolved.suggestion));
+      setSwapCustomScope(null);
+      return;
+    }
+    finishSwap(resolved.name, scope);
+  }
+
+  function swapAsCustomExercise(category: string) {
+    if (!swapCustomScope) return;
+    const resolved = resolveExerciseName(swapToInput);
+    const baseName =
+      resolved.status === "unknown" || resolved.status === "needsCategory"
+        ? resolved.name
+        : swapToInput.trim();
+    if (!baseName) return;
+    finishSwap(`egen ${category}: ${baseName}`, swapCustomScope);
+  }
+
   const cleanNextPassLabel = nextPassLabel.replace(" 1", "").replace(" 2", "");
   const todayExercises = todayExercisesByPass[nextPass] ?? [];
   const savedCustomExercises = customExercisesByPass[nextPass] ?? [];
-  const plannedExerciseKeys = new Set(plan.map((ex) => exerciseKey(ex)));
+  // Dagens namn för en plats i schemat: bytet om det finns, annars schemats.
+  const todayNameOf = (ex: string) => todaySwaps[exerciseKey(ex)] ?? ex;
+  const plannedExerciseKeys = new Set(plan.map((ex) => exerciseKey(todayNameOf(ex))));
   const visibleTodayExercises = todayExercises.filter(
     (ex) => !plannedExerciseKeys.has(exerciseKey(ex))
   );
@@ -181,6 +258,12 @@ export default function StartScreen({
   );
   const addedExerciseCount =
     visibleTodayExercises.length + visibleSavedCustomExercises.length;
+  // Biblioteket vid byte visar inte det som redan finns i dagens pass. Schemats
+  // namn på en bytt plats räknas inte, så att man kan byta tillbaka.
+  const takenTodayKeys = new Set([
+    ...plannedExerciseKeys,
+    ...todayExercises.map((ex) => exerciseKey(ex)),
+  ]);
 
   function tryStartWorkout() {
     if (gymConfirmationRequired) {
@@ -542,40 +625,60 @@ export default function StartScreen({
           </button>
         </div>
         <div className="space-y-2">
-          {plan.map((ex, index) => (
-            <div
-              key={exerciseKey(ex)}
-              className="flex items-center justify-between rounded-xl border border-white/8 bg-slate-950/20 px-3 py-3 transition hover:border-white/14 hover:bg-white/[0.042]"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="text-xs font-semibold text-white/35">
-                  {index + 1}
-                </span>
-                <span className="truncate text-sm font-medium text-white/88">
-                  {ex}
-                </span>
-              </div>
+          {plan.map((ex, index) => {
+            const swappedTo = todaySwaps[exerciseKey(ex)];
 
-              <div className="flex shrink-0 items-center gap-1.5">
-                <button
-                  type="button"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
-                  onClick={() => setExerciseInfoName(ex)}
-                  aria-label={`Visa info om ${ex}`}
-                >
-                  i
-                </button>
-              {isEditingExercises && (
-                <button
-                  className={secondaryButtonClassName}
-                  onClick={() => removePlannedExercise(ex)}
-                >
-                  Ta bort
-                </button>
-              )}
+            return (
+              <div
+                key={exerciseKey(ex)}
+                className="flex items-center justify-between rounded-xl border border-white/8 bg-slate-950/20 px-3 py-3 transition hover:border-white/14 hover:bg-white/[0.042]"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="text-xs font-semibold text-white/35">
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-white/88">
+                      {todayNameOf(ex)}
+                    </span>
+                    {swappedTo ? (
+                      <span className="block truncate text-[11px] text-white/35">
+                        Bara idag · istället för {ex}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                    onClick={() => setExerciseInfoName(todayNameOf(ex))}
+                    aria-label={`Visa info om ${todayNameOf(ex)}`}
+                  >
+                    i
+                  </button>
+                  {isEditingExercises && (
+                    <>
+                      <button
+                        type="button"
+                        className={secondaryButtonClassName}
+                        onClick={() => openSwap(ex)}
+                      >
+                        Byt
+                      </button>
+                      <button
+                        className={secondaryButtonClassName}
+                        onClick={() => removePlannedExercise(ex)}
+                      >
+                        Ta bort
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -637,20 +740,7 @@ export default function StartScreen({
           {addFeedback ? (
             <p className="text-sm leading-5 text-amber-200/85">{addFeedback}</p>
           ) : null}
-          {addCustomMode ? (
-            <div className="grid grid-cols-3 gap-1.5">
-              {CUSTOM_EXERCISE_CATEGORIES.map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() => addAsCustomExercise(category)}
-                  className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          ) : null}
+          {addCustomMode ? <CustomCategoryButtons onPick={addAsCustomExercise} /> : null}
           <button
             type="button"
             onClick={() => {
@@ -733,69 +823,6 @@ export default function StartScreen({
         )}
       </div>
 
-      {swapFrom && (
-        <div className={cardClassName}>
-          <p className="text-sm text-white/75">
-            Byt ut: <span className="font-semibold text-white">{swapFrom}</span>{" "}
-            i <span className="font-semibold text-white">{cleanNextPassLabel}</span>
-          </p>
-
-          <div className="flex gap-2">
-            <input
-              className="flex-1 rounded-xl border border-white/[0.09] bg-slate-950/18 p-3 text-base text-white placeholder:text-white/30 outline-none transition focus:border-blue-400/30 sm:text-sm"
-              value={swapToInput}
-              onChange={(e) => setSwapToInput(e.target.value)}
-              placeholder='t.ex. "Hip thrust"'
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (swapFrom) {
-                    setExerciseOverride(nextPass, swapFrom, swapToInput);
-                  }
-                  setSwapFrom(null);
-                  setSwapToInput("");
-                }
-              }}
-            />
-            <button
-              className="rounded-xl border border-blue-500/20 bg-[#2f6df6] px-5 font-semibold text-white transition hover:bg-[#4f83ff]"
-              onClick={() => {
-                if (swapFrom) {
-                  setExerciseOverride(nextPass, swapFrom, swapToInput);
-                }
-                setSwapFrom(null);
-                setSwapToInput("");
-              }}
-            >
-              Spara
-            </button>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              className="flex-1 rounded-xl border border-white/[0.09] bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10"
-              onClick={() => {
-                if (swapFrom) {
-                  clearExerciseOverride(nextPass, swapFrom);
-                }
-                setSwapFrom(null);
-                setSwapToInput("");
-              }}
-            >
-              Ångra byte
-            </button>
-
-            <button
-              className="flex-1 rounded-xl border border-white/[0.09] bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10"
-              onClick={() => {
-                setSwapFrom(null);
-                setSwapToInput("");
-              }}
-            >
-              Stäng
-            </button>
-          </div>
-        </div>
-      )}
 
       <button
         className="w-full rounded-xl px-4 py-2 text-sm font-medium text-white/35 transition hover:bg-white/5 hover:text-white/65"
@@ -827,6 +854,92 @@ export default function StartScreen({
                 setShowLibrary(false);
               }}
             />
+          </div>
+        </div>
+      ) : null}
+      {swapTarget ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/72 px-4 py-4 backdrop-blur-sm">
+          <div className="max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
+            {swapStep === "browse" ? (
+              <LibraryBrowser
+                title={`Byt ${todayNameOf(swapTarget)}`}
+                search={librarySearch}
+                setSearch={setLibrarySearch}
+                category={libraryCategory}
+                setCategory={setLibraryCategory}
+                exercises={filterLibraryExercises(
+                  libraryExercises.filter((exercise) => !takenTodayKeys.has(exerciseKey(exercise.name))),
+                  librarySearch,
+                  libraryCategory
+                )}
+                onClose={() => setSwapTarget(null)}
+                onPick={(name) => {
+                  setSwapToInput(name);
+                  setSwapFeedback(null);
+                  setSwapCustomScope(null);
+                  setSwapStep("choose");
+                }}
+                onUseManual={() => {
+                  setSwapToInput(librarySearch);
+                  setSwapFeedback(null);
+                  setSwapCustomScope(null);
+                  setSwapStep("choose");
+                }}
+              />
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-base font-semibold text-white">
+                    Byt {todayNameOf(swapTarget)} mot
+                  </p>
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                    onClick={() => setSwapTarget(null)}
+                    aria-label="Stäng"
+                  >
+                    <CloseGlyph className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <input
+                  className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 p-2.5 text-base text-white placeholder:text-white/25 outline-none sm:text-sm"
+                  value={swapToInput}
+                  onChange={(e) => {
+                    setSwapToInput(e.target.value);
+                    setSwapFeedback(null);
+                    setSwapCustomScope(null);
+                  }}
+                  placeholder='t.ex. "Chins"'
+                />
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <button
+                    type="button"
+                    className="start-add-mode-button rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-semibold text-white/72 transition hover:bg-white/10 hover:text-white"
+                    onClick={() => swapFromInput("today")}
+                  >
+                    Bara idag
+                  </button>
+                  <button
+                    type="button"
+                    className="start-add-mode-button rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-medium text-white/62 transition hover:bg-white/10 hover:text-white"
+                    onClick={() => swapFromInput("schedule")}
+                  >
+                    Spara i schemat
+                  </button>
+                </div>
+                {swapFeedback ? (
+                  <p className="text-sm leading-5 text-amber-200/85">{swapFeedback}</p>
+                ) : null}
+                {swapCustomScope ? <CustomCategoryButtons onPick={swapAsCustomExercise} /> : null}
+                <button
+                  type="button"
+                  onClick={() => setSwapStep("browse")}
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+                >
+                  Tillbaka till listan
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}

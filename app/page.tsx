@@ -4355,6 +4355,10 @@ const [customExercisesByPass, setCustomExercisesByPass] =
   useState<CustomExercisesByPass>(createEmptyPassStringMap());
 const [todayExercisesByPass, setTodayExercisesByPass] =
   useState<CustomExercisesByPass>(createEmptyPassStringMap());
+// Byten från startsidan som bara gäller idag: schemats namn → dagens namn.
+// Ligger bara i minnet, som tilläggen ovanför, och töms när passet startar.
+const [todaySwapsByPass, setTodaySwapsByPass] =
+  useState<ExerciseOverridesByPass>(createEmptyPassOverrideMap());
 const [removedExercisesByPass, setRemovedExercisesByPass] =
   useState<RemovedExercisesByPass>(createEmptyPassStringMap());
 const [exerciseOverridesByPass, setExerciseOverridesByPass] =
@@ -4966,7 +4970,11 @@ const availablePassChoices = useMemo(
 
 const savedPlan: string[] =
   nextPlannedPass?.exercises.map((exercise: PlannedExercise) => exercise.name) ?? [];
-const plan: string[] = mergePlan(savedPlan, todayExercisesByPass[nextPass] ?? []);
+const todaySwaps = todaySwapsByPass[nextPass] ?? {};
+const plan: string[] = mergePlan(
+  savedPlan.map((name) => todaySwaps[exerciseKey(name)] ?? name),
+  todayExercisesByPass[nextPass] ?? []
+);
 
 const activePlan = workout ? workout.exercises.map((e) => e.name) : plan;
 
@@ -5408,8 +5416,13 @@ const w: Workout = {
   exercises: plan.map((name: string) => {
     const activeGym = startGyms.find((g) => g.id === startGymId);
     const resolvedName = activeGym?.exerciseOverrides?.[name] ?? name;
+    // Ett byte bara idag tar över platsens set, reps och RIR.
+    const scheduleName =
+      savedPlan.find(
+        (planned) => exerciseKey(todaySwaps[exerciseKey(planned)] ?? planned) === exerciseKey(name)
+      ) ?? name;
     const plannedExercise = nextPlannedPass.exercises.find(
-      (exercise) => exerciseKey(exercise.name) === exerciseKey(name)
+      (exercise) => exerciseKey(exercise.name) === exerciseKey(scheduleName)
     );
 
     return {
@@ -5426,6 +5439,7 @@ const w: Workout = {
 
     setWorkout(w);
     setTodayExercisesByPass((prev) => ({ ...prev, [nextPass]: [] }));
+    setTodaySwapsByPass((prev) => ({ ...prev, [nextPass]: {} }));
     setExerciseIndex(0);
     setSkippedExercise(null);
     setStarted(true);
@@ -6400,6 +6414,85 @@ function removeCustomExercise(pass: PassType, nameToRemove: string) {
     return next;
   });
 }
+// Byte i schemat, från programgranskningen och från startsidan.
+function replaceExerciseInSchedule(passKey: PassType, fromExerciseName: string, toExerciseName: string) {
+  const fromKey = exerciseKey(fromExerciseName);
+  const resolved = resolveExerciseName(toExerciseName);
+  const toName = resolved.status === "known" ? resolved.name : toExerciseName;
+  const isCustomExercise = customExercisesByPass[passKey]?.some(
+    (name) => exerciseKey(name) === fromKey
+  );
+
+  if (isCustomExercise) {
+    setCustomExercisesByPass((prev) => {
+      const next: CustomExercisesByPass = {
+        ...prev,
+        [passKey]: mergePlan(
+          (prev[passKey] ?? []).filter((name) => exerciseKey(name) !== fromKey),
+          [toName]
+        ),
+      };
+
+      saveJSON("customExercisesByPass", next);
+      return next;
+    });
+  } else {
+    setExerciseOverridesByPass((prev) => {
+      const next: ExerciseOverridesByPass = {
+        ...prev,
+        [passKey]: withExerciseOverride(
+          prev[passKey] ?? {},
+          getBasePassExerciseNames(passKey),
+          fromExerciseName,
+          toName
+        ),
+      };
+
+      saveJSON("exerciseOverridesByPass", next);
+      return next;
+    });
+  }
+
+  setRemovedExercisesByPass((prev) => {
+    const next: RemovedExercisesByPass = {
+      ...prev,
+      [passKey]: (prev[passKey] ?? []).filter(
+        (name) => exerciseKey(name) !== exerciseKey(toName)
+      ),
+    };
+
+    saveJSON("removedExercisesByPass", next);
+    return next;
+  });
+}
+
+// Byt en övning i dagens pass från startsidan, bara idag eller i schemat.
+// Svarar med en rad till användaren när bytet inte går, annars null.
+function swapPlannedExercise(scheduleName: string, toNameRaw: string, scope: "today" | "schedule") {
+  const resolved = resolveExerciseName(toNameRaw);
+  if (resolved.status !== "known") return "Jag hittar inte den övningen.";
+
+  const toName = resolved.name;
+  const slotKey = exerciseKey(scheduleName);
+  const takenElsewhere = [
+    ...savedPlan
+      .filter((name) => exerciseKey(name) !== slotKey)
+      .map((name) => todaySwaps[exerciseKey(name)] ?? name),
+    ...(todayExercisesByPass[nextPass] ?? []),
+  ].some((name) => exerciseKey(name) === exerciseKey(toName));
+  if (takenElsewhere) return `${toName} finns redan i dagens pass.`;
+
+  setTodaySwapsByPass((prev) => {
+    const next = { ...(prev[nextPass] ?? {}) };
+    delete next[slotKey];
+    if (scope === "today" && exerciseKey(toName) !== slotKey) next[slotKey] = toName;
+    return { ...prev, [nextPass]: next };
+  });
+  if (scope === "schedule") replaceExerciseInSchedule(nextPass, scheduleName, toName);
+
+  return null;
+}
+
 function removePlannedExercise(nameToRemove: string) {
   const keyToRemove = exerciseKey(nameToRemove);
 
@@ -6442,36 +6535,6 @@ function removePlannedExercise(nameToRemove: string) {
     };
   });
 }
-function setExerciseOverride(pass: PassType, fromName: string, toNameRaw: string) {
-  const toName = toNameRaw.trim();
-  if (!toName) return;
-
-  const fromKey = exerciseKey(fromName);
-
-  setExerciseOverridesByPass((prev) => {
-    const next: ExerciseOverridesByPass = {
-      ...prev,
-      [pass]: withExerciseOverride(prev[pass] ?? {}, getBasePassExerciseNames(pass), fromName, toName),
-    };
-
-    saveJSON("exerciseOverridesByPass", next);
-    return next;
-  });
-// Om passet redan pågår: uppdatera workout.exercises också
-setWorkout((w) => {
-  if (!w) return w;
-  if (w.pass !== pass) return w;
-
-  const updated = structuredClone(w);
-
-  updated.exercises = updated.exercises.map((ex) => {
-    if (exerciseKey(ex.name) !== fromKey) return ex;
-    return { ...ex, name: toName };
-  });
-
-  return updated;
-});
-}
 function suggestReplacementFor(exName: string): string {
   const key = exerciseKey(exName);
   const normalizedKey = normalizeExerciseSearchText(exName);
@@ -6508,23 +6571,6 @@ function suggestReplacementFor(exName: string): string {
   if (key.includes("triceps")) fallbackCandidates.push("Triceps pushdown");
 
   return fallbackCandidates.find(isDifferentExercise) ?? "";
-}
-
-function clearExerciseOverride(pass: PassType, fromName: string) {
-  const fromKey = exerciseKey(fromName);
-
-  setExerciseOverridesByPass((prev) => {
-    const copy = { ...(prev[pass] ?? {}) };
-    delete copy[fromKey];
-
-    const next: ExerciseOverridesByPass = {
-      ...prev,
-      [pass]: copy,
-    };
-
-    saveJSON("exerciseOverridesByPass", next);
-    return next;
-  });
 }
 
 function isNewPR(
@@ -8535,56 +8581,7 @@ if (userProfile && workoutPlan && showProgramReview) {
           message: `${name} är tillagd i Pass ${passKey}.`,
         };
       }}
-      onReplaceExercise={(passKey, fromExerciseName, toExerciseName) => {
-        const fromKey = exerciseKey(fromExerciseName);
-        const resolved = resolveExerciseName(toExerciseName);
-        const toName = resolved.status === "known" ? resolved.name : toExerciseName;
-        const isCustomExercise = customExercisesByPass[passKey]?.some(
-          (name) => exerciseKey(name) === fromKey
-        );
-
-        if (isCustomExercise) {
-          setCustomExercisesByPass((prev) => {
-            const next: CustomExercisesByPass = {
-              ...prev,
-              [passKey]: mergePlan(
-                (prev[passKey] ?? []).filter((name) => exerciseKey(name) !== fromKey),
-                [toName]
-              ),
-            };
-
-            saveJSON("customExercisesByPass", next);
-            return next;
-          });
-        } else {
-          setExerciseOverridesByPass((prev) => {
-            const next: ExerciseOverridesByPass = {
-              ...prev,
-              [passKey]: withExerciseOverride(
-                prev[passKey] ?? {},
-                getBasePassExerciseNames(passKey),
-                fromExerciseName,
-                toName
-              ),
-            };
-
-            saveJSON("exerciseOverridesByPass", next);
-            return next;
-          });
-        }
-
-        setRemovedExercisesByPass((prev) => {
-          const next: RemovedExercisesByPass = {
-            ...prev,
-            [passKey]: (prev[passKey] ?? []).filter(
-              (name) => exerciseKey(name) !== exerciseKey(toName)
-            ),
-          };
-
-          saveJSON("removedExercisesByPass", next);
-          return next;
-        });
-      }}
+      onReplaceExercise={replaceExerciseInSchedule}
       onRemoveExercise={(passKey, exerciseName) => {
         const currentPass = workoutPlan.passes.find((pass) => pass.key === passKey);
         const isCustomExercise = customExercisesByPass[passKey]?.some(
@@ -8890,13 +8887,9 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
     now={now}
     plan={savedPlan}
     exerciseKey={exerciseKey}
-    swapFrom={swapFrom}
-    setSwapFrom={setSwapFrom}
-    swapToInput={swapToInput}
-    setSwapToInput={setSwapToInput}
+    todaySwaps={todaySwaps}
+    swapPlannedExercise={swapPlannedExercise}
     libraryExercises={userProfile ? getAvailableProgramExercises(userProfile, true) : []}
-    setExerciseOverride={setExerciseOverride}
-    clearExerciseOverride={clearExerciseOverride}
     customExerciseInput={customExerciseInput}
     setCustomExerciseInput={setCustomExerciseInput}
     addCustomExercise={addCustomExercise}
