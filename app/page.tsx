@@ -2239,6 +2239,33 @@ type CoachMemory = {
   Record<string, string>
 >;
 
+// Ett byte sparas under namnet övningen har i grundprogrammet. Byts en redan
+// bytt övning igen hamnar det nya bytet på samma plats, och byter man tillbaka
+// försvinner bytet. Tidigare sparades andra bytet under det nya namnet, som
+// grundprogrammet inte har: ingenting hände, fast appen sa att bytet gick
+// igenom. Sådana döda byten rensas bort här.
+function withExerciseOverride(
+  overrides: Record<string, string>,
+  originalNames: string[],
+  fromName: string,
+  toName: string
+) {
+  const fromKey = exerciseKey(fromName);
+  const originalKeys = originalNames.map(exerciseKey);
+  const slotKey =
+    originalKeys.find((key) => exerciseKey(overrides[key] ?? key) === fromKey) ?? fromKey;
+  const next: Record<string, string> = {};
+
+  for (const [key, name] of Object.entries(overrides)) {
+    if (key !== slotKey && (originalKeys.length === 0 || originalKeys.includes(key))) {
+      next[key] = name;
+    }
+  }
+  if (exerciseKey(toName) !== slotKey) next[slotKey] = toName;
+
+  return next;
+}
+
 function getExerciseCue(exerciseName: string) {
   return getExerciseProfile(exerciseName).techniqueCue;
 }
@@ -4631,28 +4658,36 @@ useEffect(() => {
 
   return () => window.clearTimeout(resetFrame);
 }, [lastPass, userProfile?.daysPerWeek]);
-const workoutPlan = useMemo(() => {
+// Grundprogrammet, före byten, borttagningar och egna tillägg.
+const baseWorkoutPlan = useMemo(() => {
   if (!userProfile) return null;
 
-const basePlan =
-  customWorkoutPlan ??
-  buildDefaultWorkoutPlan({
-    profile: userProfile,
-    customExercisesByPass: createEmptyPassStringMap(),
-    exerciseOverridesByPass: createEmptyPassOverrideMap(),
-    removedExercisesByPass: createEmptyPassStringMap(),
-  });
+  return (
+    customWorkoutPlan ??
+    buildDefaultWorkoutPlan({
+      profile: userProfile,
+      customExercisesByPass: createEmptyPassStringMap(),
+      exerciseOverridesByPass: createEmptyPassOverrideMap(),
+      removedExercisesByPass: createEmptyPassStringMap(),
+    })
+  );
+}, [userProfile, customWorkoutPlan]);
+const getBasePassExerciseNames = (passKey: PassType) =>
+  baseWorkoutPlan?.passes
+    .find((pass) => pass.key === passKey)
+    ?.exercises.map((exercise) => exercise.name) ?? [];
+const workoutPlan = useMemo(() => {
+  if (!baseWorkoutPlan) return null;
 
-return applyWorkoutPlanEdits({
-  plan: basePlan,
-  customExercisesByPass,
-  exerciseOverridesByPass,
-  removedExercisesByPass,
-  passDisplayNamesByPass,
-});
+  return applyWorkoutPlanEdits({
+    plan: baseWorkoutPlan,
+    customExercisesByPass,
+    exerciseOverridesByPass,
+    removedExercisesByPass,
+    passDisplayNamesByPass,
+  });
 }, [
-  userProfile,
-  customWorkoutPlan,
+  baseWorkoutPlan,
   customExercisesByPass,
   exerciseOverridesByPass,
   removedExercisesByPass,
@@ -6416,10 +6451,7 @@ function setExerciseOverride(pass: PassType, fromName: string, toNameRaw: string
   setExerciseOverridesByPass((prev) => {
     const next: ExerciseOverridesByPass = {
       ...prev,
-      [pass]: {
-        ...(prev[pass] ?? {}),
-        [fromKey]: toName,
-      },
+      [pass]: withExerciseOverride(prev[pass] ?? {}, getBasePassExerciseNames(pass), fromName, toName),
     };
 
     saveJSON("exerciseOverridesByPass", next);
@@ -8528,10 +8560,12 @@ if (userProfile && workoutPlan && showProgramReview) {
           setExerciseOverridesByPass((prev) => {
             const next: ExerciseOverridesByPass = {
               ...prev,
-              [passKey]: {
-                ...(prev[passKey] ?? {}),
-                [fromKey]: toName,
-              },
+              [passKey]: withExerciseOverride(
+                prev[passKey] ?? {},
+                getBasePassExerciseNames(passKey),
+                fromExerciseName,
+                toName
+              ),
             };
 
             saveJSON("exerciseOverridesByPass", next);
