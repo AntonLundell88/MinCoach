@@ -1870,7 +1870,7 @@ useEffect(() => {
                             const result = pickCustomExerciseForAdd(workoutExerciseInput, cat);
                             if (result.handled) closeAddModal();
                           }}
-                          className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:bg-blue-500/[0.10] hover:text-white"
+                          className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
                         >
                           {cat}
                         </button>
@@ -1999,7 +1999,7 @@ useEffect(() => {
                             const result = pickCustomExerciseForSwap(swapExerciseInput, cat);
                             if (result.handled) closeSwapModal();
                           }}
-                          className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:bg-blue-500/[0.10] hover:text-white"
+                          className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
                         >
                           {cat}
                         </button>

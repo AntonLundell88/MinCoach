@@ -1695,7 +1695,7 @@ export default function ProgramReviewScreen({
                                 [pass.key]: true,
                               }))
                             }
-                            className="w-full rounded-lg border border-white/[0.07] bg-slate-950/18 px-3 py-2 text-left text-[12px] font-semibold text-white/58 transition hover:border-blue-300/32 hover:bg-blue-500/[0.10] hover:text-white"
+                            className="w-full rounded-lg border border-white/[0.07] bg-slate-950/18 px-3 py-2 text-left text-[12px] font-semibold text-white/58 transition hover:border-blue-300/32 hover:text-white"
                           >
                             Lägg in som egen övning
                           </button>
@@ -1710,7 +1710,7 @@ export default function ProgramReviewScreen({
                                   key={category}
                                   type="button"
                                   onClick={() => addCustomExerciseToPass(pass.key, category)}
-                                  className="rounded-lg border border-white/[0.07] bg-slate-950/18 px-2 py-2 text-[11px] font-semibold capitalize text-white/58 transition hover:border-blue-300/32 hover:bg-blue-500/[0.10] hover:text-white"
+                                  className="rounded-lg border border-white/[0.07] bg-slate-950/18 px-2 py-2 text-[11px] font-semibold capitalize text-white/58 transition hover:border-blue-300/32 hover:text-white"
                                 >
                                   {category}
                                 </button>
