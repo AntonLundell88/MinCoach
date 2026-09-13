@@ -2140,6 +2140,7 @@ function tightenRirForSoloMuscleGroup(plan: NextSetPlan, exerciseName: string) {
     rirInput: tightenedRirInput,
     rirText: tightenedRirText,
     reason: `${exerciseName} är din enda övning för ${muscleGroupLabel} idag — inget skäl att spara marginal till en till övning. Sista setet får gå närmare failure.`,
+    soloMuscleGroupFinalSet: true,
   };
 }
 
@@ -2317,6 +2318,10 @@ type NextSetPlan = {
   strategy: "press" | "hold" | "backoff" | "reduce" | "complete";
   reason: string;
   opportunity?: ProgressionOpportunity;
+  // Sätts av tightenRirForSoloMuscleGroup. Coachsignalen läste tidigare av
+  // orden "enda övning" i reason — skrev någon om meningen slutade den
+  // fungera, utan att något syntes.
+  soloMuscleGroupFinalSet?: boolean;
 };
 
 function getSameWeightTrendSignal(args: {
@@ -3293,6 +3298,9 @@ function buildCoachSetContext(args: {
     rir?: number;
   }[];
   personalRecordText?: string;
+  // Första setet någonsin i övningen. Det är inget PB, men personalRecordText
+  // bar det som ett ("Första setet i …") och signalen kallade det rekord.
+  isFirstSetInExercise?: boolean;
   sessionsAtTopWeight?: number;
   lastCoachMessage?: string;
   memoryInsight?: string;
@@ -3453,66 +3461,23 @@ function buildCoachSetContext(args: {
     return "behåller vikten";
   })();
 
-  if (args.personalRecordText) signals.push("personal_record");
-  if (args.nextSetPlan.reason.toLowerCase().includes("enda övning")) {
-    signals.push("solo_muscle_group_final_set");
-  }
-  if (progressionOpportunity?.type === "optional_last_set_test") {
-    signals.push("optional_last_set_test");
-  }
-  if (typeof plannedSetCount === "number") {
-    signals.push(`set_status:${args.setNumber}/${plannedSetCount}`);
-  }
-  if (isTimedSet) {
-    signals.push("timed_exercise");
+  // Signalerna säger bara det som inte redan står i ett annat fält, och på
+  // svenska. Här låg femton sorter på engelska, och elva upprepade något
+  // coachen redan fick: PB-texten, setPlan, progressionOpportunity,
+  // metricType, failNote, strategin, orsaken och vikt- och repsförändringen.
+  // Samma sak två eller tre gånger väger tyngre än den borde, och engelskan
+  // kunde eka — samma skäl som toWireStrategy och orsakerna ovan.
+  if (args.nextSetPlan.soloMuscleGroupFinalSet) {
+    signals.push("sista setet i dagens enda övning för muskelgruppen — målet ligger närmare failure än vanligt");
   }
   if (shouldDisplayAsBodyweight(args.exerciseName, args.weight)) {
-    signals.push("bodyweight_no_extra_load");
+    signals.push("kroppsvikt utan extra vikt");
   }
-
-  if (!isTimedSet && previousSet && args.weight === previousSet.weight && args.reps > previousSet.reps) {
-    signals.push(`reps_up_same_weight:${args.reps - previousSet.reps}`);
-  }
-
   if (sameWeightTrend.tooEasy) {
     signals.push(
-      `too_light_same_weight_trend:${sameWeightTrend.firstReps}->${sameWeightTrend.currentReps}`
+      `för lätt på samma vikt: ${sameWeightTrend.firstReps} → ${sameWeightTrend.currentReps} reps`
     );
   }
-
-  if (
-    args.nextSetPlan.strategy === "hold" &&
-    args.nextSetPlan.reason.toLowerCase().includes("repsspannet")
-  ) {
-    signals.push("under_target_with_margin");
-  }
-
-  if (
-    previousSet &&
-    !isTimedSet &&
-    typeof previousSet.rir === "number" &&
-    args.weight === previousSet.weight &&
-    args.reps === previousSet.reps &&
-    args.rir > previousSet.rir
-  ) {
-    signals.push(`same_work_more_margin:${args.rir - previousSet.rir}`);
-  }
-
-  if (
-    previousSet &&
-    !isTimedSet &&
-    typeof previousSet.rir === "number" &&
-    args.weight === previousSet.weight &&
-    args.reps === previousSet.reps &&
-    previousSet.rir - args.rir >= 2
-  ) {
-    signals.push(`same_work_margin_drop:${previousSet.rir - args.rir}`);
-  }
-
-  if (previousSet && args.weight > previousSet.weight) {
-    signals.push(`weight_up:${previousSet.weight}->${args.weight}`);
-  }
-
   if (
     previousSet &&
     !isTimedSet &&
@@ -3522,12 +3487,7 @@ function buildCoachSetContext(args: {
     args.reps >= Math.max(1, previousSet.reps - 2) &&
     args.rir >= 1
   ) {
-    signals.push("planned_rep_drop_hit_with_margin");
-  }
-
-  if (args.failNote) signals.push("user_fail_note_present");
-  if (args.nextSetPlan.strategy === "backoff" || args.nextSetPlan.strategy === "reduce") {
-    signals.push(`auto_adjustment:${args.nextSetPlan.strategy}`);
+    signals.push("färre reps på samma vikt men marginal kvar");
   }
   const exerciseCategory = getExerciseProfile(args.exerciseName).category;
 
@@ -3552,7 +3512,8 @@ function buildCoachSetContext(args: {
     // medan PB, utveckling och minne låg längst ner — payloaden var framtung
     // på siffror och baktung på mening, och svaren speglade den. loadText är
     // borta helt: den sa exakt vad setText redan säger, och lästes ingenstans.
-    personalRecordText: args.personalRecordText || undefined,
+    personalRecordText: args.isFirstSetInExercise ? undefined : args.personalRecordText || undefined,
+    firstTimeThisExercise: args.isFirstSetInExercise || undefined,
     sessionsAtTopWeight: args.sessionsAtTopWeight,
     currentSet: {
       weight: args.weight,
@@ -3581,13 +3542,13 @@ function buildCoachSetContext(args: {
           tone: progressionOpportunity.tone,
         }
       : undefined,
+    // Strategin och orsaken står i nextTarget. Här låg de en gång till, plus
+    // shouldMentionTechniqueCue: teknikcuen skickas redan bara när den ska
+    // användas, och flaggan lästes som en order — "ska nämna teknik: nej".
     decisionFacts: {
-      strategy: toWireStrategy(args.nextSetPlan.strategy),
-      reasonCode: decisionReasonCode,
       weightChangeKg,
       repsChange,
       rirChange,
-      shouldMentionTechniqueCue,
     },
     nextTarget: {
       weight: args.nextWeight,
@@ -7084,6 +7045,8 @@ const newLastByExercise: LastByExercise = {
             metricType: prAttempt.metricType,
           })}. Nu har vi en nivå att slå.`
       : "";
+    // Samma villkor som gav "Första setet i …" ovan, men som fakta.
+    const isFirstSetInExercise = !existingPR && isNewPR(existingPR, prAttempt);
     const lastCoachMessage =
   [...chatLog].reverse().find((m) => m.role === "coach")?.text || "";
 
@@ -7124,6 +7087,7 @@ const coachSetContext = buildCoachSetContext({
   isLastExercise: targetExerciseIndex >= updated.exercises.length - 1,
   previousSets: updated.exercises[targetExerciseIndex].sets.slice(0, -1),
   personalRecordText,
+  isFirstSetInExercise,
   sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
   lastCoachMessage,
   memoryInsight: buildExerciseMemoryInsight({

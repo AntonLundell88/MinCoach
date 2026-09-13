@@ -80,6 +80,8 @@ export type CoachSetContext = {
     setText?: string;
   };
   personalRecordText?: string;
+  // Första setet någonsin i övningen — inget PB, en första nivå.
+  firstTimeThisExercise?: boolean;
   progressionOpportunity?: {
     type: "offer_increase" | "increase_now" | "optional_last_set_test";
     confidence: "medium" | "high";
@@ -95,13 +97,9 @@ export type CoachSetContext = {
   // ingen historik finns än.
   sessionsAtTopWeight?: number;
   decisionFacts?: {
-    // Svenska med flit — se toWireStrategy i page.tsx.
-    strategy?: CoachWireStrategy;
-    reasonCode?: string;
     weightChangeKg?: number;
     repsChange?: number;
     rirChange?: number;
-    shouldMentionTechniqueCue: boolean;
   };
   nextTarget: {
     weight: number;
