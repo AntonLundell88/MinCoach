@@ -8860,6 +8860,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
     setSwapFrom={setSwapFrom}
     swapToInput={swapToInput}
     setSwapToInput={setSwapToInput}
+    libraryExercises={userProfile ? getAvailableProgramExercises(userProfile, true) : []}
     setExerciseOverride={setExerciseOverride}
     clearExerciseOverride={clearExerciseOverride}
     customExerciseInput={customExerciseInput}

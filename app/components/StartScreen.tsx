@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import ExerciseInfoModal from "./ExerciseInfoModal";
+import { LibraryBrowser, LIBRARY_CATEGORIES, filterLibraryExercises, type LibraryExercise } from "./LibraryBrowser";
+import { CUSTOM_EXERCISE_CATEGORIES, resolveExerciseName } from "../lib/exercises";
 
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 
@@ -53,6 +55,7 @@ type Props = {
   removePlannedExercise: (name: string) => void;
   customExercisesByPass: CustomExercisesByPass;
   todayExercisesByPass: CustomExercisesByPass;
+  libraryExercises: LibraryExercise[];
 
   startWorkout: () => void;
   hasAcceptedTrainingSafety: boolean;
@@ -100,6 +103,7 @@ export default function StartScreen({
   removePlannedExercise,
   customExercisesByPass,
   todayExercisesByPass,
+  libraryExercises,
   startWorkout,
   hasAcceptedTrainingSafety,
   onAcceptTrainingSafety,
@@ -126,6 +130,44 @@ export default function StartScreen({
   const [pendingNewGymName, setPendingNewGymName] = useState("");
   const [isEditingPassName, setIsEditingPassName] = useState(false);
   const [editingPassName, setEditingPassName] = useState("");
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryCategory, setLibraryCategory] =
+    useState<(typeof LIBRARY_CATEGORIES)[number]>("alla");
+  const [addFeedback, setAddFeedback] = useState<string | null>(null);
+  const [addCustomMode, setAddCustomMode] = useState<"today" | "schedule" | null>(null);
+
+  // Namnet går genom biblioteket innan det läggs till. Tidigare hände ingenting
+  // alls när biblioteket inte kände igen namnet.
+  function addFromInput(mode: "today" | "schedule") {
+    const resolved = resolveExerciseName(customExerciseInput);
+    if (resolved.status === "unknown" || resolved.status === "needsCategory") {
+      setAddFeedback("Den finns inte i biblioteket. Bläddra i listan, eller lägg in den som egen övning:");
+      setAddCustomMode(mode);
+      return;
+    }
+    setAddFeedback(
+      resolved.status === "suggest" ? `Menar du ${resolved.suggestion}? Tryck igen om det stämmer.` : null
+    );
+    setAddCustomMode(null);
+    (mode === "today" ? addTodayExercise : addCustomExercise)(nextPass, customExerciseInput);
+  }
+
+  function addAsCustomExercise(category: string) {
+    if (!addCustomMode) return;
+    const resolved = resolveExerciseName(customExerciseInput);
+    const baseName =
+      resolved.status === "unknown" || resolved.status === "needsCategory"
+        ? resolved.name
+        : customExerciseInput.trim();
+    if (!baseName) return;
+    (addCustomMode === "today" ? addTodayExercise : addCustomExercise)(
+      nextPass,
+      `egen ${category}: ${baseName}`
+    );
+    setAddFeedback(null);
+    setAddCustomMode(null);
+  }
 
   const cleanNextPassLabel = nextPassLabel.replace(" 1", "").replace(" 2", "");
   const todayExercises = todayExercisesByPass[nextPass] ?? [];
@@ -557,11 +599,15 @@ export default function StartScreen({
           <input
             className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 p-2.5 text-base text-white placeholder:text-white/25 outline-none sm:text-sm"
             value={customExerciseInput}
-            onChange={(e) => setCustomExerciseInput(e.target.value)}
+            onChange={(e) => {
+              setCustomExerciseInput(e.target.value);
+              setAddFeedback(null);
+              setAddCustomMode(null);
+            }}
             placeholder='t.ex. "Chins"'
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                addTodayExercise(nextPass, customExerciseInput);
+                addFromInput("today");
               }
             }}
           />
@@ -572,7 +618,7 @@ export default function StartScreen({
               className="start-add-mode-button rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-semibold text-white/62 transition hover:bg-white/10 hover:text-white"
               style={{ color: "rgba(255, 255, 255, 0.72)" }}
               onClick={() => {
-                addTodayExercise(nextPass, customExerciseInput);
+                addFromInput("today");
               }}
             >
               Bara idag
@@ -582,12 +628,40 @@ export default function StartScreen({
               type="button"
               className="start-add-mode-button rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-medium text-white/62 transition hover:bg-white/10 hover:text-white"
               onClick={() => {
-                addCustomExercise(nextPass, customExerciseInput);
+                addFromInput("schedule");
               }}
             >
               Spara i schemat
             </button>
           </div>
+          {addFeedback ? (
+            <p className="text-sm leading-5 text-amber-200/85">{addFeedback}</p>
+          ) : null}
+          {addCustomMode ? (
+            <div className="grid grid-cols-3 gap-1.5">
+              {CUSTOM_EXERCISE_CATEGORIES.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => addAsCustomExercise(category)}
+                  className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setLibrarySearch("");
+              setLibraryCategory("alla");
+              setShowLibrary(true);
+            }}
+            className="w-full rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+          >
+            Bläddra i biblioteket
+          </button>
         </div>
 
         {visibleTodayExercises.length === 0 ? null : (
@@ -729,6 +803,33 @@ export default function StartScreen({
       >
         Ändra upplägg
       </button>
+      {showLibrary ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/72 px-4 py-4 backdrop-blur-sm">
+          <div className="max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
+            <LibraryBrowser
+              title="Lägg till övning"
+              search={librarySearch}
+              setSearch={setLibrarySearch}
+              category={libraryCategory}
+              setCategory={setLibraryCategory}
+              exercises={filterLibraryExercises(libraryExercises, librarySearch, libraryCategory)}
+              onClose={() => setShowLibrary(false)}
+              onPick={(name) => {
+                // Valet fyller i namnet; Bara idag eller Spara i schemat avgör var
+                // övningen hamnar, som när man skriver själv.
+                setCustomExerciseInput(name);
+                setAddFeedback(null);
+                setAddCustomMode(null);
+                setShowLibrary(false);
+              }}
+              onUseManual={() => {
+                setCustomExerciseInput(librarySearch);
+                setShowLibrary(false);
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
       {exerciseInfoName ? (
         <ExerciseInfoModal
           exerciseName={exerciseInfoName}

@@ -20,6 +20,7 @@ import { reviewManualProgram } from "../lib/programReview";
 import type { ManualProgramReviewSuggestion } from "../lib/programReview";
 import { repairMojibake } from "../lib/textEncoding";
 import { CloseGlyph, PencilGlyph, RotateGlyph, SendGlyph } from "./IconGlyphs";
+import { filterLibraryExercises } from "./LibraryBrowser";
 
 type Goal = "muskel" | "styrka" | "fett";
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
@@ -528,6 +529,8 @@ export default function ProgramReviewScreen({
   const [libraryInfoExerciseKey, setLibraryInfoExerciseKey] = useState<
     string | null
   >(null);
+  // Satt när biblioteket öppnas för att byta en övning i stället för att lägga till.
+  const [librarySwapFrom, setLibrarySwapFrom] = useState<string | null>(null);
   const [librarySearch, setLibrarySearch] = useState("");
   const [libraryCategory, setLibraryCategory] =
     useState<(typeof LIBRARY_CATEGORIES)[number]>("alla");
@@ -652,18 +655,7 @@ export default function ProgramReviewScreen({
     trainingExperience: profile.trainingExperience,
     browseAll: true,
   });
-  const normalizedLibrarySearch = normalizeExerciseSearchText(librarySearch);
-  const filteredLibraryExercises = libraryExercises.filter((exercise) => {
-    const matchesCategory =
-      libraryCategory === "alla" || exercise.category === libraryCategory;
-    const matchesSearch =
-      !normalizedLibrarySearch ||
-      normalizeExerciseSearchText(
-        `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment} ${exercise.aliases.join(" ")}`
-      ).includes(normalizedLibrarySearch);
-
-    return matchesCategory && matchesSearch;
-  });
+  const filteredLibraryExercises = filterLibraryExercises(libraryExercises, librarySearch, libraryCategory);
   const alternativeTargetPass = alternativeTarget
     ? workoutPlan.passes.find((pass) => pass.key === alternativeTarget.passKey) ??
       null
@@ -717,6 +709,22 @@ export default function ProgramReviewScreen({
           .sort((a, b) => b.score - a.score)
           .slice(0, 6)
       : [];
+  // Byte i ett pass, från "Liknande övningar" eller från hela biblioteket.
+  function replaceExerciseInPass(passKey: PassType, fromExerciseName: string, toExerciseName: string) {
+    onReplaceExercise(passKey, fromExerciseName, toExerciseName);
+    setAddFeedbackByPass((prev) => ({
+      ...prev,
+      [passKey]: {
+        clearInput: true,
+        tone: "success",
+        message: `${fromExerciseName} byttes mot ${toExerciseName}.`,
+      },
+    }));
+    setLibraryInfoExerciseKey(null);
+    setLibrarySwapFrom(null);
+    setLibraryPassKey(null);
+  }
+
   function addLibraryExercise(passKey: PassType, exerciseName: string) {
     const result = onAddExercise(passKey, exerciseName);
     setExerciseInputsByPass((prev) => ({
@@ -974,19 +982,11 @@ export default function ProgramReviewScreen({
                       key={exercise.name}
                       type="button"
                       onClick={() => {
-                        onReplaceExercise(
+                        replaceExerciseInPass(
                           alternativeTarget.passKey,
                           alternativeTarget.exerciseName,
                           exercise.name
                         );
-                        setAddFeedbackByPass((prev) => ({
-                          ...prev,
-                          [alternativeTarget.passKey]: {
-                            clearInput: true,
-                            tone: "success",
-                            message: `${alternativeTarget.exerciseName} byttes mot ${exercise.name}.`,
-                          },
-                        }));
                         setAlternativeTarget(null);
                       }}
                       className="rounded-2xl border border-white/[0.07] bg-white/[0.04] px-3 py-3 text-left transition hover:border-blue-300/32 hover:bg-blue-400/[0.10]"
@@ -1014,6 +1014,20 @@ export default function ProgramReviewScreen({
                   </div>
                 )}
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setLibraryPassKey(alternativeTarget.passKey);
+                  setLibrarySwapFrom(alternativeTarget.exerciseName);
+                  setLibraryInfoExerciseKey(null);
+                  setLibrarySearch("");
+                  setLibraryCategory("alla");
+                  setAlternativeTarget(null);
+                }}
+                className="mt-2.5 w-full rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+              >
+                Bläddra i hela biblioteket
+              </button>
             </div>
           </div>,
           document.body
@@ -1643,6 +1657,7 @@ export default function ProgramReviewScreen({
                       type="button"
                       onClick={() => {
                         setLibraryPassKey(pass.key);
+                        setLibrarySwapFrom(null);
                         setLibraryInfoExerciseKey(null);
                         setLibrarySearch("");
                         setLibraryCategory("alla");
@@ -1896,7 +1911,7 @@ export default function ProgramReviewScreen({
                       Övningsbibliotek
                     </p>
                     <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
-                      Lägg till i Pass {libraryPassKey}
+                      {librarySwapFrom ? `Byt ${cleanProgramCopy(librarySwapFrom)}` : `Lägg till i Pass ${libraryPassKey}`}
                     </h2>
                   </div>
                   <button
@@ -1904,6 +1919,7 @@ export default function ProgramReviewScreen({
                     onClick={() => {
                       setLibraryInfoExerciseKey(null);
                       setLibraryPassKey(null);
+                      setLibrarySwapFrom(null);
                     }}
                     aria-label="Stäng"
                   >
@@ -1974,7 +1990,8 @@ export default function ProgramReviewScreen({
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
-                            addLibraryExercise(libraryPassKey, exercise.name);
+                            if (librarySwapFrom) replaceExerciseInPass(libraryPassKey, librarySwapFrom, exercise.name);
+                            else addLibraryExercise(libraryPassKey, exercise.name);
                           }}
                           disabled={alreadyAdded}
                           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition ${
@@ -1985,10 +2002,12 @@ export default function ProgramReviewScreen({
                           aria-label={
                             alreadyAdded
                               ? `${exercise.name} är tillagd`
+                              : librarySwapFrom
+                              ? `Byt till ${exercise.name}`
                               : `Lägg till ${exercise.name}`
                           }
                         >
-                          {alreadyAdded ? "✓" : "+"}
+                          {alreadyAdded ? "✓" : librarySwapFrom ? "Byt" : "+"}
                         </button>
                       </div>
                       <p className="mt-2 text-xs leading-5 text-white/54">
@@ -2107,7 +2126,9 @@ export default function ProgramReviewScreen({
                   <button
                     type="button"
                     onClick={() =>
-                      addLibraryExercise(libraryPassKey, libraryInfoExercise.name)
+                      librarySwapFrom
+                        ? replaceExerciseInPass(libraryPassKey, librarySwapFrom, libraryInfoExercise.name)
+                        : addLibraryExercise(libraryPassKey, libraryInfoExercise.name)
                     }
                     disabled={alreadyAdded}
                     className={`mt-4 w-full rounded-xl px-4 py-3 text-sm font-semibold transition ${
@@ -2116,7 +2137,13 @@ export default function ProgramReviewScreen({
                         : "bg-[#2f6df6] text-white hover:bg-[#4f83ff]"
                     }`}
                   >
-                    {alreadyAdded ? "Tillagd i passet" : `Lägg till i Pass ${libraryPassKey}`}
+                    {alreadyAdded
+                      ? librarySwapFrom
+                        ? "Finns redan i passet"
+                        : "Tillagd i passet"
+                      : librarySwapFrom
+                        ? `Byt till ${libraryInfoExercise.name}`
+                        : `Lägg till i Pass ${libraryPassKey}`}
                   </button>
                 </div>
               </div>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import ExerciseInfoModal from "./ExerciseInfoModal";
-import { LibraryBrowser, LIBRARY_CATEGORIES, type LibraryExercise } from "./LibraryBrowser";
+import { LibraryBrowser, LIBRARY_CATEGORIES, filterLibraryExercises, type LibraryExercise } from "./LibraryBrowser";
 import MuscleExplorer from "./MuscleExplorer";
 import type { Workout } from "../page";
 import {
@@ -340,18 +340,7 @@ export default function ExerciseProgressScreen({
   const [librarySearch, setLibrarySearch] = useState("");
   const [libraryCategory, setLibraryCategory] =
     useState<(typeof LIBRARY_CATEGORIES)[number]>("alla");
-  const normalizedLibrarySearch = librarySearch.trim().toLowerCase();
-  const filteredLibraryExercises = libraryExercises.filter((exercise) => {
-    const matchesCategory =
-      libraryCategory === "alla" || exercise.category === libraryCategory;
-    const matchesSearch =
-      !normalizedLibrarySearch ||
-      `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment} ${(exercise.aliases ?? []).join(" ")}`
-        .toLowerCase()
-        .includes(normalizedLibrarySearch);
-
-    return matchesCategory && matchesSearch;
-  });
+  const filteredLibraryExercises = filterLibraryExercises(libraryExercises, librarySearch, libraryCategory);
   const selected =
     exercises.find((exercise) => exercise.name === selectedName) ??
     exercises[0] ??

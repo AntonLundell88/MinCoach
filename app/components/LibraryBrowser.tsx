@@ -1,5 +1,6 @@
 "use client";
 import { CloseGlyph } from "./IconGlyphs";
+import { normalizeExerciseSearchText } from "../lib/exercises";
 
 export const LIBRARY_CATEGORIES = [
   "alla",
@@ -21,6 +22,26 @@ export type LibraryExercise = {
   logType?: string;
   aliases?: string[];
 };
+
+// Sök och kategorifilter för biblioteket. Låg i tre nästan identiska kopior
+// (passet, programgranskningen och lobbyns Övningar). Lobbyns jämförde med å,
+// ä och ö kvar, så "bank" hittade Bänkpress i passet men inte där.
+export function filterLibraryExercises<
+  T extends { name: string; category: string; primaryMuscle: string; equipment: string; aliases?: string[] }
+>(exercises: T[], search: string, category: (typeof LIBRARY_CATEGORIES)[number]) {
+  const needle = normalizeExerciseSearchText(search);
+
+  return exercises.filter((exercise) => {
+    const matchesCategory = category === "alla" || exercise.category === category;
+    const matchesSearch =
+      !needle ||
+      normalizeExerciseSearchText(
+        `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment} ${(exercise.aliases ?? []).join(" ")}`
+      ).includes(needle);
+
+    return matchesCategory && matchesSearch;
+  });
+}
 
 export function LibraryBrowser({
   title,

@@ -16,7 +16,6 @@ import {
   formatSetDisplay,
   isBodyweightExercise,
   isTimedExercise,
-  normalizeExerciseSearchText,
 } from "../lib/exercises";
 import {
   requestAiCoachExerciseIntro,
@@ -24,7 +23,7 @@ import {
   type CoachHealthNote,
 } from "../lib/coachAi";
 
-import { LibraryBrowser, LIBRARY_CATEGORIES, type LibraryExercise } from "./LibraryBrowser";
+import { LibraryBrowser, LIBRARY_CATEGORIES, filterLibraryExercises, type LibraryExercise } from "./LibraryBrowser";
 import { triggerHaptic } from "../lib/haptics";
 
 const CUSTOM_EXERCISE_CATEGORIES = [
@@ -772,18 +771,7 @@ export default function WorkoutScreen({
     ? "Senast"
     : "Nästa set";
 
-  const normalizedLibrarySearch = normalizeExerciseSearchText(librarySearch);
-  const filteredLibraryExercises = libraryExercises.filter((exercise) => {
-    const matchesCategory =
-      libraryCategory === "alla" || exercise.category === libraryCategory;
-    const matchesSearch =
-      !normalizedLibrarySearch ||
-      normalizeExerciseSearchText(
-        `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment} ${(exercise.aliases ?? []).join(" ")}`
-      ).includes(normalizedLibrarySearch);
-
-    return matchesCategory && matchesSearch;
-  });
+  const filteredLibraryExercises = filterLibraryExercises(libraryExercises, librarySearch, libraryCategory);
 
   function closeAddModal() {
     setShowAddExercise(false);
