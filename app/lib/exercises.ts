@@ -340,7 +340,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Hantelrodd",
-    aliases: ["hantel rodd", "dumbbell row", "db row"],
+    aliases: ["hantel rodd", "dumbbell row", "db row", "enarmsrodd", "enarms rodd"],
     primaryMuscle: "övre rygg",
     secondaryMuscles: ["lats", "biceps"],
     category: "rygg",
@@ -501,7 +501,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Benspark",
-    aliases: ["ben spark", "leg extension", "leg extensions"],
+    aliases: ["ben spark", "leg extension", "leg extensions", "bensträck"],
     primaryMuscle: "framsida lår",
     secondaryMuscles: [],
     category: "ben",
@@ -594,7 +594,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   {
     name: "Rumänska marklyft",
     technicalLift: true,
-    aliases: ["rdl", "romanian deadlift", "rumanska marklyft", "raka marklyft"],
+    aliases: ["rdl", "romanian deadlift", "rumanska marklyft", "raka marklyft", "rumänsk marklyft"],
     primaryMuscle: "baksida lår",
     secondaryMuscles: ["säte", "ländrygg"],
     category: "ben",
@@ -777,7 +777,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Bicepscurl",
-    aliases: ["bicep curl", "biceps curl", "biceps"],
+    aliases: ["bicep curl", "biceps curl", "biceps", "hantelcurl", "hantel curl"],
     primaryMuscle: "biceps",
     secondaryMuscles: ["underarm"],
     category: "armar",
@@ -1420,7 +1420,7 @@ const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   },
   {
     name: "Cable flyes",
-    aliases: ["cable fly", "cable flyes", "cable flies", "cable cross", "cable crossover"],
+    aliases: ["cable fly", "cable flyes", "cable flies", "cable cross", "cable crossover", "kabelflyes", "kabel flyes"],
     primaryMuscle: "bröst",
     secondaryMuscles: ["framsida axel"],
     category: "bröst",
@@ -4553,6 +4553,179 @@ function getEditDistance(a: string, b: string) {
   return matrix[a.length][b.length];
 }
 
+// --- Gissning när namnet inte finns exakt ------------------------------------
+//
+// Tidigare vann den FÖRSTA övningen vars namn fanns inuti det användaren skrev,
+// och stavfel jämfördes på hela namnet med 22 % marginal. "Hantelpress på
+// lutande bänk" blev Hantelpress, "Stående kabelrodd" blev Sittande kabelrodd
+// och "Rodd" blev Rumänska marklyft. Programbygget godtar gissningen utan att
+// fråga, så fel variant kunde hamna rakt i schemat.
+//
+// Nu vinner den som matchar flest ord, en annan variant föreslås aldrig, och
+// finns flera lika bra svar gissas inget. Fem vanliga namn fick samtidigt alias
+// i biblioteket: hantelcurl, bensträck, kabelflyes, enarmsrodd och rumänsk
+// marklyft. Mätt på 102 namn (2026-09-13): 20 blev rätt eller slutade gissa
+// fel, inget blev sämre.
+
+// Ord som inte säger något om övningen: "Hantelpress på lutande bänk".
+const RESOLVE_FILLER_WORDS = new Set([
+  "pa", "i", "med", "en", "ett", "och", "for", "mot", "till", "utan", "vid", "min", "mina", "lite", "som",
+]);
+
+// Ord som skiljer varianter åt, med svenska och engelska synonymer. Två olika
+// betydelser ur samma grupp är två olika övningar: "Stående kabelrodd" är inte
+// Sittande kabelrodd, och "Enarms kabelrodd" är inte Hantelrodd.
+const VARIANT_WORD_GROUPS: Record<string, string[]>[] = [
+  {
+    staende: ["staende", "standing"],
+    sittande: ["sittande", "seated", "sitting"],
+    liggande: ["liggande", "lying"],
+    lutande: ["lutande", "incline"],
+    hangande: ["hangande", "hanging"],
+  },
+  {
+    hantel: ["hantel", "hantlar", "dumbbell", "dumbbells", "db"],
+    stang: ["stang", "skivstang", "barbell"],
+    kabel: ["kabel", "cable"],
+    maskin: ["maskin", "machine"],
+    smith: ["smith"],
+    kettlebell: ["kettlebell"],
+    band: ["band", "gummiband"],
+  },
+];
+
+// Vilka gruppbetydelser ett ord bär, även inne i en sammansättning
+// ("kabelrodd" bär kabel).
+function getVariantMeanings(word: string) {
+  return VARIANT_WORD_GROUPS.map((group) =>
+    Object.entries(group)
+      .filter(([, synonyms]) =>
+        synonyms.some((synonym) => word === synonym || (synonym.length >= 4 && word.startsWith(synonym)))
+      )
+      .map(([meaning]) => meaning)
+  );
+}
+
+// "exact": samma ord, ett stavfel eller en synonym. "compound": ordet
+// användaren skrev är en sammansättning som bär namnets ord ("maskinbrostpress"
+// bär "brostpress"). Aldrig tvärtom — "hammer" är inte "hammercurl".
+function matchExerciseWord(inputWord: string, nameWord: string): "exact" | "compound" | null {
+  if (inputWord === nameWord) return "exact";
+
+  const isSynonym = VARIANT_WORD_GROUPS.some((group) =>
+    Object.values(group).some((synonyms) => synonyms.includes(inputWord) && synonyms.includes(nameWord))
+  );
+  if (isSynonym) return "exact";
+
+  const longest = Math.max(inputWord.length, nameWord.length);
+  if (longest > 3 && getEditDistance(inputWord, nameWord) <= (longest <= 9 ? 1 : 2)) {
+    return "exact";
+  }
+
+  if (nameWord.length >= 4 && inputWord.length >= nameWord.length + 3 && inputWord.includes(nameWord)) {
+    return "compound";
+  }
+
+  return null;
+}
+
+function countExerciseWordMatches(nameWords: string[], inputWords: string[]) {
+  let exact = 0;
+  let compound = 0;
+
+  for (const nameWord of nameWords) {
+    const matches = inputWords.map((inputWord) => matchExerciseWord(inputWord, nameWord));
+    if (matches.includes("exact")) exact += 1;
+    else if (matches.includes("compound")) compound += 1;
+  }
+
+  return { exact, compound };
+}
+
+function compareSuggestionScores(a: number[], b: number[]) {
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index] !== b[index]) return a[index] - b[index];
+  }
+  return 0;
+}
+
+// Söktermernas ord räknas ut en gång, inte vid varje sökning.
+const SEARCH_TERM_WORDS = KNOWN_EXERCISE_SEARCH_TERMS.map(({ term, canonicalName }) => {
+  const nameWords = normalizeExerciseSearchText(canonicalName).split(" ");
+  return {
+    canonicalName,
+    termWords: normalizeExerciseSearchText(term).split(" "),
+    nameWords,
+    nameMeanings: nameWords.map(getVariantMeanings),
+  };
+});
+
+function findBestExerciseSuggestion(normalized: string): string | null {
+  if (normalized.length < 3) return null;
+
+  const inputWords = normalized.split(" ").filter((word) => !RESOLVE_FILLER_WORDS.has(word));
+  if (inputWords.length === 0) return null;
+
+  const joinedInput = inputWords.join("");
+  const inputMeanings = inputWords.map(getVariantMeanings);
+  const scored: { canonicalName: string; score: number[] }[] = [];
+
+  for (const { canonicalName, termWords, nameWords, nameMeanings } of SEARCH_TERM_WORDS) {
+    const sameWhenJoined = termWords.join("") === joinedInput;
+    const termMatches = countExerciseWordMatches(termWords, inputWords);
+    const nameMatches = countExerciseWordMatches(nameWords, inputWords);
+    const best =
+      termMatches.exact > nameMatches.exact ||
+      (termMatches.exact === nameMatches.exact && termMatches.compound >= nameMatches.compound)
+        ? termMatches
+        : nameMatches;
+    const unmatchedInputWords = inputWords.filter(
+      (word) =>
+        !termWords.some((termWord) => matchExerciseWord(word, termWord)) &&
+        !nameWords.some((nameWord) => matchExerciseWord(word, nameWord))
+    ).length;
+
+    const allTermWordsFound = termMatches.exact + termMatches.compound === termWords.length;
+    const inputIsPartOfName =
+      nameMatches.exact + nameMatches.compound > 0 && unmatchedInputWords === 0;
+    if (!sameWhenJoined && !allTermWordsFound && !inputIsPartOfName) continue;
+
+    const isOtherVariant = VARIANT_WORD_GROUPS.some((_, groupIndex) => {
+      const mine = new Set(inputMeanings.flatMap((meanings) => meanings[groupIndex]));
+      const theirs = new Set(nameMeanings.flatMap((meanings) => meanings[groupIndex]));
+      return mine.size > 0 && theirs.size > 0 && ![...mine].some((meaning) => theirs.has(meaning));
+    });
+    if (isOtherVariant) continue;
+
+    const positions = termWords
+      .map((termWord) => inputWords.findIndex((word) => matchExerciseWord(word, termWord)))
+      .filter((position) => position >= 0);
+    const firstPosition = positions.length ? Math.min(...positions) : 99;
+    const unmatchedNameWords = nameWords.length - (nameMatches.exact + nameMatches.compound);
+
+    scored.push({
+      canonicalName,
+      score: [
+        sameWhenJoined ? 1 : 0,
+        best.exact,
+        best.compound,
+        -unmatchedInputWords,
+        -unmatchedNameWords,
+        -firstPosition,
+      ],
+    });
+  }
+
+  if (scored.length === 0) return null;
+
+  scored.sort((a, b) => compareSuggestionScores(b.score, a.score));
+  const top = scored.filter((entry) => compareSuggestionScores(entry.score, scored[0].score) === 0);
+  // Flera lika bra svar: gissa inte. Hellre att användaren väljer i listan.
+  if (new Set(top.map((entry) => entry.canonicalName)).size > 1) return null;
+
+  return top[0].canonicalName;
+}
+
 export function resolveExerciseName(rawName: string): ExerciseResolveResult {
   const name = rawName.trim().replace(/[.!?]+$/g, "");
   const manualMatch = name.match(
@@ -4604,28 +4777,10 @@ export function resolveExerciseName(rawName: string): ExerciseResolveResult {
     return { status: "known", name: exact, suggestion: "" };
   }
 
-  const contained = KNOWN_EXERCISE_SEARCH_TERMS.find(({ term }) => {
-    const known = normalizeExerciseSearchText(term);
-    return (
-      normalized.length >= 5 &&
-      (known.includes(normalized) || normalized.includes(known))
-    );
-  });
+  const suggestion = findBestExerciseSuggestion(normalized);
 
-  if (contained) {
-    return { status: "suggest", name, suggestion: contained.canonicalName };
-  }
-
-  const closest = KNOWN_EXERCISE_SEARCH_TERMS.map(({ term, canonicalName }) => ({
-    canonicalName,
-    distance: getEditDistance(normalized, normalizeExerciseSearchText(term)),
-  })).sort((a, b) => a.distance - b.distance)[0];
-
-  if (
-    closest &&
-    closest.distance <= Math.max(2, Math.floor(normalized.length * 0.22))
-  ) {
-    return { status: "suggest", name, suggestion: closest.canonicalName };
+  if (suggestion) {
+    return { status: "suggest", name, suggestion };
   }
 
   return { status: "unknown", name, suggestion: "" };
