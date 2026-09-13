@@ -964,7 +964,7 @@ export default function StartScreen({
                 Ditt nya gym kanske inte har exakt samma maskiner som ditt vanliga. Det är helt okej.
               </p>
               <p>
-                Om en övning saknas kan du enkelt byta ut den direkt under passet. Bytet sparas automatiskt för <span className="font-medium text-white/88">{pendingNewGymName}</span>, så nästa gång används rätt övning direkt.
+                Om en övning saknas kan du enkelt byta ut den direkt under passet.
               </p>
               <p>
                 Försök välja en övning som tränar samma muskel och har ungefär samma syfte. Ju mer den liknar originalövningen, desto bättre kan coachen följa din utveckling.
