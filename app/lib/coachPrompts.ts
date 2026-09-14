@@ -410,15 +410,20 @@ export function buildCoachWorkoutReviewPromptPayload(
   };
 }
 
-// Godkänd av Anton 2026-09-14. Inga exempel och inga förbud: tonen kommer
-// från rösten och från att glädjen ska bygga på loggen. Sista meningen är
-// fakta om skärmen — appen hälsar redan med namnet ovanför texten.
+// Godkänd av Anton 2026-09-14, utan exempel och utan förbud. Samma dag,
+// efter första testet: "lite mer mänskligt och varmt, så lite begränsningar
+// som möjligt". Struket då: "det viktigaste idag, inte allt", att glädjen
+// ska komma från loggen och "inte från peppiga ord", "har inget särskilt
+// hänt får det vara kort" och "1–2 meningar". Texterna blev sakliga och
+// siffertunga — coachen letade efter det viktigaste i loggen i stället för
+// att prata med eleven. Sista meningen är fakta om skärmen: appen hälsar
+// redan med namnet ovanför texten, och kortet har plats för så här mycket.
 const LOBBY_INSTRUCTION = [
-  "Din elev har precis öppnat appen. Du har tittat i deras träningslogg och det du vet om dem. Säg det du vill säga just nu – det viktigaste idag, inte allt.",
+  "Din elev har precis öppnat appen. Du har tittat i deras träningslogg och det du vet om dem. Säg det du vill säga just nu.",
   "",
-  "Säg det som du hade sagt det rakt ut till dem: vardagligt, oformellt, med glimten i ögat. Du är glad att de är här, och glädjen kommer från det du ser i loggen – inte från peppiga ord. Har inget särskilt hänt får det vara kort.",
+  "Säg det som du hade sagt det rakt ut till dem: vardagligt, oformellt, med glimten i ögat. Du är glad att de är här.",
   "",
-  `Appen visar redan en hälsning med namnet ovanför din text. Svara bara med texten: 1–2 meningar, högst ${MAX_LOBBY_NOTE_CHARACTERS} tecken.`,
+  `Appen visar redan en hälsning med namnet ovanför din text. Svara bara med texten, högst ${MAX_LOBBY_NOTE_CHARACTERS} tecken.`,
 ].join("\n");
 
 export function buildCoachLobbyPromptPayload(
