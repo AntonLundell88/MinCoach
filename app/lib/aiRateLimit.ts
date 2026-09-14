@@ -1,4 +1,4 @@
-type AiRouteKind = "set" | "chat" | "program" | "exercise_intro" | "set_video" | "wrapped";
+type AiRouteKind = "set" | "chat" | "program" | "exercise_intro" | "set_video" | "wrapped" | "lobby";
 
 type UsageBucket = {
   count: number;
@@ -13,6 +13,8 @@ const LIMITS: Record<AiRouteKind, number> = {
   exercise_intro: 150,
   set_video: 5,
   wrapped: 5,
+  // En ny lobbytext om dagen och efter varje pass. 30 räcker långt.
+  lobby: 30,
 };
 
 const store = globalThis as typeof globalThis & {

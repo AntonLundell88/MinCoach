@@ -27,6 +27,8 @@ import SettingsScreen from "./components/SettingsScreen";
 import { WrappedStory } from "./components/WrappedStory";
 import { SettingsGlyph } from "./components/IconGlyphs";
 import { useWrappedRecap } from "./hooks/useWrappedRecap";
+import { useLobbyCoachNote } from "./hooks/useLobbyCoachNote";
+import { buildLobbyContext } from "./lib/lobbyContext";
 import { useAutoAccountBackup } from "./hooks/useAutoAccountBackup";
 import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
 import { reportAiFallback } from "./lib/aiFallbackReport";
@@ -4257,7 +4259,6 @@ export default function Home() {
   const [activeGymId, setActiveGymId] = useState<string | null>(null);
   const [lastGymConfirmedDate, setLastGymConfirmedDate] = useState<string | null>(null);
   const [lastPass, setLastPass] = useState<PassType | null>(null);
-  const [lobbyCoachText, setLobbyCoachText] = useState<string>(() => loadJSON<string>("lobbyCoachText", ""));
   const [coachMemory, setCoachMemory] = useState<CoachMemory>({ notes: [] });
 const [workoutComplete, setWorkoutComplete] = useState(false);
 const [showDailyPlan, setShowDailyPlan] = useState(false);
@@ -4985,6 +4986,30 @@ const currentPassLabel = cleanPassDisplayLabel(
 const nextPassLabel = cleanPassDisplayLabel(
   nextPlannedPass?.displayName ?? `Pass ${nextPass}`
 );
+
+// Lobbycoachen skriver när appen öppnas: en ny text om dagen och efter varje
+// nytt pass. Se useLobbyCoachNote och lobbyContext.
+const lobbyCoachNote = useLobbyCoachNote({
+  ready: hasLoadedLocalState && Boolean(userProfile),
+  latestWorkoutId: history[0]?.id ?? null,
+  buildContext: (previousNotes) =>
+    userProfile
+      ? buildLobbyContext({
+          now: new Date(),
+          goalPrimary: userProfile.goalPrimary,
+          daysPerWeek: userProfile.daysPerWeek,
+          limitations: userProfile.limitations,
+          history,
+          todayPass: nextPlannedPass
+            ? { label: nextPassLabel, exerciseNames: savedPlan }
+            : null,
+          personalRecords: Object.values(personalRecords),
+          memoryNotes: coachMemory.notes,
+          healthNotes: getRecentHealthNotes(coachMemory),
+          previousNotes,
+        })
+      : null,
+});
 
 const currentExerciseName = activePlan[exerciseIndex] ?? "";
 
@@ -8108,8 +8133,7 @@ void syncStructuredBetaWorkout({
 });
 // Samma hasLoggedSets som avgjorde att passet inte sparas i historiken.
 // Utan ett enda set finns ingenting att sammanfatta: den deterministiska
-// recensionen säger redan "Ingen stress. Vi börjar rent nästa gång.", och
-// lobbyhälsningen ska inte skrivas om ett pass som aldrig hände.
+// recensionen säger redan "Ingen stress. Vi börjar rent nästa gång."
 if (!hasLoggedSets) {
   setWorkoutReview(review);
 } else {
@@ -8190,12 +8214,6 @@ void requestAiWorkoutReview({
       ? applyReviewCoachParts(review, response.review)
       : review;
 
-  if (response.mode === "ai" && response.review.lobbyText) {
-    const text = response.review.lobbyText;
-    saveJSON("lobbyCoachText", text);
-    setLobbyCoachText(text);
-  }
-
   saveCoachNotes(makeCoachNotesFromReview(finalReview, workoutWithSummary));
   setWorkoutReview(finalReview);
   setLatestCompletedReview(finalReview);
@@ -8235,6 +8253,7 @@ setStarted(false);
     localStorage.removeItem("programPreferences");
     localStorage.removeItem("customWorkoutPlan");
     localStorage.removeItem("passDisplayNamesByPass");
+    localStorage.removeItem("lobbyCoachNotes");
     localStorage.removeItem(ACTIVE_WORKOUT_DRAFT_KEY);
     localStorage.removeItem(AUTH_GATE_BYPASS_KEY);
 
@@ -8974,7 +8993,9 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
     nextPassLabel={nextPassLabel}
     history={history}
     personalRecords={personalRecords}
-    lobbyCoachText={lobbyCoachText || undefined}
+    lobbyCoachText={lobbyCoachNote.text}
+    lobbyCoachLoading={lobbyCoachNote.loading}
+    onShow={lobbyCoachNote.refresh}
     weeklyStats={weeklyStats}
     daysPerWeek={userProfile.daysPerWeek}
     now={now}

@@ -10,9 +10,11 @@ import {
   MAX_CHAT_REPLY_CHARACTERS,
   MAX_COACH_REPLY_CHARACTERS,
   MAX_EXERCISE_INTRO_CHARACTERS,
+  MAX_LOBBY_NOTE_CHARACTERS,
   MAX_WRAPPED_REFLECTION_CAPTION_CHARACTERS,
   type CoachChatContext,
   type CoachExerciseIntroContext,
+  type CoachLobbyContext,
   type CoachProgramContext,
   type CoachPromptPayload,
   type CoachSetContext,
@@ -63,6 +65,19 @@ const REVIEW_COACH_SYSTEM = [
   COACH_VOICE_BRIEF,
   "",
   TRAINING_DECISION_PROTOCOL,
+].join("\n");
+
+// Lobbyn fattar inga träningsbeslut, så beslutsprotokollet följer inte med.
+// Rösten och språket gör det, och principen om besvär: den som minns ett
+// besvär frågar hur det känns idag i stället för att anta att det gör ont.
+const LOBBY_COACH_SYSTEM = [
+  COACH_HARD_GUARDRAILS,
+  "",
+  COACH_VOICE_BRIEF,
+  "",
+  COACH_LANGUAGE_NOTES,
+  "",
+  HEALTH_NOTES_PRECEDENCE_RULE,
 ].join("\n");
 
 // Chatten och setrösten får samma dagensPass, så de läser samma beskrivning.
@@ -385,9 +400,35 @@ export function buildCoachWorkoutReviewPromptPayload(
     // etablerar en ny nivå" i fyra. Utan dem: meningsord i noll av sex, en
     // emoji totalt, och sammanfattningarna beskriver loggen. Påhittade siffror:
     // noll av sex, både före och efter (mätt 2026-09-12).
+    //
+    // lobbyText stod också här: en rad till nästa gång appen öppnas, skriven
+    // när passet tog slut och visad ibland dagar senare. Lobbyn har nu en
+    // egen röst som skriver när appen öppnas (buildCoachLobbyPromptPayload).
     instruction:
-      `Du har precis sett din elev avsluta sitt pass. Det ska synas i varje rad.\n\nReturnera ENDAST giltig JSON, inte markdown. Format: {"coachHeadline":"kort rad — det du säger direkt till dem nu","coachSummary":"1-3 meningar — vad du såg i passet och vad du tycker om det","positives":["1-3 specifika saker du noterade och är stolt över"],"adjustments":["0-2 saker — bara om det verkligen behövs, annars tomt"],"nextFocus":["1-2 saker att bära med sig"],"coachMemoryTakeaway":["1-2 saker att minnas inför nästa pass"],"lobbyText":"1-2 meningar som möter dem NÄSTA gång de öppnar appen. Hjälp dem förstå vad som är nästa steg — nextPassLabel är vad som står på tur. Sammanfatta inte passet de nyss gjorde. Prata som en vanlig tränare: rakt, konkret, utan att låta inspirerande. Inga emojis. Max 160 tecken."}\n\ncoachHeadline är det du säger rakt till dem nu. Inte en rapport.\n\ncoachSummary: berätta vad du såg i passet och vad du tycker om det — som om du just tittat i loggen.\n\npositives ska vara specifika och äkta. Inte "bra jobbat". Täck de övningar där något faktiskt hände. Om passet var starkt rakt igenom: fira det. Var inte balanserad för balansens skull.\n\nOm gymCalibrationNote finns: övningar den nämner som också ligger i progression.worse kan bero på att du tränar på ett gym du inte kalibrerat dig på än, inte en försämring — nämn det varsamt om alls, aldrig som ett styrketapp.\n\nOm userNotes finns: det användaren själv sa under passet, lika giltig träningsdata som siffrorna. Säger något där emot en siffra i progression eller exercises — lita på användaren, inte den råa jämförelsen.\n\nOm smärta, failure eller avbrott: lyft det som ett klokt beslut, aldrig som ett misslyckande.\n\nAnvänd 0-2 emojis — bara vid riktig prestation, inte som dekoration.`,
+      `Du har precis sett din elev avsluta sitt pass. Det ska synas i varje rad.\n\nReturnera ENDAST giltig JSON, inte markdown. Format: {"coachHeadline":"kort rad — det du säger direkt till dem nu","coachSummary":"1-3 meningar — vad du såg i passet och vad du tycker om det","positives":["1-3 specifika saker du noterade och är stolt över"],"adjustments":["0-2 saker — bara om det verkligen behövs, annars tomt"],"nextFocus":["1-2 saker att bära med sig"],"coachMemoryTakeaway":["1-2 saker att minnas inför nästa pass"]}\n\ncoachHeadline är det du säger rakt till dem nu. Inte en rapport.\n\ncoachSummary: berätta vad du såg i passet och vad du tycker om det — som om du just tittat i loggen.\n\npositives ska vara specifika och äkta. Inte "bra jobbat". Täck de övningar där något faktiskt hände. Om passet var starkt rakt igenom: fira det. Var inte balanserad för balansens skull.\n\nOm gymCalibrationNote finns: övningar den nämner som också ligger i progression.worse kan bero på att du tränar på ett gym du inte kalibrerat dig på än, inte en försämring — nämn det varsamt om alls, aldrig som ett styrketapp.\n\nOm userNotes finns: det användaren själv sa under passet, lika giltig träningsdata som siffrorna. Säger något där emot en siffra i progression eller exercises — lita på användaren, inte den råa jämförelsen.\n\nOm smärta, failure eller avbrott: lyft det som ett klokt beslut, aldrig som ett misslyckande.\n\nAnvänd 0-2 emojis — bara vid riktig prestation, inte som dekoration.`,
     maxCharacters: 1600,
+  };
+}
+
+// Godkänd av Anton 2026-09-14. Inga exempel och inga förbud: tonen kommer
+// från rösten och från att glädjen ska bygga på loggen. Sista meningen är
+// fakta om skärmen — appen hälsar redan med namnet ovanför texten.
+const LOBBY_INSTRUCTION = [
+  "Din elev har precis öppnat appen. Du har tittat i deras träningslogg och det du vet om dem. Säg det du vill säga just nu – det viktigaste idag, inte allt.",
+  "",
+  "Säg det som du hade sagt det rakt ut till dem: vardagligt, oformellt, med glimten i ögat. Du är glad att de är här, och glädjen kommer från det du ser i loggen – inte från peppiga ord. Har inget särskilt hänt får det vara kort.",
+  "",
+  `Appen visar redan en hälsning med namnet ovanför din text. Svara bara med texten: 1–2 meningar, högst ${MAX_LOBBY_NOTE_CHARACTERS} tecken.`,
+].join("\n");
+
+export function buildCoachLobbyPromptPayload(
+  context: CoachLobbyContext
+): CoachPromptPayload {
+  return {
+    system: LOBBY_COACH_SYSTEM,
+    context,
+    instruction: LOBBY_INSTRUCTION,
+    maxCharacters: MAX_LOBBY_NOTE_CHARACTERS,
   };
 }
 

@@ -388,11 +388,8 @@ export type CoachWorkoutReviewContext = {
   passLabel: string;
   /**
    * Passet som står på tur NÄSTA gång — det enda framåtblickande i hela den
-   * här kontexten.
-   *
-   * lobbyText ska möta användaren när de öppnar appen, alltså i ett läge där
-   * de är på väg att träna. Utan den här hade modellen bara det avslutade
-   * passet att utgå från och skrev därför en recap som visades som hälsning.
+   * här kontexten. Kom till för lobbytexten, som numera skrivs av en egen röst
+   * när appen öppnas (api/coach/lobby). Står kvar som framåtblick för nextFocus.
    */
   nextPassLabel?: string;
   summary: {
@@ -445,7 +442,36 @@ export type CoachWorkoutReviewResult = {
   adjustments: string[];
   nextFocus: string[];
   coachMemoryTakeaway: string[];
-  lobbyText?: string;
+};
+
+/**
+ * Lobbycoachen: det coachen vet när appen öppnas. Svenska fältnamn och
+ * färdigformaterade värden, eftersom fältnamn och värden ekas i svaret.
+ * limitations och recentHealthNotes heter som i de andra rösterna, för att
+ * HEALTH_NOTES_PRECEDENCE_RULE talar om just de namnen. Byggs i lobbyContext.ts.
+ */
+export type CoachLobbyContext = {
+  kind: "lobby_note";
+  nu: string;
+  mål?: string;
+  passPerVecka?: number;
+  idag?: {
+    pass: string;
+    övningar: Array<{ namn: string; senaste: string[] }>;
+  };
+  förraPasset?: {
+    när: string;
+    pass: string;
+    nyaPB: string[];
+    händelser: string[];
+  };
+  passenInnan: Array<{ pass: string; när: string }>;
+  veckan: { passHittills: number; veckorIRad: number };
+  antalPass: number;
+  minne: Array<{ text: string; när: string }>;
+  limitations?: string;
+  recentHealthNotes?: CoachHealthNote[];
+  detDuSkrevSenast: Array<{ text: string; när: string }>;
 };
 
 export type CoachWrappedContext = {
@@ -582,7 +608,8 @@ export type CoachPromptPayload = {
     | CoachWorkoutReviewContext
     | CoachExerciseIntroContext
     | CoachSetVideoContext
-    | CoachWrappedContext;
+    | CoachWrappedContext
+    | CoachLobbyContext;
   instruction: string;
   maxCharacters: number;
 };
@@ -593,6 +620,7 @@ export const MAX_EXERCISE_INTRO_CHARACTERS = 500;
 export const MAX_WRAPPED_ACTIVITY_CAPTION_CHARACTERS = 100;
 export const MAX_WRAPPED_PB_CAPTION_CHARACTERS = 100;
 export const MAX_WRAPPED_REFLECTION_CAPTION_CHARACTERS = 160;
+export const MAX_LOBBY_NOTE_CHARACTERS = 200;
 
 function compactWhitespace(text: string) {
   return text
@@ -1348,6 +1376,42 @@ export async function requestAiWorkoutReview(args: {
       reason: "network_error",
       review: fallbackReview,
     };
+  }
+}
+
+export async function requestAiLobbyNote(args: {
+  context: CoachLobbyContext;
+  signal?: AbortSignal;
+}) {
+  const { context, signal } = args;
+
+  try {
+    const response = await fetch("/api/coach/lobby", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ context }),
+      signal,
+    });
+
+    if (!response.ok) {
+      return { mode: "fallback" as const, reason: "request_failed", text: null };
+    }
+
+    const data = (await response.json()) as {
+      mode?: "ai" | "fallback";
+      reason?: string;
+      text?: string | null;
+    };
+
+    return {
+      mode: data.mode ?? "fallback",
+      reason: data.reason,
+      text: data.text ?? null,
+    };
+  } catch {
+    return { mode: "fallback" as const, reason: "network_error", text: null };
   }
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Image from "next/image";
 import { SettingsGlyph } from "./IconGlyphs";
 
@@ -68,6 +69,10 @@ type Props = {
   onOpenSettings: () => void;
   theme: AppTheme;
   lobbyCoachText?: string;
+  /** Coachen skriver en ny text just nu. */
+  lobbyCoachLoading?: boolean;
+  /** Kallas när lobbyn visas: är texten inaktuell skriver coachen en ny. */
+  onShow?: () => void;
   wrapped?: { monthLabel: string; onOpen: () => void; isSpotlight: boolean } | null;
 };
 
@@ -132,6 +137,8 @@ export default function LobbyScreen({
   onOpenSettings,
   theme,
   lobbyCoachText,
+  lobbyCoachLoading,
+  onShow,
   wrapped,
 }: Props) {
   const isLight = theme === "light";
@@ -169,6 +176,13 @@ export default function LobbyScreen({
     ?? (latestWorkout
       ? `Välkommen tillbaka. Du har ${weeklyStats.passCount} pass registrerade den här veckan.`
       : "Välkommen! Kul att du är här. Första passen hjälper oss hitta rätt vikt, reps och marginal.");
+  // Reservtexten ovan visas bara om coachen inte kunde skriva. Medan den
+  // skriver står en laddningsrad i stället.
+  const isWritingNote = !lobbyCoachText && Boolean(lobbyCoachLoading);
+
+  useEffect(() => {
+    onShow?.();
+  }, [onShow]);
   const overviewActions = [
     { label: "Min utveckling", onClick: onOpenStatistics },
     { label: "Mina pass", onClick: onOpenHistory },
@@ -364,9 +378,9 @@ export default function LobbyScreen({
             <p
               className={`mt-3 max-w-2xl text-sm leading-6 sm:text-[15px] ${
                 isLight ? "text-[#665b4f]" : "text-white/72"
-              }`}
+              }${isWritingNote ? " animate-pulse" : ""}`}
             >
-              {coachReflection}
+              {isWritingNote ? "Coachen läser loggen …" : coachReflection}
             </p>
           </div>
         </section>
