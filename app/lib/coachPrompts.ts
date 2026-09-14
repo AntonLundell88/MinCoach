@@ -263,7 +263,12 @@ const EXERCISE_INTRO_INSTRUCTION = [
   // chattens instruktion). I introt har de inte frågat något — de har just
   // kommit fram till maskinen. Resultatet blev tre vikter i en mening:
   // "57,5 är ett rejält kliv från dina 50-set, innan vi ens flirtar med 65".
-  "- opportunity: bevisad progression, alltså att gå tyngre. Finns den inte: föreslå ingen annan vikt än target.",
+  // Här stod också "Finns den inte: föreslå ingen annan vikt än target." Den
+  // skrevs när instruktionen bad coachen väva in erbjudanden om tyngre vikt,
+  // och stoppade sedan även ett lättare förslag efter ett besvär. Utan den
+  // föreslog coachen ändå ingen annan vikt på en helt ny övning (0 av 6,
+  // mätt 2026-09-14).
+  "- opportunity: bevisad progression, alltså att gå tyngre.",
   "- previousWorkoutSummary: förra passet.",
   "",
   "Det mesta av det är oftast inte värt att nämna. Hitta det ENDA som betyder något just nu och säg det. Har inget särskilt hänt räcker en rad som får dem att sätta igång.",
