@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { sanitizeCoachReply, type CoachExerciseIntroContext } from "../../../lib/coachAi";
 import { buildCoachExerciseIntroPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
-import { extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
 
 type CoachExerciseIntroRequest = {
   context?: CoachExerciseIntroContext;
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
     return fallbackResponse(fallbackReply, "missing_api_key", payload.maxCharacters);
   }
 
+  const model = process.env.OPENAI_INTRO_MODEL ?? "gpt-5.5";
   const openAiStartedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 20000);
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
         // gpt-5-mini skrev "som en försiktigt uppstest" och "känner det fel"
         // — en/ett-fel och hopbyggda ord. Intron är dessutom första
         // intrycket av varje övning, sämsta stället att spara på.
-        model: process.env.OPENAI_INTRO_MODEL ?? "gpt-5.5",
+        model,
         instructions: payload.system,
         // Stabil nyckel per coachröst: routar identiska prefix till samma cache.
         // Instruktion + systemprompt är oföränderliga per rutt, så allt utom
@@ -81,23 +82,12 @@ export async function POST(request: Request) {
         prompt_cache_key: "mincoach-exercise-intro",
         reasoning: { effort: "medium" },
         text: { verbosity: "medium" },
-        input: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: JSON.stringify({
-                  // Instruktionen först, kontexten sist. Prompt-cache träffar bara på stabila
-                  // PREFIX — med den varierande kontexten först cachas ingenting alls.
-                  instruction: payload.instruction,
-                  maxCharacters: payload.maxCharacters,
-                  context: payload.context,
-                }),
-              },
-            ],
-          },
-        ],
+        ...coachPromptInput({
+          model,
+          instruction: payload.instruction,
+          maxCharacters: payload.maxCharacters,
+          context: payload.context,
+        }).body,
         max_output_tokens: 1400,
       }),
       signal: controller.signal,
@@ -117,7 +107,7 @@ export async function POST(request: Request) {
 
     logAiUsage({
       route: "exercise_intro",
-      model: process.env.OPENAI_INTRO_MODEL ?? "gpt-5.5",
+      model,
       data,
       startedAt: openAiStartedAt,
     });

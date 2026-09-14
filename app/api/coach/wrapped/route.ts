@@ -14,7 +14,7 @@ import {
 } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
-import { extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
 
 type CoachWrappedRequest = {
   month?: string;
@@ -86,6 +86,7 @@ export async function POST(request: Request) {
   const payload = buildCoachWrappedPromptPayload(context);
   // Netlify hard-kills the function at 30s (confirmed 2026-08-12) — must
   // fire well before that so a real fallback reply is returned instead.
+  const model = process.env.OPENAI_MODEL ?? "gpt-5.5";
   const openAiStartedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL ?? "gpt-5.5",
+        model,
         instructions: payload.system,
         // Stabil nyckel per coachröst: routar identiska prefix till samma cache.
         // Instruktion + systemprompt är oföränderliga per rutt, så allt utom
@@ -123,23 +124,12 @@ export async function POST(request: Request) {
             strict: true,
           },
         },
-        input: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: JSON.stringify({
-                  // Instruktionen först, kontexten sist. Prompt-cache träffar bara på stabila
-                  // PREFIX — med den varierande kontexten först cachas ingenting alls.
-                  instruction: payload.instruction,
-                  maxCharacters: payload.maxCharacters,
-                  context: payload.context,
-                }),
-              },
-            ],
-          },
-        ],
+        ...coachPromptInput({
+          model,
+          instruction: payload.instruction,
+          maxCharacters: payload.maxCharacters,
+          context: payload.context,
+        }).body,
         max_output_tokens: 1200,
       }),
       signal: controller.signal,
@@ -158,7 +148,7 @@ export async function POST(request: Request) {
 
     logAiUsage({
       route: "wrapped",
-      model: process.env.OPENAI_MODEL ?? "gpt-5.5",
+      model,
       data,
       startedAt: openAiStartedAt,
     });

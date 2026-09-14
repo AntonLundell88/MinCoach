@@ -7,7 +7,7 @@ import {
 } from "../../../lib/coachAi";
 import { buildCoachLobbyPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
-import { extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
 
 type CoachLobbyRequest = {
   context?: CoachLobbyContext;
@@ -70,21 +70,12 @@ export async function POST(request: Request) {
         // Blir texterna generiska är medium nästa steg.
         reasoning: { effort: "low" },
         text: { verbosity: "low" },
-        input: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: JSON.stringify({
-                  instruction: payload.instruction,
-                  maxCharacters: payload.maxCharacters,
-                  context: payload.context,
-                }),
-              },
-            ],
-          },
-        ],
+        ...coachPromptInput({
+          model,
+          instruction: payload.instruction,
+          maxCharacters: payload.maxCharacters,
+          context: payload.context,
+        }).body,
         max_output_tokens: 800,
       }),
       signal: controller.signal,

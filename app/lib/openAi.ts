@@ -48,3 +48,64 @@ export function extractOutputText(data: unknown) {
     .filter(Boolean)
     .join("\n");
 }
+
+/**
+ * Prompten till en coachröst: den oföränderliga delen (instruktion och
+ * maxCharacters) först och kontexten sist, som två delar i samma meddelande.
+ *
+ * GPT-5.6 och senare cachar bara vid en gräns. Utan en markerad gräns satte
+ * OpenAI den i slutet av meddelandet, efter kontexten, så varje anrop skrev
+ * sin egen unika prompt till cachen och läste aldrig något: cacheWriteTokens
+ * ungefär lika med inputTokens och cachedTokens 0, i varje anrop. Skrivning
+ * kostar 1,25 × inputpriset och läsning 0,1 ×, så det var ett påslag utan
+ * besparing. Nu sitter gränsen efter den oföränderliga delen.
+ *
+ * Äldre modeller (gpt-5.5) har inte parametrarna. Där skickas bara de två
+ * delarna.
+ */
+export function coachPromptInput(args: {
+  model: string;
+  instruction: string;
+  maxCharacters: number;
+  context: unknown;
+  /** Sådant som är nytt i varje anrop och ska ligga efter kontexten, t.ex. bilder. */
+  extraContent?: Array<Record<string, unknown>>;
+}) {
+  const explicitCache = supportsExplicitPromptCache(args.model);
+  const stableText = JSON.stringify({
+    instruction: args.instruction,
+    maxCharacters: args.maxCharacters,
+  });
+  const contextText = JSON.stringify({ context: args.context });
+
+  return {
+    size: stableText.length + contextText.length,
+    body: {
+      ...(explicitCache ? { prompt_cache_options: { mode: "explicit" } } : {}),
+      input: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: stableText,
+              ...(explicitCache ? { prompt_cache_breakpoint: { mode: "explicit" } } : {}),
+            },
+            { type: "input_text", text: contextText },
+            ...(args.extraContent ?? []),
+          ],
+        },
+      ],
+    },
+  };
+}
+
+// "gpt-5.6-terra" och senare modeller.
+export function supportsExplicitPromptCache(model: string) {
+  const match = model.match(/^gpt-(\d+)(?:\.(\d+))?/);
+  if (!match) return false;
+
+  const major = Number(match[1]);
+  const minor = Number(match[2] ?? 0);
+  return major > 5 || (major === 5 && minor >= 6);
+}

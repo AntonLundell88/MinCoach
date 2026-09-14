@@ -1,4 +1,4 @@
-import { logAiUsage, logPromptPrefix } from "@/app/lib/aiUsageLog";
+import { logAiUsage } from "@/app/lib/aiUsageLog";
 import { NextResponse } from "next/server";
 import {
   sanitizeCoachReply,
@@ -8,7 +8,7 @@ import {
 } from "../../../lib/coachAi";
 import { buildCoachPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
-import { extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
 
 type CoachSetRequest = {
   context?: CoachSetContext;
@@ -71,21 +71,14 @@ export async function POST(request: Request) {
 
   // Netlify hard-kills the function at 30s (confirmed 2026-08-12) — must
   // fire well before that so a real fallback reply is returned instead.
-  // Instruktionen först, kontexten sist. Prompt-cache träffar bara på stabila
-  // PREFIX — med den varierande kontexten först cachas ingenting alls.
-  //
-  // Byggs EN gång och används både till diagnostiken och till anropet. Den låg
-  // tidigare i två identiska kopior, så varje set serialiserade appens största
-  // objekt två gånger för att skicka det en.
-  const setInputText = JSON.stringify({
+  // Instruktionen först, kontexten sist, med en cachegräns emellan. Se
+  // coachPromptInput i openAi.ts.
+  const model = process.env.OPENAI_MODEL ?? "gpt-5.5";
+  const prompt = coachPromptInput({
+    model,
     instruction: payload.instruction,
     maxCharacters: payload.maxCharacters,
     context: payload.context,
-  });
-  logPromptPrefix({
-    route: "set",
-    system: payload.system,
-    inputText: setInputText,
   });
   const openAiStartedAt = Date.now();
   const controller = new AbortController();
@@ -103,7 +96,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL ?? "gpt-5.5",
+        model,
         instructions: payload.system,
         // Stabil nyckel per coachröst: routar identiska prefix till samma cache.
         // Instruktion + systemprompt är oföränderliga per rutt, så allt utom
@@ -111,14 +104,7 @@ export async function POST(request: Request) {
         prompt_cache_key: "mincoach-set",
         reasoning: { effort: "medium" },
         text: { verbosity: "medium" },
-        input: [
-          {
-            role: "user",
-            content: [
-              { type: "input_text", text: setInputText },
-            ],
-          },
-        ],
+        ...prompt.body,
         max_output_tokens: 2200,
       }),
       signal: controller.signal,
@@ -143,7 +129,7 @@ export async function POST(request: Request) {
 
     logAiUsage({
       route: "set",
-      model: process.env.OPENAI_MODEL ?? "gpt-5.5",
+      model,
       data,
       startedAt: openAiStartedAt,
     });
