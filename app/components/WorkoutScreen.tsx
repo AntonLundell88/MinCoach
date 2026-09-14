@@ -17,6 +17,7 @@ import {
   isBodyweightExercise,
   isTimedExercise,
   CUSTOM_EXERCISE_CATEGORIES,
+  splitCustomExerciseName,
 } from "../lib/exercises";
 import {
   requestAiCoachExerciseIntro,
@@ -688,6 +689,7 @@ export default function WorkoutScreen({
   const shouldShowRestDock =
     showRestTimer && !chatFocusMode && (!isInlineRestWidgetVisible || restDockForcedOpen);
   const isLastExercise = exerciseIndex === activePlan.length - 1;
+  const exerciseDisplay = splitCustomExerciseName(currentExerciseName);
   const currentExerciseReadyToFinish = Boolean(currentExerciseCompleted);
   const isTimedCurrentExercise = isTimedExercise(currentExerciseName);
   const isBodyweightCurrentExercise = isBodyweightExercise(currentExerciseName);
@@ -1028,7 +1030,7 @@ useEffect(() => {
         <section className="workout-focus-dock shrink-0 rounded-none border-t border-white/[0.08] bg-[#0d1520] px-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-18px_40px_rgba(0,0,0,0.4)]">
           <div className="flex items-center gap-1.5">
             <div className="min-w-0 flex-1 rounded-xl border border-white/[0.06] bg-white/[0.03] px-2.5 py-1.5">
-              <p className="truncate text-sm font-semibold text-white">{currentExerciseName}</p>
+              <p className="truncate text-sm font-semibold text-white">{exerciseDisplay.title}</p>
             </div>
             {currentExerciseName ? (
               <button
@@ -1319,19 +1321,25 @@ useEffect(() => {
             </p>
             <div className="mt-1 flex min-w-0 items-center gap-2">
               <h2 className="truncate text-xl font-semibold tracking-tight text-white">
-                {currentExerciseName}
+                {exerciseDisplay.title}
               </h2>
               <button
                 type="button"
                 onClick={() => setShowExerciseInfo(true)}
                 className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
-                aria-label={`Visa info om ${currentExerciseName}`}
+                aria-label={`Visa info om ${exerciseDisplay.title}`}
               >
                 i
               </button>
             </div>
             <p className="mt-1 text-xs font-medium text-white/42">
-              {passLabel} · {exerciseIndex + 1} av {activePlan.length}
+              {[
+                passLabel,
+                exerciseDisplay.category,
+                isLastExercise ? "sista övningen" : `${exerciseIndex + 1} av ${activePlan.length}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           </div>
 
@@ -1344,15 +1352,6 @@ useEffect(() => {
           )}
 
           <div className="flex shrink-0 items-center gap-2">
-            <div
-              className={`workout-state-pill rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                isLastExercise
-                  ? "border-emerald-300/22 bg-emerald-400/[0.10] text-emerald-50"
-                  : "border-blue-300/18 bg-white/[0.045] text-blue-50"
-              }`}
-            >
-              {isLastExercise ? "Sista" : "Pågår"}
-            </div>
             <button
               type="button"
               onClick={() => setShowOverflow((v) => !v)}

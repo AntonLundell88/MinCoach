@@ -11,6 +11,16 @@ export type ExerciseResolveResult =
 export const CUSTOM_EXERCISE_CATEGORIES = ["ben", "rygg", "bröst", "axlar", "armar", "mage", "helkropp"] as const;
 export type CustomExerciseCategory = (typeof CUSTOM_EXERCISE_CATEGORIES)[number];
 
+// Egna övningar bär kategorin i namnet: "Landmine row (rygg)". Här delas det
+// upp, så att skärmen kan visa namnet som titel och kategorin för sig.
+export function splitCustomExerciseName(name: string) {
+  const match = name.match(/\((ben|rygg|bröst|brost|axlar|armar|mage|helkropp)\)$/i);
+  if (!match || match.index === undefined) return { title: name, category: null };
+  const rawCategory = match[1].toLowerCase();
+  const category = (rawCategory === "brost" ? "bröst" : rawCategory) as CustomExerciseCategory;
+  return { title: name.slice(0, match.index).trim() || name, category };
+}
+
 export type ExerciseInfo = {
   equipment: string;
   detail: string;
@@ -3922,14 +3932,9 @@ export function getExerciseProfile(name: string): ExerciseProfile {
   const key = name.trim().toLowerCase();
   const info = getExerciseInfo(name);
   const definition = getExerciseDefinition(name);
-  const customCategoryMatch = name.match(
-    /\((ben|rygg|bröst|brost|axlar|armar|mage|helkropp)\)$/i
-  );
+  const category = splitCustomExerciseName(name).category;
 
-  if (customCategoryMatch?.[1]) {
-    const rawCategory = customCategoryMatch[1].toLowerCase();
-    const category = rawCategory === "brost" ? "bröst" : rawCategory;
-
+  if (category) {
     return {
       ...info,
       category: category as ExerciseProfile["category"],
@@ -4789,14 +4794,9 @@ export function resolveExerciseName(rawName: string): ExerciseResolveResult {
 export function getExerciseInfo(name: string): ExerciseInfo {
   const key = name.trim().toLowerCase();
   const definition = getExerciseDefinition(name);
-  const customCategoryMatch = name.match(
-    /\((ben|rygg|bröst|brost|axlar|armar|mage|helkropp)\)$/i
-  );
+  const category = splitCustomExerciseName(name).category;
 
-  if (customCategoryMatch?.[1]) {
-    const rawCategory = customCategoryMatch[1].toLowerCase();
-    const category = rawCategory === "brost" ? "bröst" : rawCategory;
-
+  if (category) {
     return {
       equipment: `Egen övning · ${category}`,
       detail:
