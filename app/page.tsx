@@ -2371,6 +2371,10 @@ type NextSetPlan = {
   // orden "enda övning" i reason — skrev någon om meningen slutade den
   // fungera, utan att något syntes.
   soloMuscleGroupFinalSet?: boolean;
+  // Samma sak för två koder till: coachsignalen läste orden "extraset" och
+  // "repsspannet" ur reason. Sätts där de meningarna skrivs.
+  plannedExtraSet?: boolean;
+  belowRepRangeWithMargin?: boolean;
 };
 
 function getSameWeightTrendSignal(args: {
@@ -2684,6 +2688,7 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "hold",
+      belowRepRangeWithMargin: true,
       reason:
         "Det fanns mer kvar, men repsen blev lite låga. Vi slänger in ett set till här och försöker nå repsspannet.",
     } satisfies NextSetPlan;
@@ -2810,6 +2815,7 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "reduce",
+      plannedExtraSet: activePlannedExtraSet,
       reason: activePlannedExtraSet
         ? plannedExtraSetReason
         : "Det tog stopp. Vi sänker lite och jagar inte fler maxreps här.",
@@ -2829,6 +2835,7 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "hold",
+      belowRepRangeWithMargin: true,
       reason:
         "Det fanns mer kvar. Vi håller vikten och försöker ta oss upp i repsspannet innan vi ändrar belastningen.",
     } satisfies NextSetPlan;
@@ -2868,6 +2875,7 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "backoff",
+      plannedExtraSet: activePlannedExtraSet,
       reason: activePlannedExtraSet
         ? plannedExtraSetReason
         : "Repsen hamnade för lågt för målet. Vi backar vikten och bygger ett bättre arbetsset.",
@@ -2943,6 +2951,7 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "reduce",
+      plannedExtraSet: activePlannedExtraSet,
       reason:
         activePlannedExtraSet
           ? plannedExtraSetReason
@@ -2972,6 +2981,7 @@ function getNextSetPlan(args: {
       restText,
       techniqueCue,
       strategy: "backoff",
+      plannedExtraSet: activePlannedExtraSet,
       reason: activePlannedExtraSet
         ? plannedExtraSetReason
         : "Samma vikt och reps krävde mer nu. Jag tycker vi sänker lite så nästa set blir lika träffsäkert.",
@@ -3071,6 +3081,7 @@ function getNextSetPlan(args: {
       techniqueCue,
       strategy: isBackoff ? "backoff" : "hold",
       opportunity: !isBackoff ? optionalLastSetOpportunity : undefined,
+      plannedExtraSet: !stableRepeat && activePlannedExtraSet,
       reason: stableRepeat
         ? "Samma vikt, reps och marginal igen. Det är stabilt, så vi håller nivån."
         : activePlannedExtraSet
@@ -3093,6 +3104,7 @@ function getNextSetPlan(args: {
       techniqueCue,
       strategy: "hold",
       opportunity: optionalLastSetOpportunity,
+      plannedExtraSet: activePlannedExtraSet,
       reason: activePlannedExtraSet
         ? plannedExtraSetReason
         : "Den nivån sitter. Vi tar samma vikt en gång till.",
@@ -3442,7 +3454,7 @@ function buildCoachSetContext(args: {
   // Läses bara av modellen, aldrig av klienten — alltså skrivs de som en
   // tränare hade sagt dem. Samma skäl som toWireStrategy.
   const decisionReasonCode = (() => {
-    if (args.nextSetPlan.reason.toLowerCase().includes("extraset")) {
+    if (args.nextSetPlan.plannedExtraSet) {
       return "extraset som avslut";
     }
 
@@ -3493,7 +3505,7 @@ function buildCoachSetContext(args: {
 
     if (
       args.nextSetPlan.strategy === "hold" &&
-      args.nextSetPlan.reason.toLowerCase().includes("repsspannet")
+      args.nextSetPlan.belowRepRangeWithMargin
     ) {
       return "under repsmålet men med reps kvar";
     }
