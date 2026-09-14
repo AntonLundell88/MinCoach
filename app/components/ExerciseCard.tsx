@@ -52,6 +52,10 @@ type Props = {
   onRecordLastSet?: () => void;
   blockNewConfirmations?: boolean;
   onPendingConfirmChange?: (pending: boolean) => void;
+  // Övningens planerade set är gjorda. Då blir "Nästa övning" huvudknappen och
+  // "Lägg till set" den kantade, utan att någon av dem flyttar sig.
+  exerciseComplete?: boolean;
+  canUndoSet?: boolean;
 };
 
 const CRAZY_WEIGHT_MESSAGES = [
@@ -111,6 +115,8 @@ export default function ExerciseCard({
   onRecordLastSet,
   blockNewConfirmations = false,
   onPendingConfirmChange,
+  exerciseComplete = false,
+  canUndoSet = true,
 }: Props) {
   const [showRirInfo, setShowRirInfo] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
@@ -871,7 +877,11 @@ useEffect(() => {
       {(
         <div className={`space-y-2 ${embedded ? "" : "flex gap-2 space-y-0"}`}>
           <button
-            className="workout-primary-action w-full rounded-2xl border border-blue-300/16 bg-blue-600/58 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] transition hover:bg-blue-500/72 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+            className={`w-full rounded-2xl border px-5 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
+              exerciseComplete
+                ? "border-white/[0.16] bg-transparent text-white/85 hover:bg-white/[0.06]"
+                : "workout-primary-action border-blue-300/16 bg-blue-600/58 text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] hover:bg-blue-500/72"
+            }`}
             onClick={() => {
               if (blockNewConfirmations) return;
               if (weightWayTooHigh) {
@@ -894,16 +904,19 @@ useEffect(() => {
           {embedded ? (
             <>
               {nextExerciseButton}
-              <div className="flex gap-2">
-                <button
-                  className="flex-1 rounded-xl border border-white/[0.04] bg-transparent px-4 py-2 text-sm font-medium text-white/36 transition hover:bg-white/[0.05] hover:text-white/58"
-                  onClick={removeLastSet}
-                  title="Ta bort senaste set"
-                >
-                  Ångra set
-                </button>
+              <div className="flex items-center gap-2">
+                {canUndoSet ? (
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-white/40 underline decoration-white/20 underline-offset-2 transition hover:text-white/70"
+                    onClick={removeLastSet}
+                    title="Ta bort senaste set"
+                  >
+                    Ångra
+                  </button>
+                ) : null}
                 {onRecordLastSet ? (
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="ml-auto flex shrink-0 items-center gap-1">
                     <button
                       type="button"
                       className="workout-ai-action flex h-11 w-11 items-center justify-center rounded-xl border border-blue-300/30 bg-blue-500/[0.16] text-blue-50 transition hover:bg-blue-500/[0.24] hover:text-white"

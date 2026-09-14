@@ -1541,15 +1541,17 @@ useEffect(() => {
           onRecordLastSet={currentExerciseName ? () => setShowVideoReview(true) : undefined}
           blockNewConfirmations={confirmAdvanceEarly}
           onPendingConfirmChange={setExerciseCardHasPendingConfirm}
+          exerciseComplete={currentExerciseReadyToFinish}
+          canUndoSet={currentSets.length > 0}
           nextExerciseButton={
             <button
               type="button"
-              className={`workout-primary-action flex h-14 w-full items-center justify-center rounded-2xl border text-base font-semibold transition active:scale-[0.99] ${
-                isLastExercise && currentExerciseReadyToFinish
-                  ? "border-emerald-300/25 bg-emerald-400/[0.13] text-emerald-50 hover:bg-emerald-400/[0.18]"
-                  : !currentExerciseReadyToFinish
-                  ? "border-white/[0.09] bg-white/[0.04] text-white/55 hover:bg-white/[0.07]"
-                  : "border-blue-300/20 bg-blue-500/[0.13] text-blue-50 hover:bg-blue-500/[0.20]"
+              className={`flex w-full items-center justify-center rounded-2xl border font-semibold transition active:scale-[0.99] ${
+                !currentExerciseReadyToFinish
+                  ? "h-11 border-white/[0.16] bg-transparent text-sm text-white/85 hover:bg-white/[0.06]"
+                  : isLastExercise
+                  ? "workout-primary-action h-14 border-emerald-300/25 bg-emerald-400/[0.13] text-base text-emerald-50 hover:bg-emerald-400/[0.18]"
+                  : "workout-primary-action h-14 border-blue-300/16 bg-blue-600/58 text-base text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] hover:bg-blue-500/72"
               }`}
               onClick={() => {
                 if (!currentExerciseReadyToFinish) {
