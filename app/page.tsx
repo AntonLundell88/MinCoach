@@ -2328,6 +2328,20 @@ function formatLoggedSetText(args: {
   return `${base}, ${effort}`;
 }
 
+// Nästa sets RIR med samma ord som setText: "1–2 reps kvar", "högst 1 rep
+// kvar", "till stopp". Motorns "RIR 0-1" gick rakt in i coachens mun, till
+// exempel "pressa upp till RIR 0–1". Skärmen visar fortfarande RIR.
+function formatTargetRirText(rirText: string) {
+  const match = rirText.trim().match(/^RIR\s*(\d+)(?:\s*[-–]\s*(\d+))?$/i);
+  if (!match) return rirText;
+  const low = Number(match[1]);
+  const high = match[2] === undefined ? low : Number(match[2]);
+  if (high === 0) return "till stopp";
+  if (low === high) return high === 1 ? "1 rep kvar" : `${high} reps kvar`;
+  if (low === 0) return high === 1 ? "högst 1 rep kvar" : `högst ${high} reps kvar`;
+  return `${low}–${high} reps kvar`;
+}
+
 // Hela dagens pass, en rad per övning: "Bänkpress: 80 kg × 8, 2 reps kvar", eller
 // "Sidolyft: —" för det som inte är gjort än. Chatten och setrösten får samma
 // rader. Setrösten fick tidigare inga alls, och hade två förbud för att den
@@ -3619,7 +3633,7 @@ function buildCoachSetContext(args: {
       weight: args.nextWeight,
       loadText: nextLoadText,
       repsText: args.nextSetPlan.repsText,
-      rirText: args.nextSetPlan.rirText,
+      rirText: formatTargetRirText(args.nextSetPlan.rirText),
       strategy: toWireStrategy(args.nextSetPlan.strategy),
       reason: decisionReasonCode,
       techniqueCue: shouldMentionTechniqueCue

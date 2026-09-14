@@ -137,9 +137,10 @@ const SET_COACH_INSTRUCTION = [
   // Här stod att bara "Nytt person…" var ett PB. Fältet bär nu bara riktiga
   // PB; första setet i en ny övning heter firstTimeThisExercise.
   // Mätt 2026-09-14: utan raden läste coachen upp repsspannet ("6–8 reps") i
-  // 10 av 12 svar och ekade "RIR 0". nextTarget bär motorns repsspann och
-  // "RIR 0-1", och raden väger upp det. Byt datan innan raden stryks.
-  "- Om nextTarget.rirText är 'RIR 0' (eller antyder failure): repsiffran är en uppskattning, inte ett facit — ingen vet exakt hur många rena reps som blir kvar förrän man är där. Beskriv det som ett ansträngningsmål i egna ord istället för att läsa upp repssiffran som om den vore bestämd.",
+  // 10 av 12 svar och ekade "RIR 0". När nästa sets RIR skickades på svenska
+  // försvann ekot, men repsspannet lästes fortfarande upp i 11 av 12. Raden
+  // behövs alltså, och datan var inte hela förklaringen.
+  "- Om nextTarget.rirText är 'till stopp' (eller antyder failure): repsiffran är en uppskattning, inte ett facit — ingen vet exakt hur många rena reps som blir kvar förrän man är där. Beskriv det som ett ansträngningsmål i egna ord istället för att läsa upp repssiffran som om den vore bestämd.",
   // Här stod också "Bekräfta det direkt i svaret — det väger tyngre än
   // setnumret." Röstbriefen säger redan att användarens kommentarer ska
   // besvaras, och utan raden tog alla 12 testsvar upp det användaren skrev
