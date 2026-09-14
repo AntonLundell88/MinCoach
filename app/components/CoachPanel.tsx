@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import { CameraGlyph, SendGlyph } from "./IconGlyphs";
+import { CoachThinkingDots, getRandomThinkingWord } from "./CoachThinking";
 
 type DayForm = "trött" | "normal" | "stark" | null;
 
@@ -55,21 +56,6 @@ const coachInputPlaceholders = [
 function getRandomCoachPlaceholder(current?: string) {
   const options = coachInputPlaceholders.filter((item) => item !== current);
   return options[Math.floor(Math.random() * options.length)] ?? coachInputPlaceholders[0];
-}
-
-const coachThinkingWords = [
-  "tänker",
-  "funderar",
-  "begrundar",
-  "grubblar",
-  "kontemplerar",
-  "överväger",
-  "klurar",
-];
-
-function getRandomThinkingWord(current?: string) {
-  const options = coachThinkingWords.filter((item) => item !== current);
-  return options[Math.floor(Math.random() * options.length)] ?? coachThinkingWords[0];
 }
 
 // Modulnivå med avsikt: CoachPanel monteras om helt när man växlar
@@ -309,13 +295,7 @@ export default function CoachPanel({
     return () => window.clearInterval(interval);
   }, [chatInput]);
 
-  const thinkingDots = (
-    <span className="flex items-end gap-1" aria-hidden="true">
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-300/80 [animation-duration:900ms]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-300/80 [animation-delay:150ms] [animation-duration:900ms]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-300/80 [animation-delay:300ms] [animation-duration:900ms]" />
-    </span>
-  );
+  const thinkingDots = <CoachThinkingDots />;
 
   return (
       <div

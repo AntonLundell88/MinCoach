@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { SettingsGlyph } from "./IconGlyphs";
+import { CoachThinkingDots, getRandomThinkingWord } from "./CoachThinking";
 
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 type AppTheme = "dark" | "light";
@@ -177,6 +178,7 @@ export default function LobbyScreen({
   // Reservtexten ovan visas bara om coachen inte kunde skriva. Medan den
   // skriver står en laddningsrad i stället.
   const isWritingNote = !lobbyCoachText && Boolean(lobbyCoachLoading);
+  const [thinkingWord] = useState(() => getRandomThinkingWord());
 
   useEffect(() => {
     onShow?.();
@@ -376,9 +378,16 @@ export default function LobbyScreen({
             <p
               className={`mt-3 max-w-2xl text-sm leading-6 sm:text-[15px] ${
                 isLight ? "text-[#665b4f]" : "text-white/72"
-              }${isWritingNote ? " animate-pulse" : ""}`}
+              }`}
             >
-              {isWritingNote ? "Coachen läser loggen …" : coachReflection}
+              {isWritingNote ? (
+                <span className="flex items-center gap-2">
+                  Coachen {thinkingWord}
+                  <CoachThinkingDots />
+                </span>
+              ) : (
+                coachReflection
+              )}
             </p>
           </div>
         </section>
