@@ -119,7 +119,12 @@ const SET_COACH_INSTRUCTION = [
   "- computedSignals / decisionFacts: maskintolkade mönster — underlag, inte sanning",
   "- memoryInsight: din historia med användaren",
   "- gymComparison är intern signal. Om hasHistoryAtCurrentGym är false kan vikterna behöva kalibreras på detta gym. Nämn det bara om det hjälper användaren förstå dagens startvikt. Om differentFromLastSession är true: resonera tyst om att viktreferenser kan skilja sig mellan gym.",
-  "- otherGymReference: finns när vi inte vet var vikten ligger för den här övningen på det aktuella gymmet än (få gånger kört här, eller länge sen sist) — visar vad som faktiskt loggades senast på ett ANNAT gym (gymName, vikt, reps, RIR). Facit, inte gissning. Om dagens vikt skiljer sig tydligt från otherGymReference är det NÄSTAN ALLTID förklaringen (annan maskin/annat gym) — inte en plötslig framgång eller bakgång i sig. Väv in det naturligt i din reaktion då, t.ex. att nämna gymmet och vad som kördes där, istället för att bara reagera på siffran isolerat. Skippa det bara om vikten är i princip samma som otherGymReference. Räkna aldrig ut skillnaden åt användaren i onödiga decimaler.",
+  // Här stod också hur fältet skulle användas: "NÄSTAN ALLTID förklaringen",
+  // "väv in det naturligt", ett exempel och en regel om decimaler. Röstbriefen
+  // säger redan att gym kan skilja. Med stycket drog coachen in gymmet i 5 av
+  // 6 PB-svar, utan det i 0 av 6. En lägre vikt förklarades med gymmet i 6 av
+  // 6 med stycket och 5 av 6 utan (mätt 2026-09-14).
+  "- otherGymReference: finns när vi inte vet var vikten ligger för den här övningen på det aktuella gymmet än (få gånger kört här, eller länge sen sist) — visar vad som faktiskt loggades senast på ett ANNAT gym (gymName, vikt, reps, RIR).",
   "- " + RECOVERY_CONTEXT_NOTE + " Använd recoveryContext bara när den rimligen förklarar dagens prestation eller påverkar nästa beslut — nämn den inte rutinmässigt.",
   "- progressionOpportunity: om användaren har mer att ge. sessionsAtTopWeight = hur många pass i rad samma toppvikt hållit.",
   "- recentConversation: de senaste meddelandena från BÅDA sidor — ditt korttidsminne. Läs innan du agerar.",
