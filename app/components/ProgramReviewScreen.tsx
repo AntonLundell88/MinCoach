@@ -1403,7 +1403,7 @@ export default function ProgramReviewScreen({
                     </div>
                   ) : (
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-400/[0.10] text-xs font-semibold text-blue-100/76 shadow-[inset_0_0_0_1px_rgba(147,197,253,0.12)]">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#60a5fa]/[0.10] text-xs font-semibold text-blue-100/76 shadow-[inset_0_0_0_1px_rgba(147,197,253,0.12)]">
                         {normalizedPassIndex + 1}
                       </span>
                       <div className="min-w-0">
@@ -1572,7 +1572,7 @@ export default function ProgramReviewScreen({
                       </span>
                     </div>
                   ))}
-                  <div className="mt-1 rounded-2xl border border-blue-300/10 bg-blue-400/[0.035] p-3 shadow-[inset_0_0_0_1px_rgba(147,197,253,0.06)]">
+                  <div className="mt-1 rounded-2xl border border-blue-300/10 bg-[#60a5fa]/[0.035] p-3 shadow-[inset_0_0_0_1px_rgba(147,197,253,0.06)]">
                     <div className="mb-2 flex items-end justify-between gap-3">
                       <div>
                         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/44">
@@ -1649,10 +1649,15 @@ export default function ProgramReviewScreen({
                       Bläddra i övningsbiblioteket
                     </button>
                     {addFeedback?.message ? (
+                      // Blå toner här skrivs som hexkod, samma färg som
+                      // blue-400. En ljus-regel i globals.css målar texten vit
+                      // i allt vars klass innehåller bg-blue-, och i allt
+                      // inuti det. Både rutan och panelen runt den hade
+                      // bg-blue-400, så texten syntes inte på den svaga tonen.
                       <div className={`mt-2 rounded-xl border px-3 py-2 text-xs leading-5 ${
                         addFeedback.tone === "success"
                           ? "border-emerald-300/14 bg-emerald-300/[0.055] text-white/68"
-                          : "border-blue-300/16 bg-blue-400/[0.07] text-white/70"
+                          : "border-blue-300/16 bg-[#60a5fa]/[0.07] text-white/70"
                       }`}>
                         <p>{cleanProgramCopy(addFeedback.message)}</p>
                         {addFeedback.suggestion ? (
