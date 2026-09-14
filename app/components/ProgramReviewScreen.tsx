@@ -891,6 +891,7 @@ export default function ProgramReviewScreen({
                   },
                   {
                     label: "RIR",
+                    expansion: "Reps in reserve",
                     text: "Hur många repetitioner du tror att du hade kvar med bra teknik.",
                     example:
                       "RIR 2 betyder att du gjorde setet men tror att du kunde klarat 2 till.",
@@ -907,6 +908,14 @@ export default function ProgramReviewScreen({
                   >
                     <p className="text-sm font-semibold leading-4 text-white">
                       {item.label}
+                      {item.expansion ? (
+                        <>
+                          {" "}
+                          <span className="whitespace-nowrap text-[11px] font-normal text-white/45">
+                            {item.expansion}
+                          </span>
+                        </>
+                      ) : null}
                     </p>
                     <p className="mt-1 text-xs leading-5 text-white/62">
                       {item.text}
@@ -1233,14 +1242,24 @@ export default function ProgramReviewScreen({
               {[
                 { label: "Vikt", text: "Belastningen du kör med." },
                 { label: "Reps", text: "Hur många lyft du gör." },
-                { label: "RIR", text: "Reps du hade kvar." },
+                { label: "RIR", expansion: "Reps in reserve", text: "Reps du hade kvar." },
                 { label: "Tid", text: "Sekunder i tidsövningar." },
-              ].map(({ label, text }) => (
+              ].map(({ label, expansion, text }) => (
                 <div
                   key={label}
                   className="rounded-xl bg-white/[0.045] px-3 py-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)]"
                 >
-                  <p className="text-sm font-semibold leading-4 text-white">{label}</p>
+                  <p className="text-sm font-semibold leading-4 text-white">
+                    {label}
+                    {expansion ? (
+                      <>
+                        {" "}
+                        <span className="whitespace-nowrap text-[11px] font-normal text-white/45">
+                          {expansion}
+                        </span>
+                      </>
+                    ) : null}
+                  </p>
                   <p className="mt-1 text-[11px] leading-4 text-white/54">{text}</p>
                 </div>
               ))}
