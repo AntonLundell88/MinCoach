@@ -118,6 +118,10 @@ const SET_COACH_INSTRUCTION = [
   "- personalRecordText: PB — reagera",
   "- computedSignals / decisionFacts: maskintolkade mönster — underlag, inte sanning",
   "- memoryInsight: din historia med användaren",
+  // Mätt 2026-09-14: "kalibreras" ekas ibland ("vi kalibrerar Almedals maskin
+  // först"), men det är också ordet som får coachen att förklara en lägre vikt
+  // på ett nytt gym. Med det förklarade den i 5 av 6 svar, utan det i 0–1 av 6.
+  // Anton valde att behålla raden.
   "- gymComparison är intern signal. Om hasHistoryAtCurrentGym är false kan vikterna behöva kalibreras på detta gym. Nämn det bara om det hjälper användaren förstå dagens startvikt. Om differentFromLastSession är true: resonera tyst om att viktreferenser kan skilja sig mellan gym.",
   // Här stod också hur fältet skulle användas: "NÄSTAN ALLTID förklaringen",
   // "väv in det naturligt", ett exempel och en regel om decimaler. Röstbriefen
