@@ -50,7 +50,6 @@ type Props = {
   name: string;
   nextPassLabel: string;
   history: Workout[];
-  personalRecords: Record<string, PersonalRecord>;
   weeklyStats: {
     passCount: number;
     totalMinutes: number;
@@ -122,7 +121,6 @@ export default function LobbyScreen({
   name,
   nextPassLabel,
   history,
-  personalRecords,
   weeklyStats,
   daysPerWeek,
   now,

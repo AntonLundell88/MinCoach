@@ -12,7 +12,6 @@ type Gym = {
   id: string;
   name: string;
   createdAt: string;
-  exerciseOverrides?: Record<string, string>;
 };
 
 type CustomExercisesByPass = Record<PassType, string[]>;

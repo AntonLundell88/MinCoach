@@ -14,7 +14,6 @@ import StartScreen from "./components/StartScreen";
 import WorkoutScreen from "./components/WorkoutScreen";
 import SetupScreen from "./components/SetupScreen";
 import WorkoutReviewScreen from "./components/WorkoutReviewScreen";
-import WorkoutCompleteScreen from "./components/WorkoutCompleteScreen";
 import LobbyScreen from "./components/LobbyScreen";
 import AuthStartScreen from "./components/AuthStartScreen";
 import ExerciseProgressScreen from "./components/ExerciseProgressScreen";
@@ -442,7 +441,6 @@ type Gym = {
   id: string;
   name: string;
   createdAt: string;
-  exerciseOverrides?: Record<string, string>;
 };
 
 export type Workout = {
@@ -4249,8 +4247,6 @@ export default function Home() {
   const [staleDraft, setStaleDraft] = useState<ActiveWorkoutDraft | null>(null);
   const [workoutReview, setWorkoutReview] = useState<WorkoutReview | null>(null);
   const [workoutReviewLoading, setWorkoutReviewLoading] = useState(false);
-  const [latestCompletedReview, setLatestCompletedReview] =
-  useState<WorkoutReview | null>(null);
   const exerciseInputKeyRef = useRef("");
   const exerciseIndexRef = useRef(0);
   const [now, setNow] = useState<Date>(new Date());
@@ -4260,7 +4256,6 @@ export default function Home() {
   const [lastGymConfirmedDate, setLastGymConfirmedDate] = useState<string | null>(null);
   const [lastPass, setLastPass] = useState<PassType | null>(null);
   const [coachMemory, setCoachMemory] = useState<CoachMemory>({ notes: [] });
-const [workoutComplete, setWorkoutComplete] = useState(false);
 const [showDailyPlan, setShowDailyPlan] = useState(false);
 const [hasAcceptedTrainingSafety, setHasAcceptedTrainingSafety] = useState(false);
 // Har användaren själv rört vikt, reps eller RIR sedan siffrorna hamnade där?
@@ -4364,8 +4359,6 @@ const [removedExercisesByPass, setRemovedExercisesByPass] =
   useState<RemovedExercisesByPass>(createEmptyPassStringMap());
 const [exerciseOverridesByPass, setExerciseOverridesByPass] =
   useState<ExerciseOverridesByPass>(createEmptyPassOverrideMap());
-const [swapFrom, setSwapFrom] = useState<string | null>(null);
-const [swapToInput, setSwapToInput] = useState("");
 
 const [customExerciseInput, setCustomExerciseInput] = useState("");
 const [showProgramReview, setShowProgramReview] = useState(false);
@@ -4417,7 +4410,6 @@ const [activeConditioningContext, setActiveConditioningContext] =
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [
     started,
-    workoutComplete,
     workoutReview,
     showDailyPlan,
     showExerciseProgress,
@@ -5439,8 +5431,6 @@ const w: Workout = {
   ),
   planTitle: workoutPlan?.title,
   exercises: plan.map((name: string) => {
-    const activeGym = startGyms.find((g) => g.id === startGymId);
-    const resolvedName = activeGym?.exerciseOverrides?.[name] ?? name;
     // Ett byte bara idag tar över platsens set, reps och RIR.
     const scheduleName =
       savedPlan.find(
@@ -5451,7 +5441,7 @@ const w: Workout = {
     );
 
     return {
-      name: resolvedName,
+      name,
       plannedSets: parsePlannedSetCount(plannedExercise?.sets) ?? undefined,
       plannedReps: plannedExercise?.reps,
       plannedRir: plannedExercise?.rir,
@@ -5470,8 +5460,6 @@ const w: Workout = {
     setStarted(true);
     setSelectedStartPass(null);
     setChatInput("");
-    setSwapFrom(null);
-    setSwapToInput("");
     setDayForm("normal");
     setActiveWarmupContext(warmupContext);
     setActiveConditioningContext(conditioningContext);
@@ -5947,39 +5935,6 @@ async function sendChat() {
 
     return response;
   };
-  const confirmsPendingSwap =
-    workout &&
-    swapFrom &&
-    swapToInput &&
-    includesAnyIntent(normalizeIntentText(msg), [
-      "ja",
-      "yes",
-      "kor",
-      "byt",
-      "det blir bra",
-      "stammer",
-      "bekrafta",
-    ]);
-
-  const namedPendingSwapReplacement =
-    workout && swapFrom ? resolveExerciseName(msg) : null;
-  if (
-    workout &&
-    swapFrom &&
-    namedPendingSwapReplacement?.status === "known" &&
-    exerciseKey(namedPendingSwapReplacement.name) !== exerciseKey(swapFrom)
-  ) {
-    replaceExerciseInCurrentWorkout(swapFrom, namedPendingSwapReplacement.name);
-    setCoachPendingReply(false);
-    return;
-  }
-
-  if (confirmsPendingSwap) {
-    replaceExerciseInCurrentWorkout(swapFrom, swapToInput);
-    setCoachPendingReply(false);
-    return;
-  }
-
   if (workout && isProgressionQuestion(msg)) {
     const chatReply = await askAiCoach(aiUnavailableReply);
     replyFromAi(chatReply);
@@ -6267,8 +6222,6 @@ const {
   currentExerciseName,
   setChatLog,
   resetWorkoutInputs,
-  setSwapFrom,
-  setSwapToInput,
   skippedExercise,
   setSkippedExercise,
 });
@@ -8103,7 +8056,6 @@ const review = buildWorkoutReview({
 
 setWorkoutReview(null);
 setWorkoutReviewLoading(hasLoggedSets);
-setLatestCompletedReview(review);
 void syncStructuredBetaWorkout({
   id: workoutWithSummary.id,
   passKey: workoutWithSummary.pass,
@@ -8216,16 +8168,13 @@ void requestAiWorkoutReview({
 
   saveCoachNotes(makeCoachNotesFromReview(finalReview, workoutWithSummary));
   setWorkoutReview(finalReview);
-  setLatestCompletedReview(finalReview);
 }).catch(() => {
   saveCoachNotes(makeCoachNotesFromReview(review, workoutWithSummary));
   setWorkoutReview(review);
-  setLatestCompletedReview(review);
 }).finally(() => {
   setWorkoutReviewLoading(false);
 });
 }
-setWorkoutComplete(false);
 localStorage.removeItem(ACTIVE_WORKOUT_DRAFT_KEY);
 setWorkout(null);
 setSkippedExercise(null);
@@ -8274,7 +8223,6 @@ setStarted(false);
     setSkippedExercise(null);
     setWorkoutReview(null);
     setWorkoutReviewLoading(false);
-    setWorkoutComplete(false);
     setStarted(false);
     alert("Allt återställt ✅");
     setCoachMemory({ notes: [] });
@@ -8299,7 +8247,7 @@ const shouldShowGlobalAppControls =
   !showPersonalRecords &&
   !showProgramReview &&
   !editingProfile &&
-  (showDailyPlan || started || workoutComplete);
+  (showDailyPlan || started);
 
 const settingsPanel = showSettings ? (
   <SettingsScreen
@@ -8656,17 +8604,7 @@ return (
     className="flex min-h-screen flex-col items-center justify-start gap-6 bg-[#0b1018] px-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-white"
   >
    {shouldShowGlobalAppControls ? globalAppControls : null}
-   {workoutComplete ? (
-  <WorkoutCompleteScreen
-    isPartial={latestCompletedReview?.isPartial ?? false}
-    review={latestCompletedReview}
-    onDone={() => {
-      setWorkoutComplete(false);
-      setWorkoutReview(null);
-      setShowDailyPlan(false);
-    }}
-  />
-) : started && workout ? (
+   {started && workout ? (
       <WorkoutScreen
         exerciseIndex={exerciseIndex}
         activePlan={activePlan}
@@ -8777,7 +8715,6 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
     review={workoutReview}
     onClose={() => {
       setWorkoutReview(null);
-      setWorkoutComplete(false);
       setShowDailyPlan(false);
     }}
     onEditSet={(exerciseName, setIndex, _exerciseKey, updated) => {
@@ -8992,7 +8929,6 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
     name={profileName}
     nextPassLabel={nextPassLabel}
     history={history}
-    personalRecords={personalRecords}
     lobbyCoachText={lobbyCoachNote.text}
     lobbyCoachLoading={lobbyCoachNote.loading}
     onShow={lobbyCoachNote.refresh}

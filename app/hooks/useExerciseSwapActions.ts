@@ -38,8 +38,6 @@ export function useExerciseSwapActions(args: {
   currentExerciseName: string;
   setChatLog: Dispatch<SetStateAction<ChatMessage[]>>;
   resetWorkoutInputs: () => void;
-  setSwapFrom: Dispatch<SetStateAction<string | null>>;
-  setSwapToInput: Dispatch<SetStateAction<string>>;
   skippedExercise: { exercise: { name: string } } | null;
   setSkippedExercise: (value: null) => void;
 }) {
@@ -52,8 +50,6 @@ export function useExerciseSwapActions(args: {
     currentExerciseName,
     setChatLog,
     resetWorkoutInputs,
-    setSwapFrom,
-    setSwapToInput,
     skippedExercise,
     setSkippedExercise,
   } = args;
@@ -255,8 +251,6 @@ export function useExerciseSwapActions(args: {
         setExerciseIndex(insertedReplacementIndex);
       }
     }
-    setSwapFrom(null);
-    setSwapToInput("");
 
     // Motorns egen bekräftelse. Hoppas över när anroparen själv tänker svara —
     // kom coachen med bytet i ett chattsvar blev det annars två meddelanden i
