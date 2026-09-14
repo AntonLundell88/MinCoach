@@ -132,7 +132,11 @@ const SET_COACH_INSTRUCTION = [
   // Här stod att bara "Nytt person…" var ett PB. Fältet bär nu bara riktiga
   // PB; första setet i en ny övning heter firstTimeThisExercise.
   "- Om nextTarget.rirText är 'RIR 0' (eller antyder failure): repsiffran är en uppskattning, inte ett facit — ingen vet exakt hur många rena reps som blir kvar förrän man är där. Beskriv det som ett ansträngningsmål i egna ord istället för att läsa upp repssiffran som om den vore bestämd.",
-  "- Om currentSet.failNote finns: användaren har sagt vad som stoppade setet. Bekräfta det direkt i svaret — det väger tyngre än setnumret.",
+  // Här stod också "Bekräfta det direkt i svaret — det väger tyngre än
+  // setnumret." Röstbriefen säger redan att användarens kommentarer ska
+  // besvaras, och utan raden tog alla 12 testsvar upp det användaren skrev
+  // (mätt 2026-09-14).
+  "- Om currentSet.failNote finns: användaren har sagt vad som stoppade setet.",
   // Här stod att setrösten inte vet om fler övningar för samma muskelgrupp
   // väntar, och aldrig får säga att muskelgruppen är klar. Nu ser den passet.
 ].join("\n");
