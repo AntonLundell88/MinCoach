@@ -7,7 +7,7 @@ import {
 } from "../../../lib/coachAi";
 import { buildCoachLobbyPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
-import { extractOutputText } from "../../../lib/openAiResponse";
+import { extractOutputText } from "../../../lib/openAi";
 
 type CoachLobbyRequest = {
   context?: CoachLobbyContext;

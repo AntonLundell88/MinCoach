@@ -19,6 +19,7 @@ import {
   resolveExerciseName,
 } from "../../../../lib/exercises";
 import { repairMojibake } from "../../../../lib/textEncoding";
+import { extractOutputText } from "../../../../lib/openAi";
 
 type CoachProgramBuildRequest = {
   context?: CoachProgramBuildContext;
@@ -264,51 +265,6 @@ const PROGRAM_PLAN_JSON_SCHEMA = {
   },
   required: ["title", "passes"],
 };
-
-function extractOutputText(data: unknown) {
-  if (!data || typeof data !== "object") return "";
-
-  const response = data as {
-    output_text?: unknown;
-    output?: unknown;
-  };
-
-  if (typeof response.output_text === "string") {
-    return response.output_text;
-  }
-
-  if (Array.isArray(response.output_text)) {
-    return response.output_text
-      .map((item) => (typeof item === "string" ? item : ""))
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  if (!Array.isArray(response.output)) return "";
-
-  return response.output
-    .flatMap((item) => {
-      if (!item || typeof item !== "object") return [];
-      const content = (item as { content?: unknown }).content;
-      return Array.isArray(content) ? content : [];
-    })
-    .map((part) => {
-      if (!part || typeof part !== "object") return "";
-      const maybeText = part as {
-        text?: unknown;
-        content?: unknown;
-        parsed?: unknown;
-      };
-      if (typeof maybeText.text === "string") return maybeText.text;
-      if (typeof maybeText.content === "string") return maybeText.content;
-      if (maybeText.parsed && typeof maybeText.parsed === "object") {
-        return JSON.stringify(maybeText.parsed);
-      }
-      return "";
-    })
-    .filter(Boolean)
-    .join("\n");
-}
 
 function cleanText(value: unknown) {
   if (typeof value !== "string") return "";
