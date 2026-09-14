@@ -1341,7 +1341,8 @@ html[data-theme="light"],
 }
 
 [data-theme="light"] :is(
-  button[class*="bg-blue"],
+  button[class*="bg-blue-500"],
+  button[class*="bg-blue-600"],
   button[class*="bg-[#2f6df6]"],
   .workout-primary-action,
   .workout-ai-action,
@@ -1371,12 +1372,17 @@ html[data-theme="light"],
   box-shadow: none !important;
 }
 
+/* Samma tre klasser som ljusregeln högre upp målar helblå (--mc-blue), och
+   samma som knappregeln ovanför. [class*="bg-blue-"] tog även svaga toner som
+   bg-blue-400/[0.07], och då blev texten vit på nästan vitt. */
 [data-theme="light"] :is(
-  [class*="bg-blue-"],
+  [class*="bg-blue-500"],
+  [class*="bg-blue-600"],
   [class*="bg-[#2f6df6]"]
 ),
 [data-theme="light"] :is(
-  [class*="bg-blue-"],
+  [class*="bg-blue-500"],
+  [class*="bg-blue-600"],
   [class*="bg-[#2f6df6]"]
 ) :is(span, p, label, small, strong) {
   color: #ffffff !important;
