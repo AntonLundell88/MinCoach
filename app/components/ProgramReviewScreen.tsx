@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BodyChart, ViewSide, type BodyState } from "body-muscles";
 import {
+  CUSTOM_EXERCISE_CATEGORIES,
   getExerciseProfile,
   getExerciseUserInfo,
   getProgramExercisePool,
@@ -20,7 +21,7 @@ import { reviewManualProgram } from "../lib/programReview";
 import type { ManualProgramReviewSuggestion } from "../lib/programReview";
 import { repairMojibake } from "../lib/textEncoding";
 import { CloseGlyph, PencilGlyph, RotateGlyph, SendGlyph } from "./IconGlyphs";
-import { filterLibraryExercises } from "./LibraryBrowser";
+import { filterLibraryExercises, LIBRARY_CATEGORIES } from "./LibraryBrowser";
 
 type Goal = "muskel" | "styrka" | "fett";
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
@@ -77,25 +78,6 @@ type AddExerciseResult = {
 };
 
 type CoachReviewSuggestion = ManualProgramReviewSuggestion;
-
-const CUSTOM_EXERCISE_CATEGORIES = [
-  "ben",
-  "rygg",
-  "bröst",
-  "axlar",
-  "armar",
-  "mage",
-] as const;
-
-const LIBRARY_CATEGORIES = [
-  "alla",
-  "bröst",
-  "rygg",
-  "ben",
-  "axlar",
-  "armar",
-  "mage",
-] as const;
 
 type Props = {
   profile: UserProfile;

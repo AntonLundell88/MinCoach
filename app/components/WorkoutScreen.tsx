@@ -16,6 +16,7 @@ import {
   formatSetDisplay,
   isBodyweightExercise,
   isTimedExercise,
+  CUSTOM_EXERCISE_CATEGORIES,
 } from "../lib/exercises";
 import {
   requestAiCoachExerciseIntro,
@@ -25,15 +26,6 @@ import {
 
 import { LibraryBrowser, LIBRARY_CATEGORIES, filterLibraryExercises, type LibraryExercise } from "./LibraryBrowser";
 import { triggerHaptic } from "../lib/haptics";
-
-const CUSTOM_EXERCISE_CATEGORIES = [
-  "ben",
-  "rygg",
-  "bröst",
-  "axlar",
-  "armar",
-  "mage",
-] as const;
 
 type ExerciseActionResult = { handled: boolean; message?: string };
 
