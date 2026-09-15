@@ -209,7 +209,7 @@ export function buildLobbyContext(args: {
   const latest = history[0];
   const weekStart = startOfWeek(now).getTime();
 
-  // Ordningen är en tidslinje: nu, förra passet, idag, sedan historik och
+  // Ordningen är en tidslinje: nu, förra passet, nästa pass, sedan historik och
   // minne. Stod dagens övningar först pratade coachen om siffrorna och
   // missade att det gått 12 dagar sedan förra passet (2026-09-14). Namnet
   // skickas inte: appen hälsar redan med det ovanför texten.
@@ -231,7 +231,7 @@ export function buildLobbyContext(args: {
       ).length,
       veckorIRad: weeksInARow(history, now),
     },
-    idag: args.todayPass
+    nästaPass: args.todayPass
       ? {
           pass: args.todayPass.label,
           övningar: args.todayPass.exerciseNames.map((name) => ({
