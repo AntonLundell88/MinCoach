@@ -28,6 +28,7 @@ import { SettingsGlyph } from "./components/IconGlyphs";
 import { useWrappedRecap } from "./hooks/useWrappedRecap";
 import { useLobbyCoachNote } from "./hooks/useLobbyCoachNote";
 import { buildLobbyContext } from "./lib/lobbyContext";
+import { latestSetsByExercise } from "./lib/lastSets";
 import { useAutoAccountBackup } from "./hooks/useAutoAccountBackup";
 import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
 import { reportAiFallback } from "./lib/aiFallbackReport";
@@ -5052,6 +5053,17 @@ const gymFilteredHistory = useMemo(() => {
   return history.filter((w) => w.gymId === activeGymId);
 }, [history, activeGymId]);
 
+// "Senast" på gymmet du står i. lastByExercise sparas för alla gym, så kortet
+// och viktfältet visade "Senast 155 kg" från Nordic Almedal medan coachen sa
+// 145 här, och introt läste samma set som förra gången här (betatest
+// 2026-09-15). Har du aldrig kört övningen här är fältet tomt, som på en ny
+// övning, och siffran från det andra gymmet når coachen via otherGymReference.
+// Med ett enda gym gäller den sparade som förut.
+const lastAtCurrentGym = useMemo<LastByExercise>(() => {
+  if (!activeGymId || gyms.length <= 1) return lastByExercise;
+  return latestSetsByExercise(workout ? [workout, ...gymFilteredHistory] : gymFilteredHistory);
+}, [activeGymId, gyms.length, lastByExercise, workout, gymFilteredHistory]);
+
 const otherGymReference = useMemo(() => {
   if (!currentExerciseName) return undefined;
   return getOtherGymReference({
@@ -5291,7 +5303,7 @@ useEffect(() => {
 
   exerciseInputKeyRef.current = nextExerciseKey;
 
-  const last = lastByExercise[nextExerciseKey];
+  const last = lastAtCurrentGym[nextExerciseKey];
   const lastWeight =
     last && !isBodyweightExercise(currentExerciseName) && last.weight > 0
       ? formatWeightInput(last.weight)
@@ -5309,7 +5321,7 @@ useEffect(() => {
   systemSuggestedRepsRef.current = undefined;
   setRirInput(2);
   setInputsTouched(false);
-}, [currentExerciseName, started, lastByExercise]);
+}, [currentExerciseName, started, lastAtCurrentGym]);
 
 function confirmGymForToday() {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -5498,7 +5510,7 @@ localStorage.setItem("lastGym", gym);
 // Fyll i vad du faktiskt körde senast på första övningen — se effekten för
 // övningsbyte ovan: fälten är historik, coachen ordinerar.
 exerciseInputKeyRef.current = firstExerciseName ? exerciseKey(firstExerciseName) : "";
-const firstLast = firstExerciseName ? lastByExercise[exerciseKey(firstExerciseName)] : undefined;
+const firstLast = firstExerciseName ? lastAtCurrentGym[exerciseKey(firstExerciseName)] : undefined;
 const firstExerciseWeight =
   firstLast && firstExerciseName && !isBodyweightExercise(firstExerciseName) && firstLast.weight > 0
     ? formatWeightInput(firstLast.weight)
@@ -6094,7 +6106,7 @@ async function sendChat() {
       return;
     }
 
-    const last = lastByExercise[exerciseKey(currentExerciseName)];
+    const last = lastAtCurrentGym[exerciseKey(currentExerciseName)];
     const lastHadTargets = didHitTargets(last, goalTargets.targetReps);
     const hold = shouldHoldYouToPlan({ dayForm, lastHadTargets });
 
@@ -8682,7 +8694,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName) =>
   })
 }
         currentExerciseName={currentExerciseName}
-        lastByExercise={lastByExercise}
+        lastByExercise={lastAtCurrentGym}
         exerciseKey={exerciseKey}
         weightInput={weightInput}
         setWeightInput={markTouched(setWeightInput)}
