@@ -5019,7 +5019,7 @@ const lobbyCoachNote = useLobbyCoachNote({
           limitations: userProfile.limitations,
           history,
           todayPass: nextPlannedPass
-            ? { label: nextPassLabel, exerciseNames: savedPlan }
+            ? { label: nextPassLabel }
             : null,
           personalRecords: Object.values(personalRecords),
           memoryNotes: coachMemory.notes,

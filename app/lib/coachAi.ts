@@ -455,10 +455,8 @@ export type CoachLobbyContext = {
   nu: string;
   mål?: string;
   passPerVecka?: number;
-  nästaPass?: {
-    pass: string;
-    övningar: Array<{ namn: string; senaste: string[] }>;
-  };
+  nästaPass?: string;
+  utveckling: Array<{ namn: string; senaste: string[] }>;
   förraPasset?: {
     när: string;
     pass: string;

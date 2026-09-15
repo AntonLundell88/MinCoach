@@ -142,6 +142,28 @@ function recentTopSets(exerciseName: string, history: LobbyWorkout[], now: Date)
     .reverse();
 }
 
+// Utvecklingen per övning, från de senaste passen: högst sex övningar, den
+// senast körda först. Den låg under nästa pass, med just de övningarna, och
+// då skrev coachen som om eleven skulle köra passet direkt: "Börja bänken på
+// 77,5 kg" (2026-09-15). Nästa pass är nu bara ett namn, sist i kontexten.
+function recentProgress(history: LobbyWorkout[], now: Date) {
+  const seen = new Set<string>();
+  const names: string[] = [];
+
+  for (const workout of history.slice(0, 3)) {
+    for (const exercise of workout.exercises) {
+      const key = exerciseKey(exercise.name);
+      if (seen.has(key) || names.length >= 6) continue;
+      seen.add(key);
+      names.push(exercise.name);
+    }
+  }
+
+  return names
+    .map((name) => ({ namn: name, senaste: recentTopSets(name, history, now) }))
+    .filter((entry) => entry.senaste.length > 0);
+}
+
 // PB från förra passet. Första gången en övning loggas blir den också ett
 // "rekord" i appen — det är inget PB att prata om, så de räknas inte.
 function newRecords(history: LobbyWorkout[], records: LobbyPersonalRecord[]) {
@@ -199,7 +221,7 @@ export function buildLobbyContext(args: {
   daysPerWeek?: number;
   limitations?: string;
   history: LobbyWorkout[];
-  todayPass: { label: string; exerciseNames: string[] } | null;
+  todayPass: { label: string } | null;
   personalRecords: LobbyPersonalRecord[];
   memoryNotes: Array<{ text: string; createdAt: string; kind?: string }>;
   healthNotes: CoachHealthNote[];
@@ -209,10 +231,12 @@ export function buildLobbyContext(args: {
   const latest = history[0];
   const weekStart = startOfWeek(now).getTime();
 
-  // Ordningen är en tidslinje: nu, förra passet, nästa pass, sedan historik och
-  // minne. Stod dagens övningar först pratade coachen om siffrorna och
-  // missade att det gått 12 dagar sedan förra passet (2026-09-14). Namnet
-  // skickas inte: appen hälsar redan med det ovanför texten.
+  // Ordningen är en tidslinje: nu, förra passet, utvecklingen, sedan historik
+  // och minne. Stod dagens övningar först pratade coachen om siffrorna och
+  // missade att det gått 12 dagar sedan förra passet (2026-09-14). Nästa pass
+  // står sist, bredvid mål och antal pass i veckan: det är schemat, inte något
+  // eleven nödvändigtvis ska göra nu. Namnet skickas inte: appen hälsar redan
+  // med det ovanför texten.
   return {
     kind: "lobby_note",
     nu: `${now.toLocaleDateString("sv-SE", { weekday: "long" })} kl ${now.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}`,
@@ -231,15 +255,7 @@ export function buildLobbyContext(args: {
       ).length,
       veckorIRad: weeksInARow(history, now),
     },
-    nästaPass: args.todayPass
-      ? {
-          pass: args.todayPass.label,
-          övningar: args.todayPass.exerciseNames.map((name) => ({
-            namn: name,
-            senaste: recentTopSets(name, history, now),
-          })),
-        }
-      : undefined,
+    utveckling: recentProgress(history, now),
     passenInnan: history.slice(1, 6).map((workout) => ({
       pass: workout.displayName,
       när: whenLabel(workout.startedAt, now),
@@ -254,6 +270,7 @@ export function buildLobbyContext(args: {
       text: note.text,
       när: whenLabel(note.createdAt, now),
     })),
+    nästaPass: args.todayPass?.label,
     mål: args.goalPrimary ? GOAL_LABELS[args.goalPrimary] : undefined,
     passPerVecka: args.daysPerWeek,
   };
