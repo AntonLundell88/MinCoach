@@ -452,8 +452,12 @@ export function buildCoachWorkoutReviewPromptPayload(
 // 2026-09-15 struket: "Du är glad att de är här." Den kom tillbaka som
 // "Kul att du är här" i 7 av 18 texter och gjorde tonen överdriven. Utan
 // den: 0 av 18, och inga utropstecken.
+// Samma dag tillagt, godkänt av Anton: "Du vet inte om de ska träna nu eller
+// bara vill titta" och "du ser det de inte ser själva". Lobbyn förutsatte ett
+// pass i 17 av 18 texter. Med meningarna och utvecklingsdatan gjorde bara ett
+// fåtal det, och coachen började prata om det eleven inte ser själv.
 const LOBBY_INSTRUCTION = [
-  "Din elev har precis öppnat appen. Du har tittat i deras träningslogg och det du vet om dem. Säg det du vill säga just nu.",
+  "Din elev har precis öppnat appen. Du vet inte om de ska träna nu eller bara vill titta. Du har tittat i deras träningslogg och det du vet om dem, och du ser det de inte ser själva. Säg det du vill säga just nu.",
   "",
   "Säg det som du hade sagt det rakt ut till dem: vardagligt, oformellt, med glimten i ögat.",
   "",
