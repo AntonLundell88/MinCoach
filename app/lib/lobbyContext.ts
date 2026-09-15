@@ -160,8 +160,76 @@ function recentProgress(history: LobbyWorkout[], now: Date) {
   }
 
   return names
-    .map((name) => ({ namn: name, senaste: recentTopSets(name, history, now) }))
+    .map((name) => ({
+      namn: name,
+      förut: earlierTopSet(name, history, now),
+      senaste: recentTopSets(name, history, now),
+    }))
     .filter((entry) => entry.senaste.length > 0);
+}
+
+// Material om eleven som coachen inte kan räkna fram själv (2026-09-15).
+// Utveckling över veckor syns inte från pass till pass, men coachen kan se
+// den och säga det eleven inte ser själv. Inga tolkningar här, bara fakta.
+const PROGRESS_WINDOW_DAYS = 56;
+
+// Bästa setet för ungefär två månader sedan. Bara när övningen körts oftare
+// än de tre gångerna i senaste, annars säger fältet samma sak igen.
+function earlierTopSet(exerciseName: string, history: LobbyWorkout[], now: Date) {
+  const key = exerciseKey(exerciseName);
+  const since = now.getTime() - PROGRESS_WINDOW_DAYS * DAY_MS;
+  const occurrences = history.flatMap((workout) => {
+    if (new Date(workout.startedAt).getTime() < since) return [];
+    const exercise = workout.exercises.find((entry) => exerciseKey(entry.name) === key);
+    const best = exercise ? topSet(exercise.sets) : null;
+    return best ? [{ startedAt: workout.startedAt, best }] : [];
+  });
+
+  if (occurrences.length <= 3) return undefined;
+
+  const oldest = occurrences[occurrences.length - 1];
+  return `${describeSet(exerciseName, oldest.best)} (${whenLabel(oldest.startedAt, now)})`;
+}
+
+// Flest veckor i rad med minst ett pass, någonsin. Då vet coachen när den
+// pågående perioden är den längsta hittills.
+function mostWeeksInARow(history: LobbyWorkout[]) {
+  const weeks = new Set(
+    history.map((workout) => startOfWeek(new Date(workout.startedAt)).getTime())
+  );
+  let most = 0;
+
+  for (const start of weeks) {
+    const before = new Date(start);
+    before.setDate(before.getDate() - 7);
+    if (weeks.has(before.getTime())) continue;
+
+    let count = 0;
+    const week = new Date(start);
+    while (weeks.has(week.getTime())) {
+      count += 1;
+      week.setDate(week.getDate() + 7);
+    }
+    most = Math.max(most, count);
+  }
+
+  return most;
+}
+
+// Antal pass i ett fönster bakåt, räknat i dagar från nu.
+function workoutsBetween(
+  history: LobbyWorkout[],
+  fromDaysAgo: number,
+  toDaysAgo: number,
+  now: Date
+) {
+  const from = now.getTime() - fromDaysAgo * DAY_MS;
+  const to = now.getTime() - toDaysAgo * DAY_MS;
+
+  return history.filter((workout) => {
+    const time = new Date(workout.startedAt).getTime();
+    return time > from && time <= to;
+  }).length;
 }
 
 // PB från förra passet. Första gången en övning loggas blir den också ett
@@ -254,7 +322,10 @@ export function buildLobbyContext(args: {
         (workout) => new Date(workout.startedAt).getTime() >= weekStart
       ).length,
       veckorIRad: weeksInARow(history, now),
+      flestVeckorIRad: mostWeeksInARow(history),
     },
+    passSenaste4Veckorna: workoutsBetween(history, 28, 0, now),
+    passFyraVeckornaInnan: workoutsBetween(history, 56, 28, now),
     utveckling: recentProgress(history, now),
     passenInnan: history.slice(1, 6).map((workout) => ({
       pass: workout.displayName,
