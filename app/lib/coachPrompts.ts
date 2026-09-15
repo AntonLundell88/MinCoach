@@ -443,10 +443,13 @@ export function buildCoachWorkoutReviewPromptPayload(
 // siffertunga — coachen letade efter det viktigaste i loggen i stället för
 // att prata med eleven. Sista meningen är fakta om skärmen: appen hälsar
 // redan med namnet ovanför texten, och kortet har plats för så här mycket.
+// 2026-09-15 struket: "Du är glad att de är här." Den kom tillbaka som
+// "Kul att du är här" i 7 av 18 texter och gjorde tonen överdriven. Utan
+// den: 0 av 18, och inga utropstecken.
 const LOBBY_INSTRUCTION = [
   "Din elev har precis öppnat appen. Du har tittat i deras träningslogg och det du vet om dem. Säg det du vill säga just nu.",
   "",
-  "Säg det som du hade sagt det rakt ut till dem: vardagligt, oformellt, med glimten i ögat. Du är glad att de är här.",
+  "Säg det som du hade sagt det rakt ut till dem: vardagligt, oformellt, med glimten i ögat.",
   "",
   `Appen visar redan en hälsning med namnet ovanför din text. Svara bara med texten, högst ${MAX_LOBBY_NOTE_CHARACTERS} tecken.`,
 ].join("\n");
