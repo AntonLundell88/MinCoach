@@ -893,6 +893,32 @@ useEffect(() => {
     return;
   }
 
+  // Hade övningen redan ett intro i passet skrevs ett nytt, men det kastades:
+  // addCoachMessage släpper inte igenom samma eventKey två gånger. Flyttade du
+  // övningen låg det gamla introt långt upp i chatten när du väl kom dit
+  // (betatest 2026-09-15). Nu kommer ett nytt om du hunnit logga set på något
+  // annat sedan dess och inget på den här. Annars skrivs inget, och inget
+  // anrop görs när du bara bläddrar mellan övningarna.
+  const introKey = `exercise_intro:${introIdentity}`;
+  const isIntroForThis = (key?: string) =>
+    key === introKey || Boolean(key?.startsWith(`${introKey}#`));
+  let earlierIntros = 0;
+  let lastIntroAt = -1;
+  chatLog.forEach((m, index) => {
+    if (!isIntroForThis(m.eventKey)) return;
+    earlierIntros += 1;
+    lastIntroAt = index;
+  });
+  if (lastIntroAt >= 0) {
+    const trainedSince = chatLog
+      .slice(lastIntroAt + 1)
+      .some((m) => m.role === "coach" && typeof m.setNumber === "number");
+    if (currentSets.length > 0 || !trainedSince) {
+      introSentForIndexRef.current = introIdentity;
+      return;
+    }
+  }
+
   // Profil-begränsningar och gamla pass-minnen: nämns max en gång per pass,
   // annars frågar coachen om samma sak på varje övnings-intro.
   //
@@ -926,7 +952,7 @@ useEffect(() => {
   // upprepning och gjorde tvärtom: ett komplett exempel på måltexten, utan ett
   // ord i instruktionen om vad det var, blev en mall modellen matchade — sista
   // meningen kom tillbaka ordagrant på nästa övning.
-  const eventKey = `exercise_intro:${introIdentity}`;
+  const eventKey = earlierIntros === 0 ? introKey : `${introKey}#${earlierIntros + 1}`;
   const introArgs = {
     exerciseName: currentExerciseName,
     exerciseIndex,
