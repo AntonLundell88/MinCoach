@@ -72,9 +72,10 @@ const REVIEW_COACH_SYSTEM = [
 // Lobbyn fattar inga träningsbeslut, så beslutsprotokollet följer inte med.
 // Rösten och språket gör det, och principen om besvär: den som minns ett
 // besvär frågar hur det känns idag i stället för att anta att det gör ont.
-// Rösten och språket kommer utan gymscenen (2026-09-15). Med "du står
-// bredvid, du ser setet hända" skrev lobbyn som om eleven stod i gymmet och
-// skulle köra, och fragmenten gav telegramstil: "Underkropp idag — fint."
+// Rösten och språket kommer utan gymscenen, besluten och sifferregeln
+// (2026-09-15), se coachVoice.ts. Med "du står bredvid, du ser setet hända"
+// skrev lobbyn som om eleven stod i gymmet, och fragmenten gav telegramstil:
+// "Underkropp idag — fint."
 const LOBBY_COACH_SYSTEM = [
   COACH_HARD_GUARDRAILS,
   "",
