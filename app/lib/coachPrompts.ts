@@ -272,7 +272,14 @@ const EXERCISE_INTRO_INSTRUCTION = [
   "Vad du har i context:",
   "- position: var i passet ni är (first/middle/last).",
   "- history: deras bästa set och senaste gången — inklusive failNote om det tog stopp.",
-  "- target: dagens vikt, reps, RIR och vila. Det här ser användaren redan på skärmen.",
+  // Här stod också "Det här ser användaren redan på skärmen." Det slutade
+  // stämma när fälten blev historik: kortet visar vad de körde senast, inte
+  // target. Coachen antydde då vikten i stället för att säga den ("så 92,5
+  // här är inte fegt") och berömde ett val ingen gjort ("Bra val att gå på
+  // 95"). En betatestare fick fråga vilken vikt coachen ville ha. Utan
+  // meningen: "Vi tar 95 idag", "92,5 kg idag, 7–9 reps med 1–2 kvar", och
+  // berömmet av valet gick från 3 av 18 svar till 0 (mätt 2026-09-15).
+  "- target: dagens vikt, reps, RIR och vila.",
   "- isTimedExercise: är den true mäts övningen i tid (target.timedTargetText), inte reps eller RIR.",
   // Fältet innehåller bara ANVÄNDARENS repliker — coachens svar filtreras bort
   // i WorkoutScreen. Modellen såg alltså en fråga utan svar och gjorde det enda
