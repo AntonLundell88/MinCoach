@@ -67,7 +67,8 @@ export async function POST(request: Request) {
         instructions: payload.system,
         prompt_cache_key: "mincoach-lobby",
         // Låg effort: en kort rad som ska komma snabbt när appen öppnas.
-        // Blir texterna generiska är medium nästa steg.
+        // Medium testades 2026-09-15: modellen resonerade i 5 av 18 anrop,
+        // och texterna blev inte annorlunda.
         reasoning: { effort: "low" },
         text: { verbosity: "low" },
         ...coachPromptInput({
