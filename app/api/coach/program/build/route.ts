@@ -7,7 +7,7 @@ import {
   type BuiltWorkoutPlan,
   type CoachProgramBuildContext,
 } from "../../../../lib/coachAi";
-import { COACH_HARD_GUARDRAILS, COACH_LANGUAGE_NOTES } from "../../../../lib/coachVoice";
+import { COACH_HARD_GUARDRAILS, PROGRAM_LANGUAGE_NOTES } from "../../../../lib/coachVoice";
 import { PROGRAM_DESIGN_PROTOCOL } from "../../../../lib/coachRules";
 import {
   getExerciseDefinition,
@@ -76,7 +76,7 @@ const PROGRAM_BUILD_ATTEMPTS = Number(
 const PROGRAM_BUILD_SYSTEM_PROMPT = `
 ${COACH_HARD_GUARDRAILS}
 
-${COACH_LANGUAGE_NOTES}
+${PROGRAM_LANGUAGE_NOTES}
 
 ${PROGRAM_DESIGN_PROTOCOL}
 
@@ -162,7 +162,7 @@ const PROGRAM_SUMMARY_JSON_SCHEMA = {
 };
 
 const PROGRAM_SUMMARY_INSTRUCTION = [
-  COACH_LANGUAGE_NOTES,
+  PROGRAM_LANGUAGE_NOTES,
   "",
   "Du skriver de fyra texterna som beskriver ett färdigt program. Du får programmet som det ser ut — ändra det inte, beskriv det.",
   "",
@@ -1014,7 +1014,7 @@ async function handleProseRequest(
       body: JSON.stringify({
         model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
         instructions: [
-            COACH_LANGUAGE_NOTES,
+            PROGRAM_LANGUAGE_NOTES,
             "",
             "Du skriver syftestext för övningarna i ETT pass i användarens program.",
             "- purpose: en kort mening om varför just den här övningen finns i det här passet. Skriv till användaren, inte om dem.",
@@ -1141,7 +1141,7 @@ export async function POST(request: Request) {
       apiKey: key,
       label: "structure",
       instruction: [
-        COACH_LANGUAGE_NOTES,
+        PROGRAM_LANGUAGE_NOTES,
         "",
         "Du delar in användarens träningsvecka. Du väljer INGA övningar här — bara hur veckan delas upp.",
         "- Antal pass ska exakt matcha daysPerWeek, max 6, i ordning A, B, C, ...",

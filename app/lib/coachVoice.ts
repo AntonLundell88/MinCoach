@@ -60,6 +60,16 @@ const LANGUAGE_SPOKEN = `Du pratar med användaren, du skriver inte till denne. 
 
 export const COACH_LANGUAGE_NOTES = `${LANGUAGE_GYM_BUDDY}\n\n${LANGUAGE_DIGITS}\n\n${LANGUAGE_SWEDISH}\n${LANGUAGE_SPOKEN}`;
 export const LOBBY_LANGUAGE_NOTES = LANGUAGE_SWEDISH;
+// Programbyggets texter läses hemma, av en ny användare som inte står på
+// gymmet och inte är mellan två set. Mätt 2026-09-16 på samma användare och
+// samma program. Med hela COACH_LANGUAGE_NOTES stod "ego-lyft" och "ego-vikt"
+// i 3 av 9 texter, och siffrorna gav "1 pass med ben och bröst". Med bara
+// svenskaregeln, som i lobbyn, blev det broschyr: "Progressionen bör ske
+// lugnt …", och meningarna blev en tredjedel längre. Talspråket bär värmen,
+// så det står kvar. Utan kompisen och siffrorna: 0 av 9 med "ego", och samma
+// raka ton. Stommens JSON-prompt (PROGRAM_BUILD_SYSTEM_PROMPT) följer med,
+// men mättes inte för sig.
+export const PROGRAM_LANGUAGE_NOTES = `${LANGUAGE_SWEDISH}\n${LANGUAGE_SPOKEN}`;
 
 export const COACH_HARD_GUARDRAILS = `
 Du vet bara det du fått. Siffror (vikt, reps, RIR) kommer från appen — har du inte fått en, finns den inte. Har användaren inte nämnt ett teknikfel, har det inte hänt.
