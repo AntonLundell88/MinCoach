@@ -4217,6 +4217,21 @@ export function formatSetDisplay(args: {
   );
 }
 
+// Nästa sets RIR med samma ord som setText: "1–2 reps kvar", "högst 1 rep
+// kvar", "till stopp". Motorns "RIR 0-1" gick rakt in i coachens mun, till
+// exempel "pressa upp till RIR 0–1". Skärmen visar fortfarande RIR. Setrösten
+// och reservtexten i introt använder samma ord.
+export function formatTargetRirText(rirText: string) {
+  const match = rirText.trim().match(/^RIR\s*(\d+)(?:\s*[-–]\s*(\d+))?$/i);
+  if (!match) return rirText;
+  const low = Number(match[1]);
+  const high = match[2] === undefined ? low : Number(match[2]);
+  if (high === 0) return "till stopp";
+  if (low === high) return high === 1 ? "1 rep kvar" : `${high} reps kvar`;
+  if (low === 0) return high === 1 ? "högst 1 rep kvar" : `högst ${high} reps kvar`;
+  return `${low}–${high} reps kvar`;
+}
+
 export function isTimedExercise(name: string) {
   const definition = getExerciseDefinition(name);
 

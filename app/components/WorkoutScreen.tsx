@@ -14,6 +14,7 @@ import {
   formatRestProse,
   getRestTargetRange,
   formatSetDisplay,
+  formatTargetRirText,
   isBodyweightExercise,
   isTimedExercise,
   CUSTOM_EXERCISE_CATEGORIES,
@@ -76,7 +77,7 @@ type Props = {
   }[];
   chatInput: string;
   setChatInput: (v: string) => void;
-  addCoachMessage: (text: string, eventKey?: string, source?: "engine" | "llm" | "video", exerciseName?: string) => void;
+  addCoachMessage: (text: string, eventKey?: string, source?: "engine" | "llm" | "video", exerciseName?: string, aiStatus?: "fallback") => void;
   sendChat: () => void;
   isCoachThinking?: boolean;
   workoutExerciseInput: string;
@@ -320,12 +321,17 @@ function buildExerciseIntroCoachText(args: {
   const key = exerciseKey(exerciseName);
   const last = lastByExercise[key];
   const pr = personalRecords[key];
+  // Visas bara när AI-introt inte hann klart. Här stod formler som "Då jagar
+  // vi färre, snygga reps - inte ego" och motorns "Förra nivån blev för lätt.
+  // Vi går upp ett steg och hittar rätt belastning", plus "RIR 1-2". En
+  // betatestare fick dem på varje övning en förmiddag när OpenAI var segt
+  // (2026-09-16). Nu står här bara övning, vikt, reps och vila.
   const introLine =
     exerciseIndex === 0
-      ? `Nu kör vi.\n\nFörst: ${exerciseName}.`
+      ? `Först ut: ${exerciseName}.`
       : exerciseIndex === exerciseCount - 1
-      ? `Avslutar med ${exerciseName}.`
-      : `Nu tar vi ${exerciseName}.`;
+      ? `Sista övningen: ${exerciseName}.`
+      : `Nästa övning: ${exerciseName}.`;
   const isTimed = isTimedExercise(exerciseName);
   if (isTimed) {
     const bestTime = pr?.durationSeconds ?? last?.durationSeconds ?? 0;
@@ -333,15 +339,13 @@ function buildExerciseIntroCoachText(args: {
       ? Math.max(15, Math.round(bestTime * 0.9))
       : 30;
     const bestLine = bestTime > 0
-      ? `Ditt bästa här är ${formatDurationLabel(bestTime)}.`
-      : "Det här är första gången vi kör den tillsammans.";
+      ? `Ditt bästa är ${formatDurationLabel(bestTime)}.`
+      : "Ingen tid loggad än.";
 
     return `${introLine}
 
-${bestLine}
-Starta lugnt och håll positionen så länge formen är bra.
+${bestLine} Sikta på ${formatDurationLabel(targetSeconds)}.
 
-Sikta på ${formatDurationLabel(targetSeconds)}.
 Vila 60–90 sek.`;
   }
   // Inget pr-företräde: progression ÄR gymfiltrerad och lägger redan in PB:t
@@ -354,74 +358,44 @@ Vila 60–90 sek.`;
     ? plannedWeight
     : topSet?.weight ?? last?.weight ?? null;
   const target = progressionPlan
-    ? {
-        reps: progressionPlan.repsText,
-        rir: progressionPlan.rirText,
-        note: progressionPlan.note,
-      }
+    ? { reps: progressionPlan.repsText, rir: progressionPlan.rirText }
     : getIntroTarget({ last, topSet, baseWeight });
+  const reps = target.reps.replace(/(\d)\s*-\s*(\d)/g, "$1–$2");
+  const effort = formatTargetRirText(target.rir).replace(/ reps? kvar$/, " kvar");
+  const goal =
+    reps && effort
+      ? effort === "till stopp"
+        ? `${reps} till stopp`
+        : `${reps} med ${effort}`
+      : reps || effort;
+  const setText = (set: { weight: number; reps: number }) =>
+    formatSetDisplay({ exerciseName, weight: set.weight, reps: set.reps });
 
-  if (!last && !topSet) {
-    return `${introLine}
+  const historyLine = last?.failNote
+    ? `Senast tog det stopp på ${setText(last)}.`
+    : topSet
+    ? `Ditt bästa här är ${setText(topSet)}.`
+    : last
+    ? `Senast: ${setText(last)}.`
+    : "Första gången här.";
+  const weightLine = isBodyweightExercise(exerciseName)
+    ? `Sikta på ${goal}.`
+    : baseWeight !== null && baseWeight > 0
+    ? `Kör ${baseWeight.toLocaleString("sv-SE")} kg idag${goal ? `, ${goal}` : ""}.`
+    : `Välj en vikt där du klarar ${goal}.`;
+  const offerLine =
+    progressionPlan.opportunity?.type === "offer_increase" &&
+    progressionPlan.opportunity.suggestedWeight &&
+    topSet &&
+    baseWeight === topSet.weight
+      ? ` Känns det lätt kan du prova ${Number(progressionPlan.opportunity.suggestedWeight).toLocaleString("sv-SE")} kg.`
+      : "";
 
-Vi börjar kontrollerat och låter första setet visa dagsformen.
+  return `${introLine}
 
-Sikta på ${target.reps}, ${target.rir}.
+${historyLine} ${weightLine}${offerLine}
+
 Vila ${rest}.`;
-  }
-
-  const lines: string[] = [introLine, ""];
-
-  if (last?.failNote) {
-    lines.push("Senast tog det stopp här, så vi öppnar smart.");
-    lines.push("");
-  } else if (topSet) {
-    lines.push(
-      `Ditt bästa här är ${formatSetDisplay({
-        exerciseName,
-        weight: topSet.weight,
-        reps: topSet.reps,
-      })}.`
-    );
-  } else if (last) {
-    lines.push(
-      `Senast låg du på ${formatSetDisplay({
-        exerciseName,
-        weight: last.weight,
-        reps: last.reps,
-      })}.`
-    );
-  }
-
-  if (baseWeight !== null) {
-    lines.push(
-      topSet && baseWeight === topSet.weight
-        ? `Vi börjar på samma vikt och siktar på ${target.reps}, ${target.rir}.`
-        : `Vi börjar på ${baseWeight.toLocaleString("sv-SE")} kg och siktar på ${target.reps}, ${target.rir}.`
-    );
-
-    if (
-      progressionPlan.opportunity?.type === "offer_increase" &&
-      progressionPlan.opportunity.suggestedWeight &&
-      topSet &&
-      baseWeight === topSet.weight
-    ) {
-      lines.push(
-        `Vill du testa ${Number(progressionPlan.opportunity.suggestedWeight).toLocaleString("sv-SE")} kg idag så köper jag det. Då jagar vi färre, snygga reps - inte ego.`
-      );
-    }
-
-    if (progressionPlan.note && !(topSet && baseWeight === topSet.weight)) {
-      lines.push(progressionPlan.note);
-    }
-  } else {
-    lines.push(`Sikta på ${target.reps}, ${target.rir}.`);
-  }
-
-  lines.push("");
-  lines.push(`Vila ${rest}.`);
-
-  return lines.join("\n");
 }
 
 function buildExerciseIntroAiContext(args: {
@@ -990,7 +964,13 @@ useEffect(() => {
       onAiFallback?.(result.reason, currentExerciseName);
     }
     setIntroLoading(false);
-    addCoachMessage(result.text, eventKey, result.mode === "ai" ? "llm" : "engine");
+    addCoachMessage(
+      result.text,
+      eventKey,
+      result.mode === "ai" ? "llm" : "engine",
+      undefined,
+      result.mode === "ai" ? undefined : "fallback"
+    );
   });
 
   return () => {
