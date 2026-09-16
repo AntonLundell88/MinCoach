@@ -1427,7 +1427,7 @@ useEffect(() => {
         {/* Skip confirm */}
         {confirmSkipExercise && (
           <div className="mt-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 px-3 py-3">
-            <p className="text-sm font-semibold text-white">Klar med {currentExerciseName}?</p>
+            <p className="text-sm font-semibold text-white">Klar med {exerciseDisplay.title}?</p>
             <p className="mt-0.5 text-xs text-white/50">
               {currentSets.length > 0
                 ? `De ${currentSets.length} set du loggat sparas — inget försvinner. Resten av övningen hoppar du över.`
@@ -1657,7 +1657,7 @@ useEffect(() => {
             <div className="space-y-1.5 text-center">
               <p className="text-base font-semibold text-white">Avsluta passet?</p>
               <p className="text-sm text-white/55">
-                Du är mitt i <span className="font-semibold text-white/80">{currentExerciseName}</span>. Redan loggade set sparas — resten av övningen hoppar vi över.
+                Du är mitt i <span className="font-semibold text-white/80">{exerciseDisplay.title}</span>. Redan loggade set sparas — resten av övningen hoppar vi över.
               </p>
             </div>
             <div className="flex flex-col gap-2">
@@ -1689,8 +1689,8 @@ useEffect(() => {
               </p>
               <p className="text-sm text-white/55">
                 {currentSets.length > 0
-                  ? <>Du har loggat {currentSets.length} set på <span className="font-semibold text-white/80">{currentExerciseName}</span>. Redan loggade set sparas — resten hoppar du över om du fortsätter.</>
-                  : <>Inga set är loggade än på <span className="font-semibold text-white/80">{currentExerciseName}</span>. Du hoppar över den helt om du fortsätter.</>}
+                  ? <>Du har loggat {currentSets.length} set på <span className="font-semibold text-white/80">{exerciseDisplay.title}</span>. Redan loggade set sparas — resten hoppar du över om du fortsätter.</>
+                  : <>Inga set är loggade än på <span className="font-semibold text-white/80">{exerciseDisplay.title}</span>. Du hoppar över den helt om du fortsätter.</>}
               </p>
             </div>
             <div className="flex flex-col gap-2">
@@ -1748,7 +1748,7 @@ useEffect(() => {
                   key={`done-${exercise.name}-${i}`}
                   className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.04] bg-white/[0.015] px-3 py-2.5 opacity-50"
                 >
-                  <span className="text-sm font-medium text-white/86">{exercise.name}</span>
+                  <span className="text-sm font-medium text-white/86">{splitCustomExerciseName(exercise.name).title}</span>
                   <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/32">
                     Klar
                   </span>
@@ -1948,7 +1948,7 @@ useEffect(() => {
           {swapManualMode ? (
             <>
               <div className="flex items-start justify-between gap-3">
-                <p className="text-base font-semibold text-white">Byt {currentExerciseName} mot</p>
+                <p className="text-base font-semibold text-white">Byt {exerciseDisplay.title} mot</p>
                 <button
                   type="button"
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
@@ -2039,7 +2039,7 @@ useEffect(() => {
             </>
           ) : (
             <LibraryBrowser
-              title={`Byt ${currentExerciseName} mot`}
+              title={`Byt ${exerciseDisplay.title} mot`}
               search={librarySearch}
               setSearch={setLibrarySearch}
               category={libraryCategory}

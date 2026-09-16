@@ -7,6 +7,7 @@ import {
   shouldDisplayAsBodyweight,
   isBodyweightExercise,
   isTimedExercise,
+  splitCustomExerciseName,
 } from "../lib/exercises";
 import ExerciseInfoModal from "./ExerciseInfoModal";
 import VideoFeedbackInfoModal from "./VideoFeedbackInfoModal";
@@ -323,7 +324,7 @@ useEffect(() => {
               Övning hoppad
             </p>
             <p className="mt-1 truncate text-sm text-white/82">
-              {skippedExerciseName}
+              {splitCustomExerciseName(skippedExerciseName).title}
             </p>
           </div>
 
@@ -343,13 +344,13 @@ useEffect(() => {
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <p className="min-w-0 truncate text-xl font-semibold tracking-tight">
-              {currentExerciseName}
+              {splitCustomExerciseName(currentExerciseName).title}
             </p>
             <button
               type="button"
               onClick={() => setShowExerciseInfo(true)}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
-              aria-label={`Visa info om ${currentExerciseName}`}
+              aria-label={`Visa info om ${splitCustomExerciseName(currentExerciseName).title}`}
             >
               i
             </button>
@@ -853,7 +854,7 @@ useEffect(() => {
           <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
           <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
             <div className="space-y-1.5 text-center">
-              <p className="text-base font-semibold text-white">Hoppa över {currentExerciseName}?</p>
+              <p className="text-base font-semibold text-white">Hoppa över {splitCustomExerciseName(currentExerciseName).title}?</p>
               <p className="text-sm text-white/50">Redan loggade set sparas.</p>
             </div>
             <div className="flex flex-col gap-2">

@@ -70,6 +70,7 @@ import {
   normalizeExerciseSearchText,
   parsePlannedSetCount,
   resolveExerciseName,
+  splitCustomExerciseName,
 } from "./lib/exercises";
 import { useExerciseSwapActions } from "./hooks/useExerciseSwapActions";
 import { repairMojibake } from "./lib/textEncoding";
@@ -6306,7 +6307,7 @@ function skipExerciseAtIndex(targetIndex: number, coachText?: string | null) {
         role: "coach",
         text:
           coachText ??
-          `Okej, vi lämnar ${exercise.name} här. De ${exercise.sets.length} set du loggat sparas.`,
+          `Okej, vi lämnar ${splitCustomExerciseName(exercise.name).title} här. De ${exercise.sets.length} set du loggat sparas.`,
       },
     ]);
     return;
@@ -6346,7 +6347,7 @@ function skipExerciseAtIndex(targetIndex: number, coachText?: string | null) {
       ...prev,
       {
         role: "coach",
-        text: coachText ?? `Okej, vi hoppar över ${exercise.name}.`,
+        text: coachText ?? `Okej, vi hoppar över ${splitCustomExerciseName(exercise.name).title}.`,
       },
     ]);
   }
@@ -6409,7 +6410,7 @@ function undoSkipExercise() {
     ...prev,
     {
       role: "coach",
-      text: `${skippedExercise.exercise.name} är tillbaka.`,
+      text: `${splitCustomExerciseName(skippedExercise.exercise.name).title} är tillbaka.`,
     },
   ]);
   setSkippedExercise(null);
