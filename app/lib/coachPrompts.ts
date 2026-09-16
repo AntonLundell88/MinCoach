@@ -463,10 +463,14 @@ export function buildCoachWorkoutReviewPromptPayload(
 // bara vill titta" och "du ser det de inte ser själva". Lobbyn förutsatte ett
 // pass i 17 av 18 texter. Med meningarna och utvecklingsdatan gjorde bara ett
 // fåtal det, och coachen började prata om det eleven inte ser själv.
+// 2026-09-16 struket: "med glimten i ögat". Röstbriefen säger redan "Du får
+// ha glimt i ögat", så lobbyn fick det två gånger. Påtvingade skämt och bilder
+// ("Ska vi sätta första pinnen i tältet?", "92,5 i böjen står kvar på menyn")
+// stod i ungefär 11 av 36 texter före och 4 av 36 efter, räknat vid läsning.
 const LOBBY_INSTRUCTION = [
   "Din elev har precis öppnat appen. Du vet inte om de ska träna nu eller bara vill titta. Du har tittat i deras träningslogg och det du vet om dem, och du ser det de inte ser själva. Säg det du vill säga just nu.",
   "",
-  "Säg det som du hade sagt det rakt ut till dem: vardagligt, oformellt, med glimten i ögat.",
+  "Säg det som du hade sagt det rakt ut till dem: vardagligt och oformellt.",
   "",
   `Appen visar redan en hälsning med namnet ovanför din text. Svara bara med texten, högst ${MAX_LOBBY_NOTE_CHARACTERS} tecken.`,
 ].join("\n");
