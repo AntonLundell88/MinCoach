@@ -3210,11 +3210,13 @@ function getOtherGymReference(args: {
       (Date.now() - new Date(w.startedAt).getTime()) / 86400000
     );
 
+    // Vikten med komma och marginalen i ord, som i setText. Med "97.5 kg" och
+    // "RIR 2" skrev coachen "97.5 kg x 8" och "97,5 x 8 med RIR 2" (2026-09-16).
     return {
       gymName,
-      weightText: `${lastSet.weight} kg`,
+      weightText: `${formatCoachWeight(lastSet.weight)} kg`,
       repsText: `${lastSet.reps} reps`,
-      rirText: typeof lastSet.rir === "number" ? `RIR ${lastSet.rir}` : undefined,
+      rirText: typeof lastSet.rir === "number" ? formatTargetRirText(`RIR ${lastSet.rir}`) : undefined,
       daysAgo,
     };
   }
