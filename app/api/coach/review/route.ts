@@ -7,7 +7,7 @@ import {
 } from "../../../lib/coachAi";
 import { buildCoachWorkoutReviewPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
-import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText, requestErrorReason } from "../../../lib/openAi";
 
 type CoachReviewRequest = {
   context?: CoachWorkoutReviewContext;
@@ -167,8 +167,8 @@ export async function POST(request: Request) {
       mode: "ai",
       review,
     });
-  } catch {
-    return fallbackResponse(fallbackReview, "api_error");
+  } catch (error) {
+    return fallbackResponse(fallbackReview, requestErrorReason(error));
   } finally {
     clearTimeout(timeoutId);
   }

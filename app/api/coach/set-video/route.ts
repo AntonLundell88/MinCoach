@@ -8,7 +8,7 @@ import {
 } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
-import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText, requestErrorReason } from "../../../lib/openAi";
 
 type CoachSetVideoRequest = {
   context?: CoachSetVideoContext;
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
         status: response.status,
         body: errorText.slice(0, 500),
       });
-      return fallbackResponse(fallbackReply, "api_error");
+      return fallbackResponse(fallbackReply, `api_error_${response.status}`);
     }
 
     const data = await response.json();
@@ -213,8 +213,8 @@ export async function POST(request: Request) {
       text: sanitizedText,
       needsNewAngle,
     });
-  } catch {
-    return fallbackResponse(fallbackReply, "api_error");
+  } catch (error) {
+    return fallbackResponse(fallbackReply, requestErrorReason(error));
   } finally {
     clearTimeout(timeoutId);
   }

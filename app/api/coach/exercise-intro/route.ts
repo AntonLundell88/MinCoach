@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { sanitizeCoachReply, type CoachExerciseIntroContext } from "../../../lib/coachAi";
 import { buildCoachExerciseIntroPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
-import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText, requestErrorReason } from "../../../lib/openAi";
 
 type CoachExerciseIntroRequest = {
   context?: CoachExerciseIntroContext;
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
         body: errorText.slice(0, 500),
       });
 
-      return fallbackResponse(fallbackReply, "api_error", payload.maxCharacters);
+      return fallbackResponse(fallbackReply, `api_error_${response.status}`, payload.maxCharacters);
     }
 
     const data = await response.json();
@@ -134,8 +134,8 @@ export async function POST(request: Request) {
       reason: usedSanitizedFallback ? "sanitized_reply" : undefined,
       text: sanitizedText,
     });
-  } catch {
-    return fallbackResponse(fallbackReply, "api_error", payload.maxCharacters);
+  } catch (error) {
+    return fallbackResponse(fallbackReply, requestErrorReason(error), payload.maxCharacters);
   } finally {
     clearTimeout(timeoutId);
   }

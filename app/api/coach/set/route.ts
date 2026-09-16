@@ -8,7 +8,7 @@ import {
 } from "../../../lib/coachAi";
 import { buildCoachPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
-import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText, requestErrorReason } from "../../../lib/openAi";
 
 type CoachSetRequest = {
   context?: CoachSetContext;
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
 
       return fallbackResponse(
         fallbackReply,
-        "api_error",
+        `api_error_${response.status}`,
         payload.maxCharacters,
         context
       );
@@ -156,10 +156,10 @@ export async function POST(request: Request) {
       mode: "ai",
       text: sanitizeCoachSetReply(context, aiText, fallbackReply, payload.maxCharacters),
     });
-  } catch {
+  } catch (error) {
     return fallbackResponse(
       fallbackReply,
-      "api_error",
+      requestErrorReason(error),
       payload.maxCharacters,
       context
     );

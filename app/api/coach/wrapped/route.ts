@@ -14,7 +14,7 @@ import {
 } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
-import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText, requestErrorReason } from "../../../lib/openAi";
 
 type CoachWrappedRequest = {
   month?: string;
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
         status: response.status,
         body: errorText.slice(0, 500),
       });
-      return fallbackResponse(fallbackCaptions, "api_error");
+      return fallbackResponse(fallbackCaptions, `api_error_${response.status}`);
     }
 
     const data = await response.json();
@@ -192,8 +192,8 @@ export async function POST(request: Request) {
       MAX_WRAPPED_REFLECTION_CAPTION_CHARACTERS
     );
     mode = "ai";
-  } catch {
-    return fallbackResponse(fallbackCaptions, "api_error");
+  } catch (error) {
+    return fallbackResponse(fallbackCaptions, requestErrorReason(error));
   } finally {
     clearTimeout(timeoutId);
   }

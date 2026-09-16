@@ -109,3 +109,14 @@ export function supportsExplicitPromptCache(model: string) {
   const minor = Number(match[2] ?? 0);
   return major > 5 || (major === 5 && minor >= 6);
 }
+
+/**
+ * Orsaken när anropet till OpenAI kastar i stället för att svara. De flesta
+ * rutter kallade det "api_error", samma som när OpenAI svarade med fel, så
+ * reservintrona i betatestet 2026-09-16 gick inte att förklara: slog de i
+ * tidsgränsen, eller svarade OpenAI fel? Ett avbrutet anrop räknas som
+ * timeout. Klienten avbryter också anrop själv, men rapporterar aldrig dem.
+ */
+export function requestErrorReason(error: unknown) {
+  return error instanceof Error && error.name === "AbortError" ? "timeout" : "network_error";
+}

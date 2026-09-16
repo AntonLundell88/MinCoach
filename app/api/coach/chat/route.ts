@@ -8,7 +8,7 @@ import {
 import { buildCoachChatPromptPayload } from "../../../lib/coachPrompts";
 import { CUSTOM_EXERCISE_CATEGORIES } from "../../../lib/exercises";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
-import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText, requestErrorReason } from "../../../lib/openAi";
 
 type CoachChatRequest = {
   context?: CoachChatContext;
@@ -276,9 +276,7 @@ export async function POST(request: Request) {
       error instanceof Error ? error.message : "Unknown error";
     return fallbackResponse(
       fallbackReply,
-      error instanceof Error && error.name === "AbortError"
-        ? "timeout"
-        : "network_error",
+      requestErrorReason(error),
       { startMs, promptBuildMs, openAiRequestMs: Date.now() - apiCallStart, promptSize },
       payload.maxCharacters,
       message

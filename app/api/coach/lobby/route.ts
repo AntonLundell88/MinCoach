@@ -7,7 +7,7 @@ import {
 } from "../../../lib/coachAi";
 import { buildCoachLobbyPromptPayload } from "../../../lib/coachPrompts";
 import { checkAiRateLimit } from "../../../lib/aiRateLimit";
-import { coachPromptInput, extractOutputText } from "../../../lib/openAi";
+import { coachPromptInput, extractOutputText, requestErrorReason } from "../../../lib/openAi";
 
 type CoachLobbyRequest = {
   context?: CoachLobbyContext;
@@ -111,8 +111,8 @@ export async function POST(request: Request) {
       mode: "ai",
       text,
     });
-  } catch {
-    return fallbackResponse("api_error");
+  } catch (error) {
+    return fallbackResponse(requestErrorReason(error));
   } finally {
     clearTimeout(timeoutId);
   }
