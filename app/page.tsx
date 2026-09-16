@@ -3372,7 +3372,7 @@ function buildCoachSetContext(args: {
   isFirstSetInExercise?: boolean;
   sessionsAtTopWeight?: number;
   lastCoachMessage?: string;
-  memoryInsight?: string;
+  memoryInsight?: CoachSetContext["memoryInsight"];
   limitations?: string;
   nearestWeights?: { up: number; down: number };
   recentHealthNotes?: CoachHealthNote[];
@@ -3634,7 +3634,7 @@ function buildCoachSetContext(args: {
         : undefined,
     },
     restText: args.nextSetPlan.restText,
-    memoryInsight: args.memoryInsight?.trim() || undefined,
+    memoryInsight: args.memoryInsight,
     limitations: args.limitations?.trim() || undefined,
     nearestWeights: args.nearestWeights,
     recentHealthNotes: args.recentHealthNotes?.length ? args.recentHealthNotes : undefined,
@@ -4206,10 +4206,18 @@ function getWorkoutComparison(history: Workout[]) {
 
   return result;
 }
+// Anteckningen själv, inte en färdig mening. Här returnerades meningar i
+// coachens egen röst, som "Jag minns att tekniken brast här sist. Om det känns
+// likadant vill jag att du säger till direkt." Coachen upprepade dem: med
+// meningen tog den upp tekniken i 4 av 8 setsvar och ekade "säg till direkt",
+// med anteckningen i 2 av 8 och utan eko (mätt 2026-09-16). Urvalet är
+// detsamma som förut: den senaste anteckningen om övningen, och bara när den
+// gäller grepp, teknik, smärta eller gränsen i muskeln. Ett maskintak i varje
+// setsvar gav tjat och vingel i samma mätning.
 function buildExerciseMemoryInsight(args: {
   coachMemory: CoachMemory;
   exerciseName: string;
-}) {
+}): CoachSetContext["memoryInsight"] {
   const { coachMemory, exerciseName } = args;
 
   const note = coachMemory.notes.find(
@@ -4218,27 +4226,24 @@ function buildExerciseMemoryInsight(args: {
       exerciseKey(n.exerciseName) === exerciseKey(exerciseName)
   );
 
-  if (!note) return "";
+  if (!note) return undefined;
 
   const text = note.text.toLowerCase();
+  const matters = ["greppet", "tekniken", "smärta", "känning", "gränsen i muskeln"].some(
+    (word) => text.includes(word)
+  );
 
-  if (text.includes("greppet")) {
-    return "Jag minns att greppet begränsade dig här sist. Vi börjar på samma vikt och ser om det håller längre.";
-  }
+  if (!matters) return undefined;
 
-  if (text.includes("tekniken")) {
-    return "Jag minns att tekniken brast här sist. Om det känns likadant vill jag att du säger till direkt.";
-  }
-
-  if (text.includes("smärta") || text.includes("känning")) {
-    return "Jag minns att du kände av den här övningen sist. Säg till direkt om det kommer tillbaka.";
-  }
-
-  if (text.includes("gränsen i muskeln")) {
-    return "Jag minns att du nådde gränsen här sist. Första setet visar hur nära vi ska gå idag.";
-  }
-
-  return "";
+  return [
+    {
+      text: note.text,
+      daysAgo: Math.max(
+        0,
+        Math.round((Date.now() - new Date(note.createdAt).getTime()) / 86400000)
+      ),
+    },
+  ];
 }
 
 function getRecentHealthNotes(

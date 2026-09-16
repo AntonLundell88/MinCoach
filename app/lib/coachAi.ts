@@ -114,7 +114,7 @@ export type CoachSetContext = {
     techniqueCue?: string;
   };
   restText?: string;
-  memoryInsight?: string;
+  memoryInsight?: Array<{ text: string; daysAgo: number }>;
   /**
    * Närmaste vikt upp och ner som utrustningen faktiskt har. Inget däremellan.
    *
@@ -182,7 +182,7 @@ export type CoachChatContext = {
   currentExerciseName?: string;
   currentExerciseCategory?: string;
   currentExerciseInfo?: CoachExerciseLibraryInfo;
-  memoryInsight?: string;
+  memoryInsight?: Array<{ text: string; daysAgo: number }>;
   limitations?: string;
   recentHealthNotes?: CoachHealthNote[];
   recentWorkingWeights?: string[];
