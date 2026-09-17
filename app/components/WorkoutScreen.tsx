@@ -1302,13 +1302,17 @@ useEffect(() => {
                 >
                   Lägg till set
                 </button>
+                {/* Samma sak som i vanligt läge: knapp, inte textlänk, och
+                    samma höjd som "Lägg till set" — den ligger intill och
+                    trycks direkt efter ett råkat set. */}
                 {currentSets.length > 0 ? (
                   <button
                     type="button"
                     onClick={removeLastSet}
-                    className="shrink-0 text-xs font-medium text-white/40 underline decoration-white/20 underline-offset-2 transition hover:text-white/70"
+                    title="Ta bort senaste set"
+                    className="h-12 shrink-0 rounded-2xl border border-white/[0.1] bg-white/[0.04] px-4 text-sm font-semibold text-white/70 transition hover:bg-white/[0.08] hover:text-white active:scale-[0.99]"
                   >
-                    Ångra
+                    Ångra set
                   </button>
                 ) : null}
               </div>

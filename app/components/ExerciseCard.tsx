@@ -906,14 +906,18 @@ useEffect(() => {
             <>
               {nextExerciseButton}
               <div className="flex items-center gap-2">
+                {/* Var en 12-punkters textlänk. Ett råkat "Lägg till set" i
+                    betatestet hittade den inte: den låg dessutom bakom den
+                    flytande vilotimern. Samma höjd som kameraknappen nu, så
+                    den går att träffa med tummen. */}
                 {canUndoSet ? (
                   <button
                     type="button"
-                    className="text-xs font-medium text-white/40 underline decoration-white/20 underline-offset-2 transition hover:text-white/70"
+                    className="flex h-11 items-center rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 text-sm font-semibold text-white/70 transition hover:bg-white/[0.08] hover:text-white active:scale-[0.98]"
                     onClick={removeLastSet}
                     title="Ta bort senaste set"
                   >
-                    Ångra
+                    Ångra set
                   </button>
                 ) : null}
                 {onRecordLastSet ? (
