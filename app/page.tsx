@@ -29,6 +29,7 @@ import { useWrappedRecap } from "./hooks/useWrappedRecap";
 import { useLobbyCoachNote } from "./hooks/useLobbyCoachNote";
 import { buildLobbyContext } from "./lib/lobbyContext";
 import { lastSessionSetsByExercise, latestSetsByExercise } from "./lib/lastSets";
+import { inferWeightStepFromHistory, snapSuggestedWeight, snapWeightToStep } from "./lib/weightSteps";
 import { useAutoAccountBackup } from "./hooks/useAutoAccountBackup";
 import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
 import { reportAiFallback } from "./lib/aiFallbackReport";
@@ -877,7 +878,63 @@ function hasUsefulMargin(set: ExerciseBestSet) {
   return typeof set.rir !== "number" || set.rir >= 1;
 }
 
+// Planen till nästa pass, med vikterna lagda på de steg utrustningen faktiskt
+// verkar ha. Se inferWeightStepFromHistory: schablonen 2,5 kg gav 47,5 på en
+// benspark med bara 45 och 50. Snappningen sker här, på vägen ut, i stället
+// för i varje gren — grenarna räknar som förut.
 function buildProgressionPlan(args: {
+  history: Workout[];
+  exerciseName: string;
+  targetReps: number;
+  dayForm: DayForm | null;
+  sessionHasPainFlag?: boolean;
+}): ExerciseProgressionPlan {
+  const plan = computeProgressionPlan(args);
+  const step = getObservedWeightStep(args.history, args.exerciseName);
+  if (!step) return plan;
+
+  // Vikten planen utgår från: det tyngsta setet i den historik den läste.
+  // Samma referens som grenarna räknar sina höjningar och sänkningar från.
+  const from = [...getExerciseBestSets(args.history, args.exerciseName, 6)].sort((a, b) => {
+    if (b.weight !== a.weight) return b.weight - a.weight;
+    return b.reps - a.reps;
+  })[0]?.weight;
+  if (typeof from !== "number") return plan;
+
+  const snap = (value: string) => {
+    const weight = Number(value);
+    if (!value || !Number.isFinite(weight) || weight <= 0) return value;
+    return formatWeightInput(snapSuggestedWeight({ weight, from, step }));
+  };
+
+  return {
+    ...plan,
+    weight: snap(plan.weight),
+    opportunity: plan.opportunity
+      ? { ...plan.opportunity, suggestedWeight: snap(plan.opportunity.suggestedWeight) }
+      : undefined,
+    calibrationTestCandidate: plan.calibrationTestCandidate
+      ? { ...plan.calibrationTestCandidate, weight: snap(plan.calibrationTestCandidate.weight) }
+      : undefined,
+  };
+}
+
+// Steget som gäller för övningen, eller null när schablonen ska gälla.
+// Hantlar har en egen skala med ojämna steg och rörs inte.
+function getObservedWeightStep(history: Workout[], exerciseName: string) {
+  if (!exerciseName || isDumbbellWeightExercise(exerciseName)) return null;
+
+  const defaultStep = getExerciseWeightStep(exerciseName);
+  const step = inferWeightStepFromHistory({
+    workouts: history,
+    exerciseName,
+    defaultStep,
+  });
+
+  return step > defaultStep ? step : null;
+}
+
+function computeProgressionPlan(args: {
   history: Workout[];
   exerciseName: string;
   targetReps: number;
@@ -2506,7 +2563,7 @@ function getNextTimedSetPlan(args: {
   } satisfies NextSetPlan;
 }
 
-function getNextSetPlan(args: {
+type NextSetPlanArgs = {
   weight: number;
   reps: number;
   rir: number;
@@ -2517,7 +2574,45 @@ function getNextSetPlan(args: {
   exerciseName?: string;
   previousSets?: { weight: number; reps: number; rir?: number }[];
   dayForm?: DayForm | null;
-}) {
+  /** Steget utrustningen verkar ha, från getObservedWeightStep. */
+  weightStep?: number | null;
+};
+
+// Samma snappning som buildProgressionPlan, fast under passet: grenarna räknar
+// som förut, och vikten läggs på ett steg som finns innan den når coachen.
+function getNextSetPlan(args: NextSetPlanArgs) {
+  const plan = computeNextSetPlan(args);
+  const step = args.weightStep;
+  if (!step) return plan;
+
+  // Oförändrad vikt är per definition en vikt som finns — den kommer från ett
+  // loggat set — så den rörs inte. Setet som just loggades är referensen för
+  // vad som är upp och vad som är ner.
+  const weight = snapSuggestedWeight({ weight: plan.weight, from: args.weight, step });
+  // Ett testset uppåt ska också landa på en vikt som finns.
+  const opportunityWeight = plan.opportunity
+    ? (() => {
+        const parsed = Number(plan.opportunity.suggestedWeight);
+        if (!Number.isFinite(parsed) || parsed <= 0) return plan.opportunity.suggestedWeight;
+        return formatWeightInput(snapSuggestedWeight({ weight: parsed, from: args.weight, step }));
+      })()
+    : undefined;
+
+  if (weight === plan.weight && opportunityWeight === plan.opportunity?.suggestedWeight) {
+    return plan;
+  }
+
+  return {
+    ...plan,
+    weight,
+    opportunity:
+      plan.opportunity && opportunityWeight
+        ? { ...plan.opportunity, suggestedWeight: opportunityWeight }
+        : plan.opportunity,
+  };
+}
+
+function computeNextSetPlan(args: NextSetPlanArgs) {
   const { weight, reps, rir, setNumber, dayForm } = args;
   const exerciseName = args.exerciseName ?? "";
   const decisionProfile = getExerciseDecisionProfile(exerciseName);
@@ -5067,6 +5162,16 @@ const lastAtCurrentGym = useMemo<LastByExercise>(() => {
 // "Senast" ovan, och utan det pågående passet: "förra gången" är ett annat
 // pass än dagens. Seten skrivs färdigt här, med samma ord som setrösten får,
 // och faller tillbaka på det sparade senaste setet när historiken är tom.
+// Viktsteget utrustningen verkar ha för den här övningen på det här gymmet.
+// null betyder att schablonen gäller. Se inferWeightStepFromHistory.
+const observedWeightStep = useMemo(() => {
+  if (!currentExerciseName) return null;
+  return getObservedWeightStep(gymFilteredHistory, currentExerciseName);
+}, [gymFilteredHistory, currentExerciseName]);
+
+const snapObservedWeight = (weight: number, mode: "nearest" | "down" | "up") =>
+  observedWeightStep ? snapWeightToStep(weight, observedWeightStep, mode) : weight;
+
 const lastSessionSetsAtGym = useMemo(() => {
   if (!currentExerciseName) return [];
 
@@ -5910,6 +6015,7 @@ async function sendChat() {
               exerciseName: currentExerciseName,
               previousSets: currentWorkoutExercise.sets.slice(0, -1),
               dayForm: overrides?.dayForm ?? dayForm,
+              weightStep: observedWeightStep,
             });
             return { strategy: toWireStrategy(decision.strategy), reason: decision.reason };
           })()
@@ -7105,6 +7211,7 @@ const painFailure =
         exerciseName: currentExerciseName,
         previousSets: updated.exercises[targetExerciseIndex].sets.slice(0, -1),
         dayForm,
+        weightStep: observedWeightStep,
       });
    const bodyweightAdjustedPlan =
     weightOptional && !hasLoggedWeight
@@ -7241,8 +7348,14 @@ const coachSetContext = buildCoachSetContext({
   nearestWeights:
     weight > 0
       ? {
-          up: getNextAvailableWeight(weight, currentExerciseName, "up"),
-          down: getNextAvailableWeight(weight, currentExerciseName, "down"),
+          up: snapObservedWeight(
+            getNextAvailableWeight(weight, currentExerciseName, "up"),
+            "up"
+          ),
+          down: snapObservedWeight(
+            getNextAvailableWeight(weight, currentExerciseName, "down"),
+            "down"
+          ),
         }
       : undefined,
   limitations: userProfile?.limitations,
