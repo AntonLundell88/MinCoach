@@ -104,6 +104,11 @@ type Props = {
       updatedAt: string;
     }
   >;
+  /**
+   * Hela övningen förra gången den kördes här, i ordning, färdigskriven i
+   * samma ord som setrösten får. Går till introt.
+   */
+  lastSessionSets?: Array<{ setText: string; failNote: string | null }>;
   exerciseKey: (name: string) => string;
   weightInput: string;
   setWeightInput: Dispatch<SetStateAction<string>>;
@@ -419,6 +424,7 @@ function buildExerciseIntroAiContext(args: {
     calibrationTestCandidate?: { weight: string };
   };
   lastByExercise: Props["lastByExercise"];
+  lastSessionSets?: Props["lastSessionSets"];
   exerciseKey: (name: string) => string;
   personalRecords: Props["personalRecords"];
   previousWorkoutSummary?: string;
@@ -434,6 +440,7 @@ function buildExerciseIntroAiContext(args: {
     progression,
     progressionPlan,
     lastByExercise,
+    lastSessionSets,
     exerciseKey,
     personalRecords,
     previousWorkoutSummary,
@@ -498,9 +505,9 @@ function buildExerciseIntroAiContext(args: {
     },
     history: {
       bestSet: topSet ?? undefined,
-      lastSession: last
-        ? { weight: last.weight, reps: last.reps, failNote: last.failNote }
-        : undefined,
+      // Hela övningen förra gången, i ordning (se lastSessionSetsAtGym i
+      // page.tsx, som också bär reservfallet).
+      lastSession: lastSessionSets?.length ? { sets: lastSessionSets } : undefined,
     },
     opportunity:
       progressionPlan.opportunity && topSet && baseWeight === topSet.weight
@@ -545,6 +552,7 @@ export default function WorkoutScreen({
   pickCustomExerciseForSwap,
   currentExerciseName,
   lastByExercise,
+  lastSessionSets,
   exerciseKey,
   weightInput,
   setWeightInput,
@@ -934,6 +942,7 @@ useEffect(() => {
     progression,
     progressionPlan,
     lastByExercise,
+    lastSessionSets,
     exerciseKey,
     personalRecords,
     previousWorkoutSummary: exerciseIndex === 0 ? previousWorkoutSummary : undefined,

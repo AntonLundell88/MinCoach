@@ -285,7 +285,17 @@ export type CoachExerciseIntroContext = {
     // det här blir det "bästa setet", vilket är precis vad en människa
     // hade sagt. Fixa jargong i datan, inte med ett förbud i prompten.
     bestSet?: { weight: number; reps: number };
-    lastSession?: { weight: number; reps: number; failNote?: string | null };
+    // Alla set i övningen förra gången, i ordning. Fältet bar tidigare ett
+    // enda set, det allra sista och därmed det tröttaste, så coachen sa "Sist
+    // blev det 4 reps här" om ett pass som var 8, 6 och 4 (betatest
+    // 2026-09-17). Sista setet ligger kvar sist i listan.
+    //
+    // setText, inte råa siffror: med rir som tal skrev coachen "andra setet
+    // gick till 0 RIR" i 3 av 6 svar. Samma färdigskrivna form som setrösten
+    // får ("40 kg × 8, 1 rep kvar", "till stopp") går att citera rakt av.
+    lastSession?: {
+      sets: Array<{ setText: string; failNote?: string | null }>;
+    };
     bestTimeText?: string;
   };
   opportunity?: {

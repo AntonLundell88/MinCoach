@@ -26,6 +26,53 @@ export type LastSet = {
   updatedAt: string;
 };
 
+/**
+ * Alla set i övningen förra gången den kördes, i ordning, ur passen du skickar
+ * in. Skickas bara passen på gymmet du står i blir det "förra gången här".
+ *
+ * Introt fick tidigare bara det allra sista setet, alltså det tröttaste i
+ * övningen, och sa "Sist blev det 4 reps här" om ett pass som var 8, 6 och 4
+ * (betatest 2026-09-17). Det pågående passet hör inte hit — skicka historiken.
+ */
+export function lastSessionSetsByExercise(
+  workouts: Array<{
+    startedAt: string;
+    exercises: Array<{ name: string; sets: LoggedSetLike[] }>;
+  }>,
+  exerciseName: string
+): Array<{
+  weight: number;
+  reps: number;
+  durationSeconds?: number;
+  metricType?: "reps" | "time";
+  rir: number | null;
+  failNote: string | null;
+}> {
+  const key = exerciseKey(exerciseName);
+  const sorted = [...workouts].sort(
+    (a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt)
+  );
+
+  for (const workout of sorted) {
+    const exercise = workout.exercises.find(
+      (item) => exerciseKey(item.name) === key
+    );
+
+    if (!exercise?.sets.length) continue;
+
+    return exercise.sets.map((set) => ({
+      weight: set.weight,
+      reps: set.reps,
+      durationSeconds: set.durationSeconds,
+      metricType: set.metricType,
+      rir: set.rir ?? null,
+      failNote: set.failNote ?? null,
+    }));
+  }
+
+  return [];
+}
+
 export function latestSetsByExercise(
   workouts: Array<{ exercises: Array<{ name: string; sets: LoggedSetLike[] }> }>
 ): Record<string, LastSet> {

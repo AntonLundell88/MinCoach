@@ -271,7 +271,10 @@ const EXERCISE_INTRO_INSTRUCTION = [
   "",
   "Vad du har i context:",
   "- position: var i passet ni är (first/middle/last).",
-  "- history: deras bästa set och senaste gången — inklusive failNote om det tog stopp.",
+  // "senaste gången" var ett enda set, och det var sista setet i övningen.
+  // Coachen sa därför "Sist blev det 4 reps här" om ett pass som var 8, 6 och
+  // 4 (betatest 2026-09-17). Nu hela övningen, i ordning.
+  "- history: deras bästa set och alla set från förra gången de körde övningen, i ordning — inklusive failNote om något tog stopp.",
   // Här stod också "Det här ser användaren redan på skärmen." Det slutade
   // stämma när fälten blev historik: kortet visar vad de körde senast, inte
   // target. Coachen antydde då vikten i stället för att säga den ("så 92,5

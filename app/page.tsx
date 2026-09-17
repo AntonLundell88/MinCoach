@@ -28,7 +28,7 @@ import { SettingsGlyph } from "./components/IconGlyphs";
 import { useWrappedRecap } from "./hooks/useWrappedRecap";
 import { useLobbyCoachNote } from "./hooks/useLobbyCoachNote";
 import { buildLobbyContext } from "./lib/lobbyContext";
-import { latestSetsByExercise } from "./lib/lastSets";
+import { lastSessionSetsByExercise, latestSetsByExercise } from "./lib/lastSets";
 import { useAutoAccountBackup } from "./hooks/useAutoAccountBackup";
 import { scheduleBetaSync, syncBetaSnapshotNow } from "./lib/betaSync";
 import { reportAiFallback } from "./lib/aiFallbackReport";
@@ -5063,6 +5063,30 @@ const lastAtCurrentGym = useMemo<LastByExercise>(() => {
   return latestSetsByExercise(workout ? [workout, ...gymFilteredHistory] : gymFilteredHistory);
 }, [activeGymId, gyms.length, lastByExercise, workout, gymFilteredHistory]);
 
+// Hela övningen förra gången den kördes här, till introt. Samma gymfilter som
+// "Senast" ovan, och utan det pågående passet: "förra gången" är ett annat
+// pass än dagens. Seten skrivs färdigt här, med samma ord som setrösten får,
+// och faller tillbaka på det sparade senaste setet när historiken är tom.
+const lastSessionSetsAtGym = useMemo(() => {
+  if (!currentExerciseName) return [];
+
+  const logged = lastSessionSetsByExercise(gymFilteredHistory, currentExerciseName);
+  const stored = lastAtCurrentGym[exerciseKey(currentExerciseName)];
+  const sets = logged.length ? logged : stored ? [stored] : [];
+
+  return sets.map((set) => ({
+    setText: formatLoggedSetText({
+      exerciseName: currentExerciseName,
+      weight: set.weight,
+      reps: set.reps,
+      durationSeconds: set.durationSeconds,
+      metricType: set.metricType,
+      rir: set.rir ?? undefined,
+    }),
+    failNote: set.failNote ?? null,
+  }));
+}, [gymFilteredHistory, currentExerciseName, lastAtCurrentGym]);
+
 const otherGymReference = useMemo(() => {
   if (!currentExerciseName) return undefined;
   return getOtherGymReference({
@@ -8705,6 +8729,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName, aiStatus) =>
 }
         currentExerciseName={currentExerciseName}
         lastByExercise={lastAtCurrentGym}
+        lastSessionSets={lastSessionSetsAtGym}
         exerciseKey={exerciseKey}
         weightInput={weightInput}
         setWeightInput={markTouched(setWeightInput)}
