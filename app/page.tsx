@@ -5857,10 +5857,13 @@ async function sendChat() {
     // reason är motorns hela mening ("Det var ett hårt set. Jag tycker vi
     // sänker lite så nästa set också blir rent."), medan setrösten får korta
     // tränarord (decisionReasonCode). Misstanken var att meningarna ekade.
-    // Mätt 2026-09-16 med frågor om sänkning, samma vikt och höjning: motorns
-    // ord kom tillbaka i 1 av 24 svar ("blir rent"), och med tränarorden
-    // förklarade chatten besluten lika ofta och lika bra. Den resonerar ur
-    // seten, inte ur meningen. Därför inte omgjord.
+    // Mätt 2026-09-16 med frågor om sänkning, samma vikt och höjning: 3 av 24
+    // svar lånade ord ur meningen, "blir rent" en gång och "den sitter" två
+    // gånger efter "Den nivån sitter". Motorns egna formuleringar, som
+    // "marginalen var låg" och "arbetsområdet", kom aldrig. Med tränarorden
+    // förklarade chatten besluten lika ofta och lika bra, och "sitter" skrev
+    // den då också. Den resonerar ur seten, inte ur meningen. Därför inte
+    // omgjord.
     const slimDecision =
       currentWorkoutExercise && currentWorkoutExercise.sets.length > 0
         ? (() => {
