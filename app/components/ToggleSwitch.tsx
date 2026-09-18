@@ -6,6 +6,8 @@ type ToggleSwitchProps = {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label?: string;
+  /** Texten står redan bredvid (t.ex. en inställningsrad) — använd den bara för skärmläsaren. */
+  hideLabel?: boolean;
   description?: string;
   disabled?: boolean;
   theme?: AppTheme;
@@ -17,6 +19,7 @@ export default function ToggleSwitch({
   checked,
   onChange,
   label,
+  hideLabel = false,
   description,
   disabled = false,
   theme = "dark",
@@ -43,7 +46,7 @@ export default function ToggleSwitch({
 
   return (
     <div className={`flex items-center justify-between gap-4 ${className}`}>
-      {label ? (
+      {label && !hideLabel ? (
         <div className="min-w-0">
           <p className={`text-sm font-semibold leading-5 ${labelClassName}`}>{label}</p>
           {description ? (

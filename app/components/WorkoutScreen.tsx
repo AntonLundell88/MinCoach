@@ -159,6 +159,9 @@ type Props = {
   exerciseAlreadyIntroduced?: string | null;
   /** Inga set loggade än i passet? Då visas uppvärmningshinten — varje pass, i båda lägena. */
   showWarmupHint?: boolean;
+  /** Sparad preferens från page.tsx — se autoStartRestTimer där. */
+  autoStartRestTimer: boolean;
+  setAutoStartRestTimer: (value: boolean) => void;
   /**
    * Har användaren själv ändrat vikt/reps/RIR sedan siffrorna hamnade i
    * fälten? Falskt betyder att de kommer från något som redan hänt — förra
@@ -587,6 +590,8 @@ export default function WorkoutScreen({
   validateSetWeight,
   exerciseAlreadyIntroduced,
   showWarmupHint = false,
+  autoStartRestTimer,
+  setAutoStartRestTimer,
   inputsTouched = false,
   previousWorkoutSummary,
   otherGymReference,
@@ -623,7 +628,6 @@ export default function WorkoutScreen({
   const [showVideoInfo, setShowVideoInfo] = useState(false);
   const [isNormalChatHistoryOpen, setIsNormalChatHistoryOpen] = useState(false);
   const normalChatCardRef = useRef<HTMLDivElement | null>(null);
-  const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
   const [restElapsed, setRestElapsed] = useState(0);
   const [isInlineRestWidgetVisible, setIsInlineRestWidgetVisible] = useState(true);

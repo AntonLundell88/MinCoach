@@ -4390,6 +4390,9 @@ const [showExerciseProgress, setShowExerciseProgress] = useState(false);
   const [showPersonalRecords, setShowPersonalRecords] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [appTheme, setAppTheme] = useState<AppTheme>("dark");
+  // Växeln fanns i vilorutan men bodde i passvyns eget minne: valet nollställdes
+  // till "på" varje nytt pass. Preferensen hör hit, där den sparas.
+  const [autoStartRestTimer, setAutoStartRestTimer] = useState(true);
   const [selectedStartPass, setSelectedStartPass] = useState<PassType | null>(null);
   const [selectedProgressExercise, setSelectedProgressExercise] = useState<
     string | null
@@ -4592,6 +4595,7 @@ if (savedLastPass && ALL_PASS_KEYS.includes(savedLastPass)) {
     setCustomWorkoutPlan(loadJSON<StoredWorkoutPlan | null>("customWorkoutPlan", null));
     setPassDisplayNamesByPass(loadJSON<PassDisplayNamesByPass>("passDisplayNamesByPass", {}));
     setAppTheme(loadJSON<AppTheme>("appTheme", "dark"));
+    setAutoStartRestTimer(loadJSON<boolean>("autoStartRestTimer", true));
     setHasAcceptedTrainingSafety(
       loadJSON<boolean>("acceptedTrainingSafety", false)
     );
@@ -5529,6 +5533,30 @@ function confirmGymForToday() {
     setGym(found.name);
     localStorage.setItem("lastGymId", id);
     confirmGymForToday();
+  }
+
+  // Gym gick att lägga till och döpa om, men aldrig ta bort — så det
+  // auto-skapade "Mitt gym" låg kvar för alltid. Passen bär gymmets NAMN i
+  // sig (Workout.gym), inte bara id:t, så historiken behåller var den kördes
+  // även när gymmet är borta. Filtret på gymId slutar bara matcha.
+  function removeGym(id: string) {
+    const updated = gyms.filter((gymItem) => gymItem.id !== id);
+    setGyms(updated);
+    localStorage.setItem("gyms", JSON.stringify(updated));
+
+    if (id !== activeGymId) return;
+
+    const nextActive = updated[0] ?? null;
+    setActiveGymId(nextActive?.id ?? null);
+    setGym(nextActive?.name ?? "");
+
+    if (nextActive) {
+      localStorage.setItem("lastGymId", nextActive.id);
+      return;
+    }
+
+    localStorage.removeItem("lastGymId");
+    localStorage.removeItem("lastGymConfirmedDate");
   }
 
   function renameGym(id: string, newName: string) {
@@ -7823,6 +7851,23 @@ function saveCoachNotes(newNotes: CoachNote[]) {
   });
 }
 
+// Coachen bär anteckningarna vidare mellan pass. Då ska du också kunna se dem
+// och ta bort en som blivit fel eller inte gäller längre.
+function forgetCoachNote(target: CoachNote) {
+  setCoachMemory((previousMemory) => {
+    const notes = previousMemory.notes.filter(
+      (note) => !(note.createdAt === target.createdAt && note.text === target.text)
+    );
+
+    if (notes.length === previousMemory.notes.length) return previousMemory;
+
+    const nextMemory: CoachMemory = { notes };
+    saveJSON("coachMemory", nextMemory);
+    void syncBetaCoachMemory(nextMemory.notes);
+    return nextMemory;
+  });
+}
+
 function mergeCoachNotes(newNotes: CoachNote[], existingNotes: CoachNote[]) {
   const seen = new Set<string>();
   const merged: CoachNote[] = [];
@@ -8468,6 +8513,17 @@ const settingsPanel = showSettings ? (
         : undefined
     }
     onResetAll={resetAll}
+    autoStartRestTimer={autoStartRestTimer}
+    onAutoStartRestTimerChange={(value) => {
+      setAutoStartRestTimer(value);
+      saveJSON("autoStartRestTimer", value);
+    }}
+    gyms={gyms}
+    onAddGym={addGym}
+    onRenameGym={renameGym}
+    onRemoveGym={removeGym}
+    coachNotes={coachMemory.notes}
+    onForgetCoachNote={forgetCoachNote}
   />
 ) : null;
 
@@ -8877,6 +8933,11 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName, aiStatus) =>
         // Villkoret gällde tidigare hela kontot, så efter första passet såg
         // ingen texten igen, fast vanan att logga uppvärmning inte går över.
         showWarmupHint={!workout?.exercises.some((exercise) => exercise.sets.length > 0)}
+        autoStartRestTimer={autoStartRestTimer}
+        setAutoStartRestTimer={(value) => {
+          setAutoStartRestTimer(value);
+          saveJSON("autoStartRestTimer", value);
+        }}
         inputsTouched={inputsTouched}
         validateSetWeight={(weight) => {
           if (isBodyweightExercise(currentExerciseName) || isTimedExercise(currentExerciseName)) return null;

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import ToggleSwitch from "./ToggleSwitch";
 import { CloseGlyph, SendGlyph } from "./IconGlyphs";
 import { sendBetaFeedback } from "../lib/betaFeedback";
 import { restoreBetaSnapshotFromServer, syncBetaSnapshotNow } from "../lib/betaSync";
@@ -29,6 +30,15 @@ type AppTheme = "dark" | "light";
 
 const APP_VERSION = "Beta 0.2.0";
 
+type CoachNote = {
+  createdAt: string;
+  pass: "A" | "B" | "C" | "D" | "E" | "F" | "G";
+  gym: string;
+  exerciseName?: string;
+  text: string;
+  kind?: "limitation";
+};
+
 type Props = {
   theme: AppTheme;
   onThemeChange: (theme: AppTheme) => void;
@@ -36,6 +46,14 @@ type Props = {
   onOpenProgram?: () => void;
   onOpenProfileSetup?: () => void;
   onResetAll: () => void;
+  autoStartRestTimer: boolean;
+  onAutoStartRestTimerChange: (value: boolean) => void;
+  gyms: { id: string; name: string }[];
+  onAddGym: (name: string) => void;
+  onRenameGym: (id: string, name: string) => void;
+  onRemoveGym: (id: string) => void;
+  coachNotes: CoachNote[];
+  onForgetCoachNote: (note: CoachNote) => void;
 };
 
 type StoredSyncStatus = {
@@ -129,16 +147,37 @@ function clearAuthQueryFromAddressBar() {
  * 2026-09-18: "klumpig och väldigt beta". Nu en rotlista med rader, och
  * innehållet på undersidor som öppnas därifrån.
  */
-type SettingsPage = "root" | "utseende" | "konto" | "juridik" | "feedback" | "utvecklare";
+type SettingsPage =
+  | "root"
+  | "utseende"
+  | "gym"
+  | "minne"
+  | "konto"
+  | "juridik"
+  | "feedback"
+  | "utvecklare";
 
 const PAGE_TITLES: Record<SettingsPage, string> = {
   root: "Inställningar",
   utseende: "Utseende",
+  gym: "Dina gym",
+  minne: "Vad coachen minns",
   konto: "Konto",
   juridik: "Villkor och säkerhet",
   feedback: "Beta-feedback",
   utvecklare: "Utvecklare",
 };
+
+function formatNoteDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const days = Math.max(0, Math.round((Date.now() - date.getTime()) / 86400000));
+  if (days === 0) return "idag";
+  if (days === 1) return "igår";
+  if (days < 30) return `för ${days} dagar sedan`;
+  return date.toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
+}
 
 const DEV_TOOLS_KEY = "mincoachDevTools";
 
@@ -255,10 +294,21 @@ export default function SettingsScreen({
   onOpenProgram,
   onOpenProfileSetup,
   onResetAll,
+  autoStartRestTimer,
+  onAutoStartRestTimerChange,
+  gyms,
+  onAddGym,
+  onRenameGym,
+  onRemoveGym,
+  coachNotes,
+  onForgetCoachNote,
 }: Props) {
   const [page, setPage] = useState<SettingsPage>("root");
   const [devUnlocked, setDevUnlocked] = useState(false);
   const versionTapsRef = useRef(0);
+  const [editingGymId, setEditingGymId] = useState<string | null>(null);
+  const [editingGymName, setEditingGymName] = useState("");
+  const [newGymName, setNewGymName] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackCopied, setFeedbackCopied] = useState(false);
   const [feedbackError, setFeedbackError] = useState(false);
@@ -765,8 +815,40 @@ export default function SettingsScreen({
                       isLight={isLight}
                     />
                   ) : null}
+                  <SettingsRow
+                    label="Dina gym"
+                    value={gyms.length === 1 ? gyms[0].name : `${gyms.length} st`}
+                    onClick={() => setPage("gym")}
+                    isLight={isLight}
+                  />
                 </SettingsGroup>
               ) : null}
+
+              <SettingsGroup title="Under passet" isLight={isLight}>
+                <SettingsRow
+                  label="Starta vilotimern automatiskt"
+                  isLight={isLight}
+                  trailing={
+                    <ToggleSwitch
+                      checked={autoStartRestTimer}
+                      onChange={onAutoStartRestTimerChange}
+                      theme={theme}
+                      size="sm"
+                      label="Starta vilotimern automatiskt"
+                      hideLabel
+                    />
+                  }
+                />
+              </SettingsGroup>
+
+              <SettingsGroup title="Coachen" isLight={isLight}>
+                <SettingsRow
+                  label="Vad coachen minns"
+                  value={coachNotes.length ? `${coachNotes.length} st` : "Inget än"}
+                  onClick={() => setPage("minne")}
+                  isLight={isLight}
+                />
+              </SettingsGroup>
 
               <SettingsGroup title="Appen" isLight={isLight}>
                 <SettingsRow
@@ -820,6 +902,149 @@ export default function SettingsScreen({
                 MinCoach {APP_VERSION}
               </button>
             </>
+          ) : null}
+
+          {page === "gym" ? (
+            <>
+              <SettingsGroup
+                isLight={isLight}
+                caption="Coachen håller isär vikterna per gym. Tar du bort ett gym står passen kvar i historiken med sitt namn."
+              >
+                {gyms.length === 0 ? (
+                  <SettingsRow label="Inga gym än" isLight={isLight} />
+                ) : null}
+                {gyms.map((gymItem) =>
+                  editingGymId === gymItem.id ? (
+                    <div key={gymItem.id} className="flex items-center gap-2 px-4 py-3">
+                      <input
+                        autoFocus
+                        value={editingGymName}
+                        onChange={(event) => setEditingGymName(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" && editingGymName.trim()) {
+                            onRenameGym(gymItem.id, editingGymName);
+                            setEditingGymId(null);
+                          }
+                          if (event.key === "Escape") setEditingGymId(null);
+                        }}
+                        className={`h-10 min-w-0 flex-1 rounded-xl px-3 text-base outline-none sm:text-sm ${feedbackFieldClassName}`}
+                      />
+                      <button
+                        type="button"
+                        disabled={!editingGymName.trim()}
+                        onClick={() => {
+                          onRenameGym(gymItem.id, editingGymName);
+                          setEditingGymId(null);
+                        }}
+                        className={subtleButtonClassName}
+                      >
+                        Spara
+                      </button>
+                    </div>
+                  ) : (
+                    <div key={gymItem.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                      <span className={`min-w-0 truncate text-[15px] font-medium ${titleClassName}`}>
+                        {gymItem.name}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingGymId(gymItem.id);
+                            setEditingGymName(gymItem.name);
+                          }}
+                          className={subtleButtonClassName}
+                        >
+                          Byt namn
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Ta bort ${gymItem.name}? Passen du kört där står kvar i historiken.`
+                              )
+                            ) {
+                              onRemoveGym(gymItem.id);
+                            }
+                          }}
+                          className={`${subtleButtonClassName} ${
+                            isLight ? "text-[#a8332b]" : "text-red-300/90"
+                          }`}
+                        >
+                          Ta bort
+                        </button>
+                      </span>
+                    </div>
+                  )
+                )}
+              </SettingsGroup>
+
+              <div className="flex items-center gap-2">
+                <input
+                  value={newGymName}
+                  onChange={(event) => setNewGymName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && newGymName.trim()) {
+                      onAddGym(newGymName);
+                      setNewGymName("");
+                    }
+                  }}
+                  placeholder="Lägg till ett gym"
+                  className={`h-11 min-w-0 flex-1 rounded-2xl px-4 text-base outline-none sm:text-sm ${feedbackFieldClassName}`}
+                />
+                <button
+                  type="button"
+                  disabled={!newGymName.trim()}
+                  onClick={() => {
+                    onAddGym(newGymName);
+                    setNewGymName("");
+                  }}
+                  className={`${primaryButtonClassName} px-4 py-2.5 text-xs`}
+                >
+                  Lägg till
+                </button>
+              </div>
+            </>
+          ) : null}
+
+          {page === "minne" ? (
+            coachNotes.length === 0 ? (
+              <SettingsGroup
+                isLight={isLight}
+                caption="Coachen skriver upp sådant som är värt att bära med sig: hur en övning kändes, var det tog stopp, besvär du nämnt."
+              >
+                <SettingsRow label="Inget än" isLight={isLight} />
+              </SettingsGroup>
+            ) : (
+              <SettingsGroup
+                isLight={isLight}
+                caption="Det här är allt coachen bär med sig mellan passen. Ta bort det som blivit fel eller inte gäller längre."
+              >
+                {coachNotes.map((note) => (
+                  <div
+                    key={`${note.createdAt}-${note.text}`}
+                    className="flex items-start justify-between gap-3 px-4 py-3.5"
+                  >
+                    <div className="min-w-0">
+                      <p className={`text-sm leading-6 ${titleClassName}`}>{note.text}</p>
+                      <p className={`mt-0.5 text-xs ${bodyClassName}`}>
+                        {[formatNoteDate(note.createdAt), note.gym].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onForgetCoachNote(note)}
+                      className={`${subtleButtonClassName} shrink-0 ${
+                        isLight ? "text-[#a8332b]" : "text-red-300/90"
+                      }`}
+                    >
+                      Glöm
+                    </button>
+                  </div>
+                ))}
+              </SettingsGroup>
+            )
           ) : null}
 
           {page === "utseende" ? (
