@@ -150,9 +150,6 @@ export default function LobbyScreen({
   const cardClassName = isLight
     ? "border border-[#7a6548]/15 bg-white/56 shadow-[0_18px_46px_rgba(91,72,48,0.07)] backdrop-blur-xl"
     : "border border-white/[0.06] bg-white/[0.05] shadow-[0_14px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl";
-  const labelClassName = isLight
-    ? "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a7661]"
-    : "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50";
   const titleClassName = isLight ? "text-[#2d251c]" : "text-white";
   const bodyClassName = isLight ? "text-[#665b4f]" : "text-white/58";
   const buttonSubtleClassName = isLight
@@ -160,9 +157,6 @@ export default function LobbyScreen({
     : "inline-flex items-center gap-2 rounded-full bg-white/[0.035] px-3 py-2 text-xs font-semibold text-white/62 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.045)] transition hover:bg-[#4f83ff]/[0.07] hover:text-white/82 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/35";
   const hairlineClassName = isLight ? "h-px bg-[#d8cfc0]/50" : "h-px bg-white/[0.07]";
   const listRowClassName = `flex min-h-12 w-full items-center justify-between gap-3 rounded-xl px-1 py-3 text-left transition ${isLight ? "hover:bg-white/50" : "hover:bg-white/[0.035]"}`;
-  const overviewButtonClassName = isLight
-    ? "rounded-xl border border-[#7a6548]/14 bg-white/48 px-3 py-2.5 text-left text-sm text-[#2d251c] transition hover:bg-white/70"
-    : "rounded-xl border border-white/[0.06] bg-white/[0.035] px-3 py-2.5 text-left text-sm text-white/78 transition hover:border-white/10 hover:bg-white/[0.05]";
   const latestWorkout = history[0];
   const totalMinutes = history.reduce(
     (sum, workout) => sum + (workout.summary?.durationMinutes ?? 0),
