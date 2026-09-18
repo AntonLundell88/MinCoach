@@ -436,7 +436,7 @@ type ActiveWorkoutDraft = {
     role: "you" | "coach";
     text: string;
     setNumber?: number;
-    source?: "engine" | "llm" | "fallback" | "video";
+    source?: "engine" | "llm" | "fallback" | "video" | "event";
   }[];
   chatInput: string;
   weightInput: string;
@@ -3384,7 +3384,14 @@ function toWireStrategy(strategy: NextSetPlan["strategy"]): CoachWireStrategy {
  * egna behövs bara som svar på dem — alltså när det faktiskt finns en dialog.
  */
 function buildRecentConversation(
-  chatLog: { role: string; text: string; source?: string; aiStatus?: string }[],
+  chatLog: {
+    role: string;
+    text: string;
+    source?: string;
+    aiStatus?: string;
+    setNumber?: number;
+    exerciseName?: string;
+  }[],
   windowSize = 8
 ) {
   // Reservtexterna från introt och setsvaren är mallar, inte coachens ord. De
@@ -3400,7 +3407,11 @@ function buildRecentConversation(
   if (!window.some((m) => m.role === "you")) return [];
 
   return window
-    .map((m) => `${m.role === "you" ? "Användaren" : "Coach"}: ${m.text}`)
+    .map((m) => {
+      if (m.role === "you") return `Användaren: ${m.text}`;
+      if (m.source === "engine" || m.source === "event") return `Appen: ${m.text}`;
+      return `Coach: ${m.text}`;
+    })
     .filter(Boolean);
 }
 
@@ -4399,7 +4410,7 @@ const [chatLog, setChatLog] = useState<
     text: string;
     setNumber?: number;
     exerciseName?: string;
-    source?: "engine" | "llm" | "fallback" | "video";
+    source?: "engine" | "llm" | "fallback" | "video" | "event";
     aiStatus?: "fallback";
     highlight?: boolean;
     eventKey?: string;
@@ -7535,12 +7546,24 @@ setDurationSecondsInput(0);
     setPersonalRecords(nextPersonalRecords);
     saveJSON("personalRecords", nextPersonalRecords);
 
+    const removedSetNumber = sets.length + 1;
     setChatLog((prev) => {
-      const undoText = pickRandomLine(UNDO_SET_MESSAGES);
-      if (prev.length > 0 && prev[prev.length - 1].role === "coach") {
-        return [...prev.slice(0, -1), { role: "coach", source: "engine" as const, text: undoText }];
-      }
-      return [...prev, { role: "coach", source: "engine" as const, text: undoText }];
+      const händelse = {
+        role: "coach" as const,
+        source: "event" as const,
+        text: pickRandomLine(UNDO_SET_MESSAGES),
+      };
+      // Reaktionen på det strukna setet ska bort — men bara den. Förut ströks
+      // sista coachmeddelandet oavsett vad det var, så ett ångra innan svaret
+      // hann fram tog introt i stället.
+      const träff = prev.findLastIndex(
+        (m) =>
+          m.role === "coach" &&
+          m.setNumber === removedSetNumber &&
+          m.exerciseName === exerciseName
+      );
+      if (träff === -1) return [...prev, händelse];
+      return [...prev.slice(0, träff), händelse, ...prev.slice(träff + 1)];
     });
   }
 

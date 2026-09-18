@@ -10,7 +10,7 @@ type ChatMessage = {
   text: string;
   setNumber?: number;
   exerciseName?: string;
-  source?: "engine" | "llm" | "fallback" | "video";
+  source?: "engine" | "llm" | "fallback" | "video" | "event";
   highlight?: boolean;
   emphasis?: boolean;
 };
@@ -222,7 +222,8 @@ export default function CoachPanel({
       wasThinkingRef.current = isCoachThinking;
     }, [isCoachThinking]);
     const lastCoachIndex = chatLog.reduce(
-      (latest, message, index) => (message.role === "coach" ? index : latest),
+      (latest, message, index) =>
+        message.role === "coach" && message.source !== "event" ? index : latest,
       -1
     );
     const lastCoachMessage =
@@ -330,8 +331,15 @@ export default function CoachPanel({
               Skriv till coachen när något känns tungt, lätt eller annorlunda.
             </p>
           ) : (
-            chatLog.map((m, i) => (
-              <div
+            chatLog.map((m, i) =>
+              m.source === "event" ? (
+                <div key={i} className="flex items-center gap-2 py-0.5">
+                  <span className="h-px flex-1 bg-white/[0.09]" />
+                  <span className="shrink-0 text-[11px] font-medium text-white/45">{m.text}</span>
+                  <span className="h-px flex-1 bg-white/[0.09]" />
+                </div>
+              ) : (
+                <div
                 key={i}
                 className={
                   m.role === "coach"
@@ -382,7 +390,8 @@ export default function CoachPanel({
                   <p className="user-message-text text-sm leading-5 text-white/86">{m.text}</p>
                 )}
               </div>
-            ))
+              )
+            )
           )}
           {isCoachThinking ? (
             <div className="coach-message animate-message-in relative rounded-2xl border border-white/[0.09] bg-slate-900/50 px-3 py-2 text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] sm:px-3.5">
@@ -437,6 +446,17 @@ export default function CoachPanel({
                     ? "..."
                     : typedLastCoachMessage
                   : normalizeCoachDisplayText(m.text);
+
+                if (m.source === "event") {
+                  return (
+                    <div
+                      key={originalIndex}
+                      className={i > 0 ? "mt-1.5 border-t border-white/[0.16] pt-2" : undefined}
+                    >
+                      <p className="text-[11px] font-medium text-white/45">{text}</p>
+                    </div>
+                  );
+                }
 
                 return (
                   <div
