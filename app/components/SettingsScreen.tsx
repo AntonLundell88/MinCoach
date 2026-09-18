@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import ToggleSwitch from "./ToggleSwitch";
 import { CloseGlyph, SendGlyph } from "./IconGlyphs";
 import { sendBetaFeedback } from "../lib/betaFeedback";
 import { restoreBetaSnapshotFromServer, syncBetaSnapshotNow } from "../lib/betaSync";
@@ -364,9 +363,12 @@ export default function SettingsScreen({
     : "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35";
   const titleClassName = isLight ? "text-[#2d251c]" : "text-white";
   const bodyClassName = isLight ? "text-[#665b4f]" : "text-white/58";
+  // Minst 44 px högt. Knapparna var 16–36 px och gick inte att träffa med en
+  // tumme — Anton 2026-09-18 om "Avbryt" och "Ta bort gymmet": "det går inte
+  // att trycka på". Samma fel som den gamla ångra-länken i passvyn.
   const subtleButtonClassName = isLight
-    ? "rounded-xl bg-white/48 px-3 py-2 text-xs font-medium text-[#665b4f] shadow-[inset_0_0_0_1px_rgba(122,101,72,0.12)] transition hover:bg-white/72"
-    : "rounded-xl bg-white/[0.045] px-3 py-2 text-xs font-medium text-white/58 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035)] transition hover:bg-[#4f83ff]/[0.08] hover:text-white/80";
+    ? "inline-flex min-h-11 items-center justify-center rounded-xl bg-white/48 px-3.5 py-2.5 text-xs font-medium text-[#665b4f] shadow-[inset_0_0_0_1px_rgba(122,101,72,0.12)] transition hover:bg-white/72"
+    : "inline-flex min-h-11 items-center justify-center rounded-xl bg-white/[0.045] px-3.5 py-2.5 text-xs font-medium text-white/58 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035)] transition hover:bg-[#4f83ff]/[0.08] hover:text-white/80";
   const accountListClassName = isLight
     ? "divide-y divide-[#7a6548]/10 overflow-hidden rounded-[1.25rem] bg-white/28 shadow-[inset_0_0_0_1px_rgba(122,101,72,0.10)]"
     : "divide-y divide-white/[0.045] overflow-hidden rounded-[1.25rem] bg-white/[0.024] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035)]";
@@ -787,7 +789,7 @@ export default function SettingsScreen({
                 <button
                   type="button"
                   onClick={() => setPage("root")}
-                  className={`-ml-1 flex items-center gap-1 rounded-lg px-1 py-0.5 text-xs font-medium transition ${bodyClassName} hover:${titleClassName}`}
+                  className={`-ml-2 -mt-1 flex min-h-11 items-center gap-1 rounded-lg px-2 py-2 text-xs font-medium transition ${bodyClassName} hover:${titleClassName}`}
                 >
                   <span className="text-base leading-none">‹</span>
                   Du
@@ -800,7 +802,7 @@ export default function SettingsScreen({
 
             <button
               onClick={onBack}
-              className={`${subtleButtonClassName} flex h-9 w-9 items-center justify-center rounded-full px-0 py-0`}
+              className={`${subtleButtonClassName} flex h-11 w-11 items-center justify-center rounded-full px-0 py-0`}
               aria-label="Stäng"
             >
               <CloseGlyph className="h-4 w-4" />
@@ -863,20 +865,38 @@ export default function SettingsScreen({
               ) : null}
 
               <SettingsGroup title="Under passet" isLight={isLight}>
-                <SettingsRow
-                  label="Starta vilotimern automatiskt"
-                  isLight={isLight}
-                  trailing={
-                    <ToggleSwitch
-                      checked={autoStartRestTimer}
-                      onChange={onAutoStartRestTimerChange}
-                      theme={theme}
-                      size="sm"
-                      label="Starta vilotimern automatiskt"
-                      hideLabel
+                {/* Hela raden är växeln. En 28 px hög knapp i kanten är för
+                    liten för en tumme, och på en inställningsrad förväntar man
+                    sig att kunna trycka var som helst. */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={autoStartRestTimer}
+                  onClick={() => onAutoStartRestTimerChange(!autoStartRestTimer)}
+                  className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition ${
+                    isLight ? "hover:bg-white/60" : "hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <span className={`min-w-0 text-[15px] font-medium ${titleClassName}`}>
+                    Starta vilotimern automatiskt
+                  </span>
+                  <span
+                    aria-hidden
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+                      autoStartRestTimer
+                        ? "bg-[#2f6df6] shadow-[0_0_22px_rgba(47,109,246,0.28)]"
+                        : isLight
+                        ? "bg-[#e8ddd0] shadow-[inset_0_0_0_1px_rgba(92,70,45,0.10)]"
+                        : "bg-[#263241] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]"
+                    }`}
+                  >
+                    <span
+                      className={`absolute h-5 w-5 rounded-full bg-white transition-all ${
+                        autoStartRestTimer ? "left-[1.4rem]" : "left-0.5 bg-white/45"
+                      }`}
                     />
-                  }
-                />
+                  </span>
+                </button>
               </SettingsGroup>
 
               <SettingsGroup title="Coachen" isLight={isLight}>
@@ -935,7 +955,7 @@ export default function SettingsScreen({
               <button
                 type="button"
                 onClick={tapVersion}
-                className={`w-full pb-2 text-center text-xs font-medium ${bodyClassName}`}
+                className={`w-full py-3 text-center text-xs font-medium ${bodyClassName}`}
               >
                 MinCoach {APP_VERSION}
               </button>
@@ -982,11 +1002,11 @@ export default function SettingsScreen({
                           Spara
                         </button>
                       </div>
-                      <div className="mt-2 flex items-center justify-between gap-3">
+                      <div className="mt-2 flex items-center justify-between gap-2">
                         <button
                           type="button"
                           onClick={() => setEditingGymId(null)}
-                          className={`text-xs font-medium ${bodyClassName}`}
+                          className={subtleButtonClassName}
                         >
                           Avbryt
                         </button>
@@ -1002,7 +1022,7 @@ export default function SettingsScreen({
                               setEditingGymId(null);
                             }
                           }}
-                          className={`text-xs font-medium ${
+                          className={`${subtleButtonClassName} ${
                             isLight ? "text-[#a8332b]" : "text-red-300/90"
                           }`}
                         >
