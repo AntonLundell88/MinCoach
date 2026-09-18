@@ -4346,6 +4346,9 @@ export default function Home() {
   const [workoutReviewLoading, setWorkoutReviewLoading] = useState(false);
   const exerciseInputKeyRef = useRef("");
   const exerciseIndexRef = useRef(0);
+  // Passet som det ser ut just nu. Inuti en väntan är vanligt tillstånd gammalt,
+  // och efter ett ångra måste vi kunna fråga om setet fortfarande finns.
+  const workoutRef = useRef<Workout | null>(null);
   const [now, setNow] = useState<Date>(new Date());
   const [gym, setGym] = useState<string>("");
   const [gyms, setGyms] = useState<Gym[]>([]);
@@ -5401,6 +5404,7 @@ const adjustedSuggestion = useMemo(() => {
 }, [suggestion]);
 
 exerciseIndexRef.current = exerciseIndex;
+workoutRef.current = workout;
 
 // När du byter övning: fyll i vad du FAKTISKT körde senast på den övningen.
 //
@@ -7436,6 +7440,14 @@ setCoachPendingReply(false);
 if (coachReply.mode !== "ai" && coachReply.reason) {
   recordAiFallback("set", coachReply.reason);
 }
+
+// Trycker man Ångra medan coachen tänker finns setet inte längre när svaret
+// landar. Utan den här kontrollen berömde coachen ett struket set, och
+// nollställningen av fälten längre ned raderade siffrorna man hunnit skriva in.
+const loggedSetStillExists = (workoutRef.current?.exercises ?? []).some((exercise) =>
+  exercise.sets.some((loggedSet) => loggedSet.createdAt === set.createdAt)
+);
+if (!loggedSetStillExists) return;
 
 if (coachReply.text) {
   const isWorkoutFinished =
