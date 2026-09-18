@@ -362,9 +362,14 @@ export default function LobbyScreen({
           <div
             className={`relative overflow-hidden rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}
           >
-            <p className={labelClassName}>
-              Coachen
-            </p>
+            <div className="flex items-center gap-2">
+              <span
+                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                  isLight ? "bg-[#2563eb]" : "bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.45)]"
+                }`}
+              />
+              <p className={labelClassName}>Coachen</p>
+            </div>
 
             <h2
               className={`mt-3 text-xl font-semibold tracking-[-0.03em] sm:text-2xl ${titleClassName}`}
@@ -373,8 +378,8 @@ export default function LobbyScreen({
             </h2>
 
             <p
-              className={`mt-3 max-w-2xl text-sm leading-6 sm:text-[15px] ${
-                isLight ? "text-[#665b4f]" : "text-white/72"
+              className={`mt-3 max-w-2xl text-[15px] leading-[1.65] sm:text-base ${
+                isLight ? "text-[#584c40]" : "text-white/80"
               }`}
             >
               {isWritingNote ? (
@@ -400,7 +405,7 @@ export default function LobbyScreen({
               <defs>
                 <linearGradient id="lobbyProgressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#60a5fa" />
-                  <stop offset="100%" stopColor="#a78bfa" />
+                  <stop offset="100%" stopColor="#2f6df6" />
                 </linearGradient>
               </defs>
               <circle cx="110" cy="110" r="90" fill="none" stroke={isLight ? "rgba(122,101,72,0.12)" : "rgba(255,255,255,0.07)"} strokeWidth="12"/>
@@ -418,9 +423,9 @@ export default function LobbyScreen({
           </div>
 
           {streak > 0 && (
-            <div className={`mx-auto mt-3 flex w-fit items-center gap-1.5 rounded-full px-3 py-1 ${isLight ? "bg-violet-50/70 ring-1 ring-violet-200/60" : "bg-violet-400/10 ring-1 ring-violet-400/20"}`}>
-              <span className="h-1.5 w-1.5 rounded-full bg-violet-400"/>
-              <span className={`text-xs font-medium ${isLight ? "text-violet-700" : "text-violet-200/90"}`}>
+            <div className={`mx-auto mt-3 flex w-fit items-center gap-1.5 rounded-full px-3 py-1 ${isLight ? "bg-[#eaf1ff] ring-1 ring-[#bed3ff]" : "bg-[#4f83ff]/[0.10] ring-1 ring-[#4f83ff]/[0.18]"}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${isLight ? "bg-[#2563eb]" : "bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.45)]"}`}/>
+              <span className={`text-xs font-medium ${isLight ? "text-[#2f5fc4]" : "text-blue-100/90"}`}>
                 {streak} {streak === 1 ? "vecka" : "veckor"} i rad
               </span>
             </div>
