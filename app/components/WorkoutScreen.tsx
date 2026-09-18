@@ -1106,30 +1106,50 @@ useEffect(() => {
           </div>
 
           <div className="mt-2 rounded-2xl border border-white/[0.06] bg-white/[0.035] px-3 py-2">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-baseline">
-              <span />
-              <span
-                className={`text-2xl font-bold tracking-tight tabular-nums transition-colors duration-500 ${
-                  restStartedAt === null
-                    ? "text-white"
+            <div className="flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <span
+                  className={`block tracking-tight tabular-nums transition-colors duration-500 ${
+                    restStartedAt === null
+                      ? "text-[22px] font-semibold leading-none text-white"
+                      : restTimerState === "over"
+                      ? "text-[40px] font-bold leading-none text-orange-300"
+                      : restTimerState === "ready"
+                      ? "text-[40px] font-bold leading-none text-emerald-300"
+                      : "text-[40px] font-bold leading-none text-white"
+                  }`}
+                >
+                  {restStartedAt === null
+                    ? restTarget.label
+                    : restTimerState === "resting"
+                    ? formatRestTimer(restSecondsUntilReady)
+                    : "Redo"}
+                </span>
+                <span className="mt-1.5 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
+                  {restStartedAt === null
+                    ? "vila"
                     : restTimerState === "over"
-                    ? "text-orange-300"
+                    ? "lite lång vila"
                     : restTimerState === "ready"
-                    ? "text-emerald-300"
-                    : "text-white"
-                }`}
-              >
-                {restStartedAt === null ? restTarget.label : formatRestTimer(restElapsed)}
-              </span>
-              <span className="justify-self-end text-[11px] font-semibold tabular-nums text-white/45">
-                {restStartedAt === null
-                  ? "vila"
-                  : restTimerState === "over"
-                  ? ""
-                  : restTimerState === "ready"
-                  ? "redo"
-                  : formatRestTimer(restSecondsUntilReady)}
-              </span>
+                    ? "kör när du vill"
+                    : "kvar av vilan"}
+                </span>
+              </div>
+
+              {restStartedAt !== null && (
+                <div className="shrink-0 text-right">
+                  <span
+                    className={`block text-[26px] font-semibold leading-none tabular-nums ${
+                      restTimerState === "over" ? "text-orange-100/80" : "text-white/70"
+                    }`}
+                  >
+                    {formatRestTimer(restElapsed)}
+                  </span>
+                  <span className="mt-1.5 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+                    vilat
+                  </span>
+                </div>
+              )}
             </div>
             <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
               <div
@@ -2099,30 +2119,40 @@ useEffect(() => {
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/60">
                 Vila
               </p>
-              <p
-                className={`mt-0.5 text-2xl font-semibold tracking-tight tabular-nums ${
-                  restTimerState === "over"
-                    ? "text-orange-100"
-                    : restTimerState === "ready"
-                    ? "text-emerald-100"
-                    : "text-white"
-                }`}
-              >
-                {formatRestTimer(restElapsed)}
+              <p className="mt-0.5 flex items-baseline gap-2">
+                <span
+                  className={`text-[26px] font-semibold leading-none tracking-tight tabular-nums ${
+                    restTimerState === "over"
+                      ? "text-orange-100"
+                      : restTimerState === "ready"
+                      ? "text-emerald-100"
+                      : "text-white"
+                  }`}
+                >
+                  {restStartedAt === null
+                    ? restTargetLabel
+                    : restTimerState === "resting"
+                    ? formatRestTimer(restSecondsUntilReady)
+                    : "Redo"}
+                </span>
+                {restStartedAt !== null && (
+                  <span
+                    className={`text-[13px] font-semibold tabular-nums ${
+                      restTimerState === "over" ? "text-orange-100/72" : "text-white/55"
+                    }`}
+                  >
+                    {formatRestTimer(restElapsed)} vilat
+                  </span>
+                )}
               </p>
-              <p
-                className={`mt-0.5 text-xs font-semibold ${
-                  restTimerState === "over"
-                    ? "text-orange-100/72"
-                    : restTimerState === "ready"
-                    ? "text-emerald-100/72"
-                    : "text-white/48"
-                }`}
-              >
-                {/* Här stod en reservtext efter restTimerHint ||, med en egen kopia
-                    av "mål …"/"coach …". restTimerHint är aldrig tom, så den kunde
-                    aldrig visas. */}
-                {restTimerHint}
+              <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+                {restStartedAt === null
+                  ? "mål"
+                  : restTimerState === "over"
+                  ? "lite lång vila"
+                  : restTimerState === "ready"
+                  ? "kör när du vill"
+                  : "kvar av vilan"}
               </p>
             </div>
 
