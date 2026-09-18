@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { formatSetDisplay } from "../lib/exercises";
-import { PencilGlyph } from "./IconGlyphs";
+import { CloseGlyph, PencilGlyph } from "./IconGlyphs";
 
 const NEXT_SESSION_TIPS = [
   "Muskler består till stor del av vatten — se till att du dricker ordentligt idag.",
@@ -112,7 +112,10 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
         {label}
       </p>
-      <p className="mt-2 truncate text-xl font-semibold tracking-normal text-white">
+      {/* Värdet klipptes mitt i ordet när passet saknade set: "Inget set
+          log…". Rutorna står i ett rutnät, så en andra rad drar bara isär
+          raden en aning. */}
+      <p className="mt-2 text-xl font-semibold tracking-normal text-balance text-white">
         {value}
       </p>
     </div>
@@ -208,11 +211,11 @@ function SetRow({
     return (
       <div className="relative space-y-2 rounded-xl border border-white/[0.09] bg-white/[0.035] p-2.5">
         <button
-          className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full text-white/40 transition hover:text-white/80"
+          className="tryckyta absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-white/45 transition hover:text-white/80"
           onClick={() => setEditing(false)}
           aria-label="Stäng"
         >
-          ✕
+          <CloseGlyph className="h-3 w-3" />
         </button>
         {isTimed ? (
           <div>

@@ -273,7 +273,6 @@ export default function CoachPanel({
     // typedLastCoachMessage/isThinkingLastCoach excluded on purpose — scrolling on every
     // typewriter tick pushes the start of the message out of view as it types.
     // Scroll once when the message begins, then let it type in place.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatLog, isCoachThinking]);
 
   useEffect(() => {

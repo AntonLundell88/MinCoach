@@ -6,6 +6,17 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   // Override default ignores of eslint-config-next.
+  {
+    rules: {
+      // Destrukturering som plockar bort nycklar skriver dem med understreck:
+      // const { purpose: _purpose, ...slot } = exercise. Utan den här raden blev
+      // varje sådan plats en varning, och de riktiga varningarna drunknade.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", ignoreRestSiblings: true },
+      ],
+    },
+  },
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",

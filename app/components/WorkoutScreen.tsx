@@ -8,7 +8,7 @@ import CoachPanel from "./CoachPanel";
 import SetVideoReview from "./SetVideoReview";
 import VideoFeedbackInfoModal from "./VideoFeedbackInfoModal";
 import ToggleSwitch from "./ToggleSwitch";
-import { CameraGlyph, ChevronDownGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
+import { CameraGlyph, ChevronDownGlyph, ChevronLeftGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
   formatRestClock,
   formatRestProse,
@@ -1419,27 +1419,28 @@ useEffect(() => {
 
         {/* Overflow menu */}
         {showOverflow && (
-          <div className="mt-2 overflow-hidden rounded-2xl border border-white/[0.09] bg-white/[0.035]">
+          <div className="mt-2 divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/[0.09] bg-white/[0.035]">
             {exerciseIndex > 0 && (
               <button
                 type="button"
                 onClick={() => { prevExercise(); setShowOverflow(false); }}
-                className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
+                className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-[15px] font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
               >
-                ← Föregående övning
+                <ChevronLeftGlyph className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                Föregående övning
               </button>
             )}
             <button
               type="button"
               onClick={() => { setShowAddExercise((v) => !v); setShowOverflow(false); }}
-              className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
+              className="flex min-h-11 w-full items-center px-3 text-left text-[15px] font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
             >
               {showAddExercise ? "Stäng lägg till" : "Lägg till övning"}
             </button>
             <button
               type="button"
               onClick={() => { setShowSwapExercise((v) => !v); setShowOverflow(false); }}
-              className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
+              className="flex min-h-11 w-full items-center px-3 text-left text-[15px] font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
             >
               {showSwapExercise ? "Stäng byt övning" : "Byt övning"}
             </button>
@@ -1450,7 +1451,7 @@ useEffect(() => {
                 setShowReorderExercises(true);
                 setShowOverflow(false);
               }}
-              className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
+              className="flex min-h-11 w-full items-center px-3 text-left text-[15px] font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
             >
               Byt ordning på övningar
             </button>
@@ -1458,14 +1459,14 @@ useEffect(() => {
               type="button"
               onClick={() => { setConfirmSkipExercise(true); setShowOverflow(false); }}
               disabled={!canSkipCurrentExercise}
-              className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex min-h-11 w-full items-center px-3 text-left text-[15px] font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
               Klar med övningen
             </button>
             <button
               type="button"
               onClick={() => { setShowOverflow(false); setShowSaveConfirm(true); }}
-              className="w-full px-3 py-2.5 text-left text-sm font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
+              className="flex min-h-11 w-full items-center px-3 text-left text-[15px] font-medium text-white/72 transition hover:bg-white/[0.05] hover:text-white"
             >
               Spara och avsluta
             </button>

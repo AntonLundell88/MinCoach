@@ -4530,7 +4530,6 @@ const [activeConditioningContext, setActiveConditioningContext] =
     editingProfile,
   ]);
 
-// eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("reset") === "1") {
       localStorage.clear();
@@ -4548,7 +4547,6 @@ const [activeConditioningContext, setActiveConditioningContext] =
     const savedLastPass = localStorage.getItem("lastPass") as PassType | null;
     const savedGym = localStorage.getItem("lastGym");
 if (savedLastPass && ALL_PASS_KEYS.includes(savedLastPass)) {
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   setLastPass(savedLastPass);
 }
 
@@ -4731,11 +4729,9 @@ useEffect(() => {
   return () => window.removeEventListener("beforeunload", handleBeforeUnload);
 }, [started, workout, editingProfile, showProgramReview, programBuildScreenVisible]);
   // FYLL FORMULÄR FRÅN PROFIL
-  // eslint-disable-next-line react-hooks/set-state-in-effect
 useEffect(() => {
 if (!userProfile) return;
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   setNameInput(userProfile.name ?? "");
   setAgeInput(userProfile.age ? String(userProfile.age) : "");
   setGenderInput(userProfile.gender ?? "vill-inte-saga");
@@ -5441,7 +5437,6 @@ useEffect(() => {
   // kortet visade "6+ reps · RIR 0" medan coachen bad om ett kontrollerat
   // test på tyngre vikt. Plustecknet kom dessutom av en nolla som ärvts från
   // ett set en vecka tillbaka, på ett annat gym.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   setWeightInput(lastWeight);
   systemSuggestedWeightRef.current = lastWeight ? parseFloat(lastWeight) || undefined : undefined;
   setRepsInput("");
