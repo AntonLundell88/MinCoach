@@ -49,11 +49,14 @@ type Props = {
   autoStartRestTimer: boolean;
   onAutoStartRestTimerChange: (value: boolean) => void;
   gyms: { id: string; name: string }[];
+  activeGymId?: string | null;
   onAddGym: (name: string) => void;
   onRenameGym: (id: string, name: string) => void;
   onRemoveGym: (id: string) => void;
   coachNotes: CoachNote[];
   onForgetCoachNote: (note: CoachNote) => void;
+  /** Namnet och de två värden som styr coachningen. Se identitetskortet. */
+  identity?: { name: string; summary: string };
 };
 
 type StoredSyncStatus = {
@@ -158,7 +161,7 @@ type SettingsPage =
   | "utvecklare";
 
 const PAGE_TITLES: Record<SettingsPage, string> = {
-  root: "Inställningar",
+  root: "Du",
   utseende: "Utseende",
   gym: "Dina gym",
   minne: "Vad coachen minns",
@@ -263,7 +266,10 @@ function SettingsRow({
         ) : null}
         {trailing ??
           (onClick && !action ? (
-            <span className={`text-base leading-none ${valueColor}`}>›</span>
+            // Dekor. Utan aria-hidden läser skärmläsaren "Ditt upplägg pil".
+            <span aria-hidden className={`text-base leading-none ${valueColor}`}>
+              ›
+            </span>
           ) : null)}
       </span>
     </>
@@ -297,11 +303,13 @@ export default function SettingsScreen({
   autoStartRestTimer,
   onAutoStartRestTimerChange,
   gyms,
+  activeGymId,
   onAddGym,
   onRenameGym,
   onRemoveGym,
   coachNotes,
   onForgetCoachNote,
+  identity,
 }: Props) {
   const [page, setPage] = useState<SettingsPage>("root");
   const [devUnlocked, setDevUnlocked] = useState(false);
@@ -775,16 +783,14 @@ export default function SettingsScreen({
         <div className="space-y-4">
           <header className="flex items-start justify-between gap-3 pt-1 sm:pt-3">
             <div className="min-w-0">
-              {page === "root" ? (
-                <p className={labelClassName}>MinCoach</p>
-              ) : (
+              {page === "root" ? null : (
                 <button
                   type="button"
                   onClick={() => setPage("root")}
                   className={`-ml-1 flex items-center gap-1 rounded-lg px-1 py-0.5 text-xs font-medium transition ${bodyClassName} hover:${titleClassName}`}
                 >
                   <span className="text-base leading-none">‹</span>
-                  Inställningar
+                  Du
                 </button>
               )}
               <h1 className={`mt-1 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl ${titleClassName}`}>
@@ -803,17 +809,49 @@ export default function SettingsScreen({
 
           {page === "root" ? (
             <>
+              {/* Den som öppnar ska mötas av sig själv, inte av en lista med
+                  reglage. Namnet och de två värden som styr coachningen. */}
+              {identity ? (
+                <button
+                  type="button"
+                  onClick={onOpenProfileSetup}
+                  disabled={!onOpenProfileSetup}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-1 pb-3 pt-1 text-left transition disabled:cursor-default ${
+                    onOpenProfileSetup ? (isLight ? "hover:bg-white/40" : "hover:bg-white/[0.03]") : ""
+                  }`}
+                >
+                  <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold uppercase ${
+                      isLight
+                        ? "bg-white/70 text-[#2d251c] shadow-[inset_0_0_0_1px_rgba(122,101,72,0.12)]"
+                        : "bg-white/[0.07] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                    }`}
+                  >
+                    {identity.name.trim().charAt(0) || "D"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={`truncate text-[17px] font-semibold ${titleClassName}`}>
+                      {identity.name.trim() || "Du"}
+                    </p>
+                    <p className={`mt-0.5 truncate text-[13px] ${bodyClassName}`}>
+                      {identity.summary}
+                    </p>
+                  </div>
+                  {onOpenProfileSetup ? (
+                    <span
+                      aria-hidden
+                      className={`text-base leading-none ${isLight ? "text-[#8a7661]" : "text-white/42"}`}
+                    >
+                      ›
+                    </span>
+                  ) : null}
+                </button>
+              ) : null}
+
               {onOpenProgram || onOpenProfileSetup ? (
                 <SettingsGroup title="Träning" isLight={isLight}>
                   {onOpenProgram ? (
                     <SettingsRow label="Ditt upplägg" onClick={onOpenProgram} isLight={isLight} />
-                  ) : null}
-                  {onOpenProfileSetup ? (
-                    <SettingsRow
-                      label="Dina grunduppgifter"
-                      onClick={onOpenProfileSetup}
-                      isLight={isLight}
-                    />
                   ) : null}
                   <SettingsRow
                     label="Dina gym"
@@ -908,54 +946,49 @@ export default function SettingsScreen({
             <>
               <SettingsGroup
                 isLight={isLight}
-                caption="Coachen håller isär vikterna per gym. Tar du bort ett gym står passen kvar i historiken med sitt namn."
+                caption="Tryck på ett gym för att byta namn eller ta bort det. Coachen håller isär vikterna per gym, och passen står kvar i historiken även om gymmet tas bort."
               >
                 {gyms.length === 0 ? (
                   <SettingsRow label="Inga gym än" isLight={isLight} />
                 ) : null}
+                {/* Raden är lugn tills du trycker på den. Två knappar per rad
+                    gjorde listan rörig bredvid resten av inställningarna. */}
                 {gyms.map((gymItem) =>
                   editingGymId === gymItem.id ? (
-                    <div key={gymItem.id} className="flex items-center gap-2 px-4 py-3">
-                      <input
-                        autoFocus
-                        value={editingGymName}
-                        onChange={(event) => setEditingGymName(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" && editingGymName.trim()) {
-                            onRenameGym(gymItem.id, editingGymName);
-                            setEditingGymId(null);
-                          }
-                          if (event.key === "Escape") setEditingGymId(null);
-                        }}
-                        className={`h-10 min-w-0 flex-1 rounded-xl px-3 text-base outline-none sm:text-sm ${feedbackFieldClassName}`}
-                      />
-                      <button
-                        type="button"
-                        disabled={!editingGymName.trim()}
-                        onClick={() => {
-                          onRenameGym(gymItem.id, editingGymName);
-                          setEditingGymId(null);
-                        }}
-                        className={subtleButtonClassName}
-                      >
-                        Spara
-                      </button>
-                    </div>
-                  ) : (
-                    <div key={gymItem.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                      <span className={`min-w-0 truncate text-[15px] font-medium ${titleClassName}`}>
-                        {gymItem.name}
-                      </span>
-                      <span className="flex shrink-0 items-center gap-1.5">
+                    <div key={gymItem.id} className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <input
+                          autoFocus
+                          value={editingGymName}
+                          onChange={(event) => setEditingGymName(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" && editingGymName.trim()) {
+                              onRenameGym(gymItem.id, editingGymName);
+                              setEditingGymId(null);
+                            }
+                            if (event.key === "Escape") setEditingGymId(null);
+                          }}
+                          className={`h-11 min-w-0 flex-1 rounded-xl px-3 text-base outline-none sm:text-sm ${feedbackFieldClassName}`}
+                        />
                         <button
                           type="button"
+                          disabled={!editingGymName.trim()}
                           onClick={() => {
-                            setEditingGymId(gymItem.id);
-                            setEditingGymName(gymItem.name);
+                            onRenameGym(gymItem.id, editingGymName);
+                            setEditingGymId(null);
                           }}
-                          className={subtleButtonClassName}
+                          className={`${subtleButtonClassName} disabled:opacity-40`}
                         >
-                          Byt namn
+                          Spara
+                        </button>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setEditingGymId(null)}
+                          className={`text-xs font-medium ${bodyClassName}`}
+                        >
+                          Avbryt
                         </button>
                         <button
                           type="button"
@@ -966,16 +999,28 @@ export default function SettingsScreen({
                               )
                             ) {
                               onRemoveGym(gymItem.id);
+                              setEditingGymId(null);
                             }
                           }}
-                          className={`${subtleButtonClassName} ${
+                          className={`text-xs font-medium ${
                             isLight ? "text-[#a8332b]" : "text-red-300/90"
                           }`}
                         >
-                          Ta bort
+                          Ta bort gymmet
                         </button>
-                      </span>
+                      </div>
                     </div>
+                  ) : (
+                    <SettingsRow
+                      key={gymItem.id}
+                      label={gymItem.name}
+                      value={gymItem.id === activeGymId ? "Aktivt" : undefined}
+                      isLight={isLight}
+                      onClick={() => {
+                        setEditingGymId(gymItem.id);
+                        setEditingGymName(gymItem.name);
+                      }}
+                    />
                   )
                 )}
               </SettingsGroup>
@@ -1000,7 +1045,7 @@ export default function SettingsScreen({
                     onAddGym(newGymName);
                     setNewGymName("");
                   }}
-                  className={`${primaryButtonClassName} px-4 py-2.5 text-xs`}
+                  className={`${subtleButtonClassName} px-4 py-2.5 disabled:opacity-40`}
                 >
                   Lägg till
                 </button>
@@ -1056,13 +1101,15 @@ export default function SettingsScreen({
                 label="Mörkt"
                 onClick={() => onThemeChange("dark")}
                 isLight={isLight}
-                trailing={<span className={titleClassName}>{isLight ? "" : "✓"}</span>}
+                trailing={<span aria-hidden className={titleClassName}>{isLight ? "" : "✓"}</span>}
+                value={isLight ? undefined : "Valt"}
               />
               <SettingsRow
                 label="Ljust"
                 onClick={() => onThemeChange("light")}
                 isLight={isLight}
-                trailing={<span className={titleClassName}>{isLight ? "✓" : ""}</span>}
+                trailing={<span aria-hidden className={titleClassName}>{isLight ? "✓" : ""}</span>}
+                value={isLight ? "Valt" : undefined}
               />
             </SettingsGroup>
           ) : null}

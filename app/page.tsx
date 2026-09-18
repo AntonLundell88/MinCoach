@@ -24,7 +24,6 @@ import ProgramReviewScreen from "./components/ProgramReviewScreen";
 import ProgramBuildLoadingScreen from "./components/ProgramBuildLoadingScreen";
 import SettingsScreen from "./components/SettingsScreen";
 import { WrappedStory } from "./components/WrappedStory";
-import { SettingsGlyph } from "./components/IconGlyphs";
 import { useWrappedRecap } from "./hooks/useWrappedRecap";
 import { useLobbyCoachNote } from "./hooks/useLobbyCoachNote";
 import { buildLobbyContext } from "./lib/lobbyContext";
@@ -159,39 +158,6 @@ function createEmptyPassOverrideMap(): Record<PassType, Record<string, string>> 
   return ALL_PASS_KEYS.reduce(
     (map, key) => ({ ...map, [key]: {} }),
     {} as Record<PassType, Record<string, string>>
-  );
-}
-
-function AppControls({
-  theme,
-  onOpenSettings,
-}: {
-  theme: AppTheme;
-  onOpenSettings: () => void;
-}) {
-  const isLight = theme === "light";
-  const buttonClassName = isLight
-    ? "flex h-11 w-11 items-center justify-center rounded-full bg-white/76 text-[#4a3f34] shadow-[0_16px_38px_rgba(91,72,48,0.14),inset_0_0_0_1px_rgba(122,101,72,0.12)] backdrop-blur-2xl transition hover:bg-white"
-    : "flex h-11 w-11 items-center justify-center rounded-full bg-[#101824]/76 text-white/86 shadow-[0_16px_38px_rgba(0,0,0,0.30),inset_0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-2xl transition hover:bg-[#131c27]/92 hover:text-white";
-
-  return (
-    <div className="fixed right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex items-center gap-1.5 sm:right-6 sm:top-[max(1.25rem,env(safe-area-inset-top))]">
-      <button
-        type="button"
-        onClick={onOpenSettings}
-        className={buttonClassName}
-        aria-label="Inställningar"
-        title="Inställningar"
-      >
-        <SettingsGlyph
-          className={`h-5 w-5 ${
-            isLight
-              ? "drop-shadow-[0_0_10px_rgba(47,109,246,0.22)]"
-              : "drop-shadow-[0_0_12px_rgba(47,109,246,0.46)]"
-          }`}
-        />
-      </button>
-    </div>
   );
 }
 
@@ -8472,21 +8438,6 @@ setStarted(false);
     void syncBetaSnapshotNow({ reason: "settings-reset" });
   }
 
-const globalAppControls = (
-  <AppControls
-    theme={appTheme}
-    onOpenSettings={() => setShowSettings(true)}
-  />
-);
-const shouldShowGlobalAppControls =
-  !showExerciseProgress &&
-  !showStatistics &&
-  !showHistory &&
-  !showPersonalRecords &&
-  !showProgramReview &&
-  !editingProfile &&
-  (showDailyPlan || started);
-
 const settingsPanel = showSettings ? (
   <SettingsScreen
     theme={appTheme}
@@ -8528,11 +8479,27 @@ const settingsPanel = showSettings ? (
       saveJSON("autoStartRestTimer", value);
     }}
     gyms={gyms}
+    activeGymId={activeGymId}
     onAddGym={addGym}
     onRenameGym={renameGym}
     onRemoveGym={removeGym}
     coachNotes={coachMemory.notes}
     onForgetCoachNote={forgetCoachNote}
+    identity={
+      userProfile
+        ? {
+            name: userProfile.name,
+            summary: [
+              userProfile.goalPrimary === "styrka"
+                ? "Styrka"
+                : userProfile.goalPrimary === "fett"
+                ? "Fettförlust"
+                : "Muskler",
+              `${userProfile.daysPerWeek} pass i veckan`,
+            ].join(" · "),
+          }
+        : undefined
+    }
   />
 ) : null;
 
@@ -8590,7 +8557,6 @@ if (!authGateCleared) {
 if (!userProfile || editingProfile) {
   return (
     <>
-    {globalAppControls}
     <SetupScreen
       key={pendingProfileChange ? "confirming" : "idle"}
       theme={appTheme}
@@ -8730,7 +8696,6 @@ if (userProfile && showProgramReview && programBuildScreenVisible) {
 if (userProfile && workoutPlan && showProgramReview) {
   return (
     <>
-    {globalAppControls}
     <ProgramReviewScreen
       theme={appTheme}
       profile={userProfile}
@@ -8852,7 +8817,6 @@ return (
     data-theme={appTheme}
     className="flex min-h-screen flex-col items-center justify-start gap-6 bg-[#0b1018] px-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-white"
   >
-   {shouldShowGlobalAppControls ? globalAppControls : null}
    {started && workout ? (
       <WorkoutScreen
         exerciseIndex={exerciseIndex}

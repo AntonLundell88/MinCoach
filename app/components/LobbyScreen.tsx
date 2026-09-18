@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { SettingsGlyph } from "./IconGlyphs";
 import { CoachThinkingDots, getRandomThinkingWord } from "./CoachThinking";
 
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
@@ -269,20 +268,18 @@ export default function LobbyScreen({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            {/* En kugge säger "konfigurera verktyget". Övre högra hörnet
+                tillhör den som använder appen — därför initialen, som senare
+                blir en bild. Samma ingång som Apple, Spotify och Lifesum har
+                på exakt den platsen. */}
             <button
               type="button"
               onClick={onOpenSettings}
-              className={`${buttonSubtleClassName} h-10 w-10 justify-center px-0`}
-              aria-label="Inställningar"
-              title="Inställningar"
+              className={`${buttonSubtleClassName} h-10 w-10 justify-center px-0 text-sm font-semibold uppercase`}
+              aria-label="Du"
+              title="Du"
             >
-              <SettingsGlyph
-                className={`h-[18px] w-[18px] ${
-                  isLight
-                    ? "drop-shadow-[0_0_9px_rgba(47,109,246,0.18)]"
-                    : "drop-shadow-[0_0_10px_rgba(47,109,246,0.38)]"
-                }`}
-              />
+              {name.trim().charAt(0) || "D"}
             </button>
           </div>
         </header>
