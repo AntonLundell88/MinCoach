@@ -121,13 +121,8 @@ function cleanPassNameForDisplay(value: string) {
   return cleaned || "Pass";
 }
 
-function getManualPassLabel(pass: WorkoutPass) {
-  const displayName = cleanPassNameForDisplay(pass.displayName);
-  return /^Pass\s+\d+$/i.test(displayName) ? `Pass ${pass.key}` : displayName;
-}
-
 function formatMissingPasses(passes: WorkoutPass[]) {
-  const labels = passes.map((pass) => `Pass ${pass.key}`);
+  const labels = passes.map((pass) => cleanPassNameForDisplay(pass.displayName));
   if (labels.length === 0) return "";
   if (labels.length === 1) return `${labels[0]} saknar övningar`;
   if (labels.length === 2) return `${labels[0]} och ${labels[1]} saknar övningar`;
@@ -231,7 +226,7 @@ function buildCoachExplanationPoints(
   const passParts = workoutPlan.passes
     .map((pass) => {
       const focus = getPassFocus(pass);
-      return focus ? `Pass ${pass.key}: ${lowerFirst(focus)}` : "";
+      return focus ? `${cleanPassNameForDisplay(pass.displayName)}: ${lowerFirst(focus)}` : "";
     })
     .filter(Boolean);
   const points: string[] = [];
@@ -1340,7 +1335,7 @@ export default function ProgramReviewScreen({
                         }`}
                       >
                         <span className="block text-sm font-semibold">
-                          {pass.key}
+                          {workoutPlan.passes.findIndex((item) => item.key === pass.key) + 1}
                         </span>
                         <span className="mt-0.5 block text-[11px] font-semibold text-white/42">
                           {pass.exercises.length}
@@ -1357,9 +1352,7 @@ export default function ProgramReviewScreen({
                 (item) => item.key === pass.key
               );
               const normalizedPassIndex = passIndex >= 0 ? passIndex : visiblePassIndex;
-              const passDisplayName = isManualBuilder
-                ? getManualPassLabel(pass)
-                : cleanPassNameForDisplay(pass.displayName);
+              const passDisplayName = cleanPassNameForDisplay(pass.displayName);
               const hasExercises = pass.exercises.length > 0;
               const passIntent = cleanProgramCopy(pass.intent);
               const addFeedback = addFeedbackByPass[pass.key];
@@ -1464,7 +1457,9 @@ export default function ProgramReviewScreen({
                   </div>
                 ) : null}
 
-                <div className="grid gap-1.5 px-2.5 pb-2.5">
+                {/* minmax(0,1fr): rutnätsrutor får annars inte krympa under sitt
+                      innehåll, och raderna stack ut 7 px utanför kortet och klipptes. */}
+                <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5 px-2.5 pb-2.5">
                   {pass.exercises.map((exercise) => {
                     const exercisePurpose = cleanProgramCopy(exercise.purpose);
                     const isTimedExerciseInList =
