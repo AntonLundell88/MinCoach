@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef } from "react";
-import { CameraGlyph, SendGlyph } from "./IconGlyphs";
+import { CameraGlyph, ChevronDownGlyph, SendGlyph } from "./IconGlyphs";
 import { CoachThinkingDots, getRandomThinkingWord } from "./CoachThinking";
 
 type DayForm = "trött" | "normal" | "stark" | null;
@@ -168,14 +168,14 @@ function CoachText({ text, isPrimary = false }: { text: string; isPrimary?: bool
             key={index}
             className={
               isLabel
-                ? `${currentLineIndex > 0 ? "pt-2" : "pt-0"} text-[9px] font-semibold uppercase tracking-[0.13em] text-blue-100/45`
+                ? `${currentLineIndex > 0 ? "pt-2" : "pt-0"} text-[11px] font-semibold uppercase tracking-[0.13em] text-blue-100/45`
                 : isTargetNumber
                 ? isPrimary
-                  ? "text-[15px] font-semibold leading-[1.32] tracking-normal text-white"
-                  : "text-[14px] font-semibold leading-[1.32] tracking-normal text-white"
+                  ? "text-[17px] font-semibold leading-[1.35] tracking-normal text-white"
+                  : "text-[17px] font-semibold leading-[1.35] tracking-normal text-white"
                 : isPrimary
-                ? "text-[14.5px] font-semibold leading-[1.55] tracking-normal text-white"
-                : "text-[13.5px] leading-[1.62] tracking-normal text-white/86"
+                ? "text-[17px] font-semibold leading-[1.5] tracking-normal text-white"
+                : "text-[17px] leading-[1.5] tracking-normal text-white/88"
             }
           >
             {trimmed}
@@ -319,10 +319,10 @@ export default function CoachPanel({
           <button
             type="button"
             onClick={() => setIsHistoryOpen(false)}
-            className="coach-history-toggle sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-xl bg-[#0d1520] py-1 text-[10px] uppercase tracking-[0.14em] text-white/38 transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white/64"
+            className="coach-history-toggle sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-xl bg-[#0d1520] py-1 text-[11px] uppercase tracking-[0.14em] text-white/38 transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white/64"
           >
             Dölj historik
-            <span className="rotate-180 text-white/50">▾</span>
+            <ChevronDownGlyph className="h-3.5 w-3.5 rotate-180 text-white/50" />
           </button>
           )}
           {chatLog.length === 0 ? (
@@ -353,16 +353,16 @@ export default function CoachPanel({
                       }`}
                     />
                   ) : null}
-                  <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
+                  <p className="coach-message-label text-[11px] uppercase tracking-[0.12em] text-white/62">
                     {m.role === "coach" ? "Coach" : "Du"}
                   </p>
                   {m.role === "coach" && m.exerciseName && (
-                    <span className="text-[9px] uppercase tracking-[0.12em] text-white/50">
+                    <span className="text-[11px] uppercase tracking-[0.12em] text-white/50">
                       · {m.exerciseName}
                     </span>
                   )}
                   {m.role === "coach" && m.setNumber && (
-                    <span className="text-[9px] uppercase tracking-[0.12em] text-white/50">
+                    <span className="text-[11px] uppercase tracking-[0.12em] text-white/50">
                       · set {m.setNumber}
                     </span>
                   )}
@@ -386,7 +386,7 @@ export default function CoachPanel({
           )}
           {isCoachThinking ? (
             <div className="coach-message animate-message-in relative rounded-2xl border border-white/[0.09] bg-slate-900/50 px-3 py-2 text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] sm:px-3.5">
-              <p className="coach-message-label mb-1 text-[9px] uppercase tracking-[0.12em] text-white/36">
+              <p className="coach-message-label mb-1 text-[11px] uppercase tracking-[0.12em] text-white/36">
                 Coach
               </p>
               <div className="flex items-center gap-2 text-sm text-white/68">
@@ -407,7 +407,7 @@ export default function CoachPanel({
           {isCoachThinking ? (
             <>
               <div className="mb-1 flex items-center gap-1.5">
-                <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
+                <p className="coach-message-label text-[11px] uppercase tracking-[0.12em] text-white/62">
                   Coach
                 </p>
               </div>
@@ -419,7 +419,7 @@ export default function CoachPanel({
           ) : chatLog.length === 0 ? (
             <>
               <div className="mb-1 flex items-center gap-1.5">
-                <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
+                <p className="coach-message-label text-[11px] uppercase tracking-[0.12em] text-white/62">
                   Coach
                 </p>
               </div>
@@ -443,7 +443,7 @@ export default function CoachPanel({
                     key={originalIndex}
                     className={i > 0 ? "mt-1.5 border-t border-white/[0.16] pt-2" : undefined}
                   >
-                    <p className="coach-message-label text-[9px] uppercase tracking-[0.12em] text-white/62">
+                    <p className="coach-message-label text-[11px] uppercase tracking-[0.12em] text-white/62">
                       {m.role === "coach" ? "Coach" : "Du"}
                     </p>
                     <div className="line-clamp-2">
@@ -460,7 +460,7 @@ export default function CoachPanel({
           )}
           <div className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-blue-300/85">
             <span>Visa hela chatten</span>
-            <span aria-hidden="true">▾</span>
+            <ChevronDownGlyph className="h-3.5 w-3.5" />
           </div>
         </button>
         )}
@@ -476,7 +476,7 @@ export default function CoachPanel({
             }}
           />
           <button
-            className="workout-ai-action flex h-10 w-12 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-600 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
+            className="workout-ai-action flex h-11 w-12 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-600 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
             onClick={sendChat}
             disabled={isCoachThinking || !chatInput.trim()}
             aria-label="Skicka"

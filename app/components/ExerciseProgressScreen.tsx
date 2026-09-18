@@ -367,7 +367,7 @@ export default function ExerciseProgressScreen({
   }, [exercises, searchQuery, sortMode]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white sm:px-6 lg:px-8">
+    <div className="mc-enter mx-auto w-full max-w-6xl pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(37,99,235,0.06),transparent_28%),linear-gradient(180deg,#0b1018_0%,#111a25_45%,#0b1018_100%)]" />
 
       <div className="flex items-center justify-between gap-3 pt-1 sm:pt-3">
@@ -381,7 +381,7 @@ export default function ExerciseProgressScreen({
           onClick={
             showExerciseDetail ? () => setShowExerciseDetail(false) : onBack
           }
-          className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.05] px-3.5 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
         >
           Tillbaka
         </button>
@@ -402,7 +402,7 @@ export default function ExerciseProgressScreen({
         <button
           type="button"
           onClick={() => setShowLibraryBrowser(true)}
-          className="mt-3 w-full text-center text-xs font-semibold text-blue-300/85 transition hover:text-blue-200"
+          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.05] px-3.5 text-sm font-semibold text-blue-200 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
         >
           Bläddra bland alla övningar
         </button>
@@ -438,7 +438,7 @@ export default function ExerciseProgressScreen({
                   <button
                     key={mode}
                     onClick={() => setSortMode(mode as ExerciseSortMode)}
-                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                    className={`inline-flex min-h-11 items-center justify-center rounded-xl border px-3 text-[13px] font-semibold transition ${
                       sortMode === mode
                         ? "border-blue-400/25 bg-blue-500/[0.14] text-blue-100"
                         : "border-white/[0.09] bg-white/[0.035] text-white/55 hover:border-blue-400/20 hover:text-white/78"
@@ -485,7 +485,7 @@ export default function ExerciseProgressScreen({
                       <button
                         type="button"
                         onClick={() => setInfoExerciseName(exercise.name)}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-xs font-semibold text-white/58 transition hover:bg-white/[0.10] hover:text-white"
+                        className="tryckyta flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-xs font-semibold text-white/58 transition hover:bg-white/[0.10] hover:text-white"
                         aria-label={`Visa info om ${exercise.name}`}
                       >
                         i
@@ -586,7 +586,7 @@ export default function ExerciseProgressScreen({
                     <button
                       type="button"
                       onClick={() => setShowTrendInfo(!showTrendInfo)}
-                      className="flex h-4 w-4 items-center justify-center rounded-full border border-white/20 text-[10px] text-white/50 hover:bg-white/10"
+                      className="flex h-4 w-4 items-center justify-center rounded-full border border-white/20 text-[11px] text-white/50 hover:bg-white/10"
                     >
                       i
                     </button>
@@ -687,7 +687,7 @@ export default function ExerciseProgressScreen({
                               >
                                 {getSetLabel(set)}
                                 {isTopSet ? (
-                                  <span className="ml-2 rounded-full border border-emerald-200/18 bg-emerald-200/[0.08] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/80">
+                                  <span className="ml-2 rounded-full border border-emerald-200/18 bg-emerald-200/[0.08] px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/80">
                                     Topp
                                   </span>
                                 ) : null}

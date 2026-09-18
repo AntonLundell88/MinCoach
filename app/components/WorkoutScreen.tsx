@@ -8,7 +8,7 @@ import CoachPanel from "./CoachPanel";
 import SetVideoReview from "./SetVideoReview";
 import VideoFeedbackInfoModal from "./VideoFeedbackInfoModal";
 import ToggleSwitch from "./ToggleSwitch";
-import { CameraGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
+import { CameraGlyph, ChevronDownGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
   formatRestClock,
   formatRestProse,
@@ -1023,7 +1023,7 @@ useEffect(() => {
       <button
         type="button"
         onClick={() => setChatFocusMode(true)}
-        className="workout-layout-toggle mx-auto -mt-1 flex h-9 w-14 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/72 shadow-[0_10px_28px_rgba(0,0,0,0.14)] transition duration-200 hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
+        className="workout-layout-toggle tryckyta mx-auto -mt-1 flex h-9 w-14 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/72 shadow-[0_10px_28px_rgba(0,0,0,0.14)] transition duration-200 hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
         aria-label="Fokusera chatten"
       >
         <DoubleChevronDownGlyph className="h-5 w-5 transition-transform duration-200 ease-out" />
@@ -1066,7 +1066,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => setShowVideoInfo(true)}
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-[9px] font-semibold text-white/55 transition hover:bg-white/[0.07] hover:text-white"
+                className="tryckyta flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-[11px] font-semibold text-white/55 transition hover:bg-white/[0.07] hover:text-white"
                 aria-label="Vad gör filma-knappen?"
               >
                 i
@@ -1083,7 +1083,7 @@ useEffect(() => {
           </div>
 
           <div className="mt-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
               {setSourceLabel}
             </p>
             <p className="mt-0.5 truncate text-lg font-bold text-white">
@@ -1339,17 +1339,14 @@ useEffect(() => {
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="workout-section-kicker text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
-              Nu
-            </p>
-            <div className="mt-1 flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <h2 className="truncate text-xl font-semibold tracking-tight text-white">
                 {exerciseDisplay.title}
               </h2>
               <button
                 type="button"
                 onClick={() => setShowExerciseInfo(true)}
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+                className="tryckyta flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
                 aria-label={`Visa info om ${exerciseDisplay.title}`}
               >
                 i
@@ -1378,7 +1375,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => setShowOverflow((v) => !v)}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-base font-semibold leading-none text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+              className="tryckyta flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-base font-semibold leading-none text-white/54 transition hover:bg-white/[0.07] hover:text-white"
               aria-label="Fler alternativ"
             >
               ···
@@ -1474,7 +1471,7 @@ useEffect(() => {
             höger och centrerat, eftersom vilarutan är en knapp. */}
         <div className="workout-next-card mt-2.5 grid grid-cols-[minmax(0,1fr)_auto] rounded-2xl border border-white/[0.09] bg-white/[0.05]">
           <div className="min-w-0 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
               {setSourceLabel}
             </p>
             {currentExerciseReadyToFinish ? (
@@ -1516,7 +1513,7 @@ useEffect(() => {
             }}
             className="flex min-w-[5.8rem] flex-col items-start border-l border-white/[0.09] px-3 py-2 text-left transition active:opacity-60"
           >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
               Vila
             </p>
             <p className="mt-1 text-sm font-semibold leading-5 text-white">
@@ -1635,12 +1632,12 @@ useEffect(() => {
               onClick={() => setShowForraGangen((v) => !v)}
               className="flex w-full items-center justify-between gap-2"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/55">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/55">
                 Förra gången
               </p>
-              <span className={`text-[10px] text-white/38 transition-transform duration-200 ${showForraGangen ? "rotate-180" : ""}`}>
-                ▾
-              </span>
+              <ChevronDownGlyph
+                className={`h-3.5 w-3.5 text-white/38 transition-transform duration-200 ${showForraGangen ? "rotate-180" : ""}`}
+              />
             </button>
             {showForraGangen && (
               <div className="mt-2 space-y-1.5">
@@ -1766,7 +1763,7 @@ useEffect(() => {
                   className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.035] px-3 py-2.5 opacity-50"
                 >
                   <span className="text-sm font-medium text-white/86">{splitCustomExerciseName(exercise.name).title}</span>
-                  <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/32">
+                  <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/32">
                     Klar
                   </span>
                 </div>
@@ -2099,11 +2096,11 @@ useEffect(() => {
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
                 Vila
               </p>
               <p
-                className={`mt-0.5 text-2xl font-semibold tracking-tight ${
+                className={`mt-0.5 text-2xl font-semibold tracking-tight tabular-nums ${
                   restTimerState === "over"
                     ? "text-orange-100"
                     : restTimerState === "ready"
@@ -2137,7 +2134,7 @@ useEffect(() => {
               >
                 {restStartedAt ? <RotateGlyph className="h-5 w-5" /> : <><PlayGlyph className="h-5 w-5" /><span>Starta</span></>}
               </button>
-              <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.035] px-2 py-1.5 text-[10px] font-semibold text-white/50">
+              <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.035] px-2 py-1.5 text-[11px] font-semibold text-white/50">
                 <span>Autostart</span>
                 <ToggleSwitch
                   checked={autoStartRestTimer}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { CloseGlyph, SendGlyph } from "./IconGlyphs";
+import { ChevronLeftGlyph, ChevronRightGlyph, CloseGlyph, SendGlyph } from "./IconGlyphs";
 import { sendBetaFeedback } from "../lib/betaFeedback";
 import { restoreBetaSnapshotFromServer, syncBetaSnapshotNow } from "../lib/betaSync";
 import {
@@ -267,7 +267,7 @@ function SettingsRow({
           (onClick && !action ? (
             // Dekor. Utan aria-hidden läser skärmläsaren "Ditt upplägg pil".
             <span aria-hidden className={`text-base leading-none ${valueColor}`}>
-              ›
+              <ChevronRightGlyph className="h-4 w-4" />
             </span>
           ) : null)}
       </span>
@@ -791,7 +791,7 @@ export default function SettingsScreen({
                   onClick={() => setPage("root")}
                   className={`-ml-2 -mt-1 flex min-h-11 items-center gap-1 rounded-xl px-2 py-2 text-xs font-medium transition ${bodyClassName} hover:${titleClassName}`}
                 >
-                  <span className="text-base leading-none">‹</span>
+                  <ChevronLeftGlyph className="h-3.5 w-3.5" />
                   Tillbaka
                 </button>
               )}
@@ -848,7 +848,7 @@ export default function SettingsScreen({
                       aria-hidden
                       className={`text-base leading-none ${isLight ? "text-[#8a7661]" : "text-white/42"}`}
                     >
-                      ›
+                      <ChevronRightGlyph className="h-4 w-4" />
                     </span>
                   ) : null}
                 </button>
@@ -1324,7 +1324,7 @@ export default function SettingsScreen({
                       Uppdaterad {document.updatedAt}
                     </p>
                   </div>
-                  <span className={`text-lg leading-none ${bodyClassName}`}>›</span>
+                  <ChevronRightGlyph className={`h-4 w-4 ${bodyClassName}`} />
                 </button>
               ))}
             </div>

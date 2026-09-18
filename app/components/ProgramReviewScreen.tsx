@@ -359,7 +359,7 @@ function MuscleFocusCards({ review }: { review: ReviewedMuscleMap }) {
           alsoLabel ? "" : "col-span-2"
         }`}
       >
-        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
           Tränar framförallt
         </p>
         <p className="mt-1 text-xs font-semibold text-white/76">
@@ -368,7 +368,7 @@ function MuscleFocusCards({ review }: { review: ReviewedMuscleMap }) {
       </div>
       {alsoLabel ? (
         <div className="rounded-xl bg-white/[0.035] px-3 py-2">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
             Tränar också
           </p>
           <p className="mt-1 text-xs font-semibold text-white/76">
@@ -457,7 +457,7 @@ function ExerciseMuscleMapReal({ review }: { review: ReviewedMuscleMap }) {
         <div>
           <BodyChartView view={ViewSide.FRONT} bodyState={bodyState} />
           <p
-            className="mt-1 text-center text-[10px] font-medium"
+            className="mt-1 text-center text-[11px] font-medium"
             style={{ color: "rgba(255, 255, 255, 0.42)" }}
           >
             Fram
@@ -466,7 +466,7 @@ function ExerciseMuscleMapReal({ review }: { review: ReviewedMuscleMap }) {
         <div>
           <BodyChartView view={ViewSide.BACK} bodyState={bodyState} />
           <p
-            className="mt-1 text-center text-[10px] font-medium"
+            className="mt-1 text-center text-[11px] font-medium"
             style={{ color: "rgba(255, 255, 255, 0.42)" }}
           >
             Bak
@@ -861,7 +861,7 @@ export default function ProgramReviewScreen({
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
                     Snabbguide
                   </p>
                   <p className="mt-1 text-xs leading-5 text-white/58">
@@ -872,7 +872,7 @@ export default function ProgramReviewScreen({
                   type="button"
                   onClick={() => setShowTermsHelp(false)}
                   aria-label="Stäng begreppsförklaring"
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.07] text-sm leading-none text-white/54 transition hover:bg-white/[0.10] hover:text-white"
+                  className="tryckyta flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.07] text-sm leading-none text-white/54 transition hover:bg-white/[0.10] hover:text-white"
                 >
                   ×
                 </button>
@@ -946,7 +946,7 @@ export default function ProgramReviewScreen({
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/70">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-200/70">
                     Liknande övningar
                   </p>
                   <h3 className="mt-1 text-base font-semibold text-white">
@@ -992,7 +992,7 @@ export default function ProgramReviewScreen({
                           </span>
                         </span>
                         {direct ? (
-                          <span className="shrink-0 rounded-full bg-blue-400/[0.12] px-2 py-1 text-[10px] font-semibold text-blue-100/70">
+                          <span className="shrink-0 rounded-full bg-blue-400/[0.12] px-2 py-1 text-[11px] font-semibold text-blue-100/70">
                             nära
                           </span>
                         ) : null}
@@ -1033,7 +1033,7 @@ export default function ProgramReviewScreen({
       <div className="mx-auto flex w-full max-w-[460px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
               Coachen
             </p>
             {onClose ? (
@@ -1088,7 +1088,7 @@ export default function ProgramReviewScreen({
 
           {limitationAcknowledgement.length > 0 ? (
             <section className="mt-4 rounded-2xl border border-blue-300/18 bg-blue-500/[0.055] p-3.5 shadow-[inset_3px_0_0_rgba(96,165,250,0.62),inset_0_1px_0_rgba(255,255,255,0.045)]">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/58">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/58">
                 Byggt med hänsyn
               </p>
               <div className="mt-2.5 grid gap-1.5">
@@ -1137,7 +1137,7 @@ export default function ProgramReviewScreen({
                 </div>
 
                 <div className="mt-3 rounded-2xl bg-white/[0.035] px-3 py-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.045)]">
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/36">
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/36">
                     Viktigt under passen
                   </p>
                   <div className="grid gap-1.5">
@@ -1165,7 +1165,7 @@ export default function ProgramReviewScreen({
           <div className="program-terms-panel relative mt-3 rounded-2xl bg-[#101b28] px-3.5 py-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
               Begrepp under passet
                 </p>
                 <p className="mt-1 text-xs leading-5 text-white/58">
@@ -1190,7 +1190,7 @@ export default function ProgramReviewScreen({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
                       Snabbguide
                     </p>
                     <p className="mt-1 text-xs leading-5 text-white/58">
@@ -1201,7 +1201,7 @@ export default function ProgramReviewScreen({
                     type="button"
                     onClick={() => setShowTermsHelp(false)}
                     aria-label="Stäng begreppsförklaring"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.07] text-sm leading-none text-white/54 transition hover:bg-white/[0.10] hover:text-white"
+                    className="tryckyta flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.07] text-sm leading-none text-white/54 transition hover:bg-white/[0.10] hover:text-white"
                   >
                     ×
                   </button>
@@ -1269,7 +1269,7 @@ export default function ProgramReviewScreen({
 
           {!isManualBuilder ? (
             <div className="program-coach-nudge mt-3 rounded-2xl px-3.5 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
                 Behöver något justeras?
               </p>
               <p className="mt-1 text-sm leading-5 text-white/66">
@@ -1295,7 +1295,7 @@ export default function ProgramReviewScreen({
         <section className="rounded-[1.5rem] bg-white/[0.035] p-3.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
                 {isManualBuilder ? "Översikt" : "Upplägg"}
               </p>
               <h2 className="mt-1 text-lg font-semibold text-white">
@@ -1342,7 +1342,7 @@ export default function ProgramReviewScreen({
                         <span className="block text-sm font-semibold">
                           {pass.key}
                         </span>
-                        <span className="mt-0.5 block text-[10px] font-semibold text-white/42">
+                        <span className="mt-0.5 block text-[11px] font-semibold text-white/42">
                           {pass.exercises.length}
                         </span>
                       </button>
@@ -1422,7 +1422,7 @@ export default function ProgramReviewScreen({
                     </div>
                   ) : (
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-400/[0.10] text-xs font-semibold text-blue-100/76 shadow-[inset_0_0_0_1px_rgba(147,197,253,0.12)]">
+                      <span className="tryckyta flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-400/[0.10] text-xs font-semibold text-blue-100/76 shadow-[inset_0_0_0_1px_rgba(147,197,253,0.12)]">
                         {normalizedPassIndex + 1}
                       </span>
                       <div className="min-w-0">
@@ -1438,7 +1438,7 @@ export default function ProgramReviewScreen({
                   <div className="flex items-center gap-2">
                     <button
                       aria-label={`Visa info om ${passDisplayName}`}
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.05] text-xs font-semibold text-white/52 transition hover:bg-white/[0.10] hover:text-white"
+                      className="tryckyta flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.05] text-xs font-semibold text-white/52 transition hover:bg-white/[0.10] hover:text-white"
                       onClick={() => setInfoPass(pass)}
                     >
                       i
@@ -1492,7 +1492,7 @@ export default function ProgramReviewScreen({
                           </span>
                         ) : null}
                         {exercise.sets || exercise.reps || (exercise.rir && !isTimedExerciseInList) ? (
-                          <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-100/36">
+                          <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/36">
                             {[
                               exercise.sets && `${exercise.sets} set`,
                               exercise.reps &&
@@ -1516,14 +1516,14 @@ export default function ProgramReviewScreen({
                           <button
                             type="button"
                             onClick={() => acceptCoachReviewSuggestion(removeSuggestion)}
-                            className="rounded-full bg-red-500/80 px-2.5 py-1 text-[10px] font-semibold text-white transition hover:bg-red-400"
+                            className="rounded-full bg-red-500/80 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-red-400"
                           >
                             Ta bort
                           </button>
                           <button
                             type="button"
                             onClick={() => dismissCoachReviewSuggestion(removeSuggestion.id)}
-                            className="rounded-full border border-white/[0.09] bg-slate-950/18 px-2.5 py-1 text-[10px] font-semibold text-white/42 transition hover:bg-white/[0.10] hover:text-white"
+                            className="rounded-full border border-white/[0.09] bg-slate-950/18 px-2.5 py-1 text-[11px] font-semibold text-white/42 transition hover:bg-white/[0.10] hover:text-white"
                           >
                             Behåll
                           </button>
@@ -1533,7 +1533,7 @@ export default function ProgramReviewScreen({
                           <button
                             type="button"
                             onClick={() => onRemoveExercise(pass.key, exercise.name)}
-                            className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.06] bg-slate-950/18 text-white/38 transition hover:bg-white/[0.10] hover:text-white"
+                            className="tryckyta flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.06] bg-slate-950/18 text-white/38 transition hover:bg-white/[0.10] hover:text-white"
                             aria-label={`Ta bort ${exercise.name}`}
                           >
                             <CloseGlyph className="h-3.5 w-3.5" />
@@ -1547,7 +1547,7 @@ export default function ProgramReviewScreen({
                                 exerciseName: exercise.name,
                               });
                             }}
-                            className="flex h-6 w-6 items-center justify-center rounded-full border border-blue-300/10 bg-blue-400/[0.045] text-blue-100/42 transition hover:border-blue-300/28 hover:bg-blue-400/[0.12] hover:text-blue-50"
+                            className="tryckyta flex h-6 w-6 items-center justify-center rounded-full border border-blue-300/10 bg-blue-400/[0.045] text-blue-100/42 transition hover:border-blue-300/28 hover:bg-blue-400/[0.12] hover:text-blue-50"
                             aria-label={`Föreslå liknande övningar för ${exercise.name}`}
                           >
                             <RotateGlyph className="h-3.5 w-3.5" />
@@ -1564,7 +1564,7 @@ export default function ProgramReviewScreen({
                     >
                       <span className="min-w-0">
                         <span className="block truncate">{suggestion.name}</span>
-                        <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-100/44">
+                        <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/44">
                           Coachens förslag
                         </span>
                         <span className="mt-1 block text-[11px] font-medium leading-4 text-white/38">
@@ -1575,7 +1575,7 @@ export default function ProgramReviewScreen({
                         <button
                           type="button"
                           onClick={() => acceptCoachReviewSuggestion(suggestion)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-[#2f6df6] text-sm font-semibold text-white transition hover:bg-[#4f83ff]"
+                          className="tryckyta flex h-7 w-7 items-center justify-center rounded-full bg-[#2f6df6] text-sm font-semibold text-white transition hover:bg-[#4f83ff]"
                           aria-label={`Lägg till ${suggestion.name}`}
                         >
                           +
@@ -1583,7 +1583,7 @@ export default function ProgramReviewScreen({
                         <button
                           type="button"
                           onClick={() => dismissCoachReviewSuggestion(suggestion.id)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.09] bg-slate-950/18 text-white/38 transition hover:bg-white/[0.10] hover:text-white"
+                          className="tryckyta flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.09] bg-slate-950/18 text-white/38 transition hover:bg-white/[0.10] hover:text-white"
                           aria-label={`Ignorera ${suggestion.name}`}
                         >
                           <CloseGlyph className="h-3.5 w-3.5" />
@@ -1594,7 +1594,7 @@ export default function ProgramReviewScreen({
                   <div className="mt-1 rounded-2xl border border-blue-300/10 bg-blue-400/[0.035] p-3 shadow-[inset_0_0_0_1px_rgba(147,197,253,0.06)]">
                     <div className="mb-2 flex items-end justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/44">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/44">
                           Lägg till i {passDisplayName}
                         </p>
                         <p className="mt-1 text-xs text-white/44">
@@ -1733,7 +1733,7 @@ export default function ProgramReviewScreen({
         {infoPass ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-4 backdrop-blur-sm">
             <div className="max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
                 Övningar
               </p>
               <div className="mt-2 flex items-start justify-between gap-3">
@@ -1805,7 +1805,7 @@ export default function ProgramReviewScreen({
                       {reviewedInfoTemplate ? (
                         <div className="mt-3 grid gap-3">
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
                               Så gör du
                             </p>
                             <div className="mt-1 grid gap-1.5 text-sm leading-6 text-white/68">
@@ -1815,7 +1815,7 @@ export default function ProgramReviewScreen({
                             </div>
                           </div>
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
                               Känn efter
                             </p>
                             <p className="mt-1 text-sm leading-6 text-white/68">
@@ -1823,7 +1823,7 @@ export default function ProgramReviewScreen({
                             </p>
                           </div>
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
                               Logga
                             </p>
                             <p className="mt-1 text-sm leading-6 text-white/68">
@@ -1849,7 +1849,7 @@ export default function ProgramReviewScreen({
                         >
                           {exercise.sets ? (
                             <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
-                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
                                 Set
                               </p>
                               <p className="mt-1 text-xs font-semibold text-white/72">
@@ -1859,7 +1859,7 @@ export default function ProgramReviewScreen({
                           ) : null}
                           {exercise.reps ? (
                             <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
-                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
                                 {metricLabel}
                               </p>
                               <p className="mt-1 text-xs font-semibold text-white/72">
@@ -1869,7 +1869,7 @@ export default function ProgramReviewScreen({
                           ) : null}
                           {exercise.rir && !isTimedInfoExercise ? (
                             <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
-                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
                                 RIR
                               </p>
                               <p className="mt-1 text-xs font-semibold text-white/72">
@@ -1908,7 +1908,7 @@ export default function ProgramReviewScreen({
               <div className="border-b border-white/[0.09] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
                       Övningsbibliotek
                     </p>
                     <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
@@ -2053,7 +2053,7 @@ export default function ProgramReviewScreen({
                 <div className="max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
                         Övningsinfo
                       </p>
                       <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
@@ -2087,7 +2087,7 @@ export default function ProgramReviewScreen({
                   {reviewedInfoTemplate ? (
                     <div className="mt-4 grid gap-3">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
                           Så gör du
                         </p>
                         <div className="mt-1 grid gap-1.5 text-sm leading-6 text-white/68">
@@ -2097,7 +2097,7 @@ export default function ProgramReviewScreen({
                         </div>
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
                           Känn efter
                         </p>
                         <p className="mt-1 text-sm leading-6 text-white/68">
@@ -2105,7 +2105,7 @@ export default function ProgramReviewScreen({
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
                           Logga
                         </p>
                         <p className="mt-1 text-sm leading-6 text-white/68">
@@ -2158,7 +2158,7 @@ export default function ProgramReviewScreen({
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-500/[0.12] shadow-[0_0_34px_rgba(47,109,246,0.22)]">
                 <div className="h-6 w-6 animate-pulse rounded-full bg-[#2f6df6]" />
               </div>
-              <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/48">
+              <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/48">
                 Coachen granskar
               </p>
               <h2 className="mt-2 text-lg font-semibold text-white">
@@ -2186,7 +2186,7 @@ export default function ProgramReviewScreen({
         <section className="program-coach-dialog rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-3.5 backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
                 Prata med coachen
               </p>
               <p className="mt-2 text-sm leading-6 text-white/66">
@@ -2214,7 +2214,7 @@ export default function ProgramReviewScreen({
                       : "ml-auto w-fit max-w-[85%] rounded-xl border border-white/[0.16] bg-white/[0.10] px-3 py-2 text-sm leading-6 text-white"
                   }
                 >
-                  <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
                     {entry.role === "coach" ? "Coach" : "Du"}
                   </p>
                   {cleanProgramCopy(entry.text)}
@@ -2259,7 +2259,7 @@ export default function ProgramReviewScreen({
               <div className="w-full max-w-[430px] rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
                       Exempel
                     </p>
                     <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">

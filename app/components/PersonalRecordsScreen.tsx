@@ -59,7 +59,7 @@ export default function PersonalRecordsScreen({
   const latestRecord = records[0] ?? null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white sm:px-6 lg:px-8">
+    <div className="mc-enter mx-auto w-full max-w-6xl pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(37,99,235,0.06),transparent_28%),linear-gradient(180deg,#0b1018_0%,#111a25_45%,#0b1018_100%)]" />
 
       <div className="flex items-center justify-between gap-3 pt-1 sm:pt-3">
@@ -69,7 +69,7 @@ export default function PersonalRecordsScreen({
 
         <button
           onClick={onBack}
-          className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.05] px-3.5 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
         >
           Tillbaka
         </button>

@@ -8815,7 +8815,7 @@ if (userProfile && workoutPlan && showProgramReview) {
 return (
   <main
     data-theme={appTheme}
-    className="flex min-h-screen flex-col items-center justify-start gap-6 bg-[#0b1018] px-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-white"
+    className="flex min-h-screen flex-col items-center justify-start gap-6 bg-[#0b1018] px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-white sm:px-6 lg:px-8"
   >
    {started && workout ? (
       <WorkoutScreen

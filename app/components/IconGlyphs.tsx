@@ -175,3 +175,48 @@ export function CameraGlyph({ className = "" }: IconProps) {
     </svg>
   );
 }
+
+// Pilarna ersätter tecknen ‹ › ▼ ▾ som användes som ikoner. Bokstäver kan
+// aldrig linjera optiskt med en ikon, renderas olika på olika telefoner och
+// ärver inte linjetjocklek.
+export function ChevronRightGlyph({ className = "" }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="m9.5 6 6 6-6 6"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function ChevronLeftGlyph({ className = "" }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="m14.5 6-6 6 6 6"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function ChevronDownGlyph({ className = "" }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="m6 9.5 6 6 6-6"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

@@ -58,6 +58,23 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Liten ikon, stor träffyta. Cirkeln får se ut som den gör — fingret träffar
+   44 px. Alternativet, att göra varje info-knapp 44 px stor, hade gjort täta
+   rader klumpiga. */
+.tryckyta {
+  position: relative;
+}
+
+.tryckyta::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
 html[data-theme="light"],
 [data-theme="light"] {
   background:
@@ -271,19 +288,6 @@ html[data-theme="light"],
   --mc-soft-blue: rgba(47, 109, 246, 0.085);
 }
 
-[data-theme="dark"] [class*="border-white"],
-[data-theme="dark"] [class*="border-zinc"],
-[data-theme="dark"] [class*="border-slate"] {
-  border-color: var(--mc-border) !important;
-}
-
-[data-theme="dark"] [class*="bg-white/"],
-[data-theme="dark"] [class*="bg-white["],
-[data-theme="dark"] [class*="bg-slate-950"],
-[data-theme="dark"] [class*="bg-slate-900"] {
-  background-color: var(--mc-panel-soft) !important;
-}
-
 [data-theme="dark"] .workout-status-panel,
 [data-theme="dark"] .exercise-card-shell {
   background:
@@ -386,17 +390,6 @@ html[data-theme="light"],
   }
 }
 
-/* Final surface pass: keep the UI calm by muting old utility borders app-wide. */
-[data-theme="dark"] [class*="border-white"],
-[data-theme="dark"] [class*="border-slate"],
-[data-theme="dark"] [class*="border-zinc"] {
-  border-color: rgba(255, 255, 255, 0.045) !important;
-}
-
-[data-theme="dark"] [class*="bg-white/"] {
-  background-color: rgba(255, 255, 255, 0.036) !important;
-}
-
 [data-theme="dark"] [class*="bg-slate-950"] {
   background-color: rgba(7, 13, 22, 0.28) !important;
 }
@@ -434,17 +427,6 @@ html[data-theme="light"],
 [data-theme="light"] [class*="shadow-[0_18px"],
 [data-theme="light"] [class*="shadow-[0_20px"] {
   box-shadow: 0 18px 46px rgba(91, 72, 48, 0.07) !important;
-}
-
-@media (max-width: 640px) {
-  main[data-theme] {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-
-  main[data-theme] > div:not([class*="fixed"]) {
-    border-radius: 0 !important;
-  }
 }
 
 [data-theme="light"] button:not([class*="bg-blue"]):not([class*="bg-[#2f6df6]"]) {
@@ -1403,4 +1385,48 @@ html[data-theme="light"],
 
 [data-theme="light"] .start-add-mode-button {
   color: #30343b !important;
+}
+
+/* Ljus faller uppifrån. En knappt synlig toning på de två ytnivåerna gör att
+   ytorna ser tillverkade ut i stället för målade. [class~=] matchar bara hela
+   klassnamn, alltså inte hover:bg-white/[0.05] — det var precis den fällan som
+   gjorde att varje hover-klass fick permanent bakgrund. */
+[data-theme="dark"] [class~="bg-white/[0.05]"],
+[data-theme="dark"] [class~="bg-white/[0.07]"] {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+}
+
+[data-theme="light"] [class~="bg-white/56"],
+[data-theme="light"] [class~="bg-white/48"] {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+}
+
+/* Skärmar byttes hårt. 200 ms gör att appen känns som en app och inte som en
+   sidladdning. Bara opacitet — transform på en förälder bryter fixed-lägen. */
+@keyframes mc-enter {
+  from {
+    opacity: 0;
+  }
+}
+
+.mc-enter {
+  animation: mc-enter 200ms ease-out both;
+}
+
+/* Ringen ritar upp sig när lobbyn öppnas. 2π × 90 = 565,5. */
+@keyframes mc-ring-draw {
+  from {
+    stroke-dashoffset: 565.5;
+  }
+}
+
+.mc-ring {
+  animation: mc-ring-draw 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-enter,
+  .mc-ring {
+    animation: none;
+  }
 }

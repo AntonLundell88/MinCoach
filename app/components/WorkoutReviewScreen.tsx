@@ -108,7 +108,7 @@ function formatSet(set: ReviewSet, exerciseName: string): string {
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-[1.5rem] border border-white/[0.09] bg-slate-950/18 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
         {label}
       </p>
       <p className="mt-2 truncate text-xl font-semibold tracking-normal text-white">
@@ -137,7 +137,7 @@ function SimpleList({
           : "rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-4"
       }
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-blue-100/50">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-blue-100/50">
         {title}
       </p>
       <div className="mt-3 space-y-2">
@@ -215,7 +215,7 @@ function SetRow({
         </button>
         {isTimed ? (
           <div>
-            <p className="mb-1 text-[10px] text-white/40">Tid (sekunder)</p>
+            <p className="mb-1 text-[11px] text-white/40">Tid (sekunder)</p>
             <input
               autoFocus
               className="w-full rounded-xl border border-white/[0.09] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
@@ -229,7 +229,7 @@ function SetRow({
         ) : (
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <p className="mb-1 text-[10px] text-white/40">Vikt (kg)</p>
+              <p className="mb-1 text-[11px] text-white/40">Vikt (kg)</p>
               <input
                 className="w-full rounded-xl border border-white/[0.09] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
                 inputMode="decimal"
@@ -238,7 +238,7 @@ function SetRow({
               />
             </div>
             <div>
-              <p className="mb-1 text-[10px] text-white/40">Reps</p>
+              <p className="mb-1 text-[11px] text-white/40">Reps</p>
               <input
                 className="w-full rounded-xl border border-white/[0.09] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
                 inputMode="numeric"
@@ -247,7 +247,7 @@ function SetRow({
               />
             </div>
             <div>
-              <p className="mb-1 text-[10px] text-white/40">RIR</p>
+              <p className="mb-1 text-[11px] text-white/40">RIR</p>
               <input
                 className="w-full rounded-xl border border-white/[0.09] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
                 inputMode="numeric"
@@ -310,7 +310,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
   );
 
   return (
-    <div className="w-full max-w-none space-y-3 text-white sm:max-w-xl sm:space-y-4">
+    <div className="mc-enter w-full max-w-none space-y-3 text-white sm:max-w-xl sm:space-y-4">
       <section className="rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:rounded-[1.5rem] sm:p-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-100/45">
           Pass klart
@@ -341,7 +341,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
 
       {(review.loggedExercises ?? []).length > 0 && (
         <section className="rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-white/35">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-white/35">
             Dagens set
           </p>
           {onEditSet && (
@@ -370,7 +370,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
       )}
 
       <section className="rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-white/35">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-white/35">
           Bra att tänka på
         </p>
         <p className="mt-3 text-sm leading-6 text-white/76">{nextSessionTip}</p>

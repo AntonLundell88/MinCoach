@@ -35,7 +35,7 @@ function FrisorEasterEgg({ onClose }: { onClose: () => void }) {
       <div className="relative z-10 max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
               Övningsinfo
             </p>
             <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
@@ -57,13 +57,13 @@ function FrisorEasterEgg({ onClose }: { onClose: () => void }) {
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           <div className="rounded-xl bg-white/[0.035] px-3 py-2">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
               Tränar framförallt
             </p>
             <p className="mt-1 text-xs font-semibold text-white/76">Självförtroende</p>
           </div>
           <div className="rounded-xl bg-white/[0.035] px-3 py-2">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
               Tränar också
             </p>
             <p className="mt-1 text-xs font-semibold text-white/76">Tålamod, småprat</p>
@@ -83,18 +83,18 @@ function FrisorEasterEgg({ onClose }: { onClose: () => void }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <BodyChartView view={ViewSide.FRONT} bodyState={FRISOR_FRONT_STATE} onMuscleClick={() => {}} />
-              <p className="mt-1 text-center text-[10px] font-medium text-white/42">Fram</p>
+              <p className="mt-1 text-center text-[11px] font-medium text-white/42">Fram</p>
             </div>
             <div>
               <BodyChartView view={ViewSide.BACK} bodyState={FRISOR_BACK_STATE} onMuscleClick={() => {}} />
-              <p className="mt-1 text-center text-[10px] font-medium text-white/42">Bak</p>
+              <p className="mt-1 text-center text-[11px] font-medium text-white/42">Bak</p>
             </div>
           </div>
         </div>
 
         <div className="mt-4 grid gap-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
               Så gör du
             </p>
             <div className="mt-1 grid gap-1.5 text-sm leading-6 text-white/68">
@@ -104,7 +104,7 @@ function FrisorEasterEgg({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
               Känn efter
             </p>
             <p className="mt-1 text-sm leading-6 text-white/68">
@@ -112,7 +112,7 @@ function FrisorEasterEgg({ onClose }: { onClose: () => void }) {
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
               Logga
             </p>
             <p className="mt-1 text-sm leading-6 text-white/68">
@@ -328,7 +328,7 @@ export default function MuscleExplorer({
             bodyState={bodyState}
             onMuscleClick={handleMuscleClick}
           />
-          <p className="mt-1 text-center text-[10px] font-medium text-white/42">Fram</p>
+          <p className="mt-1 text-center text-[11px] font-medium text-white/42">Fram</p>
         </div>
         <div>
           <BodyChartView
@@ -336,7 +336,7 @@ export default function MuscleExplorer({
             bodyState={bodyState}
             onMuscleClick={handleMuscleClick}
           />
-          <p className="mt-1 text-center text-[10px] font-medium text-white/42">Bak</p>
+          <p className="mt-1 text-center text-[11px] font-medium text-white/42">Bak</p>
         </div>
       </div>
 

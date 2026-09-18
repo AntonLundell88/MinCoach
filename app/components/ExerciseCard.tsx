@@ -349,7 +349,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => setShowExerciseInfo(true)}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+              className="tryckyta flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
               aria-label={`Visa info om ${splitCustomExerciseName(currentExerciseName).title}`}
             >
               i
@@ -403,7 +403,7 @@ useEffect(() => {
                   setUseAddedWeight(next);
                   if (!next) setWeightInput("");
                 }}
-                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold transition ${
+                className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold transition ${
                   showWeightInput
                     ? "border-blue-300/24 bg-blue-500/[0.14] text-blue-50"
                     : "border-white/[0.09] bg-white/[0.035] text-white/46 hover:bg-white/[0.07] hover:text-white/72"
@@ -619,7 +619,7 @@ useEffect(() => {
   <button
     type="button"
     onClick={() => setShowRirInfo(!showRirInfo)}
-    className="flex h-4 w-4 items-center justify-center rounded-full border border-zinc-600 text-[10px] text-gray-400 hover:bg-zinc-700"
+    className="tryckyta flex h-5 w-5 items-center justify-center rounded-full border border-white/[0.16] text-[11px] text-white/60 transition hover:bg-white/[0.07] hover:text-white"
   >
     i
   </button>
@@ -650,7 +650,7 @@ useEffect(() => {
           setRirInput(value);
           triggerHaptic(8);
         }}
-        className={`rounded-xl border px-2 py-1.5 text-sm font-semibold transition ${
+        className={`inline-flex min-h-11 items-center justify-center rounded-xl border px-2 text-sm font-semibold transition ${
           isActive
             ? "workout-rir-selected border-blue-400/25 bg-blue-500/[0.16] text-white shadow-[0_0_16px_rgba(59,130,246,0.10)]"
             : "border-transparent bg-transparent text-white/64 hover:bg-white/[0.05] hover:text-white"
@@ -878,7 +878,7 @@ useEffect(() => {
       {(
         <div className={`space-y-2 ${embedded ? "" : "flex gap-2 space-y-0"}`}>
           <button
-            className={`w-full rounded-2xl border px-5 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`inline-flex min-h-12 w-full items-center justify-center rounded-2xl border px-5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
               exerciseComplete
                 ? "border-white/[0.16] bg-transparent text-white/85 hover:bg-white/[0.07]"
                 : "workout-primary-action border-blue-300/16 bg-blue-600/58 text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] hover:bg-blue-500/72"
@@ -934,7 +934,7 @@ useEffect(() => {
                     <button
                       type="button"
                       onClick={() => setShowVideoInfo(true)}
-                      className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-[10px] font-semibold text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                      className="tryckyta flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-[11px] font-semibold text-white/50 transition hover:bg-white/[0.07] hover:text-white"
                       aria-label="Vad gör filma-knappen?"
                     >
                       i
@@ -966,7 +966,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={() => setShowVideoInfo(true)}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-[10px] font-semibold text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                    className="tryckyta flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-[11px] font-semibold text-white/50 transition hover:bg-white/[0.07] hover:text-white"
                     aria-label="Vad gör filma-knappen?"
                   >
                     i

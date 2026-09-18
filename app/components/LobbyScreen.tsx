@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { CoachThinkingDots, getRandomThinkingWord } from "./CoachThinking";
+import { ChevronRightGlyph } from "./IconGlyphs";
 
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 type AppTheme = "dark" | "light";
@@ -141,8 +142,8 @@ export default function LobbyScreen({
 }: Props) {
   const isLight = theme === "light";
   const pageClassName = isLight
-    ? "relative min-h-screen w-full px-0 py-0 text-[#2d251c] sm:px-6 sm:py-4 lg:px-8"
-    : "relative min-h-screen w-full px-0 py-0 text-white sm:px-6 sm:py-4 lg:px-8";
+    ? "mc-enter relative min-h-screen w-full py-0 text-[#2d251c] sm:py-4"
+    : "mc-enter relative min-h-screen w-full py-0 text-white sm:py-4";
   const backgroundClassName = isLight
     ? "pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_top_left,rgba(47,109,246,0.13),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(125,96,64,0.08),transparent_26%),linear-gradient(180deg,#f3eee4_0%,#f8f4ec_48%,#efe7da_100%)]"
     : "pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(37,99,235,0.06),transparent_28%),linear-gradient(180deg,#0b1018_0%,#111a25_45%,#0b1018_100%)]";
@@ -157,6 +158,8 @@ export default function LobbyScreen({
   const buttonSubtleClassName = isLight
     ? "inline-flex items-center gap-2 rounded-full bg-white/58 px-3 py-2 text-xs font-semibold text-[#665b4f] shadow-[inset_0_0_0_1px_rgba(122,101,72,0.12)] transition hover:bg-white/78 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/45"
     : "inline-flex items-center gap-2 rounded-full bg-white/[0.035] px-3 py-2 text-xs font-semibold text-white/62 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.045)] transition hover:bg-[#4f83ff]/[0.07] hover:text-white/82 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/35";
+  const hairlineClassName = isLight ? "h-px bg-[#d8cfc0]/50" : "h-px bg-white/[0.07]";
+  const listRowClassName = `flex min-h-12 w-full items-center justify-between gap-3 rounded-xl px-1 py-3 text-left transition ${isLight ? "hover:bg-white/50" : "hover:bg-white/[0.035]"}`;
   const overviewButtonClassName = isLight
     ? "rounded-xl border border-[#7a6548]/14 bg-white/48 px-3 py-2.5 text-left text-sm text-[#2d251c] transition hover:bg-white/70"
     : "rounded-xl border border-white/[0.06] bg-white/[0.035] px-3 py-2.5 text-left text-sm text-white/78 transition hover:border-white/10 hover:bg-white/[0.05]";
@@ -252,13 +255,6 @@ export default function LobbyScreen({
             </div>
 
             <div>
-              <p
-                className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${
-                  isLight ? "text-blue-700/55" : "text-blue-100/45"
-                }`}
-              >
-                MinCoach
-              </p>
               <h1
                 className={`text-2xl font-semibold tracking-[-0.04em] sm:text-3xl ${titleClassName}`}
               >
@@ -275,7 +271,7 @@ export default function LobbyScreen({
             <button
               type="button"
               onClick={onOpenSettings}
-              className={`${buttonSubtleClassName} h-10 w-10 justify-center px-0 text-sm font-semibold uppercase`}
+              className={`${buttonSubtleClassName} h-11 w-11 justify-center px-0 text-sm font-semibold uppercase`}
               aria-label="Du"
               title="Du"
             >
@@ -358,49 +354,64 @@ export default function LobbyScreen({
           </div>
         )}
 
-        <section className="grid gap-4 lg:grid-cols-[1.55fr_0.9fr]">
-          <div
-            className={`relative overflow-hidden rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}
+        {/* Coachen är lobbyns enda kort. Ligger allt i kort betyder kortet
+            ingenting — nu betyder det: här talar coachen. */}
+        <section
+          className={`relative overflow-hidden rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}
+        >
+          <span
+            className={`block h-1.5 w-1.5 rounded-full ${
+              isLight ? "bg-[#2563eb]" : "bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.45)]"
+            }`}
+          />
+
+          <h2
+            className={`mt-3 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px] ${titleClassName}`}
           >
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                  isLight ? "bg-[#2563eb]" : "bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.45)]"
-                }`}
-              />
-              <p className={labelClassName}>Coachen</p>
-            </div>
+            {getTimeGreeting(now, name)}
+          </h2>
 
-            <h2
-              className={`mt-3 text-xl font-semibold tracking-[-0.03em] sm:text-2xl ${titleClassName}`}
-            >
-              {getTimeGreeting(now, name)}
-            </h2>
-
-            <p
-              className={`mt-3 max-w-2xl text-[15px] leading-[1.65] sm:text-base ${
-                isLight ? "text-[#584c40]" : "text-white/80"
-              }`}
-            >
-              {isWritingNote ? (
-                <span className="flex items-center gap-2">
-                  Coachen {thinkingWord}
-                  <CoachThinkingDots />
-                </span>
-              ) : (
-                coachReflection
-              )}
-            </p>
-          </div>
+          <p
+            className={`mt-3 max-w-2xl text-[17px] leading-[1.55] ${
+              isLight ? "text-[#584c40]" : "text-white/80"
+            }`}
+          >
+            {isWritingNote ? (
+              <span className="flex items-center gap-2">
+                Coachen {thinkingWord}
+                <CoachThinkingDots />
+              </span>
+            ) : (
+              coachReflection
+            )}
+          </p>
         </section>
 
-        <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-          <p className={labelClassName}>Framsteg</p>
-          <h2 className={`mt-1.5 text-lg font-semibold tracking-[-0.03em] sm:text-xl ${titleClassName}`}>
+        {/* Det du ska göra härnäst ligger direkt under coachen, inte längst ned
+            efter all statistik. */}
+        <section className="pt-1">
+          <h2 className={`text-2xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
+            {nextPassLabel}
+          </h2>
+          <p className={`mt-1.5 text-[15px] ${bodyClassName}`}>
+            Starta när du är redo. Ingen stress.
+          </p>
+          <button
+            onClick={onStartWorkout}
+            className="mt-4 flex min-h-12 w-full items-center justify-center rounded-2xl bg-[#2f6df6] px-5 text-[15px] font-semibold text-white transition hover:bg-[#4f83ff] active:scale-[0.99]"
+          >
+            Starta pass
+          </button>
+        </section>
+
+        <section className="pt-2">
+          <div className={hairlineClassName} />
+
+          <h2 className={`mt-5 text-[17px] font-semibold tracking-[-0.02em] ${titleClassName}`}>
             Senaste 28 dagarna
           </h2>
 
-          <div className="relative mx-auto mt-5 h-[132px] w-[132px]">
+          <div className="relative mx-auto mt-4 h-[132px] w-[132px]">
             <svg width="132" height="132" viewBox="0 0 220 220">
               <defs>
                 <linearGradient id="lobbyProgressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -410,136 +421,98 @@ export default function LobbyScreen({
               </defs>
               <circle cx="110" cy="110" r="90" fill="none" stroke={isLight ? "rgba(122,101,72,0.12)" : "rgba(255,255,255,0.07)"} strokeWidth="12"/>
               <g transform="rotate(-90 110 110)">
-                <circle cx="110" cy="110" r="90" fill="none"
+                <circle className="mc-ring" cx="110" cy="110" r="90" fill="none"
                   stroke="url(#lobbyProgressGradient)" strokeWidth="12" strokeLinecap="round"
                   strokeDasharray={ringCircumference(90)}
                   strokeDashoffset={ringOffset(90, passProgress)}/>
               </g>
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={`text-[34px] font-bold leading-none tracking-[-0.03em] ${titleClassName}`}>{passCount28}</span>
-              <span className={`mt-1 text-xs ${bodyClassName}`}>av {passGoal} pass</span>
+              <span className={`text-[34px] font-bold leading-none tracking-[-0.03em] tabular-nums ${titleClassName}`}>{passCount28}</span>
+              <span className={`mt-1 text-[13px] ${bodyClassName}`}>av {passGoal} pass</span>
             </div>
           </div>
 
           {streak > 0 && (
             <div className={`mx-auto mt-3 flex w-fit items-center gap-1.5 rounded-full px-3 py-1 ${isLight ? "bg-[#eaf1ff] ring-1 ring-[#bed3ff]" : "bg-[#4f83ff]/[0.10] ring-1 ring-[#4f83ff]/[0.18]"}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${isLight ? "bg-[#2563eb]" : "bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.45)]"}`}/>
-              <span className={`text-xs font-medium ${isLight ? "text-[#2f5fc4]" : "text-blue-100/90"}`}>
+              <span className={`text-[13px] font-medium ${isLight ? "text-[#2f5fc4]" : "text-blue-100/90"}`}>
                 {streak} {streak === 1 ? "vecka" : "veckor"} i rad
               </span>
             </div>
           )}
 
-          <div className={`mt-4 h-px ${isLight ? "bg-[#d8cfc0]/50" : "bg-white/[0.07]"}`}/>
-
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#34d399" }}/>
-              <span className={`text-sm ${bodyClassName}`}>
-                <span className={`font-semibold ${titleClassName}`}>{hours28.toLocaleString("sv-SE")}</span> tim i gymmet
+              <span className={`text-[15px] ${bodyClassName}`}>
+                <span className={`font-semibold tabular-nums ${titleClassName}`}>{hours28.toLocaleString("sv-SE")}</span> tim i gymmet
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-orange-400"/>
-              <span className={`text-sm ${bodyClassName}`}>
-                <span className={`font-semibold ${titleClassName}`}>{tons28.toLocaleString("sv-SE")}</span> t lyft
+              <span className={`text-[15px] ${bodyClassName}`}>
+                <span className={`font-semibold tabular-nums ${titleClassName}`}>{tons28.toLocaleString("sv-SE")}</span> t lyft
               </span>
             </div>
           </div>
         </section>
 
-        {wrapped && !wrapped.isSpotlight && (
-          <button
-            type="button"
-            onClick={wrapped.onOpen}
-            className={`flex w-full items-center justify-between gap-3 rounded-[1.5rem] px-4 py-3 text-left transition active:scale-[0.99] ${cardClassName}`}
-          >
-            <div className="min-w-0">
-              <p className={labelClassName}>Höjdpunkter</p>
-              <p className={`mt-1 text-sm font-semibold ${titleClassName}`}>
-                Din {wrapped.monthLabel}
-              </p>
-            </div>
-            <span className={`shrink-0 text-xs font-semibold ${bodyClassName}`}>Visa →</span>
-          </button>
-        )}
+        {/* Två fakta som inte behöver varsin låda. */}
+        <section className="pt-2">
+          <div className={hairlineClassName} />
 
-        <section className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-              <p className={labelClassName}>
-                Senaste pass
-              </p>
-              <p
-                className={`mt-3 text-2xl font-semibold tracking-[-0.04em] ${titleClassName}`}
-              >
+          <div className="flex min-h-12 items-start justify-between gap-4 py-3.5">
+            <span className={`pt-0.5 text-[15px] ${bodyClassName}`}>Senaste passet</span>
+            <div className="min-w-0 text-right">
+              <p className={`truncate text-[15px] font-semibold ${titleClassName}`}>
                 {latestWorkout ? latestWorkout.displayName : "Inget än"}
               </p>
-              <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
+              <p className={`mt-0.5 text-[13px] ${bodyClassName}`}>
                 {latestWorkout?.summary
                   ? `${latestWorkout.summary.durationMinutes} min · ${latestWorkout.summary.totalSets} set`
-                  : "När du kört första passet visas det här."}
+                  : "Visas när du kört ditt första"}
               </p>
             </div>
+          </div>
 
-            <div className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-              <p className={labelClassName}>
-                Totalt
-              </p>
-              <p
-                className={`mt-3 text-2xl font-semibold tracking-[-0.04em] ${titleClassName}`}
-              >
-                {totalSets} set
-              </p>
-              <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
+          <div className={hairlineClassName} />
+
+          <div className="flex min-h-12 items-start justify-between gap-4 py-3.5">
+            <span className={`pt-0.5 text-[15px] ${bodyClassName}`}>Totalt</span>
+            <div className="min-w-0 text-right">
+              <p className={`text-[15px] font-semibold tabular-nums ${titleClassName}`}>{totalSets} set</p>
+              <p className={`mt-0.5 text-[13px] ${bodyClassName}`}>
                 {totalMinutes > 0 ? `${formatMinutes(totalMinutes)} loggad träning` : "Inget loggat än"}
               </p>
             </div>
           </div>
-
-          <div className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-            <p className={labelClassName}>
-              Översikt
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {overviewActions.map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={item.onClick}
-                    className={overviewButtonClassName}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-            </div>
-          </div>
         </section>
 
-        <section className="pb-5 pt-1">
-          <div className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className={labelClassName}>
-                  Nästa pass
-                </p>
-                <h2
-                  className={`mt-1.5 text-2xl font-semibold tracking-[-0.04em] ${titleClassName}`}
-                >
-                  {nextPassLabel}
-                </h2>
-                <p className={`mt-2 text-sm ${bodyClassName}`}>
-                  Starta när du är redo. Ingen stress.
-                </p>
-              </div>
+        <section className="pb-6 pt-2">
+          <div className={hairlineClassName} />
 
-              <button
-                className="w-full rounded-xl bg-[#2f6df6] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4f83ff] sm:w-auto"
-                onClick={onStartWorkout}
-              >
-                Starta pass
+          <div className="mt-1">
+            {wrapped && !wrapped.isSpotlight && (
+              <button type="button" onClick={wrapped.onOpen} className={listRowClassName}>
+                <span className={`text-[15px] font-medium ${titleClassName}`}>
+                  Höjdpunkter · din {wrapped.monthLabel}
+                </span>
+                <ChevronRightGlyph className={`h-4 w-4 shrink-0 ${isLight ? "text-[#a3927c]" : "text-white/30"}`} />
               </button>
-            </div>
+            )}
+
+            {overviewActions.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={item.onClick}
+                className={listRowClassName}
+              >
+                <span className={`text-[15px] font-medium ${titleClassName}`}>{item.label}</span>
+                <ChevronRightGlyph className={`h-4 w-4 shrink-0 ${isLight ? "text-[#a3927c]" : "text-white/30"}`} />
+              </button>
+            ))}
           </div>
         </section>
       </div>

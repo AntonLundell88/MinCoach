@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDownGlyph } from "./IconGlyphs";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import ToggleSwitch from "./ToggleSwitch";
@@ -218,7 +219,7 @@ export default function SetupScreen({
         <div className="absolute inset-0 bg-black/10 backdrop-blur-[3px]" />
         <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
           <div className="space-y-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
               Coachen
             </p>
             <h1 className="text-xl font-semibold text-white">Hej!</h1>
@@ -255,7 +256,7 @@ export default function SetupScreen({
             <button
               type="button"
               onClick={onCancel}
-              className="absolute left-4 rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07] sm:left-0"
+              className="absolute left-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.05] px-3.5 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07] sm:left-0"
             >
               Tillbaka
             </button>
@@ -278,7 +279,7 @@ export default function SetupScreen({
               </div>
 
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
                   Coachen
                 </p>
                 <h1 className="mt-1 text-[22px] font-semibold leading-tight tracking-normal text-white">
@@ -302,7 +303,7 @@ export default function SetupScreen({
               }}
             >
               <div className="rounded-2xl border border-white/[0.06] bg-slate-950/16 p-3.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
                   Du
                 </p>
 
@@ -343,9 +344,7 @@ export default function SetupScreen({
                             </option>
                           ))}
                         </select>
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-white/42">
-                          ▼
-                        </span>
+                        <ChevronDownGlyph className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/42" />
                       </div>
                     </label>
                   </div>
@@ -379,7 +378,7 @@ export default function SetupScreen({
               </div>
 
               <div className="rounded-2xl border border-white/[0.09] bg-slate-950/18 p-3.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
                   Din träning
                 </p>
 
@@ -444,9 +443,7 @@ export default function SetupScreen({
                       <option value="7">7 dagar</option>
                     ) : null}
                   </select>
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-white/42">
-                    ▼
-                  </span>
+                  <ChevronDownGlyph className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/42" />
                 </div>
               </label>
 
@@ -468,9 +465,7 @@ export default function SetupScreen({
                     <option value="90">90 minuter</option>
                     <option value="120">120 minuter</option>
                   </select>
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-white/42">
-                    ▼
-                  </span>
+                  <ChevronDownGlyph className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/42" />
                 </div>
               </label>
 
@@ -648,7 +643,7 @@ export default function SetupScreen({
 
               {!isEditing ? (
                 <label className="block rounded-2xl border border-white/[0.09] bg-slate-950/22 p-3.5 text-[12px] leading-5 text-white/68">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
                     AI-coach
                   </p>
                   <p className="mt-1.5">

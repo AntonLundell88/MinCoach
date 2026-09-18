@@ -3,7 +3,7 @@
 import { useState } from "react";
 import ExerciseInfoModal from "./ExerciseInfoModal";
 import { LibraryBrowser, LIBRARY_CATEGORIES, filterLibraryExercises, type LibraryExercise } from "./LibraryBrowser";
-import { CloseGlyph } from "./IconGlyphs";
+import { ChevronDownGlyph, CloseGlyph, PencilGlyph } from "./IconGlyphs";
 import { CUSTOM_EXERCISE_CATEGORIES, resolveExerciseName } from "../lib/exercises";
 
 type PassType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
@@ -283,7 +283,7 @@ export default function StartScreen({
 
 
   return (
-    <div className="w-full max-w-lg space-y-5">
+    <div className="mc-enter w-full max-w-lg space-y-5">
       <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14)] backdrop-blur-xl">
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
@@ -297,7 +297,7 @@ export default function StartScreen({
             <button
               type="button"
               onClick={onBack}
-              className="shrink-0 rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
+              className="shrink-0 inline-flex min-h-11 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.05] px-3.5 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
             >
               Tillbaka
             </button>
@@ -306,9 +306,6 @@ export default function StartScreen({
           <div className="rounded-2xl border border-white/[0.09] bg-slate-950/18 p-4 backdrop-blur-sm">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-white/35">
-                  Dagens pass
-                </p>
                 {isEditingPassName ? (
                   <div className="mt-1.5 flex items-center gap-2">
                     <input
@@ -357,14 +354,14 @@ export default function StartScreen({
                         setIsEditingPassName(true);
                       }}
                       aria-label="Byt namn på passet"
-                      className="shrink-0 rounded-xl px-1.5 py-1 text-sm text-white/28 transition hover:bg-white/[0.07] hover:text-white/60"
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white/45 transition hover:bg-white/[0.07] hover:text-white/80"
                     >
-                      ✎
+                      <PencilGlyph className="h-4 w-4" />
                     </button>
                   </div>
                 )}
                 <p className="mt-1 text-sm text-white/50">
-                  {plan.length + todayExercises.length} övningar idag
+                  {plan.length + todayExercises.length === 1 ? "1 övning idag" : `${plan.length + todayExercises.length} övningar idag`}
                 </p>
               </div>
 
@@ -399,7 +396,7 @@ export default function StartScreen({
                         {pass.label}
                       </span>
                       <span className="mt-0.5 block text-[11px] text-white/42">
-                        {pass.exerciseCount} övningar
+                        {pass.exerciseCount === 1 ? "1 övning" : `${pass.exerciseCount} övningar`}
                       </span>
                     </button>
                   );
@@ -421,7 +418,7 @@ export default function StartScreen({
             </p>
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-2"
+              className="-mx-1 flex min-h-11 w-full items-center justify-between gap-2 rounded-xl px-1 transition hover:bg-white/[0.035]"
               onClick={() => {
                 setShowGymPicker((v) => !v);
                 setShowAddGymInput(false);
@@ -441,7 +438,9 @@ export default function StartScreen({
                   ? "Välj gym"
                   : gyms.find((g) => g.id === activeGymId)?.name ?? "Välj gym"}
               </span>
-              <span className="text-white/30 text-xs shrink-0">{showGymPicker ? "▲" : "▼"}</span>
+              <ChevronDownGlyph
+                className={`h-4 w-4 shrink-0 text-white/40 transition-transform ${showGymPicker ? "rotate-180" : ""}`}
+              />
             </button>
 
             {gymConfirmationRequired && gymConfirmationNudge && (
@@ -717,7 +716,7 @@ export default function StartScreen({
           <div className="grid grid-cols-[1fr_auto] gap-2">
             <button
               type="button"
-              className="start-add-mode-button rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-semibold text-white/62 transition hover:bg-white/10 hover:text-white"
+              className="start-add-mode-button inline-flex min-h-11 items-center justify-center rounded-xl border border-white/[0.09] bg-white/5 px-3 text-sm font-semibold text-white/62 transition hover:bg-white/10 hover:text-white"
               style={{ color: "rgba(255, 255, 255, 0.72)" }}
               onClick={() => {
                 addFromInput("today");
@@ -728,7 +727,7 @@ export default function StartScreen({
 
             <button
               type="button"
-              className="start-add-mode-button rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-medium text-white/62 transition hover:bg-white/10 hover:text-white"
+              className="start-add-mode-button inline-flex min-h-11 items-center justify-center rounded-xl border border-white/[0.09] bg-white/5 px-3 text-sm font-medium text-white/62 transition hover:bg-white/10 hover:text-white"
               onClick={() => {
                 addFromInput("schedule");
               }}
@@ -747,7 +746,7 @@ export default function StartScreen({
               setLibraryCategory("alla");
               setShowLibrary(true);
             }}
-            className="w-full rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+            className="w-full inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
           >
             Bläddra i biblioteket
           </button>
@@ -920,7 +919,7 @@ export default function StartScreen({
                   </button>
                   <button
                     type="button"
-                    className="start-add-mode-button rounded-xl border border-white/[0.09] bg-white/5 px-3 py-2.5 text-sm font-medium text-white/62 transition hover:bg-white/10 hover:text-white"
+                    className="start-add-mode-button inline-flex min-h-11 items-center justify-center rounded-xl border border-white/[0.09] bg-white/5 px-3 text-sm font-medium text-white/62 transition hover:bg-white/10 hover:text-white"
                     onClick={() => swapFromInput("schedule")}
                   >
                     Spara i schemat
@@ -933,7 +932,7 @@ export default function StartScreen({
                 <button
                   type="button"
                   onClick={() => setSwapStep("browse")}
-                  className="w-full rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+                  className="w-full inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
                 >
                   Tillbaka till listan
                 </button>
@@ -951,7 +950,7 @@ export default function StartScreen({
       {showNewGymModal ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/72 px-4 py-4 backdrop-blur-sm">
           <div className="w-full max-w-[430px] rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
               Nytt gym
             </p>
             <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
