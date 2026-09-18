@@ -970,7 +970,7 @@ export default function SettingsScreen({
             <>
               <SettingsGroup
                 isLight={isLight}
-                caption="Tryck på ett gym för att byta namn eller ta bort det. Coachen håller isär vikterna per gym, och passen står kvar i historiken även om gymmet tas bort."
+                caption="Coachen håller isär vikterna per gym. Passen står kvar i historiken även om gymmet tas bort."
               >
                 {gyms.length === 0 ? (
                   <SettingsRow label="Inga gym än" isLight={isLight} />

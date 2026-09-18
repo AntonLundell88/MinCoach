@@ -661,14 +661,6 @@ export default function WorkoutScreen({
   // klockformat med ett ord framför, som lästes som kod i en ruta som redan
   // heter Vila. Klockformatet står kvar där det är en timer: i fokusläget.
   const restTargetLabel = formatRestProse(restTarget);
-  const restTimerHint =
-    restStartedAt === null
-      ? restTargetLabel
-      : restTimerState === "over"
-      ? `Lite lång vila · ${formatRestTimer(restElapsed)}`
-      : restTimerState === "ready"
-      ? `Redo · ${restTargetLabel}`
-      : `Redo om ${formatRestTimer(restSecondsUntilReady)}`;
   useEffect(() => {
     if (restTimerState === "ready") triggerHaptic([10, 60, 10]);
   }, [restTimerState]);
@@ -748,7 +740,13 @@ export default function WorkoutScreen({
       // självt. Utan siffror finns inget att missförstå, så där duger den gamla
       // rubriken.
     hasNextPrescription
-    ? "Senast"
+    ? // "Senast" kräver att det finns ett senast. Efter ett ångra låg siffrorna
+      // kvar i fälten medan setet var struket, och rutan sa "Senast 80 kg" om
+      // ett set som inte fanns. Loggat set i passet eller historik från förr
+      // räcker — annars är siffrorna ett förslag.
+      currentSets.length > 0 || lastByExercise[exerciseKey(currentExerciseName)]
+      ? "Senast"
+      : "Nästa set"
     : "Nästa set";
 
   const filteredLibraryExercises = filterLibraryExercises(libraryExercises, librarySearch, libraryCategory);
@@ -1536,8 +1534,31 @@ useEffect(() => {
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/60">
               Vila
             </p>
-            <p className="mt-1 text-sm font-semibold leading-5 text-white">
-              {restTimerHint}
+            <p
+              className={`mt-1 font-semibold text-white ${
+                restStartedAt === null
+                  ? "text-sm leading-5"
+                  : restTimerState === "over"
+                  ? "text-[17px] leading-none tabular-nums text-orange-100"
+                  : restTimerState === "ready"
+                  ? "text-[17px] leading-none tabular-nums text-emerald-100"
+                  : "text-[17px] leading-none tabular-nums"
+              }`}
+            >
+              {restStartedAt === null
+                ? restTargetLabel
+                : restTimerState === "resting"
+                ? formatRestTimer(restSecondsUntilReady)
+                : "Redo"}
+            </p>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+              {restStartedAt === null
+                ? "mål"
+                : restTimerState === "over"
+                ? "lång vila"
+                : restTimerState === "ready"
+                ? "kör"
+                : "kvar"}
             </p>
           </button>
         </div>

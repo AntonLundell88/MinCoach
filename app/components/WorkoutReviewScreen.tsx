@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { formatSetDisplay } from "../lib/exercises";
+import { PencilGlyph } from "./IconGlyphs";
 
 const NEXT_SESSION_TIPS = [
   "Muskler består till stor del av vatten — se till att du dricker ordentligt idag.",
@@ -264,13 +265,13 @@ function SetRow({
         )}
         <div className="flex gap-2">
           <button
-            className="flex-1 rounded-xl border border-white/[0.09] bg-white/[0.035] py-1.5 text-xs font-semibold text-white/60 transition hover:text-white"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.035] text-[13px] font-semibold text-white/60 transition hover:text-white"
             onClick={() => setEditing(false)}
           >
             Avbryt
           </button>
           <button
-            className="flex-1 rounded-xl bg-blue-600/70 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-500"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-blue-600/70 text-[13px] font-semibold text-white transition hover:bg-blue-500"
             onClick={handleSave}
           >
             Spara
@@ -282,10 +283,11 @@ function SetRow({
 
   return (
     <button
-      className="w-full rounded-xl px-1 py-0.5 text-left text-sm text-white/80 transition hover:bg-white/[0.035] hover:text-white"
+      className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-1 text-left text-sm text-white/80 transition hover:bg-white/[0.035] hover:text-white"
       onClick={() => onEdit && setEditing(true)}
     >
-      {formatSet(set, exerciseName)}
+      <span className="min-w-0 truncate">{formatSet(set, exerciseName)}</span>
+      {onEdit ? <PencilGlyph className="h-3.5 w-3.5 shrink-0 text-white/35" /> : null}
     </button>
   );
 }
@@ -344,11 +346,6 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
           <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-white/50">
             Dagens set
           </p>
-          {onEditSet && (
-            <p className="mt-2 text-xs leading-5 text-white/45">
-              Ser du något fel i dagens pass? Ingen fara, klicka bara på raden för att redigera.
-            </p>
-          )}
           <div className="mt-3 space-y-4">
             {(review.loggedExercises ?? []).map((ex) => (
               <div key={ex.name}>
