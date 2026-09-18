@@ -186,6 +186,9 @@ function getRestTime(exerciseName: string) {
   return formatRestProse(getRestTargetRange(exerciseName));
 }
 
+// Tio minuter. Längre än så är det inte en vila längre.
+const REST_AUTO_STOP_SECONDS = 600;
+
 function formatRestTimer(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
@@ -647,15 +650,12 @@ export default function WorkoutScreen({
   const restTarget = manualRestTarget ?? coachRestTarget;
   const restProgress = Math.min(restElapsed / restTarget.max, 1);
   const restTargetReached = restStartedAt !== null && restElapsed >= restTarget.min;
-  const restOverMax =
-    restStartedAt !== null &&
-    restTarget.max > restTarget.min &&
-    restElapsed >= restTarget.max;
-  const restTimerState = restOverMax
-    ? "over"
-    : restTargetReached
-    ? "ready"
-    : "resting";
+  // Tidigare fanns ett tredje läge, "over": efter restTarget.max blev timern
+  // orange och sa "lite lång vila". Men efter målet vet appen inte om du vilar
+  // eller står i setet — och eftersom varje set tar tid slog det till nästan
+  // varje gång. Tiden sparas inte och skickas inte till coachen, så domen hade
+  // ingen mottagare. Kvar: räknar ned, sedan redo.
+  const restTimerState = restTargetReached ? "ready" : "resting";
   const restSecondsUntilReady = Math.max(restTarget.min - restElapsed, 0);
   // Samma ord som coachen säger ("2–3 minuter"). Här stod "coach 2:00–3:00",
   // klockformat med ett ord framför, som lästes som kod i en ruta som redan
@@ -796,7 +796,15 @@ export default function WorkoutScreen({
     }
 
     const interval = window.setInterval(() => {
-      setRestElapsed(Math.floor((Date.now() - restStartedAt) / 1000));
+      const elapsed = Math.floor((Date.now() - restStartedAt) / 1000);
+      // Efter tio minuter är vilan över vad som än hänt. Utan det här rullade
+      // timern vidare och skärmlåset hölls kvar tills nästa set loggades.
+      if (elapsed >= REST_AUTO_STOP_SECONDS) {
+        setRestStartedAt(null);
+        setRestElapsed(0);
+        return;
+      }
+      setRestElapsed(elapsed);
     }, 1000);
 
     return () => {
@@ -838,6 +846,13 @@ export default function WorkoutScreen({
       observer.disconnect();
     };
   }, [showRestTimer]);
+
+  function endRest() {
+    setRestStartedAt(null);
+    setRestElapsed(0);
+    setManualRestTarget(null);
+    setRestDockForcedOpen(false);
+  }
 
   function startRestTimer() {
     setRestStartedAt(Date.now() - restElapsed * 1000);
@@ -1110,8 +1125,6 @@ useEffect(() => {
                   className={`block tracking-tight tabular-nums transition-colors duration-500 ${
                     restStartedAt === null
                       ? "text-[22px] font-semibold leading-none text-white"
-                      : restTimerState === "over"
-                      ? "text-[40px] font-bold leading-none text-orange-300"
                       : restTimerState === "ready"
                       ? "text-[40px] font-bold leading-none text-emerald-300"
                       : "text-[40px] font-bold leading-none text-white"
@@ -1126,8 +1139,6 @@ useEffect(() => {
                 <span className="mt-1.5 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
                   {restStartedAt === null
                     ? "vila"
-                    : restTimerState === "over"
-                    ? "lite lång vila"
                     : restTimerState === "ready"
                     ? "kör när du vill"
                     : "kvar av vilan"}
@@ -1135,17 +1146,24 @@ useEffect(() => {
               </div>
 
               {restStartedAt !== null && (
-                <div className="shrink-0 text-right">
-                  <span
-                    className={`block text-[26px] font-semibold leading-none tabular-nums ${
-                      restTimerState === "over" ? "text-orange-100/80" : "text-white/70"
-                    }`}
+                <div className="flex shrink-0 items-center gap-2.5">
+                  <div className="text-right">
+                    <span className="block text-[26px] font-semibold leading-none tabular-nums text-white/70">
+                      {formatRestTimer(restElapsed)}
+                    </span>
+                    <span className="mt-1.5 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+                      vilat
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={endRest}
+                    aria-label="Avsluta vilan"
+                    title="Avsluta vilan"
+                    className="tryckyta flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
                   >
-                    {formatRestTimer(restElapsed)}
-                  </span>
-                  <span className="mt-1.5 block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
-                    vilat
-                  </span>
+                    <CloseGlyph className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               )}
             </div>
@@ -1154,8 +1172,6 @@ useEffect(() => {
                 className={`workout-rest-progress-fill h-full rounded-full transition-all duration-500 ${
                   restStartedAt === null
                     ? "bg-white"
-                    : restTimerState === "over"
-                    ? "bg-orange-400"
                     : restTimerState === "ready"
                     ? "bg-emerald-400"
                     : "bg-white"
@@ -1538,8 +1554,6 @@ useEffect(() => {
               className={`mt-1 font-semibold text-white ${
                 restStartedAt === null
                   ? "text-sm leading-5"
-                  : restTimerState === "over"
-                  ? "text-[17px] leading-none tabular-nums text-orange-100"
                   : restTimerState === "ready"
                   ? "text-[17px] leading-none tabular-nums text-emerald-100"
                   : "text-[17px] leading-none tabular-nums"
@@ -1554,8 +1568,6 @@ useEffect(() => {
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
               {restStartedAt === null
                 ? "mål"
-                : restTimerState === "over"
-                ? "lång vila"
                 : restTimerState === "ready"
                 ? "kör"
                 : "kvar"}
@@ -2128,9 +2140,7 @@ useEffect(() => {
       <div className="fixed inset-x-0 bottom-3 z-40 px-3 sm:bottom-5">
         <div
           className={`mx-auto w-full max-w-[345px] rounded-[1.5rem] border p-3 backdrop-blur-2xl transition ${
-            restTimerState === "over"
-              ? "border-orange-300/30 bg-[#2a1d12]/70 shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_18px_rgba(251,146,60,0.12)]"
-              : restTimerState === "ready"
+            restTimerState === "ready"
               ? "border-emerald-300/25 bg-[#10251d]/70 shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_18px_rgba(52,211,153,0.10)]"
               : "border-blue-400/20 bg-[#162032]/70 shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_16px_rgba(96,165,250,0.07)]"
           }`}
@@ -2143,9 +2153,7 @@ useEffect(() => {
               <p className="mt-0.5 flex items-baseline gap-2">
                 <span
                   className={`text-[26px] font-semibold leading-none tracking-tight tabular-nums ${
-                    restTimerState === "over"
-                      ? "text-orange-100"
-                      : restTimerState === "ready"
+                    restTimerState === "ready"
                       ? "text-emerald-100"
                       : "text-white"
                   }`}
@@ -2158,9 +2166,7 @@ useEffect(() => {
                 </span>
                 {restStartedAt !== null && (
                   <span
-                    className={`text-[13px] font-semibold tabular-nums ${
-                      restTimerState === "over" ? "text-orange-100/72" : "text-white/55"
-                    }`}
+                    className="text-[13px] font-semibold tabular-nums text-white/55"
                   >
                     {formatRestTimer(restElapsed)} vilat
                   </span>
@@ -2169,8 +2175,6 @@ useEffect(() => {
               <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
                 {restStartedAt === null
                   ? "mål"
-                  : restTimerState === "over"
-                  ? "lite lång vila"
                   : restTimerState === "ready"
                   ? "kör när du vill"
                   : "kvar av vilan"}
@@ -2196,11 +2200,12 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => {
+                  endRest();
                   setShowRestTimer(false);
                   setRestDockForcedOpen(false);
                 }}
                 className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.07] text-sm font-semibold text-white/52 transition hover:bg-white/[0.10] hover:text-white"
-                aria-label="Dölj vilotimer"
+                aria-label="Avsluta vilan"
               >
                 <CloseGlyph className="h-4 w-4" />
               </button>
@@ -2210,9 +2215,7 @@ useEffect(() => {
           <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/8">
             <div
               className={`workout-rest-progress-fill h-full rounded-full transition-all duration-500 ${
-                restTimerState === "over"
-                  ? "bg-orange-300 shadow-[0_0_18px_rgba(251,146,60,0.35)]"
-                  : restTimerState === "ready"
+                restTimerState === "ready"
                   ? "bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.35)]"
                   : "bg-blue-400 shadow-[0_0_18px_rgba(96,165,250,0.35)]"
               }`}
