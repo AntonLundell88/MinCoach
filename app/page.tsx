@@ -3404,7 +3404,13 @@ function buildRecentConversation(
       !(m.role === "you" && arr[i + 1]?.role === "coach" && arr[i + 1]?.source === "fallback")
     );
 
-  if (!window.some((m) => m.role === "you")) return [];
+  // Här stod "har användaren inte skrivit något, skicka ingenting". Under ett
+  // vanligt pass säger man ingenting — alltså såg coachen aldrig sina egna
+  // tidigare rader, och fältet som ska hindra upprepning var i praktiken
+  // avstängt. Mätt 2026-09-18 på fyra likadana set i rad, tre sekvenser:
+  // samma öppning återkom 4 av 12 gånger utan raderna och 0 av 12 med dem
+  // (andelen återanvända trebetsfraser var oförändrad, 15 mot 17 % — den
+  // delen är siffrorna i setet, inte tomgång).
 
   return window
     .map((m) => {
