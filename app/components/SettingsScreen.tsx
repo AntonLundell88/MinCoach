@@ -792,12 +792,16 @@ export default function SettingsScreen({
                   className={`-ml-2 -mt-1 flex min-h-11 items-center gap-1 rounded-lg px-2 py-2 text-xs font-medium transition ${bodyClassName} hover:${titleClassName}`}
                 >
                   <span className="text-base leading-none">‹</span>
-                  Du
+                  Tillbaka
                 </button>
               )}
-              <h1 className={`mt-1 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl ${titleClassName}`}>
-                {PAGE_TITLES[page]}
-              </h1>
+              {page === "root" ? (
+                <h1 className="sr-only">{PAGE_TITLES[page]}</h1>
+              ) : (
+                <h1 className={`mt-1 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl ${titleClassName}`}>
+                  {PAGE_TITLES[page]}
+                </h1>
+              )}
             </div>
 
             <button
