@@ -4307,6 +4307,12 @@ export function getExerciseRestKind(exerciseName: string) {
   return "normal" as const;
 }
 
+/** Sitter du fast i en maskin eller hänger i en kabel? Utrustningen bär dig. */
+function isSupportedByMachineOrCable(exerciseName: string) {
+  const tags = getExerciseDefinition(exerciseName)?.equipmentTags ?? [];
+  return tags.includes("machines") || tags.includes("cables");
+}
+
 /**
  * Enda källan till vilotid. Timern i passvyn och texten coachen får läser
  * båda härifrån — annars kan de säga emot varandra, vilket de gjorde:
@@ -4324,7 +4330,18 @@ export function getRestTargetRange(exerciseName: string, rir?: number) {
     }
 
     if (kind === "normal") {
-      if (rir <= 0) return { min: 180, max: 180 };
+      // Fasta tre minuter efter ett set till stopp kommer från tunga fria
+      // basövningar, där hela kroppen och tekniken ska hämta sig. I en maskin
+      // eller kabel sitter du fast och det är muskeln som tar slut, inte
+      // systemet. Anton 2026-09-17 om latsdraget: "onödigt mycket vila". Redo
+      // efter två minuter, tre kvar som tak för den som vill ta dem. Samma
+      // hink-fel som "basövning gav latsdraget marklyftets tre minuter", ett
+      // steg ner.
+      if (rir <= 0) {
+        return isSupportedByMachineOrCable(exerciseName)
+          ? { min: 120, max: 180 }
+          : { min: 180, max: 180 };
+      }
       if (rir === 1) return { min: 120, max: 180 };
       return { min: 120, max: 120 };
     }
