@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import ToggleSwitch from "./ToggleSwitch";
 import { CloseGlyph, SendGlyph } from "./IconGlyphs";
 import { sendBetaFeedback } from "../lib/betaFeedback";
 import { restoreBetaSnapshotFromServer, syncBetaSnapshotNow } from "../lib/betaSync";
@@ -123,6 +122,132 @@ function clearAuthQueryFromAddressBar() {
   window.history.replaceState({}, "", cleanUrl || "/");
 }
 
+/**
+ * Inställningarna var nio kort på rad, alla lika stora, var och en med rubrik
+ * och en förklarande mening — temaväxeln fick lika mycket plats som
+ * databasfelsökningen, och utvecklarsakerna låg mitt i listan. Anton
+ * 2026-09-18: "klumpig och väldigt beta". Nu en rotlista med rader, och
+ * innehållet på undersidor som öppnas därifrån.
+ */
+type SettingsPage = "root" | "utseende" | "konto" | "juridik" | "feedback" | "utvecklare";
+
+const PAGE_TITLES: Record<SettingsPage, string> = {
+  root: "Inställningar",
+  utseende: "Utseende",
+  konto: "Konto",
+  juridik: "Villkor och säkerhet",
+  feedback: "Beta-feedback",
+  utvecklare: "Utvecklare",
+};
+
+const DEV_TOOLS_KEY = "mincoachDevTools";
+
+function SettingsGroup({
+  title,
+  caption,
+  isLight,
+  children,
+}: {
+  title?: string;
+  caption?: string;
+  isLight: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      {title ? (
+        <p
+          className={`px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+            isLight ? "text-[#8a7661]" : "text-white/35"
+          }`}
+        >
+          {title}
+        </p>
+      ) : null}
+      <div
+        className={`overflow-hidden rounded-[1.25rem] ${
+          isLight
+            ? "divide-y divide-[#7a6548]/10 bg-white/50 shadow-[inset_0_0_0_1px_rgba(122,101,72,0.10)]"
+            : "divide-y divide-white/[0.05] bg-white/[0.035] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
+        }`}
+      >
+        {children}
+      </div>
+      {caption ? (
+        <p
+          className={`px-1 pt-2 text-xs leading-5 ${
+            isLight ? "text-[#665b4f]" : "text-white/48"
+          }`}
+        >
+          {caption}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function SettingsRow({
+  label,
+  value,
+  onClick,
+  isLight,
+  tone = "default",
+  trailing,
+  disabled,
+  action,
+}: {
+  label: string;
+  value?: string;
+  onClick?: () => void;
+  isLight: boolean;
+  tone?: "default" | "danger";
+  trailing?: React.ReactNode;
+  disabled?: boolean;
+  /** Raden gör något direkt i stället för att öppna en sida — ingen pil. */
+  action?: boolean;
+}) {
+  const labelColor =
+    tone === "danger"
+      ? isLight
+        ? "text-[#a8332b]"
+        : "text-red-300/90"
+      : isLight
+      ? "text-[#2d251c]"
+      : "text-white";
+  const valueColor = isLight ? "text-[#8a7661]" : "text-white/42";
+  const content = (
+    <>
+      <span className={`min-w-0 text-[15px] font-medium ${labelColor}`}>{label}</span>
+      <span className="flex min-w-0 shrink-0 items-center gap-1.5">
+        {value ? (
+          <span className={`max-w-[10rem] truncate text-[13px] ${valueColor}`}>{value}</span>
+        ) : null}
+        {trailing ??
+          (onClick && !action ? (
+            <span className={`text-base leading-none ${valueColor}`}>›</span>
+          ) : null)}
+      </span>
+    </>
+  );
+
+  if (!onClick) {
+    return <div className="flex items-center justify-between gap-3 px-4 py-3.5">{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition disabled:opacity-45 ${
+        isLight ? "hover:bg-white/60" : "hover:bg-white/[0.04]"
+      }`}
+    >
+      {content}
+    </button>
+  );
+}
+
 export default function SettingsScreen({
   theme,
   onThemeChange,
@@ -131,6 +256,9 @@ export default function SettingsScreen({
   onOpenProfileSetup,
   onResetAll,
 }: Props) {
+  const [page, setPage] = useState<SettingsPage>("root");
+  const [devUnlocked, setDevUnlocked] = useState(false);
+  const versionTapsRef = useRef(0);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackCopied, setFeedbackCopied] = useState(false);
   const [feedbackError, setFeedbackError] = useState(false);
@@ -146,7 +274,6 @@ export default function SettingsScreen({
   const [queueSummary, setQueueSummary] = useState<BetaSyncQueueSummary>({
     pending: 0,
   });
-  const [showAdvancedBeta, setShowAdvancedBeta] = useState(false);
   const [openLegalDocumentId, setOpenLegalDocumentId] =
     useState<LegalDocumentId | null>(null);
   const [authEmail, setAuthEmail] = useState("");
@@ -211,7 +338,38 @@ export default function SettingsScreen({
     refreshSyncStatuses();
     setAccountSyncStatus(readAccountSyncStatus());
     void flushBetaSyncQueue().then(refreshSyncStatuses);
+
+    try {
+      setDevUnlocked(window.localStorage.getItem(DEV_TOOLS_KEY) === "1");
+    } catch {
+      setDevUnlocked(false);
+    }
   }, []);
+
+  // Databaskontroll och testdata hör inte hemma i listan en betatestare
+  // scrollar förbi. Fem tryck på versionsraden, som i vilken app som helst.
+  const tapVersion = () => {
+    versionTapsRef.current += 1;
+    if (versionTapsRef.current < 5 || devUnlocked) return;
+
+    setDevUnlocked(true);
+    try {
+      window.localStorage.setItem(DEV_TOOLS_KEY, "1");
+    } catch {
+      // Låset är en bekvämlighet, inte en spärr.
+    }
+  };
+
+  const hideDevTools = () => {
+    versionTapsRef.current = 0;
+    setDevUnlocked(false);
+    setPage("root");
+    try {
+      window.localStorage.removeItem(DEV_TOOLS_KEY);
+    } catch {
+      // Se ovan.
+    }
+  };
 
   useEffect(() => {
     if (!supabase) return;
@@ -566,10 +724,21 @@ export default function SettingsScreen({
       >
         <div className="space-y-4">
           <header className="flex items-start justify-between gap-3 pt-1 sm:pt-3">
-            <div>
-              <p className={labelClassName}>MinCoach</p>
+            <div className="min-w-0">
+              {page === "root" ? (
+                <p className={labelClassName}>MinCoach</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPage("root")}
+                  className={`-ml-1 flex items-center gap-1 rounded-lg px-1 py-0.5 text-xs font-medium transition ${bodyClassName} hover:${titleClassName}`}
+                >
+                  <span className="text-base leading-none">‹</span>
+                  Inställningar
+                </button>
+              )}
               <h1 className={`mt-1 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl ${titleClassName}`}>
-                Inställningar
+                {PAGE_TITLES[page]}
               </h1>
             </div>
 
@@ -582,38 +751,101 @@ export default function SettingsScreen({
             </button>
           </header>
 
-          <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-            <p className={labelClassName}>Utseende</p>
-            <h2 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
-              Tema
-            </h2>
-            <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
-              Välj känslan du vill ha i appen.
-            </p>
+          {page === "root" ? (
+            <>
+              {onOpenProgram || onOpenProfileSetup ? (
+                <SettingsGroup title="Träning" isLight={isLight}>
+                  {onOpenProgram ? (
+                    <SettingsRow label="Ditt upplägg" onClick={onOpenProgram} isLight={isLight} />
+                  ) : null}
+                  {onOpenProfileSetup ? (
+                    <SettingsRow
+                      label="Dina grunduppgifter"
+                      onClick={onOpenProfileSetup}
+                      isLight={isLight}
+                    />
+                  ) : null}
+                </SettingsGroup>
+              ) : null}
 
-            <div
-              className={`mt-4 rounded-2xl p-4 ${
-                isLight ? "bg-white/34" : "bg-black/12"
-              }`}
+              <SettingsGroup title="Appen" isLight={isLight}>
+                <SettingsRow
+                  label="Utseende"
+                  value={isLight ? "Ljust" : "Mörkt"}
+                  onClick={() => setPage("utseende")}
+                  isLight={isLight}
+                />
+                <SettingsRow
+                  label="Konto"
+                  value={
+                    !authConfigured
+                      ? "Inte kopplat"
+                      : authSession
+                      ? authSession.user.email ?? "Inloggad"
+                      : "Inte inloggad"
+                  }
+                  onClick={() => setPage("konto")}
+                  isLight={isLight}
+                />
+              </SettingsGroup>
+
+              <SettingsGroup title="Beta" isLight={isLight}>
+                <SettingsRow
+                  label="Skicka feedback"
+                  onClick={() => setPage("feedback")}
+                  isLight={isLight}
+                />
+                <SettingsRow
+                  label="Villkor och säkerhet"
+                  onClick={() => setPage("juridik")}
+                  isLight={isLight}
+                />
+              </SettingsGroup>
+
+              {devUnlocked ? (
+                <SettingsGroup title="Utvecklare" isLight={isLight}>
+                  <SettingsRow
+                    label="Databas och testdata"
+                    onClick={() => setPage("utvecklare")}
+                    isLight={isLight}
+                  />
+                </SettingsGroup>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={tapVersion}
+                className={`w-full pb-2 text-center text-xs font-medium ${bodyClassName}`}
+              >
+                MinCoach {APP_VERSION}
+              </button>
+            </>
+          ) : null}
+
+          {page === "utseende" ? (
+            <SettingsGroup
+              isLight={isLight}
+              caption="Mörkt läge är gjort för gymmet. Ljust är varmare och mjukare."
             >
-              <ToggleSwitch
-                checked={isLight}
-                onChange={(next) => onThemeChange(next ? "light" : "dark")}
-                theme={theme}
-                label={isLight ? "Ljust läge" : "Mörkt läge"}
-                description={isLight ? "Varmare och mjukare yta." : "Mörkare coachvy med blå accent."}
+              <SettingsRow
+                label="Mörkt"
+                onClick={() => onThemeChange("dark")}
+                isLight={isLight}
+                trailing={<span className={titleClassName}>{isLight ? "" : "✓"}</span>}
               />
-            </div>
-          </section>
+              <SettingsRow
+                label="Ljust"
+                onClick={() => onThemeChange("light")}
+                isLight={isLight}
+                trailing={<span className={titleClassName}>{isLight ? "✓" : ""}</span>}
+              />
+            </SettingsGroup>
+          ) : null}
 
-          <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-            <p className={labelClassName}>Konto</p>
-            <h2 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
-              {authSession ? "Inloggad" : "Logga in"}
-            </h2>
-            <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
+          <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName} ${page === "konto" ? "" : "hidden"}`}>
+            <p className={`text-sm leading-6 ${bodyClassName}`}>
               {authSession
-                ? "Kontot är kopplat. Spara beta-datan till kontot när du vill kunna hämta den på en annan enhet."
+                ? "Kontot är kopplat. Spara datan till kontot när du vill kunna hämta den på en annan enhet."
                 : "Skicka en säker kod till din e-post. Inget lösenord behövs."}
             </p>
 
@@ -762,37 +994,27 @@ export default function SettingsScreen({
             ) : null}
           </section>
 
-          {onOpenProgram ? (
-            <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-              <p className={labelClassName}>Upplägg</p>
-              <h2 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
-                Ändra schema
-              </h2>
-              <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
-                Öppna coachens uppläggssteg om du vill lägga in ett eget schema eller justera övningar.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button onClick={onOpenProgram} className={subtleButtonClassName}>
-                  Öppna upplägg
-                </button>
-                {onOpenProfileSetup ? (
-                  <button onClick={onOpenProfileSetup} className={subtleButtonClassName}>
-                    Ändra mina grunduppgifter
-                  </button>
-                ) : null}
-              </div>
-            </section>
+          {page === "konto" ? (
+            <SettingsGroup
+              isLight={isLight}
+              caption="Raderar allt appen sparat på den här enheten: pass, personbästan och coachens minne."
+            >
+              <SettingsRow
+                label="Radera lokal data"
+                tone="danger"
+                action
+                isLight={isLight}
+                onClick={() => {
+                  if (window.confirm("Vill du radera all lokal data? Det går inte att ångra.")) {
+                    onResetAll();
+                  }
+                }}
+              />
+            </SettingsGroup>
           ) : null}
 
-          <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-            <p className={labelClassName}>Juridiskt</p>
-            <h2 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
-              Villkor och säkerhet
-            </h2>
-            <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
-              Villkor, integritet och träningssäkerhet för betaperioden.
-            </p>
-            <div className={`mt-4 ${accountListClassName}`}>
+          {page === "juridik" ? (
+            <div className={accountListClassName}>
               {LEGAL_DOCUMENTS.map((document) => (
                 <button
                   key={document.id}
@@ -810,14 +1032,10 @@ export default function SettingsScreen({
                 </button>
               ))}
             </div>
-          </section>
+          ) : null}
 
-          <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-            <p className={labelClassName}>Beta</p>
-            <h2 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
-              Beta-feedback
-            </h2>
-            <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
+          <section className={`${page === "feedback" ? "" : "hidden"}`}>
+            <p className={`text-sm leading-6 ${bodyClassName}`}>
               Skriv vad som hände. Feedbacken sparas direkt till beta-listan.
             </p>
             <textarea
@@ -857,24 +1075,7 @@ export default function SettingsScreen({
             ) : null}
           </section>
 
-          <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className={labelClassName}>Avancerat</p>
-                <h2 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
-                  Beta / avancerat
-                </h2>
-                <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
-                  Databaskontroll och återställning för testperioden.
-                </p>
-              </div>
-              <button onClick={() => setShowAdvancedBeta((value) => !value)} className={subtleButtonClassName}>
-                {showAdvancedBeta ? "Dölj" : "Visa"}
-              </button>
-            </div>
-          </section>
-
-          {showAdvancedBeta ? (
+          {page === "utvecklare" ? (
             <>
               <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
                 <p className={labelClassName}>Databas</p>
@@ -959,31 +1160,25 @@ export default function SettingsScreen({
                 {restoreStatusText ? <p className={`mt-2 text-xs leading-5 ${bodyClassName}`}>{restoreStatusText}</p> : null}
               </section>
 
-              <section className={`rounded-[1.5rem] p-4 sm:p-5 ${cardClassName}`}>
-                <p className={labelClassName}>Testdata</p>
-                <h2 className={`mt-2 text-xl font-semibold tracking-[-0.03em] ${titleClassName}`}>
-                  Återställ appen
-                </h2>
-                <p className={`mt-2 text-sm leading-6 ${bodyClassName}`}>
-                  Tar bort all lokal testdata på den här enheten.
-                </p>
-                <button
+              <SettingsGroup
+                isLight={isLight}
+                caption="Utvecklarläget ligger kvar tills du döljer det igen. Fem tryck på versionsraden tar fram det."
+              >
+                <SettingsRow
+                  label="Återställ appen"
+                  tone="danger"
+                  action
+                  isLight={isLight}
                   onClick={() => {
                     if (window.confirm("Vill du återställa all lokal data? Det går inte att ångra.")) {
                       onResetAll();
                     }
                   }}
-                  className={`mt-4 ${subtleButtonClassName}`}
-                >
-                  Återställ
-                </button>
-              </section>
+                />
+                <SettingsRow label="Dölj utvecklarläge" action isLight={isLight} onClick={hideDevTools} />
+              </SettingsGroup>
             </>
           ) : null}
-
-          <p className={`pb-2 text-center text-xs font-medium ${bodyClassName}`}>
-            MinCoach {APP_VERSION}
-          </p>
         </div>
       </aside>
 
