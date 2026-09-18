@@ -4577,7 +4577,15 @@ if (savedLastPass && ALL_PASS_KEYS.includes(savedLastPass)) {
         localStorage.setItem("gyms", JSON.stringify(repairedGyms));
       }
       const savedActiveGymId = localStorage.getItem("lastGymId");
-      setActiveGymId(savedActiveGymId ?? repairedGyms[0].id);
+      const activeId = savedActiveGymId ?? repairedGyms[0].id;
+      setActiveGymId(activeId);
+      // Namnet ska följa id:t. "lastGym" är en andra sanning som skrivs först
+      // när ett pass startas, så de kunde glida isär: väljer du gym B och
+      // laddar om appen startade nästa pass med B:s id men A:s namn — och med
+      // tom sträng om inget pass hunnit sparas än. Passet, sammanfattningen
+      // och coachens anteckningar fick då fel gym.
+      const activeGym = repairedGyms.find((g) => g.id === activeId) ?? repairedGyms[0];
+      setGym(activeGym.name);
     } else if (savedGym) {
       const repairedGym = repairMojibake(savedGym);
       const migratedGym: Gym = { id: crypto.randomUUID(), name: repairedGym, createdAt: new Date().toISOString() };
@@ -5585,7 +5593,8 @@ function confirmGymForToday() {
   if (!nextPlannedPass || !workoutPlan) return;
 
   let startGyms = gyms;
-  let startGymName = gym;
+  // Listan är sanningen, inte namnsträngen — se kommentaren vid inläsningen.
+  let startGymName = gyms.find((gymItem) => gymItem.id === activeGymId)?.name ?? gym;
   let startGymId = activeGymId;
 
   if (gyms.length === 0) {
