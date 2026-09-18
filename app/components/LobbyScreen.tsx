@@ -148,7 +148,7 @@ export default function LobbyScreen({
     : "pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(37,99,235,0.06),transparent_28%),linear-gradient(180deg,#0b1018_0%,#111a25_45%,#0b1018_100%)]";
   const cardClassName = isLight
     ? "border border-[#7a6548]/15 bg-white/56 shadow-[0_18px_46px_rgba(91,72,48,0.07)] backdrop-blur-xl"
-    : "border border-white/[0.045] bg-white/[0.045] shadow-[0_14px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl";
+    : "border border-white/[0.06] bg-white/[0.05] shadow-[0_14px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl";
   const labelClassName = isLight
     ? "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a7661]"
     : "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35";
@@ -156,10 +156,10 @@ export default function LobbyScreen({
   const bodyClassName = isLight ? "text-[#665b4f]" : "text-white/58";
   const buttonSubtleClassName = isLight
     ? "inline-flex items-center gap-2 rounded-full bg-white/58 px-3 py-2 text-xs font-semibold text-[#665b4f] shadow-[inset_0_0_0_1px_rgba(122,101,72,0.12)] transition hover:bg-white/78 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/45"
-    : "inline-flex items-center gap-2 rounded-full bg-white/[0.038] px-3 py-2 text-xs font-semibold text-white/62 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.045)] transition hover:bg-[#4f83ff]/[0.07] hover:text-white/82 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/35";
+    : "inline-flex items-center gap-2 rounded-full bg-white/[0.035] px-3 py-2 text-xs font-semibold text-white/62 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.045)] transition hover:bg-[#4f83ff]/[0.07] hover:text-white/82 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/35";
   const overviewButtonClassName = isLight
     ? "rounded-xl border border-[#7a6548]/14 bg-white/48 px-3 py-2.5 text-left text-sm text-[#2d251c] transition hover:bg-white/70"
-    : "rounded-xl border border-white/[0.045] bg-white/[0.036] px-3 py-2.5 text-left text-sm text-white/78 transition hover:border-white/10 hover:bg-white/[0.05]";
+    : "rounded-xl border border-white/[0.06] bg-white/[0.035] px-3 py-2.5 text-left text-sm text-white/78 transition hover:border-white/10 hover:bg-white/[0.05]";
   const latestWorkout = history[0];
   const totalMinutes = history.reduce(
     (sum, workout) => sum + (workout.summary?.durationMinutes ?? 0),
@@ -239,7 +239,7 @@ export default function LobbyScreen({
         <header className="flex items-start justify-between gap-3 pt-1 sm:pt-3">
           <div className="flex items-center gap-3">
             <div
-              className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.35rem] sm:h-20 sm:w-20 ${cardClassName}`}
+              className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] sm:h-20 sm:w-20 ${cardClassName}`}
             >
               <Image
                 src={isLight ? "/logo-light.png" : "/logo-dark.png"}
@@ -285,7 +285,7 @@ export default function LobbyScreen({
         </header>
 
         {staleDraft && onResumeStaleDraft && onDiscardStaleDraft && (
-          <div className={`flex items-center justify-between gap-3 rounded-[1.25rem] px-4 py-3.5 ${isLight ? "border border-[#7a6548]/15 bg-white/56 shadow-[0_4px_16px_rgba(91,72,48,0.07)] backdrop-blur-xl" : "border border-white/[0.06] bg-white/[0.04] backdrop-blur-xl"}`}>
+          <div className={`flex items-center justify-between gap-3 rounded-[1.5rem] px-4 py-3.5 ${isLight ? "border border-[#7a6548]/15 bg-white/56 shadow-[0_4px_16px_rgba(91,72,48,0.07)] backdrop-blur-xl" : "border border-white/[0.06] bg-white/[0.035] backdrop-blur-xl"}`}>
             <div className="min-w-0">
               <p className={`text-sm font-semibold ${titleClassName}`}>
                 Du har ett pågående pass{" "}
@@ -329,10 +329,10 @@ export default function LobbyScreen({
             <button
               type="button"
               onClick={wrapped.onOpen}
-              className={`relative flex w-full items-center justify-between gap-3 rounded-[1.25rem] px-4 py-3.5 text-left transition active:scale-[0.99] ${
+              className={`relative flex w-full items-center justify-between gap-3 rounded-[1.5rem] px-4 py-3.5 text-left transition active:scale-[0.99] ${
                 isLight
                   ? "border border-amber-300/40 bg-[#fdf8f0]/95 shadow-[0_4px_16px_rgba(217,119,6,0.10)]"
-                  : "border border-white/[0.08] bg-[#0d1520]/92 shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
+                  : "border border-white/[0.09] bg-[#0d1520]/92 shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
               }`}
             >
               <div className="min-w-0">
@@ -431,7 +431,7 @@ export default function LobbyScreen({
             </div>
           )}
 
-          <div className={`mt-4 h-px ${isLight ? "bg-[#d8cfc0]/50" : "bg-white/[0.06]"}`}/>
+          <div className={`mt-4 h-px ${isLight ? "bg-[#d8cfc0]/50" : "bg-white/[0.07]"}`}/>
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <div className="flex items-center gap-1.5">
@@ -453,7 +453,7 @@ export default function LobbyScreen({
           <button
             type="button"
             onClick={wrapped.onOpen}
-            className={`flex w-full items-center justify-between gap-3 rounded-[1.25rem] px-4 py-3 text-left transition active:scale-[0.99] ${cardClassName}`}
+            className={`flex w-full items-center justify-between gap-3 rounded-[1.5rem] px-4 py-3 text-left transition active:scale-[0.99] ${cardClassName}`}
           >
             <div className="min-w-0">
               <p className={labelClassName}>Höjdpunkter</p>

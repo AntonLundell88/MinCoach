@@ -45,7 +45,7 @@ type Props = {
 };
 
 const fieldClassName =
-  "w-full rounded-2xl border border-white/[0.045] bg-slate-950/35 px-3.5 py-3 text-base text-white outline-none transition focus:border-blue-300/35 focus:bg-slate-950/50 focus:ring-2 focus:ring-blue-500/20 sm:text-[15px]";
+  "w-full rounded-2xl border border-white/[0.06] bg-slate-950/35 px-3.5 py-3 text-base text-white outline-none transition focus:border-blue-300/35 focus:bg-slate-950/50 focus:ring-2 focus:ring-blue-500/20 sm:text-[15px]";
 
 const labelClassName = "block text-[13px] font-medium text-white/76";
 
@@ -216,7 +216,7 @@ export default function SetupScreen({
     {showWelcomeOverlay && typeof document !== "undefined" && createPortal(
       <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
         <div className="absolute inset-0 bg-black/10 backdrop-blur-[3px]" />
-        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
           <div className="space-y-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
               Coachen
@@ -255,7 +255,7 @@ export default function SetupScreen({
             <button
               type="button"
               onClick={onCancel}
-              className="absolute left-4 rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07] sm:left-0"
+              className="absolute left-4 rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07] sm:left-0"
             >
               Tillbaka
             </button>
@@ -270,7 +270,7 @@ export default function SetupScreen({
           />
         </div>
 
-        <section className="rounded-none border-0 bg-white/[0.045] p-4 shadow-[0_18px_54px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.025)] backdrop-blur-xl animate-[fadeUp_.45s_ease-out] sm:rounded-[1.6rem] sm:border sm:border-white/[0.045]">
+        <section className="rounded-none border-0 bg-white/[0.05] p-4 shadow-[0_18px_54px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.025)] backdrop-blur-xl animate-[fadeUp_.45s_ease-out] sm:rounded-[1.5rem] sm:border sm:border-white/[0.06]">
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-400/18 bg-blue-500/[0.075] text-sm font-semibold text-blue-100 shadow-[0_0_18px_rgba(59,130,246,0.10)]">
@@ -301,7 +301,7 @@ export default function SetupScreen({
                 onSubmit();
               }}
             >
-              <div className="rounded-2xl border border-white/[0.045] bg-slate-950/16 p-3.5">
+              <div className="rounded-2xl border border-white/[0.06] bg-slate-950/16 p-3.5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
                   Du
                 </p>
@@ -362,7 +362,7 @@ export default function SetupScreen({
                           className={`min-h-12 rounded-2xl border px-2 py-2 text-center transition ${
                             trainingExperienceInput === experience.value
                               ? "setup-blue-selected border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
-                              : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
+                              : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.07]"
                           }`}
                         >
                           <span className="block text-[13px] font-semibold text-white">
@@ -386,7 +386,7 @@ export default function SetupScreen({
                 <div className="mt-3 space-y-3.5">
               <div className={labelClassName}>
                 <p>Hur vill du bygga schemat?</p>
-                <div className="mt-1.5 grid grid-cols-2 rounded-2xl border border-white/[0.07] bg-slate-950/36 p-1">
+                <div className="mt-1.5 grid grid-cols-2 rounded-2xl border border-white/[0.09] bg-slate-950/36 p-1">
                   {programStartOptions.map((option) => {
                     const active =
                       option.value === "coach"
@@ -410,7 +410,7 @@ export default function SetupScreen({
                         className={`min-h-11 rounded-xl px-3 text-center text-[13px] font-semibold transition ${
                           active
                             ? "setup-blue-selected bg-blue-600 text-white shadow-[0_0_18px_rgba(37,99,235,0.22)]"
-                            : "text-white/48 hover:bg-white/[0.04] hover:text-white/70"
+                            : "text-white/48 hover:bg-white/[0.035] hover:text-white/70"
                         }`}
                       >
                         {option.label}
@@ -494,7 +494,7 @@ export default function SetupScreen({
                       className={`rounded-2xl border px-3 py-3 text-sm font-semibold transition ${
                         locationInput === location
                           ? "setup-blue-selected border-blue-300/45 bg-blue-500/[0.18] text-white shadow-[0_0_22px_rgba(59,130,246,0.14)]"
-                          : "border-white/[0.09] bg-slate-950/36 text-white/62 hover:bg-white/[0.06]"
+                          : "border-white/[0.09] bg-slate-950/36 text-white/62 hover:bg-white/[0.07]"
                       }`}
                     >
                       {location === "gym" ? "Gym" : "Hemma"}
@@ -522,7 +522,7 @@ export default function SetupScreen({
                           className={`min-h-12 rounded-2xl border px-3 py-2 text-center transition ${
                             active
                               ? "setup-blue-selected border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
-                              : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
+                              : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.07]"
                           }`}
                         >
                           <span className="block text-[13px] font-semibold text-white">
@@ -558,7 +558,7 @@ export default function SetupScreen({
                         className={`min-h-12 rounded-2xl border px-3 py-2 text-center transition ${
                           active
                             ? "setup-blue-selected border-blue-300/45 bg-blue-500/[0.18] text-white shadow-[0_0_22px_rgba(59,130,246,0.14)]"
-                            : "border-white/[0.16] bg-white/[0.035] text-white/74 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] hover:border-white/[0.24] hover:bg-white/[0.065] hover:text-white"
+                            : "border-white/[0.16] bg-white/[0.035] text-white/74 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] hover:border-white/[0.16] hover:bg-white/[0.07] hover:text-white"
                         }`}
                       >
                         <span className="block text-[13px] font-semibold">
@@ -589,7 +589,7 @@ export default function SetupScreen({
                       className={`min-h-12 rounded-2xl border px-2 py-2 text-center transition ${
                         goalInput === goal.value
                           ? "setup-blue-selected border-blue-300/45 bg-blue-500/[0.18] shadow-[0_0_22px_rgba(59,130,246,0.14)]"
-                          : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.06]"
+                          : "border-white/[0.09] bg-slate-950/36 hover:bg-white/[0.07]"
                       }`}
                     >
                       <span className="block text-[13px] font-semibold text-white">
@@ -622,7 +622,7 @@ export default function SetupScreen({
                             ? "setup-blue-selected border-blue-300/35 bg-blue-500/[0.12] text-white"
                             : isPrimary
                             ? "border-white/5 bg-slate-950/22 text-white/28"
-                            : "border-white/[0.09] bg-slate-950/22 text-white/62 hover:bg-white/[0.06]"
+                            : "border-white/[0.09] bg-slate-950/22 text-white/62 hover:bg-white/[0.07]"
                         }`}
                       >
                         <span className="block text-[12px] font-semibold">

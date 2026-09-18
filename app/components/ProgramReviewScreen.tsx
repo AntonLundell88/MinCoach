@@ -872,7 +872,7 @@ export default function ProgramReviewScreen({
                   type="button"
                   onClick={() => setShowTermsHelp(false)}
                   aria-label="Stäng begreppsförklaring"
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-sm leading-none text-white/54 transition hover:bg-white/[0.10] hover:text-white"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.07] text-sm leading-none text-white/54 transition hover:bg-white/[0.10] hover:text-white"
                 >
                   ×
                 </button>
@@ -904,7 +904,7 @@ export default function ProgramReviewScreen({
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-xl bg-white/[0.045] px-3 py-2.5"
+                    className="rounded-xl bg-white/[0.05] px-3 py-2.5"
                   >
                     <p className="text-sm font-semibold leading-4 text-white">
                       {item.label}
@@ -941,7 +941,7 @@ export default function ProgramReviewScreen({
             <div
               role="dialog"
               aria-label={`Liknande övningar för ${alternativeTarget.exerciseName}`}
-              className="w-full max-w-[420px] rounded-[1.4rem] border border-blue-300/14 bg-[#0d1724] p-3.5 shadow-[0_28px_90px_rgba(0,0,0,0.52),0_0_48px_rgba(37,99,235,0.16),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+              className="w-full max-w-[420px] rounded-[1.5rem] border border-blue-300/14 bg-[#0d1724] p-3.5 shadow-[0_28px_90px_rgba(0,0,0,0.52),0_0_48px_rgba(37,99,235,0.16),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex items-start justify-between gap-3">
@@ -960,7 +960,7 @@ export default function ProgramReviewScreen({
                   type="button"
                   onClick={() => setAlternativeTarget(null)}
                   aria-label="Stäng alternativ"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white/48 transition hover:bg-white/[0.10] hover:text-white"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.07] text-white/48 transition hover:bg-white/[0.10] hover:text-white"
                 >
                   <CloseGlyph className="h-4 w-4" />
                 </button>
@@ -980,7 +980,7 @@ export default function ProgramReviewScreen({
                         );
                         setAlternativeTarget(null);
                       }}
-                      className="rounded-2xl border border-white/[0.07] bg-white/[0.04] px-3 py-3 text-left transition hover:border-blue-300/32 hover:bg-blue-400/[0.10]"
+                      className="rounded-2xl border border-white/[0.09] bg-white/[0.035] px-3 py-3 text-left transition hover:border-blue-300/32 hover:bg-blue-400/[0.10]"
                     >
                       <span className="flex items-start justify-between gap-3">
                         <span className="min-w-0">
@@ -1000,7 +1000,7 @@ export default function ProgramReviewScreen({
                     </button>
                   ))
                 ) : (
-                  <div className="rounded-2xl bg-white/[0.04] px-3 py-3 text-sm leading-5 text-white/58">
+                  <div className="rounded-2xl bg-white/[0.035] px-3 py-3 text-sm leading-5 text-white/58">
                     Jag hittar inget tydligt alternativ i biblioteket för just den här övningen.
                   </div>
                 )}
@@ -1015,7 +1015,7 @@ export default function ProgramReviewScreen({
                   setLibraryCategory("alla");
                   setAlternativeTarget(null);
                 }}
-                className="mt-2.5 w-full rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+                className="mt-2.5 w-full rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
               >
                 Bläddra i hela biblioteket
               </button>
@@ -1031,7 +1031,7 @@ export default function ProgramReviewScreen({
     {alternativesOverlay}
     <main data-theme={theme} className="min-h-screen bg-[#0b1018] px-3 pb-28 pt-[max(4rem,env(safe-area-inset-top))] text-white sm:px-4">
       <div className="mx-auto flex w-full max-w-[460px] flex-col gap-4">
-        <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+        <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
               Coachen
@@ -1040,7 +1040,7 @@ export default function ProgramReviewScreen({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
                 aria-label="Stäng"
               >
                 <CloseGlyph className="h-4 w-4" />
@@ -1124,12 +1124,12 @@ export default function ProgramReviewScreen({
             </button>
 
             {showCoachDetails ? (
-              <div className="border-t border-white/[0.055] px-3.5 pb-3.5 pt-3">
+              <div className="border-t border-white/[0.06] px-3.5 pb-3.5 pt-3">
                 <div className="grid gap-2.5">
                   {visibleCoachExplanationPoints.map((point) => (
                     <p
                       key={point}
-                      className="rounded-2xl bg-white/[0.028] px-3 py-2.5 text-sm leading-5 text-white/66"
+                      className="rounded-2xl bg-white/[0.035] px-3 py-2.5 text-sm leading-5 text-white/66"
                     >
                       {point}
                     </p>
@@ -1201,7 +1201,7 @@ export default function ProgramReviewScreen({
                     type="button"
                     onClick={() => setShowTermsHelp(false)}
                     aria-label="Stäng begreppsförklaring"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-sm leading-none text-white/54 transition hover:bg-white/[0.10] hover:text-white"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.07] text-sm leading-none text-white/54 transition hover:bg-white/[0.10] hover:text-white"
                   >
                     ×
                   </button>
@@ -1229,7 +1229,7 @@ export default function ProgramReviewScreen({
                       example: "Exempel: planka 30 sek.",
                     },
                   ].map((item) => (
-                    <div key={item.label} className="rounded-xl bg-white/[0.045] px-3 py-2.5">
+                    <div key={item.label} className="rounded-xl bg-white/[0.05] px-3 py-2.5">
                       <p className="text-sm font-semibold leading-4 text-white">{item.label}</p>
                       <p className="mt-1 text-xs leading-5 text-white/62">{item.text}</p>
                       <p className="mt-1 text-[11px] leading-4 text-white/42">{item.example}</p>
@@ -1247,7 +1247,7 @@ export default function ProgramReviewScreen({
               ].map(({ label, expansion, text }) => (
                 <div
                   key={label}
-                  className="rounded-xl bg-white/[0.045] px-3 py-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)]"
+                  className="rounded-xl bg-white/[0.05] px-3 py-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)]"
                 >
                   <p className="text-sm font-semibold leading-4 text-white">
                     {label}
@@ -1307,7 +1307,7 @@ export default function ProgramReviewScreen({
 
             {!isManualBuilder ? (
               <button
-                className="rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-xs font-semibold text-white/68 transition hover:bg-white/[0.07] hover:text-white"
+                className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-xs font-semibold text-white/68 transition hover:bg-white/[0.07] hover:text-white"
                 onClick={onEditProfile}
               >
                 Ändra
@@ -1336,7 +1336,7 @@ export default function ProgramReviewScreen({
                         className={`min-w-[72px] rounded-xl border px-2.5 py-2 text-center transition ${
                           active
                             ? "border-blue-300/45 bg-blue-500/[0.18] text-white"
-                            : "border-white/[0.07] bg-white/[0.025] text-white/58 hover:bg-white/[0.055] hover:text-white/78"
+                            : "border-white/[0.09] bg-white/[0.035] text-white/58 hover:bg-white/[0.05] hover:text-white/78"
                         }`}
                       >
                         <span className="block text-sm font-semibold">
@@ -1383,7 +1383,7 @@ export default function ProgramReviewScreen({
               <div
                 key={pass.key}
                 data-program-pass
-              className={`overflow-hidden rounded-[1.35rem] bg-slate-950/16 transition-[box-shadow,background-color] duration-200 ${
+              className={`overflow-hidden rounded-[1.5rem] bg-slate-950/16 transition-[box-shadow,background-color] duration-200 ${
                 isPassFocused
                   ? "shadow-[0_0_0_1px_rgba(96,165,250,0.38),0_0_32px_rgba(37,99,235,0.12),inset_0_0_0_1px_rgba(147,197,253,0.12)]"
                   : "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)]"
@@ -1438,7 +1438,7 @@ export default function ProgramReviewScreen({
                   <div className="flex items-center gap-2">
                     <button
                       aria-label={`Visa info om ${passDisplayName}`}
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.045] text-xs font-semibold text-white/52 transition hover:bg-white/[0.08] hover:text-white"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.05] text-xs font-semibold text-white/52 transition hover:bg-white/[0.10] hover:text-white"
                       onClick={() => setInfoPass(pass)}
                     >
                       i
@@ -1455,7 +1455,7 @@ export default function ProgramReviewScreen({
                 {editingPassKey !== pass.key ? (
                   <div className="flex items-center justify-end px-3 pb-2">
                     <button
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.035] px-2.5 py-1.5 text-[11px] font-semibold text-white/52 transition hover:bg-white/[0.07] hover:text-white"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-white/[0.035] px-2.5 py-1.5 text-[11px] font-semibold text-white/52 transition hover:bg-white/[0.07] hover:text-white"
                       onClick={() => startEditingPassName(pass)}
                     >
                       <PencilGlyph className="h-3.5 w-3.5" />
@@ -1481,7 +1481,7 @@ export default function ProgramReviewScreen({
                       className={`flex items-start justify-between gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035)] ${
                         removeSuggestion
                           ? "border border-red-300/16 bg-red-400/[0.06] text-white/50"
-                          : "bg-white/[0.032] text-white/74"
+                          : "bg-white/[0.035] text-white/74"
                       }`}
                     >
                       <span className="min-w-0">
@@ -1523,7 +1523,7 @@ export default function ProgramReviewScreen({
                           <button
                             type="button"
                             onClick={() => dismissCoachReviewSuggestion(removeSuggestion.id)}
-                            className="rounded-full border border-white/[0.07] bg-slate-950/18 px-2.5 py-1 text-[10px] font-semibold text-white/42 transition hover:bg-white/[0.08] hover:text-white"
+                            className="rounded-full border border-white/[0.09] bg-slate-950/18 px-2.5 py-1 text-[10px] font-semibold text-white/42 transition hover:bg-white/[0.10] hover:text-white"
                           >
                             Behåll
                           </button>
@@ -1533,7 +1533,7 @@ export default function ProgramReviewScreen({
                           <button
                             type="button"
                             onClick={() => onRemoveExercise(pass.key, exercise.name)}
-                            className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.06] bg-slate-950/18 text-white/38 transition hover:bg-white/[0.08] hover:text-white"
+                            className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.06] bg-slate-950/18 text-white/38 transition hover:bg-white/[0.10] hover:text-white"
                             aria-label={`Ta bort ${exercise.name}`}
                           >
                             <CloseGlyph className="h-3.5 w-3.5" />
@@ -1583,7 +1583,7 @@ export default function ProgramReviewScreen({
                         <button
                           type="button"
                           onClick={() => dismissCoachReviewSuggestion(suggestion.id)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.07] bg-slate-950/18 text-white/38 transition hover:bg-white/[0.08] hover:text-white"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.09] bg-slate-950/18 text-white/38 transition hover:bg-white/[0.10] hover:text-white"
                           aria-label={`Ignorera ${suggestion.name}`}
                         >
                           <CloseGlyph className="h-3.5 w-3.5" />
@@ -1604,7 +1604,7 @@ export default function ProgramReviewScreen({
                     </div>
                     <div className="flex gap-2">
                       <input
-                        className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/34 px-3.5 py-3 text-base font-semibold text-white outline-none placeholder:text-white/30 focus:border-blue-300/55 focus:bg-slate-950/46"
+                        className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/34 px-3.5 py-3 text-base font-semibold text-white outline-none placeholder:text-white/30 focus:border-blue-300/55 focus:bg-slate-950/46"
                         value={inputValue}
                         onFocus={() => setFocusedPassKey(pass.key)}
                         onBlur={(event) => {
@@ -1648,7 +1648,7 @@ export default function ProgramReviewScreen({
                         className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
                           hasExerciseInput
                             ? "bg-[#2f6df6] text-white shadow-[0_0_22px_rgba(47,109,246,0.18)] hover:bg-[#4f83ff]"
-                            : "bg-white/[0.06] text-white/28"
+                            : "bg-white/[0.07] text-white/28"
                         }`}
                       >
                         Lägg till
@@ -1663,7 +1663,7 @@ export default function ProgramReviewScreen({
                         setLibrarySearch("");
                         setLibraryCategory("alla");
                       }}
-                      className="mt-2.5 w-full rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+                      className="mt-2.5 w-full rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
                     >
                       Bläddra i övningsbiblioteket
                     </button>
@@ -1678,7 +1678,7 @@ export default function ProgramReviewScreen({
                           <button
                             type="button"
                             onClick={() => addExerciseToPass(pass.key)}
-                            className="mt-2 w-full rounded-lg bg-[#2f6df6] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#4f83ff]"
+                            className="mt-2 w-full rounded-xl bg-[#2f6df6] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#4f83ff]"
                           >
                             Lägg till {addFeedback.suggestion}
                           </button>
@@ -1686,7 +1686,7 @@ export default function ProgramReviewScreen({
                       </div>
                     ) : null}
                     {inputValue.trim() ? (
-                      <div className="mt-2 rounded-xl bg-white/[0.025] p-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
+                      <div className="mt-2 rounded-xl bg-white/[0.035] p-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
                         {!showCustomCategories ? (
                           <button
                             type="button"
@@ -1696,7 +1696,7 @@ export default function ProgramReviewScreen({
                                 [pass.key]: true,
                               }))
                             }
-                            className="w-full rounded-lg border border-white/[0.07] bg-slate-950/18 px-3 py-2 text-left text-[12px] font-semibold text-white/58 transition hover:border-blue-300/32 hover:text-white"
+                            className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 px-3 py-2 text-left text-[12px] font-semibold text-white/58 transition hover:border-blue-300/32 hover:text-white"
                           >
                             Lägg in som egen övning
                           </button>
@@ -1711,7 +1711,7 @@ export default function ProgramReviewScreen({
                                   key={category}
                                   type="button"
                                   onClick={() => addCustomExerciseToPass(pass.key, category)}
-                                  className="rounded-lg border border-white/[0.07] bg-slate-950/18 px-2 py-2 text-[11px] font-semibold capitalize text-white/58 transition hover:border-blue-300/32 hover:text-white"
+                                  className="rounded-xl border border-white/[0.09] bg-slate-950/18 px-2 py-2 text-[11px] font-semibold capitalize text-white/58 transition hover:border-blue-300/32 hover:text-white"
                                 >
                                   {category}
                                 </button>
@@ -1746,7 +1746,7 @@ export default function ProgramReviewScreen({
                   </p>
                 </div>
                 <button
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
                   onClick={() => setInfoPass(null)}
                   aria-label="Stäng"
                 >
@@ -1905,7 +1905,7 @@ export default function ProgramReviewScreen({
         {libraryPassKey ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-4 backdrop-blur-sm">
             <div className="max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-hidden rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
-              <div className="border-b border-white/[0.07] p-4">
+              <div className="border-b border-white/[0.09] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
@@ -1916,7 +1916,7 @@ export default function ProgramReviewScreen({
                     </h2>
                   </div>
                   <button
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
                     onClick={() => {
                       setLibraryInfoExerciseKey(null);
                       setLibraryPassKey(null);
@@ -1944,7 +1944,7 @@ export default function ProgramReviewScreen({
                       className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold capitalize transition ${
                         libraryCategory === category
                           ? "border-blue-300/45 bg-blue-500/[0.18] text-white"
-                          : "border-white/[0.08] bg-white/[0.035] text-white/50 hover:bg-white/[0.07] hover:text-white/72"
+                          : "border-white/[0.09] bg-white/[0.035] text-white/50 hover:bg-white/[0.07] hover:text-white/72"
                       }`}
                     >
                       {category}
@@ -1975,8 +1975,8 @@ export default function ProgramReviewScreen({
                       className={`rounded-2xl border p-3 ${
                         alreadyAdded
                           ? "border-emerald-300/14 bg-emerald-300/[0.04]"
-                          : "border-white/[0.07] bg-slate-950/22"
-                      } cursor-pointer text-left transition hover:border-blue-300/24 hover:bg-white/[0.045] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/35`}
+                          : "border-white/[0.09] bg-slate-950/22"
+                      } cursor-pointer text-left transition hover:border-blue-300/24 hover:bg-white/[0.05] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/35`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -2023,7 +2023,7 @@ export default function ProgramReviewScreen({
                 </div>
 
                 {filteredLibraryExercises.length === 0 ? (
-                  <div className="rounded-2xl border border-white/[0.07] bg-slate-950/22 p-4 text-sm leading-6 text-white/58">
+                  <div className="rounded-2xl border border-white/[0.09] bg-slate-950/22 p-4 text-sm leading-6 text-white/58">
                     Ingen övning matchar filtret. Testa en annan sökning eller lägg in den som egen övning.
                   </div>
                 ) : null}
@@ -2064,7 +2064,7 @@ export default function ProgramReviewScreen({
                       </p>
                     </div>
                     <button
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
                       onClick={() => setLibraryInfoExerciseKey(null)}
                       aria-label="Stäng övningsinfo"
                     >
@@ -2175,7 +2175,7 @@ export default function ProgramReviewScreen({
           <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-3.5 backdrop-blur-xl">
             <div className="mt-1 grid gap-2">
               <button
-                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.048] py-3 text-sm font-medium text-white/62 transition hover:bg-white/[0.07] hover:text-white"
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] py-3 text-sm font-medium text-white/62 transition hover:bg-white/[0.07] hover:text-white"
                 onClick={onEditProfile}
               >
                 Ändra mina svar
@@ -2183,7 +2183,7 @@ export default function ProgramReviewScreen({
             </div>
           </section>
         ) : (
-        <section className="program-coach-dialog rounded-[1.5rem] border border-white/[0.08] bg-white/[0.04] p-3.5 backdrop-blur-xl">
+        <section className="program-coach-dialog rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-3.5 backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
@@ -2196,7 +2196,7 @@ export default function ProgramReviewScreen({
             <button
               type="button"
               onClick={() => setShowInputHelp(true)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-xs font-semibold text-white/48 transition hover:bg-white/[0.075] hover:text-white"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-xs font-semibold text-white/48 transition hover:bg-white/[0.07] hover:text-white"
               aria-label="Visa exempel på vad du kan fråga"
             >
               i
@@ -2211,7 +2211,7 @@ export default function ProgramReviewScreen({
                   className={
                     entry.role === "coach"
                       ? "rounded-xl border border-white/8 bg-slate-950/30 px-3 py-2 text-sm leading-6 text-white/78"
-                      : "ml-auto w-fit max-w-[85%] rounded-xl border border-white/[0.12] bg-white/[0.08] px-3 py-2 text-sm leading-6 text-white"
+                      : "ml-auto w-fit max-w-[85%] rounded-xl border border-white/[0.16] bg-white/[0.10] px-3 py-2 text-sm leading-6 text-white"
                   }
                 >
                   <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/40">
@@ -2231,7 +2231,7 @@ export default function ProgramReviewScreen({
 
           <div className="mt-3 flex gap-2">
             <input
-              className="min-w-0 flex-1 rounded-xl border border-white/[0.075] bg-slate-950/30 px-3 py-2.5 text-base text-white outline-none placeholder:text-white/26 focus:border-blue-300/34 focus:bg-slate-950/42 sm:text-sm"
+              className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-slate-950/30 px-3 py-2.5 text-base text-white outline-none placeholder:text-white/26 focus:border-blue-300/34 focus:bg-slate-950/42 sm:text-sm"
               value={chatInput}
               onChange={(event) => setChatInput(event.target.value)}
               disabled={isChatSubmitting}
@@ -2244,7 +2244,7 @@ export default function ProgramReviewScreen({
               placeholder='t.ex. "jag har ont i knät", "varför ligger benpress med?"'
             />
             <button
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-300/12 bg-blue-400/[0.12] text-blue-50/80 transition hover:bg-blue-400/[0.18] hover:text-white disabled:border-white/[0.06] disabled:bg-white/[0.045] disabled:text-white/24"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-300/12 bg-blue-400/[0.12] text-blue-50/80 transition hover:bg-blue-400/[0.18] hover:text-white disabled:border-white/[0.06] disabled:bg-white/[0.05] disabled:text-white/24"
               disabled={!chatInput.trim() || isChatSubmitting}
               onClick={submitChat}
               aria-label={isChatSubmitting ? "Skickar" : "Skicka"}
@@ -2268,7 +2268,7 @@ export default function ProgramReviewScreen({
                   </div>
                   <button
                     type="button"
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
                     onClick={() => setShowInputHelp(false)}
                     aria-label="Stäng"
                   >
@@ -2306,7 +2306,7 @@ export default function ProgramReviewScreen({
 
           <div className="mt-4 grid gap-2.5">
             <button
-              className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.035] py-3 text-sm font-medium text-white/54 transition hover:bg-white/[0.065] hover:text-white/78"
+              className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.035] py-3 text-sm font-medium text-white/54 transition hover:bg-white/[0.07] hover:text-white/78"
               onClick={onEditProfile}
             >
               Ändra mina svar

@@ -167,7 +167,7 @@ function WorkoutReviewLoadingScreen({ theme }: { theme: AppTheme }) {
   return (
     <div className="w-full max-w-xl px-5 pb-10 pt-16 sm:px-6">
       <section
-        className={`rounded-[1.75rem] px-6 py-7 ${
+        className={`rounded-[1.5rem] px-6 py-7 ${
           isLight
             ? "border border-[#d9cbbb]/70 bg-[#fffdf8]/92 text-[#2b2520] shadow-[0_24px_70px_rgba(92,74,49,0.18)]"
             : "border border-white/8 bg-[#131a25] text-white shadow-[0_24px_70px_rgba(0,0,0,0.34)]"
@@ -8519,7 +8519,7 @@ if (showSplash) {
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.11),transparent_34%),linear-gradient(180deg,#0b1018_0%,#111a25_55%,#0b1018_100%)]" />
 
       <div className="splash-mark flex flex-col items-center">
-        <div className="flex h-32 w-32 items-center justify-center rounded-[2.25rem] border border-blue-400/20 bg-blue-500/[0.07] shadow-[0_0_70px_rgba(59,130,246,0.10)] backdrop-blur-2xl sm:h-36 sm:w-36">
+        <div className="flex h-32 w-32 items-center justify-center rounded-[1.5rem] border border-blue-400/20 bg-blue-500/[0.07] shadow-[0_0_70px_rgba(59,130,246,0.10)] backdrop-blur-2xl sm:h-36 sm:w-36">
           <Image
             src={appTheme === "light" ? "/logo-light.png" : "/logo-dark.png"}
             alt="MinCoach"
@@ -8648,7 +8648,7 @@ const profile: UserProfile = {
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           onClick={() => setPendingProfileChange(null)}
         />
-        <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl sm:mb-0">
+        <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl sm:mb-0">
           <div className="space-y-1.5 text-center">
             <p className="text-base font-semibold text-white">Bygga om schemat?</p>
             <p className="text-sm text-white/55">
@@ -8663,7 +8663,7 @@ const profile: UserProfile = {
               Ja, bygg om schemat
             </button>
             <button
-              className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.08]"
+              className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.10]"
               onClick={() => setPendingProfileChange(null)}
             >
               Avbryt

@@ -70,7 +70,7 @@ export function LibraryBrowser({
         <p className="text-base font-semibold text-white">{title}</p>
         <button
           type="button"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
           onClick={onClose}
           aria-label="Stäng"
         >
@@ -109,7 +109,7 @@ export function LibraryBrowser({
             className={`rounded-full border px-3 py-1.5 text-xs font-semibold capitalize transition ${
               category === cat
                 ? "border-blue-300/45 bg-blue-500/[0.18] text-white"
-                : "border-white/[0.08] bg-white/[0.035] text-white/50 hover:bg-white/[0.07] hover:text-white/72"
+                : "border-white/[0.09] bg-white/[0.035] text-white/50 hover:bg-white/[0.07] hover:text-white/72"
             }`}
           >
             {cat}
@@ -123,7 +123,7 @@ export function LibraryBrowser({
             key={exercise.exerciseKey}
             type="button"
             onClick={() => onPick(exercise.name)}
-            className="w-full rounded-2xl border border-white/[0.07] bg-slate-950/22 p-3 text-left transition hover:border-blue-300/24 hover:bg-white/[0.045]"
+            className="w-full rounded-2xl border border-white/[0.09] bg-slate-950/22 p-3 text-left transition hover:border-blue-300/24 hover:bg-white/[0.05]"
           >
             <p className="truncate text-sm font-semibold text-white">{exercise.name}</p>
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/38">
@@ -133,7 +133,7 @@ export function LibraryBrowser({
         ))}
 
         {exercises.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.07] bg-slate-950/22 p-4">
+          <div className="rounded-2xl border border-white/[0.09] bg-slate-950/22 p-4">
             <p className="text-sm leading-6 text-white/58">Ingen övning matchar. Testa en annan sökning.</p>
           </div>
         ) : null}

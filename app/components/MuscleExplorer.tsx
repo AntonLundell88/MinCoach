@@ -30,7 +30,7 @@ function FrisorEasterEgg({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 px-4 py-4">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-3 rounded-[1.8rem] bg-black/42 backdrop-blur-sm sm:inset-5"
+        className="pointer-events-none absolute inset-3 rounded-[1.5rem] bg-black/42 backdrop-blur-sm sm:inset-5"
       />
       <div className="relative z-10 max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
         <div className="flex items-start justify-between gap-3">
@@ -47,7 +47,7 @@ function FrisorEasterEgg({ onClose }: { onClose: () => void }) {
           </div>
           <button
             type="button"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
             onClick={onClose}
             aria-label="Stäng övningsinfo"
           >
@@ -196,7 +196,7 @@ function ExerciseRow({
     <button
       type="button"
       onClick={onSelect}
-      className="w-full rounded-xl border border-white/[0.09] bg-white/[0.048] px-3.5 py-2.5 text-left transition hover:border-white/16 hover:bg-white/[0.06]"
+      className="w-full rounded-xl border border-white/[0.09] bg-white/[0.05] px-3.5 py-2.5 text-left transition hover:border-white/16 hover:bg-white/[0.07]"
     >
       <span className="block truncate text-sm font-semibold text-white">
         {exercise.name}
@@ -243,7 +243,7 @@ function ExerciseSection({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="w-full rounded-xl border border-white/[0.07] bg-transparent px-3.5 py-2 text-center text-xs font-semibold text-blue-300/85 transition hover:text-blue-200"
+          className="w-full rounded-xl border border-white/[0.09] bg-transparent px-3.5 py-2 text-center text-xs font-semibold text-blue-300/85 transition hover:text-blue-200"
         >
           Visa {remaining} till
         </button>

@@ -69,7 +69,7 @@ export default function PersonalRecordsScreen({
 
         <button
           onClick={onBack}
-          className="rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
+          className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
         >
           Tillbaka
         </button>
@@ -79,7 +79,7 @@ export default function PersonalRecordsScreen({
         <>
           <button
             onClick={() => onOpenExercise(latestRecord.exerciseName)}
-            className="mt-4 w-full rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 text-left shadow-[0_14px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl transition hover:border-white/16 hover:bg-white/[0.06] sm:p-5"
+            className="mt-4 w-full rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 text-left shadow-[0_14px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl transition hover:border-white/16 hover:bg-white/[0.07] sm:p-5"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
               Senaste PR
@@ -95,7 +95,7 @@ export default function PersonalRecordsScreen({
             </p>
           </button>
 
-          <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.032] p-4 backdrop-blur-2xl sm:p-5">
+          <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-4 backdrop-blur-2xl sm:p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
               Alla PR
             </p>
@@ -105,7 +105,7 @@ export default function PersonalRecordsScreen({
                 <button
                   key={record.exerciseName}
                   onClick={() => onOpenExercise(record.exerciseName)}
-                  className="rounded-[1.25rem] border border-white/[0.09] bg-slate-950/22 p-3.5 text-left transition hover:border-white/16 hover:bg-white/[0.06]"
+                  className="rounded-[1.5rem] border border-white/[0.09] bg-slate-950/22 p-3.5 text-left transition hover:border-white/16 hover:bg-white/[0.07]"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -131,7 +131,7 @@ export default function PersonalRecordsScreen({
           </section>
         </>
       ) : (
-        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.032] p-4 backdrop-blur-2xl sm:p-5">
+        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-4 backdrop-blur-2xl sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
             Inga PR än
           </p>

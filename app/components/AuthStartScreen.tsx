@@ -218,9 +218,9 @@ export default function AuthStartScreen({
     <main data-theme={theme} className="flex min-h-screen items-center justify-center bg-[#080d14] px-4 py-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.12),transparent_34%),linear-gradient(180deg,#080d14_0%,#0d1420_52%,#080d14_100%)]" />
 
-      <section className="w-full max-w-md rounded-[1.65rem] border border-white/[0.07] bg-white/[0.045] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
+      <section className="w-full max-w-md rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.25rem] border border-blue-400/18 bg-blue-500/[0.075]">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] border border-blue-400/18 bg-blue-500/[0.075]">
             <Image
               src={theme === "light" ? "/logo-light.png" : "/logo-dark.png"}
               alt="MinCoach"
@@ -275,7 +275,7 @@ export default function AuthStartScreen({
             <label className="block text-[13px] font-medium text-white/76">
               Kod
               <input
-                className="mt-1.5 w-full rounded-2xl border border-white/[0.07] bg-slate-950/32 px-3.5 py-3 text-center text-xl tracking-[0.35em] text-white outline-none transition placeholder:tracking-normal placeholder:text-white/28 focus:border-blue-300/35 focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1.5 w-full rounded-2xl border border-white/[0.09] bg-slate-950/32 px-3.5 py-3 text-center text-xl tracking-[0.35em] text-white outline-none transition placeholder:tracking-normal placeholder:text-white/28 focus:border-blue-300/35 focus:ring-2 focus:ring-blue-500/20"
                 value={otpCode}
                 onChange={(event) =>
                   setOtpCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 8))
@@ -311,7 +311,7 @@ export default function AuthStartScreen({
             <label className="block text-[13px] font-medium text-white/76">
               E-post
               <input
-                className="mt-1.5 w-full rounded-2xl border border-white/[0.07] bg-slate-950/32 px-3.5 py-3 text-base text-white outline-none transition placeholder:text-white/28 focus:border-blue-300/35 focus:ring-2 focus:ring-blue-500/20 sm:text-[15px]"
+                className="mt-1.5 w-full rounded-2xl border border-white/[0.09] bg-slate-950/32 px-3.5 py-3 text-base text-white outline-none transition placeholder:text-white/28 focus:border-blue-300/35 focus:ring-2 focus:ring-blue-500/20 sm:text-[15px]"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 onKeyDown={(event) => {
@@ -343,11 +343,11 @@ export default function AuthStartScreen({
           </p>
         ) : null}
 
-        <div className="mt-5 border-t border-white/[0.07] pt-4">
+        <div className="mt-5 border-t border-white/[0.09] pt-4">
           <button
             type="button"
             onClick={onContinueWithoutAccount}
-            className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.035] py-3 text-sm font-semibold text-white/76 transition hover:bg-white/[0.06] hover:text-white"
+            className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.035] py-3 text-sm font-semibold text-white/76 transition hover:bg-white/[0.07] hover:text-white"
           >
             Fortsätt utan inloggning
           </button>

@@ -118,14 +118,14 @@ export default function SetList({ currentSets, exerciseName, onEditSet, validate
     <>
       <div
         ref={setListContainerRef}
-        className="max-h-24 overflow-y-auto rounded-[1.15rem] border border-white/[0.06] bg-white/[0.018] p-1.5"
+        className="max-h-24 overflow-y-auto rounded-2xl border border-white/[0.06] bg-white/[0.035] p-1.5"
       >
         <ul className="space-y-1 text-sm text-gray-300">
           {currentSets.map((set, index) => (
             <li
               key={set.createdAt + index}
               onClick={() => onEditSet && openEdit(index)}
-              className={`flex items-center justify-between rounded-xl border border-white/[0.045] bg-slate-950/24 px-2.5 py-1.5 ${onEditSet ? "cursor-pointer active:bg-white/[0.06]" : ""}`}
+              className={`flex items-center justify-between rounded-xl border border-white/[0.06] bg-slate-950/24 px-2.5 py-1.5 ${onEditSet ? "cursor-pointer active:bg-white/[0.07]" : ""}`}
             >
               <span className="text-sm font-semibold text-white/90">
                 {index + 1}. {getSetLabel(set, exerciseName)}
@@ -141,7 +141,7 @@ export default function SetList({ currentSets, exerciseName, onEditSet, validate
       {editingIndex !== null && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
           <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
-          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
             <p className="text-base font-semibold text-white text-center">
               Redigera set {(editingIndex ?? 0) + 1}
             </p>
@@ -151,7 +151,7 @@ export default function SetList({ currentSets, exerciseName, onEditSet, validate
                 <label className="text-xs text-white/50">Tid (sekunder)</label>
                 <input
                   autoFocus
-                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
+                  className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
                   inputMode="numeric"
                   value={editDuration}
                   onChange={(e) => setEditDuration(e.target.value.replace(/[^0-9]/g, ""))}
@@ -164,7 +164,7 @@ export default function SetList({ currentSets, exerciseName, onEditSet, validate
                 <div className="space-y-1">
                   <label className="text-xs text-white/50">Vikt (kg)</label>
                   <input
-                    className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
+                    className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
                     inputMode="decimal"
                     value={editWeight}
                     onChange={(e) => setEditWeight(e.target.value)}
@@ -173,7 +173,7 @@ export default function SetList({ currentSets, exerciseName, onEditSet, validate
                 <div className="space-y-1">
                   <label className="text-xs text-white/50">Reps</label>
                   <input
-                    className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
+                    className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
                     inputMode="numeric"
                     value={editReps}
                     onChange={(e) => setEditReps(e.target.value)}
@@ -218,7 +218,7 @@ export default function SetList({ currentSets, exerciseName, onEditSet, validate
                 Spara
               </button>
               <button
-                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/60 transition active:scale-[0.98]"
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/60 transition active:scale-[0.98]"
                 onClick={() => setEditingIndex(null)}
               >
                 Avbryt

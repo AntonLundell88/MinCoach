@@ -302,7 +302,7 @@ export default function CoachPanel({
         className={
           isFocus
             ? "coach-panel-shell flex h-full min-h-0 flex-col gap-2"
-            : "coach-panel-shell space-y-2.5 rounded-[1.35rem] border border-white/[0.09] bg-[#0d1520] p-2.5 shadow-[0_16px_44px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-3"
+            : "coach-panel-shell space-y-2.5 rounded-[1.5rem] border border-white/[0.09] bg-[#0d1520] p-2.5 shadow-[0_16px_44px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-3"
         }
       >
         {isHistoryOpen ? (
@@ -319,14 +319,14 @@ export default function CoachPanel({
           <button
             type="button"
             onClick={() => setIsHistoryOpen(false)}
-            className="coach-history-toggle sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-lg bg-[#0d1520] py-1 text-[10px] uppercase tracking-[0.14em] text-white/38 transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white/64"
+            className="coach-history-toggle sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-xl bg-[#0d1520] py-1 text-[10px] uppercase tracking-[0.14em] text-white/38 transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white/64"
           >
             Dölj historik
             <span className="rotate-180 text-white/50">▾</span>
           </button>
           )}
           {chatLog.length === 0 ? (
-            <p className="coach-empty-message rounded-2xl border border-white/[0.09] bg-white/[0.042] px-3 py-2 text-sm leading-5 text-white/62">
+            <p className="coach-empty-message rounded-2xl border border-white/[0.09] bg-white/[0.035] px-3 py-2 text-sm leading-5 text-white/62">
               Skriv till coachen när något känns tungt, lätt eller annorlunda.
             </p>
           ) : (
@@ -335,12 +335,12 @@ export default function CoachPanel({
                 key={i}
                 className={
                   m.role === "coach"
-                    ? `coach-message animate-message-in relative rounded-[1.15rem] border px-3 py-2 text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] sm:px-3.5 ${
+                    ? `coach-message animate-message-in relative rounded-2xl border px-3 py-2 text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] sm:px-3.5 ${
                         m.highlight
                           ? "border-blue-400/30 bg-blue-950/40"
                           : "border-white/[0.09] bg-slate-900/50"
                       }`
-                    : "user-message animate-message-in ml-auto w-fit max-w-[85%] rounded-[1.2rem] border border-white/[0.16] bg-white/[0.1] px-3.5 py-2.5 text-white"
+                    : "user-message animate-message-in ml-auto w-fit max-w-[85%] rounded-2xl border border-white/[0.16] bg-white/[0.10] px-3.5 py-2.5 text-white"
                 }
               >
                 <div className="mb-1 flex items-center gap-1.5">
@@ -385,7 +385,7 @@ export default function CoachPanel({
             ))
           )}
           {isCoachThinking ? (
-            <div className="coach-message animate-message-in relative rounded-[1.15rem] border border-white/[0.09] bg-slate-900/50 px-3 py-2 text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] sm:px-3.5">
+            <div className="coach-message animate-message-in relative rounded-2xl border border-white/[0.09] bg-slate-900/50 px-3 py-2 text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] sm:px-3.5">
               <p className="coach-message-label mb-1 text-[9px] uppercase tracking-[0.12em] text-white/36">
                 Coach
               </p>
@@ -402,7 +402,7 @@ export default function CoachPanel({
         <button
           type="button"
           onClick={() => setIsHistoryOpen(true)}
-          className="coach-message w-full rounded-[1.15rem] border border-blue-300/[0.18] bg-slate-900/50 px-3 py-2 text-left text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] transition hover:border-blue-300/30 hover:bg-slate-900/70 active:scale-[0.99] sm:px-3.5"
+          className="coach-message w-full rounded-2xl border border-blue-300/[0.18] bg-slate-900/50 px-3 py-2 text-left text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] transition hover:border-blue-300/30 hover:bg-slate-900/70 active:scale-[0.99] sm:px-3.5"
         >
           {isCoachThinking ? (
             <>

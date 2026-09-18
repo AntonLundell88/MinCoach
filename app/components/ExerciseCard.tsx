@@ -315,9 +315,9 @@ useEffect(() => {
 }, [durationSecondsInput, isDurationRunning, isTimed, setDurationSecondsInput]);
   
  return (
-  <div className={embedded ? "exercise-card-shell space-y-2.5 px-1" : "exercise-card-shell space-y-3 rounded-[1.6rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"}>
+  <div className={embedded ? "exercise-card-shell space-y-2.5 px-1" : "exercise-card-shell space-y-3 rounded-[1.5rem] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.032))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"}>
     {skippedExerciseName ? (
-      <div className="rounded-2xl border border-white/[0.07] bg-slate-950/14 px-3 py-3">
+      <div className="rounded-2xl border border-white/[0.09] bg-slate-950/14 px-3 py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/45">
@@ -349,7 +349,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => setShowExerciseInfo(true)}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
               aria-label={`Visa info om ${splitCustomExerciseName(currentExerciseName).title}`}
             >
               i
@@ -358,7 +358,7 @@ useEffect(() => {
 
           <button
             type="button"
-            className="shrink-0 rounded-full border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+            className="shrink-0 rounded-full border border-white/[0.09] bg-white/[0.035] px-3 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
             onClick={() => setConfirmSkip(true)}
             disabled={!canSkipExercise}
           >
@@ -406,7 +406,7 @@ useEffect(() => {
                 className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold transition ${
                   showWeightInput
                     ? "border-blue-300/24 bg-blue-500/[0.14] text-blue-50"
-                    : "border-white/[0.075] bg-white/[0.035] text-white/46 hover:bg-white/[0.06] hover:text-white/72"
+                    : "border-white/[0.09] bg-white/[0.035] text-white/46 hover:bg-white/[0.07] hover:text-white/72"
                 }`}
               >
                 + extra vikt
@@ -416,7 +416,7 @@ useEffect(() => {
 
           {showWeightInput ? (
             <div className="space-y-1.5">
-              <div className="workout-input-stepper grid h-12 grid-cols-[2.55rem_minmax(0,1fr)_2.55rem] overflow-hidden rounded-2xl border border-white/[0.075] bg-slate-950/50 transition focus-within:border-blue-300/35">
+              <div className="workout-input-stepper grid h-12 grid-cols-[2.55rem_minmax(0,1fr)_2.55rem] overflow-hidden rounded-2xl border border-white/[0.09] bg-slate-950/50 transition focus-within:border-blue-300/35">
                 <button
                   type="button"
                   onClick={() => adjustWeight(-weightStep)}
@@ -425,7 +425,7 @@ useEffect(() => {
                   onMouseLeave={stopHold}
                   onTouchStart={() => startHold(() => adjustWeight(-weightStep), weightInputRef.current)}
                   onTouchEnd={stopHold}
-                  className="flex h-full items-center justify-center border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
+                  className="flex h-full items-center justify-center border-r border-white/[0.09] text-lg font-semibold text-white/62 transition hover:bg-white/[0.07] hover:text-white"
                   aria-label="Sänk vikt"
                 >
                   −
@@ -447,7 +447,7 @@ useEffect(() => {
                   onMouseLeave={stopHold}
                   onTouchStart={() => startHold(() => adjustWeight(weightStep), weightInputRef.current)}
                   onTouchEnd={stopHold}
-                  className="flex h-full items-center justify-center border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
+                  className="flex h-full items-center justify-center border-l border-white/[0.09] text-lg font-semibold text-white/62 transition hover:bg-white/[0.07] hover:text-white"
                   aria-label="Höj vikt"
                 >
                   +
@@ -455,7 +455,7 @@ useEffect(() => {
               </div>
             </div>
           ) : (
-            <div className="flex h-[47px] items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.026] px-3.5 text-sm font-semibold text-white/50">
+            <div className="flex h-[47px] items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.035] px-3.5 text-sm font-semibold text-white/50">
               Kroppsvikt
             </div>
           )}
@@ -485,7 +485,7 @@ useEffect(() => {
                         if (e.key === "Escape") setIsEditingDuration(false);
                       }}
                       placeholder="sekunder"
-                      className="min-w-0 flex-1 rounded-xl border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-center text-xl font-semibold text-white outline-none focus:border-blue-400/40"
+                      className="min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-center text-xl font-semibold text-white outline-none focus:border-blue-400/40"
                     />
                     <button
                       type="button"
@@ -501,7 +501,7 @@ useEffect(() => {
                     <button
                       type="button"
                       onClick={() => setIsEditingDuration(false)}
-                      className="shrink-0 rounded-xl border border-white/[0.07] px-2.5 py-2 text-xs font-semibold text-white/58 transition hover:text-white"
+                      className="shrink-0 rounded-xl border border-white/[0.09] px-2.5 py-2 text-xs font-semibold text-white/58 transition hover:text-white"
                     >
                       Avbryt
                     </button>
@@ -526,7 +526,7 @@ useEffect(() => {
                           setIsDurationRunning(false);
                           setDurationSecondsInput(0);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.035] px-2.5 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.09] bg-white/[0.035] px-2.5 py-1.5 text-xs font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
                       >
                         <RotateGlyph className="h-3.5 w-3.5" />
                         Nollställ
@@ -554,7 +554,7 @@ useEffect(() => {
           <div className="flex h-5 items-center">
             <label className="text-xs text-white/50">Reps</label>
           </div>
-          <div className="workout-input-stepper grid h-12 grid-cols-[2.55rem_minmax(0,1fr)_2.55rem] overflow-hidden rounded-2xl border border-white/[0.075] bg-slate-950/50 transition focus-within:border-blue-300/35">
+          <div className="workout-input-stepper grid h-12 grid-cols-[2.55rem_minmax(0,1fr)_2.55rem] overflow-hidden rounded-2xl border border-white/[0.09] bg-slate-950/50 transition focus-within:border-blue-300/35">
             <button
               type="button"
               onClick={() => adjustReps(-1)}
@@ -563,7 +563,7 @@ useEffect(() => {
               onMouseLeave={stopHold}
               onTouchStart={() => startHold(() => adjustReps(-1), repsInputRef.current)}
               onTouchEnd={stopHold}
-              className="flex h-full items-center justify-center border-r border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
+              className="flex h-full items-center justify-center border-r border-white/[0.09] text-lg font-semibold text-white/62 transition hover:bg-white/[0.07] hover:text-white"
               aria-label="Minska reps"
             >
               −
@@ -585,7 +585,7 @@ useEffect(() => {
               onMouseLeave={stopHold}
               onTouchStart={() => startHold(() => adjustReps(1), repsInputRef.current)}
               onTouchEnd={stopHold}
-              className="flex h-full items-center justify-center border-l border-white/[0.07] text-lg font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
+              className="flex h-full items-center justify-center border-l border-white/[0.09] text-lg font-semibold text-white/62 transition hover:bg-white/[0.07] hover:text-white"
               aria-label="Öka reps"
             >
               +
@@ -653,7 +653,7 @@ useEffect(() => {
         className={`rounded-xl border px-2 py-1.5 text-sm font-semibold transition ${
           isActive
             ? "workout-rir-selected border-blue-400/25 bg-blue-500/[0.16] text-white shadow-[0_0_16px_rgba(59,130,246,0.10)]"
-            : "border-transparent bg-transparent text-white/64 hover:bg-white/[0.045] hover:text-white"
+            : "border-transparent bg-transparent text-white/64 hover:bg-white/[0.05] hover:text-white"
         }`}
       >
         {value === 5 ? "5+" : value}
@@ -686,7 +686,7 @@ useEffect(() => {
             key={reason}
             type="button"
             onClick={() => setFailNoteInput(reason)}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+            className={`rounded-xl border px-3 py-1.5 text-sm font-medium transition ${
               isActive
                 ? "workout-rir-selected border-blue-400/30 bg-blue-500/[0.10] text-white"
                 : "border-white/[0.09] bg-slate-950/38 text-white/75 hover:bg-white/5 hover:text-white"
@@ -717,7 +717,7 @@ useEffect(() => {
       {awaitingWeightConfirm && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
           <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
-          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
             {/* En dialog, inte två. Absurd vikt byter bara rubrik — aldrig
                 knappar. Tidigare var "för hög vikt" en egen gren utan
                 Ja-knapp, vilket låste ute den som verkligen kör 320 kg på
@@ -755,7 +755,7 @@ useEffect(() => {
               </button>
               {weightCorrection !== null && (
                 <button
-                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
+                  className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
                   onClick={() => {
                     setWeightInput(String(weightCorrection));
                     setAwaitingWeightConfirm(false);
@@ -778,7 +778,7 @@ useEffect(() => {
       {awaitingRepsConfirm && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
           <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
-          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
             <div className="space-y-1.5 text-center">
               <p className="text-base font-semibold text-white">Stämmer reps?</p>
               <p className="text-sm text-white/60">
@@ -799,7 +799,7 @@ useEffect(() => {
                 Ja, {enteredReps} reps stämmer
               </button>
               <button
-                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
                 onClick={() => {
                   setRepsInput(String(plannedReps));
                   setAwaitingRepsConfirm(false);
@@ -815,7 +815,7 @@ useEffect(() => {
       {awaitingDecimalConfirm && suggestedDecimalWeight !== null && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
           <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
-          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
             <div className="space-y-1.5 text-center">
               <p className="text-base font-semibold text-white">Decimalfel?</p>
               <p className="text-sm text-white/60">
@@ -825,7 +825,7 @@ useEffect(() => {
             </div>
             <div className="flex flex-col gap-2">
               <button
-                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
                 onClick={() => {
                   setWeightInput(String(suggestedDecimalWeight));
                   setAwaitingDecimalConfirm(false);
@@ -852,14 +852,14 @@ useEffect(() => {
       {confirmSkip && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
           <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" />
-          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-5 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
             <div className="space-y-1.5 text-center">
               <p className="text-base font-semibold text-white">Hoppa över {splitCustomExerciseName(currentExerciseName).title}?</p>
               <p className="text-sm text-white/50">Redan loggade set sparas.</p>
             </div>
             <div className="flex flex-col gap-2">
               <button
-                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98]"
                 onClick={() => { setConfirmSkip(false); onSkipExercise(); }}
               >
                 Ja, hoppa över
@@ -880,7 +880,7 @@ useEffect(() => {
           <button
             className={`w-full rounded-2xl border px-5 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
               exerciseComplete
-                ? "border-white/[0.16] bg-transparent text-white/85 hover:bg-white/[0.06]"
+                ? "border-white/[0.16] bg-transparent text-white/85 hover:bg-white/[0.07]"
                 : "workout-primary-action border-blue-300/16 bg-blue-600/58 text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] hover:bg-blue-500/72"
             }`}
             onClick={() => {
@@ -913,7 +913,7 @@ useEffect(() => {
                 {canUndoSet ? (
                   <button
                     type="button"
-                    className="flex h-11 items-center rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 text-sm font-semibold text-white/70 transition hover:bg-white/[0.08] hover:text-white active:scale-[0.98]"
+                    className="flex h-11 items-center rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 text-sm font-semibold text-white/70 transition hover:bg-white/[0.10] hover:text-white active:scale-[0.98]"
                     onClick={removeLastSet}
                     title="Ta bort senaste set"
                   >
@@ -934,7 +934,7 @@ useEffect(() => {
                     <button
                       type="button"
                       onClick={() => setShowVideoInfo(true)}
-                      className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-[10px] font-semibold text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                      className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-[10px] font-semibold text-white/50 transition hover:bg-white/[0.07] hover:text-white"
                       aria-label="Vad gör filma-knappen?"
                     >
                       i
@@ -946,7 +946,7 @@ useEffect(() => {
           ) : (
             <div className="contents">
               <button
-                className="flex-1 rounded-2xl border border-white/[0.075] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/64 transition hover:bg-white/[0.07] hover:text-white"
+                className="flex-1 rounded-2xl border border-white/[0.09] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white/64 transition hover:bg-white/[0.07] hover:text-white"
                 onClick={removeLastSet}
                 title="Ta bort senaste set"
               >
@@ -956,7 +956,7 @@ useEffect(() => {
                 <div className="flex shrink-0 items-center gap-1">
                   <button
                     type="button"
-                    className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.075] bg-white/[0.035] text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.035] text-white/54 transition hover:bg-white/[0.07] hover:text-white"
                     onClick={onRecordLastSet}
                     title="Filma senaste setet"
                     aria-label="Filma senaste setet"
@@ -966,7 +966,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={() => setShowVideoInfo(true)}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-[10px] font-semibold text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                    className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-[10px] font-semibold text-white/50 transition hover:bg-white/[0.07] hover:text-white"
                     aria-label="Vad gör filma-knappen?"
                   >
                     i

@@ -1023,7 +1023,7 @@ useEffect(() => {
       <button
         type="button"
         onClick={() => setChatFocusMode(true)}
-        className="workout-layout-toggle mx-auto -mt-1 flex h-9 w-14 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.045] text-white/72 shadow-[0_10px_28px_rgba(0,0,0,0.14)] transition duration-200 hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
+        className="workout-layout-toggle mx-auto -mt-1 flex h-9 w-14 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/72 shadow-[0_10px_28px_rgba(0,0,0,0.14)] transition duration-200 hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
         aria-label="Fokusera chatten"
       >
         <DoubleChevronDownGlyph className="h-5 w-5 transition-transform duration-200 ease-out" />
@@ -1046,9 +1046,9 @@ useEffect(() => {
               isExpanded
             />
           </div>
-        <section className="workout-focus-dock shrink-0 rounded-none border-t border-white/[0.08] bg-[#0d1520] px-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-18px_40px_rgba(0,0,0,0.4)]">
+        <section className="workout-focus-dock shrink-0 rounded-none border-t border-white/[0.09] bg-[#0d1520] px-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-18px_40px_rgba(0,0,0,0.4)]">
           <div className="flex items-center gap-1.5">
-            <div className="min-w-0 flex-1 rounded-xl border border-white/[0.06] bg-white/[0.03] px-2.5 py-1.5">
+            <div className="min-w-0 flex-1 rounded-xl border border-white/[0.06] bg-white/[0.035] px-2.5 py-1.5">
               <p className="truncate text-sm font-semibold text-white">{exerciseDisplay.title}</p>
             </div>
             {currentExerciseName ? (
@@ -1066,7 +1066,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => setShowVideoInfo(true)}
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.045] text-[9px] font-semibold text-white/55 transition hover:bg-white/[0.07] hover:text-white"
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-[9px] font-semibold text-white/55 transition hover:bg-white/[0.07] hover:text-white"
                 aria-label="Vad gör filma-knappen?"
               >
                 i
@@ -1075,7 +1075,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => setChatFocusMode(false)}
-              className="workout-layout-toggle flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.045] text-white/72 transition hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
+              className="workout-layout-toggle flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/72 transition hover:bg-white/[0.07] hover:text-white active:scale-[0.97]"
               aria-label="Visa hela passet"
             >
               <DoubleChevronDownGlyph className="h-4 w-4 rotate-180" />
@@ -1105,7 +1105,7 @@ useEffect(() => {
             )}
           </div>
 
-          <div className="mt-2 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2">
+          <div className="mt-2 rounded-2xl border border-white/[0.06] bg-white/[0.035] px-3 py-2">
             <div className="grid grid-cols-[1fr_auto_1fr] items-baseline">
               <span />
               <span
@@ -1167,8 +1167,8 @@ useEffect(() => {
                 }`}
               >
                 {shouldShowWeightInput ? (
-                  <div className="workout-mini-input rounded-2xl border border-white/[0.07] bg-slate-950/34 px-2 py-2">
-                    <div className="workout-input-stepper grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
+                  <div className="workout-mini-input rounded-2xl border border-white/[0.09] bg-slate-950/34 px-2 py-2">
+                    <div className="workout-input-stepper grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.06] bg-slate-950/36">
                       <button
                         type="button"
                         onClick={() => {
@@ -1176,7 +1176,7 @@ useEffect(() => {
                           const next = Math.max(0, (Number.isFinite(current) ? current : 0) - 2.5);
                           setWeightInput(Number(next.toFixed(2)).toString());
                         }}
-                        className="flex h-9 items-center justify-center border-r border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
+                        className="flex h-9 items-center justify-center border-r border-white/[0.06] text-lg font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
                         aria-label="Sänk vikt"
                       >
                         −
@@ -1195,7 +1195,7 @@ useEffect(() => {
                           const next = (Number.isFinite(current) ? current : 0) + 2.5;
                           setWeightInput(Number(next.toFixed(2)).toString());
                         }}
-                        className="flex h-9 items-center justify-center border-l border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
+                        className="flex h-9 items-center justify-center border-l border-white/[0.06] text-lg font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
                         aria-label="Höj vikt"
                       >
                         +
@@ -1204,9 +1204,9 @@ useEffect(() => {
                   </div>
                 ) : null}
 
-                <div className="workout-mini-input rounded-2xl border border-white/[0.07] bg-slate-950/34 px-2 py-2">
+                <div className="workout-mini-input rounded-2xl border border-white/[0.09] bg-slate-950/34 px-2 py-2">
                   {isTimedCurrentExercise ? (
-                    <div className="workout-input-stepper overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
+                    <div className="workout-input-stepper overflow-hidden rounded-xl border border-white/[0.06] bg-slate-950/36">
                       <input
                         className="h-9 min-w-0 bg-transparent px-2 text-center text-lg font-semibold text-white outline-none placeholder:text-white/28"
                         inputMode="numeric"
@@ -1218,7 +1218,7 @@ useEffect(() => {
                       />
                     </div>
                   ) : (
-                    <div className="workout-input-stepper grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.065] bg-slate-950/36">
+                    <div className="workout-input-stepper grid grid-cols-[2.15rem_1fr_2.15rem] overflow-hidden rounded-xl border border-white/[0.06] bg-slate-950/36">
                       <button
                         type="button"
                         onClick={() => {
@@ -1226,7 +1226,7 @@ useEffect(() => {
                           const next = Math.max(0, (Number.isFinite(current) ? current : 0) - 1);
                           setRepsInput(next ? String(next) : "");
                         }}
-                        className="flex h-9 items-center justify-center border-r border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
+                        className="flex h-9 items-center justify-center border-r border-white/[0.06] text-lg font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
                         aria-label="Sänk reps"
                       >
                         -
@@ -1245,7 +1245,7 @@ useEffect(() => {
                           const next = (Number.isFinite(current) ? current : 0) + 1;
                           setRepsInput(String(next));
                         }}
-                        className="flex h-9 items-center justify-center border-l border-white/[0.055] text-lg font-semibold text-white/58 transition hover:bg-white/[0.06] hover:text-white"
+                        className="flex h-9 items-center justify-center border-l border-white/[0.06] text-lg font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
                         aria-label="Höj reps"
                       >
                         +
@@ -1265,7 +1265,7 @@ useEffect(() => {
                       className={`h-10 rounded-xl border text-sm font-semibold transition ${
                         rirInput === value
                           ? "workout-rir-selected border-blue-300/34 bg-blue-500/[0.22] text-blue-50 shadow-[0_0_20px_rgba(37,99,235,0.16)]"
-                          : "border-white/[0.06] bg-white/[0.045] text-white/58 hover:bg-white/[0.075] hover:text-white"
+                          : "border-white/[0.06] bg-white/[0.05] text-white/58 hover:bg-white/[0.07] hover:text-white"
                       }`}
                     >
                       {value === 5 ? "5+" : value}
@@ -1294,7 +1294,7 @@ useEffect(() => {
                         key={reason}
                         type="button"
                         onClick={() => setFailNoteInput(reason)}
-                        className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                        className={`rounded-xl border px-3 py-1.5 text-sm font-medium transition ${
                           isActive
                             ? "workout-rir-selected border-blue-400/30 bg-blue-500/[0.10] text-white"
                             : "border-white/[0.09] bg-slate-950/38 text-white/75 hover:bg-white/5 hover:text-white"
@@ -1323,7 +1323,7 @@ useEffect(() => {
                     type="button"
                     onClick={removeLastSet}
                     title="Ta bort senaste set"
-                    className="h-12 shrink-0 rounded-2xl border border-white/[0.1] bg-white/[0.04] px-4 text-sm font-semibold text-white/70 transition hover:bg-white/[0.08] hover:text-white active:scale-[0.99]"
+                    className="h-12 shrink-0 rounded-2xl border border-white/[0.09] bg-white/[0.035] px-4 text-sm font-semibold text-white/70 transition hover:bg-white/[0.10] hover:text-white active:scale-[0.99]"
                   >
                     Ångra set
                   </button>
@@ -1335,7 +1335,7 @@ useEffect(() => {
         </div>
       ) : (
         <>
-      <section className="workout-status-panel rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-3.5 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
+      <section className="workout-status-panel rounded-[1.5rem] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.026))] p-3.5 shadow-[0_16px_44px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -1349,7 +1349,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => setShowExerciseInfo(true)}
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.075] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-xs font-semibold text-white/54 transition hover:bg-white/[0.07] hover:text-white"
                 aria-label={`Visa info om ${exerciseDisplay.title}`}
               >
                 i
@@ -1378,7 +1378,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => setShowOverflow((v) => !v)}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.07] bg-white/[0.035] text-base font-semibold leading-none text-white/54 transition hover:bg-white/[0.07] hover:text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.035] text-base font-semibold leading-none text-white/54 transition hover:bg-white/[0.07] hover:text-white"
               aria-label="Fler alternativ"
             >
               ···
@@ -1388,7 +1388,7 @@ useEffect(() => {
 
         {/* Overflow menu */}
         {showOverflow && (
-          <div className="mt-2 overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03]">
+          <div className="mt-2 overflow-hidden rounded-2xl border border-white/[0.09] bg-white/[0.035]">
             {exerciseIndex > 0 && (
               <button
                 type="button"
@@ -1443,7 +1443,7 @@ useEffect(() => {
 
         {/* Skip confirm */}
         {confirmSkipExercise && (
-          <div className="mt-2 rounded-2xl border border-white/[0.07] bg-slate-950/40 px-3 py-3">
+          <div className="mt-2 rounded-2xl border border-white/[0.09] bg-slate-950/40 px-3 py-3">
             <p className="text-sm font-semibold text-white">Klar med {exerciseDisplay.title}?</p>
             <p className="mt-0.5 text-xs text-white/50">
               {currentSets.length > 0
@@ -1454,7 +1454,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => { skipCurrentExercise(); setConfirmSkipExercise(false); }}
-                className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/[0.09]"
+                className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/[0.10]"
               >
                 Ja, klar
               </button>
@@ -1472,7 +1472,7 @@ useEffect(() => {
         {/* Nästa set + Vila — en ruta med två kolumner. Det var två rutor med
             olika bakgrund, etikettfärg och justering: vänster och överst mot
             höger och centrerat, eftersom vilarutan är en knapp. */}
-        <div className="workout-next-card mt-2.5 grid grid-cols-[minmax(0,1fr)_auto] rounded-2xl border border-white/[0.075] bg-white/[0.045]">
+        <div className="workout-next-card mt-2.5 grid grid-cols-[minmax(0,1fr)_auto] rounded-2xl border border-white/[0.09] bg-white/[0.05]">
           <div className="min-w-0 px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
               {setSourceLabel}
@@ -1514,7 +1514,7 @@ useEffect(() => {
               setShowRestTimer(true);
               setRestDockForcedOpen(true);
             }}
-            className="flex min-w-[5.8rem] flex-col items-start border-l border-white/[0.075] px-3 py-2 text-left transition active:opacity-60"
+            className="flex min-w-[5.8rem] flex-col items-start border-l border-white/[0.09] px-3 py-2 text-left transition active:opacity-60"
           >
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
               Vila
@@ -1571,7 +1571,7 @@ useEffect(() => {
               type="button"
               className={`flex w-full items-center justify-center rounded-2xl border font-semibold transition active:scale-[0.99] ${
                 !currentExerciseReadyToFinish
-                  ? "h-11 border-white/[0.16] bg-transparent text-sm text-white/85 hover:bg-white/[0.06]"
+                  ? "h-11 border-white/[0.16] bg-transparent text-sm text-white/85 hover:bg-white/[0.07]"
                   : isLastExercise
                   ? "workout-primary-action h-14 border-emerald-300/25 bg-emerald-400/[0.13] text-base text-emerald-50 hover:bg-emerald-400/[0.18]"
                   : "workout-primary-action h-14 border-blue-300/16 bg-blue-600/58 text-base text-white shadow-[0_6px_16px_rgba(37,99,235,0.07)] hover:bg-blue-500/72"
@@ -1619,7 +1619,7 @@ useEffect(() => {
                   Personbästa {label}
                 </span>
               ) : (
-                <span className="rounded-full border border-white/[0.09] bg-white/[0.042] px-2.5 py-1 text-[11px] text-white/38">
+                <span className="rounded-full border border-white/[0.09] bg-white/[0.035] px-2.5 py-1 text-[11px] text-white/38">
                   Personbästa –
                 </span>
               )}
@@ -1629,7 +1629,7 @@ useEffect(() => {
 
         {/* Förra gången — collapsible */}
         {previousExerciseSets.length > 0 ? (
-          <div className="workout-history-card mt-2 rounded-2xl border border-white/[0.075] bg-white/[0.04] px-3 py-2.5">
+          <div className="workout-history-card mt-2 rounded-2xl border border-white/[0.09] bg-white/[0.035] px-3 py-2.5">
             <button
               type="button"
               onClick={() => setShowForraGangen((v) => !v)}
@@ -1670,7 +1670,7 @@ useEffect(() => {
       {showSaveConfirm && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
           <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" onClick={() => setShowSaveConfirm(false)} />
-          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
             <div className="space-y-1.5 text-center">
               <p className="text-base font-semibold text-white">Avsluta passet?</p>
               <p className="text-sm text-white/55">
@@ -1685,7 +1685,7 @@ useEffect(() => {
                 Fortsätt övningen
               </button>
               <button
-                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.08]"
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.10]"
                 onClick={() => { setShowSaveConfirm(false); finishWorkout(); }}
               >
                 Avsluta ändå — spara det som loggats
@@ -1699,7 +1699,7 @@ useEffect(() => {
       {confirmAdvanceEarly && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
           <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" onClick={() => setConfirmAdvanceEarly(false)} />
-          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl sm:mb-0">
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl sm:mb-0">
             <div className="space-y-1.5 text-center">
               <p className="text-base font-semibold text-white">
                 {isLastExercise ? "Avsluta passet nu?" : "Gå vidare nu?"}
@@ -1718,7 +1718,7 @@ useEffect(() => {
                 Fortsätt övningen
               </button>
               <button
-                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.08]"
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.10]"
                 onClick={() => {
                   setConfirmAdvanceEarly(false);
                   if (isLastExercise) finishWorkout();
@@ -1740,7 +1740,7 @@ useEffect(() => {
     {showReorderExercises && createPortal(
       <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
         <div className="absolute inset-0 bg-black/10 backdrop-blur-[3px]" onClick={() => setShowReorderExercises(false)} />
-        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-base font-semibold text-white">Byt ordning på övningar</p>
@@ -1750,7 +1750,7 @@ useEffect(() => {
             </div>
             <button
               type="button"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
               onClick={() => setShowReorderExercises(false)}
               aria-label="Stäng"
             >
@@ -1763,7 +1763,7 @@ useEffect(() => {
               .map((exercise, i) => (
                 <div
                   key={`done-${exercise.name}-${i}`}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.04] bg-white/[0.015] px-3 py-2.5 opacity-50"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.035] px-3 py-2.5 opacity-50"
                 >
                   <span className="text-sm font-medium text-white/86">{splitCustomExerciseName(exercise.name).title}</span>
                   <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/32">
@@ -1774,7 +1774,7 @@ useEffect(() => {
             {reorderDraft.map((name, position) => (
               <div
                 key={`draft-${name}`}
-                className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.045] px-3 py-2.5"
+                className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2.5"
               >
                 <span className="text-sm font-medium text-white/86">{name}</span>
                 <div className="flex shrink-0 gap-1">
@@ -1790,7 +1790,7 @@ useEffect(() => {
                     }
                     disabled={position === 0}
                     aria-label={`Flytta ${name} uppåt`}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.04] text-white/70 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.035] text-white/70 transition hover:bg-white/[0.10] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
                   >
                     ↑
                   </button>
@@ -1806,7 +1806,7 @@ useEffect(() => {
                     }
                     disabled={position === reorderDraft.length - 1}
                     aria-label={`Flytta ${name} nedåt`}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.04] text-white/70 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.035] text-white/70 transition hover:bg-white/[0.10] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
                   >
                     ↓
                   </button>
@@ -1832,14 +1832,14 @@ useEffect(() => {
     {showAddExercise && createPortal(
       <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
         <div className="absolute inset-0 bg-black/10 backdrop-blur-[3px]" onClick={closeAddModal} />
-        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
           {addManualMode ? (
             <>
               <div className="flex items-start justify-between gap-3">
                 <p className="text-base font-semibold text-white">Lägg till övning</p>
                 <button
                   type="button"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
                   onClick={() => {
                     setAddManualMode(false);
                     setAddShowCustomCategories(false);
@@ -1875,7 +1875,7 @@ useEffect(() => {
               ) : null}
               {workoutExerciseInput.trim() ? (
                 addShowCustomCategories ? (
-                  <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3">
+                  <div className="rounded-xl border border-white/[0.09] bg-white/[0.035] p-3">
                     <p className="text-xs font-medium text-white/50">Vad tränar den främst?</p>
                     <div className="mt-2 grid grid-cols-3 gap-1.5">
                       {CUSTOM_EXERCISE_CATEGORIES.map((cat) => (
@@ -1886,7 +1886,7 @@ useEffect(() => {
                             const result = pickCustomExerciseForAdd(workoutExerciseInput, cat);
                             if (result.handled) closeAddModal();
                           }}
-                          className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
+                          className="rounded-xl border border-white/[0.09] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
                         >
                           {cat}
                         </button>
@@ -1918,7 +1918,7 @@ useEffect(() => {
                   Lägg till
                 </button>
                 <button
-                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-sm font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.08]"
+                  className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-sm font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.10]"
                   onClick={closeAddModal}
                 >
                   Avbryt
@@ -1961,14 +1961,14 @@ useEffect(() => {
     {showSwapExercise && createPortal(
       <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center">
         <div className="absolute inset-0 bg-black/10 backdrop-blur-[3px]" onClick={closeSwapModal} />
-        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+        <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
           {swapManualMode ? (
             <>
               <div className="flex items-start justify-between gap-3">
                 <p className="text-base font-semibold text-white">Byt {exerciseDisplay.title} mot</p>
                 <button
                   type="button"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
                   onClick={() => {
                     setSwapManualMode(false);
                     setSwapShowCustomCategories(false);
@@ -2004,7 +2004,7 @@ useEffect(() => {
               ) : null}
               {swapExerciseInput.trim() ? (
                 swapShowCustomCategories ? (
-                  <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3">
+                  <div className="rounded-xl border border-white/[0.09] bg-white/[0.035] p-3">
                     <p className="text-xs font-medium text-white/50">Vad tränar den främst?</p>
                     <div className="mt-2 grid grid-cols-3 gap-1.5">
                       {CUSTOM_EXERCISE_CATEGORIES.map((cat) => (
@@ -2015,7 +2015,7 @@ useEffect(() => {
                             const result = pickCustomExerciseForSwap(swapExerciseInput, cat);
                             if (result.handled) closeSwapModal();
                           }}
-                          className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
+                          className="rounded-xl border border-white/[0.09] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
                         >
                           {cat}
                         </button>
@@ -2047,7 +2047,7 @@ useEffect(() => {
                   Byt
                 </button>
                 <button
-                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-sm font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.08]"
+                  className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-sm font-semibold text-white/70 transition active:scale-[0.98] hover:bg-white/[0.10]"
                   onClick={closeSwapModal}
                 >
                   Avbryt
@@ -2089,7 +2089,7 @@ useEffect(() => {
     {shouldShowRestDock ? (
       <div className="fixed inset-x-0 bottom-3 z-40 px-3 sm:bottom-5">
         <div
-          className={`mx-auto w-full max-w-[345px] rounded-[1.35rem] border p-3 backdrop-blur-2xl transition ${
+          className={`mx-auto w-full max-w-[345px] rounded-[1.5rem] border p-3 backdrop-blur-2xl transition ${
             restTimerState === "over"
               ? "border-orange-300/30 bg-[#2a1d12]/70 shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_18px_rgba(251,146,60,0.12)]"
               : restTimerState === "ready"
@@ -2137,7 +2137,7 @@ useEffect(() => {
               >
                 {restStartedAt ? <RotateGlyph className="h-5 w-5" /> : <><PlayGlyph className="h-5 w-5" /><span>Starta</span></>}
               </button>
-              <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.055] bg-white/[0.026] px-2 py-1.5 text-[10px] font-semibold text-white/50">
+              <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.035] px-2 py-1.5 text-[10px] font-semibold text-white/50">
                 <span>Autostart</span>
                 <ToggleSwitch
                   checked={autoStartRestTimer}
@@ -2151,7 +2151,7 @@ useEffect(() => {
                   setShowRestTimer(false);
                   setRestDockForcedOpen(false);
                 }}
-                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.06] text-sm font-semibold text-white/52 transition hover:bg-white/[0.09] hover:text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.07] text-sm font-semibold text-white/52 transition hover:bg-white/[0.10] hover:text-white"
                 aria-label="Dölj vilotimer"
               >
                 <CloseGlyph className="h-4 w-4" />

@@ -107,7 +107,7 @@ function formatSet(set: ReviewSet, exerciseName: string): string {
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-[1.35rem] border border-white/[0.07] bg-slate-950/18 p-4">
+    <div className="rounded-[1.5rem] border border-white/[0.09] bg-slate-950/18 p-4">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
         {label}
       </p>
@@ -133,8 +133,8 @@ function SimpleList({
     <section
       className={
         accent
-          ? "rounded-[1.45rem] border border-blue-300/18 bg-blue-500/[0.055] p-4 shadow-[inset_3px_0_0_rgba(59,130,246,0.72),0_14px_34px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.045)]"
-          : "rounded-[1.45rem] border border-white/[0.06] bg-white/[0.032] p-4"
+          ? "rounded-[1.5rem] border border-blue-300/18 bg-blue-500/[0.055] p-4 shadow-[inset_3px_0_0_rgba(59,130,246,0.72),0_14px_34px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.045)]"
+          : "rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-4"
       }
     >
       <p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-blue-100/50">
@@ -205,7 +205,7 @@ function SetRow({
     };
 
     return (
-      <div className="relative space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.04] p-2.5">
+      <div className="relative space-y-2 rounded-xl border border-white/[0.09] bg-white/[0.035] p-2.5">
         <button
           className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full text-white/40 transition hover:text-white/80"
           onClick={() => setEditing(false)}
@@ -218,7 +218,7 @@ function SetRow({
             <p className="mb-1 text-[10px] text-white/40">Tid (sekunder)</p>
             <input
               autoFocus
-              className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
+              className="w-full rounded-xl border border-white/[0.09] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
               inputMode="numeric"
               value={values.duration}
               onChange={(e) =>
@@ -231,7 +231,7 @@ function SetRow({
             <div>
               <p className="mb-1 text-[10px] text-white/40">Vikt (kg)</p>
               <input
-                className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
+                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
                 inputMode="decimal"
                 value={values.weight}
                 onChange={(e) => setValues((v) => ({ ...v, weight: e.target.value }))}
@@ -240,7 +240,7 @@ function SetRow({
             <div>
               <p className="mb-1 text-[10px] text-white/40">Reps</p>
               <input
-                className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
+                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
                 inputMode="numeric"
                 value={values.reps}
                 onChange={(e) => setValues((v) => ({ ...v, reps: e.target.value }))}
@@ -249,7 +249,7 @@ function SetRow({
             <div>
               <p className="mb-1 text-[10px] text-white/40">RIR</p>
               <input
-                className="w-full rounded-lg border border-white/[0.08] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
+                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/40 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40 sm:text-sm"
                 inputMode="numeric"
                 value={values.rir}
                 onChange={(e) => setValues((v) => ({ ...v, rir: e.target.value }))}
@@ -258,19 +258,19 @@ function SetRow({
           </div>
         )}
         {error && (
-          <p className="rounded-lg border border-red-400/20 bg-red-900/20 px-2 py-1.5 text-xs text-red-300">
+          <p className="rounded-xl border border-red-400/20 bg-red-900/20 px-2 py-1.5 text-xs text-red-300">
             {error}
           </p>
         )}
         <div className="flex gap-2">
           <button
-            className="flex-1 rounded-lg border border-white/[0.07] bg-white/[0.04] py-1.5 text-xs font-semibold text-white/60 transition hover:text-white"
+            className="flex-1 rounded-xl border border-white/[0.09] bg-white/[0.035] py-1.5 text-xs font-semibold text-white/60 transition hover:text-white"
             onClick={() => setEditing(false)}
           >
             Avbryt
           </button>
           <button
-            className="flex-1 rounded-lg bg-blue-600/70 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-500"
+            className="flex-1 rounded-xl bg-blue-600/70 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-500"
             onClick={handleSave}
           >
             Spara
@@ -282,7 +282,7 @@ function SetRow({
 
   return (
     <button
-      className="w-full rounded-lg px-1 py-0.5 text-left text-sm text-white/80 transition hover:bg-white/[0.04] hover:text-white"
+      className="w-full rounded-xl px-1 py-0.5 text-left text-sm text-white/80 transition hover:bg-white/[0.035] hover:text-white"
       onClick={() => onEdit && setEditing(true)}
     >
       {formatSet(set, exerciseName)}
@@ -311,7 +311,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
 
   return (
     <div className="w-full max-w-none space-y-3 text-white sm:max-w-xl sm:space-y-4">
-      <section className="rounded-[1.5rem] border border-white/[0.045] bg-white/[0.042] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:rounded-[2rem] sm:p-6">
+      <section className="rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:rounded-[1.5rem] sm:p-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-100/45">
           Pass klart
         </p>
@@ -340,7 +340,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
       <SimpleList title="Videoanalys" items={videoNoteLines} />
 
       {(review.loggedExercises ?? []).length > 0 && (
-        <section className="rounded-[1.45rem] border border-white/[0.06] bg-white/[0.032] p-4">
+        <section className="rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-white/35">
             Dagens set
           </p>
@@ -369,7 +369,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
         </section>
       )}
 
-      <section className="rounded-[1.45rem] border border-white/[0.06] bg-white/[0.032] p-4">
+      <section className="rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-white/35">
           Bra att tänka på
         </p>

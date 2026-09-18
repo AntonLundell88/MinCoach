@@ -72,7 +72,7 @@ export default function ProgramBuildLoadingScreen({
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_24%,rgba(59,130,246,0.16),transparent_34%),radial-gradient(circle_at_18%_76%,rgba(125,96,64,0.08),transparent_26%),linear-gradient(180deg,#0b1018_0%,#111a25_52%,#0b1018_100%)]" />
 
       <section className="flex w-full max-w-[440px] flex-col items-center text-center">
-        <div className="program-build-logo flex h-28 w-28 items-center justify-center rounded-[2rem] border border-blue-300/18 bg-blue-500/[0.07] shadow-[0_0_80px_rgba(59,130,246,0.14)] backdrop-blur-2xl">
+        <div className="program-build-logo flex h-28 w-28 items-center justify-center rounded-[1.5rem] border border-blue-300/18 bg-blue-500/[0.07] shadow-[0_0_80px_rgba(59,130,246,0.14)] backdrop-blur-2xl">
           <Image
             src={theme === "light" ? "/logo-light.png" : "/logo-dark.png"}
             alt="MinCoach"
@@ -108,7 +108,7 @@ export default function ProgramBuildLoadingScreen({
                 <button
                   type="button"
                   onClick={onBuildManually}
-                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] py-3.5 text-sm font-semibold text-white/70 transition hover:bg-white/[0.08] active:scale-[0.98]"
+                  className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] py-3.5 text-sm font-semibold text-white/70 transition hover:bg-white/[0.10] active:scale-[0.98]"
                 >
                   Bygg schemat själv
                 </button>

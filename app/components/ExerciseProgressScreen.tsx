@@ -199,7 +199,7 @@ function ProgressChart({ exercise }: { exercise: ExerciseProgress }) {
 
   return (
     <div>
-      <div className="relative h-44 overflow-hidden rounded-[1.25rem] border border-white/[0.09] bg-slate-950/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:h-52">
+      <div className="relative h-44 overflow-hidden rounded-[1.5rem] border border-white/[0.09] bg-slate-950/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:h-52">
         <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full">
           <defs>
             <linearGradient id="progressGlow" x1="0" x2="1" y1="0" y2="0">
@@ -381,7 +381,7 @@ export default function ExerciseProgressScreen({
           onClick={
             showExerciseDetail ? () => setShowExerciseDetail(false) : onBack
           }
-          className="rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
+          className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
         >
           Tillbaka
         </button>
@@ -411,7 +411,7 @@ export default function ExerciseProgressScreen({
       {selected ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-[0.82fr_1.45fr]">
           <section
-            className={`rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-3.5 backdrop-blur-xl sm:p-4 ${
+            className={`rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-3.5 backdrop-blur-xl sm:p-4 ${
               showExerciseDetail ? "hidden lg:block" : ""
             }`}
           >
@@ -426,7 +426,7 @@ export default function ExerciseProgressScreen({
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Sök övning"
-                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 px-3.5 py-2.5 text-base text-white outline-none transition placeholder:text-white/32 focus:border-blue-400/30 focus:bg-white/[0.06] sm:text-sm"
+                className="w-full rounded-xl border border-white/[0.09] bg-slate-950/18 px-3.5 py-2.5 text-base text-white outline-none transition placeholder:text-white/32 focus:border-blue-400/30 focus:bg-white/[0.07] sm:text-sm"
               />
 
               <div className="grid grid-cols-3 gap-2">
@@ -441,7 +441,7 @@ export default function ExerciseProgressScreen({
                     className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                       sortMode === mode
                         ? "border-blue-400/25 bg-blue-500/[0.14] text-blue-100"
-                        : "border-white/[0.09] bg-white/[0.042] text-white/55 hover:border-blue-400/20 hover:text-white/78"
+                        : "border-white/[0.09] bg-white/[0.035] text-white/55 hover:border-blue-400/20 hover:text-white/78"
                     }`}
                   >
                     {label}
@@ -461,7 +461,7 @@ export default function ExerciseProgressScreen({
                     className={`w-full rounded-xl border px-3.5 py-2.5 text-left transition ${
                       isActive
                         ? "border-blue-400/25 bg-blue-500/[0.14]"
-                        : "border-white/[0.09] bg-white/[0.048] hover:border-white/16 hover:bg-white/[0.06]"
+                        : "border-white/[0.09] bg-white/[0.05] hover:border-white/16 hover:bg-white/[0.07]"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -485,7 +485,7 @@ export default function ExerciseProgressScreen({
                       <button
                         type="button"
                         onClick={() => setInfoExerciseName(exercise.name)}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-xs font-semibold text-white/58 transition hover:bg-white/[0.10] hover:text-white"
                         aria-label={`Visa info om ${exercise.name}`}
                       >
                         i
@@ -496,7 +496,7 @@ export default function ExerciseProgressScreen({
               })}
 
               {visibleExercises.length === 0 ? (
-                <div className="rounded-xl border border-white/[0.09] bg-white/[0.032] px-3.5 py-3">
+                <div className="rounded-xl border border-white/[0.09] bg-white/[0.035] px-3.5 py-3">
                   <p className="text-sm text-white/52">Ingen övning matchar.</p>
                 </div>
               ) : null}
@@ -510,12 +510,12 @@ export default function ExerciseProgressScreen({
           >
             <button
               onClick={() => setShowExerciseDetail(false)}
-              className="w-full rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2.5 text-left text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07] lg:hidden"
+              className="w-full rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2.5 text-left text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07] lg:hidden"
             >
               Övningslista
             </button>
 
-            <div className="relative overflow-hidden rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl sm:p-5">
+            <div className="relative overflow-hidden rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl sm:p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
                 {selected.sessions.length} pass
               </p>
@@ -532,7 +532,7 @@ export default function ExerciseProgressScreen({
                       <button
                         key={period}
                         onClick={() => setExercisePeriod(period)}
-                        className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                        className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
                           exercisePeriod === period
                             ? "bg-blue-500/[0.14] text-blue-100"
                             : "text-white/45 hover:text-white/75"
@@ -606,7 +606,7 @@ export default function ExerciseProgressScreen({
               ) : null}
             </div>
 
-            <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl sm:p-5">
+            <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
               <div className="mb-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
                   Graf
@@ -619,13 +619,13 @@ export default function ExerciseProgressScreen({
               {periodExercise && periodExercise.sessions.length > 0 ? (
                 <ProgressChart exercise={periodExercise} />
               ) : (
-                <div className="rounded-[1.25rem] border border-white/[0.09] bg-slate-950/18 px-4 py-8 text-sm text-white/48">
+                <div className="rounded-[1.5rem] border border-white/[0.09] bg-slate-950/18 px-4 py-8 text-sm text-white/48">
                   Inga set under vald period.
                 </div>
               )}
             </div>
 
-            <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-3.5 backdrop-blur-xl sm:p-4">
+            <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-3.5 backdrop-blur-xl sm:p-4">
               <div className="flex items-end justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
@@ -667,10 +667,10 @@ export default function ExerciseProgressScreen({
                           return (
                             <div
                               key={`${set.createdAt}-${index}`}
-                              className={`grid grid-cols-[1.5rem_1fr_auto] items-center gap-2 rounded-lg px-2.5 py-1.5 transition ${
+                              className={`grid grid-cols-[1.5rem_1fr_auto] items-center gap-2 rounded-xl px-2.5 py-1.5 transition ${
                                 isTopSet
                                   ? "border border-emerald-300/18 bg-emerald-300/[0.075] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
-                                  : "bg-white/[0.032]"
+                                  : "bg-white/[0.035]"
                               }`}
                             >
                               <span
@@ -717,7 +717,7 @@ export default function ExerciseProgressScreen({
           </section>
         </div>
       ) : (
-        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl sm:p-5">
+        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
             Inga set än
           </p>
@@ -736,7 +736,7 @@ export default function ExerciseProgressScreen({
 
       {showLibraryBrowser ? (
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end bg-black/10 px-4 py-4 backdrop-blur-[3px] sm:justify-center">
-          <div className="relative mb-10 w-full max-w-lg rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl sm:mb-0">
+          <div className="relative mb-10 w-full max-w-lg rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl sm:mb-0">
             <LibraryBrowser
               title="Bläddra i alla övningar"
               search={librarySearch}

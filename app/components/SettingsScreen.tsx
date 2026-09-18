@@ -206,7 +206,7 @@ function SettingsGroup({
         </p>
       ) : null}
       <div
-        className={`overflow-hidden rounded-[1.25rem] ${
+        className={`overflow-hidden rounded-[1.5rem] ${
           isLight
             ? "divide-y divide-[#7a6548]/10 bg-white/50 shadow-[inset_0_0_0_1px_rgba(122,101,72,0.10)]"
             : "divide-y divide-white/[0.05] bg-white/[0.035] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
@@ -284,7 +284,7 @@ function SettingsRow({
       onClick={onClick}
       disabled={disabled}
       className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition disabled:opacity-45 ${
-        isLight ? "hover:bg-white/60" : "hover:bg-white/[0.04]"
+        isLight ? "hover:bg-white/60" : "hover:bg-white/[0.035]"
       }`}
     >
       {content}
@@ -357,7 +357,7 @@ export default function SettingsScreen({
   );
   const cardClassName = isLight
     ? "bg-white/58 shadow-[0_18px_48px_rgba(91,72,48,0.08)] backdrop-blur-xl"
-    : "bg-white/[0.045] shadow-[0_16px_44px_rgba(0,0,0,0.14)] backdrop-blur-xl";
+    : "bg-white/[0.05] shadow-[0_16px_44px_rgba(0,0,0,0.14)] backdrop-blur-xl";
   const labelClassName = isLight
     ? "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a7661]"
     : "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35";
@@ -368,10 +368,10 @@ export default function SettingsScreen({
   // att trycka på". Samma fel som den gamla ångra-länken i passvyn.
   const subtleButtonClassName = isLight
     ? "inline-flex min-h-11 items-center justify-center rounded-xl bg-white/48 px-3.5 py-2.5 text-xs font-medium text-[#665b4f] shadow-[inset_0_0_0_1px_rgba(122,101,72,0.12)] transition hover:bg-white/72"
-    : "inline-flex min-h-11 items-center justify-center rounded-xl bg-white/[0.045] px-3.5 py-2.5 text-xs font-medium text-white/58 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035)] transition hover:bg-[#4f83ff]/[0.08] hover:text-white/80";
+    : "inline-flex min-h-11 items-center justify-center rounded-xl bg-white/[0.05] px-3.5 py-2.5 text-xs font-medium text-white/58 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035)] transition hover:bg-[#4f83ff]/[0.08] hover:text-white/80";
   const accountListClassName = isLight
-    ? "divide-y divide-[#7a6548]/10 overflow-hidden rounded-[1.25rem] bg-white/28 shadow-[inset_0_0_0_1px_rgba(122,101,72,0.10)]"
-    : "divide-y divide-white/[0.045] overflow-hidden rounded-[1.25rem] bg-white/[0.024] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035)]";
+    ? "divide-y divide-[#7a6548]/10 overflow-hidden rounded-[1.5rem] bg-white/28 shadow-[inset_0_0_0_1px_rgba(122,101,72,0.10)]"
+    : "divide-y divide-white/[0.045] overflow-hidden rounded-[1.5rem] bg-white/[0.035] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035)]";
   const panelClassName = isLight
     ? "bg-[#f7f1e8]/95 text-[#2d251c] shadow-[0_24px_80px_rgba(91,72,48,0.14)]"
     : "bg-[#101824]/92 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]";
@@ -780,7 +780,7 @@ export default function SettingsScreen({
       />
 
       <aside
-        className={`relative z-10 max-h-[100svh] min-h-[100svh] w-full max-w-none overflow-y-auto rounded-none border-0 p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-2xl sm:max-h-[calc(100svh-1.5rem)] sm:min-h-0 sm:max-w-lg sm:rounded-[1.75rem] sm:border sm:border-white/5 sm:p-5 ${panelClassName}`}
+        className={`relative z-10 max-h-[100svh] min-h-[100svh] w-full max-w-none overflow-y-auto rounded-none border-0 p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-2xl sm:max-h-[calc(100svh-1.5rem)] sm:min-h-0 sm:max-w-lg sm:rounded-[1.5rem] sm:border sm:border-white/5 sm:p-5 ${panelClassName}`}
       >
         <div className="space-y-4">
           <header className="flex items-start justify-between gap-3 pt-1 sm:pt-3">
@@ -789,7 +789,7 @@ export default function SettingsScreen({
                 <button
                   type="button"
                   onClick={() => setPage("root")}
-                  className={`-ml-2 -mt-1 flex min-h-11 items-center gap-1 rounded-lg px-2 py-2 text-xs font-medium transition ${bodyClassName} hover:${titleClassName}`}
+                  className={`-ml-2 -mt-1 flex min-h-11 items-center gap-1 rounded-xl px-2 py-2 text-xs font-medium transition ${bodyClassName} hover:${titleClassName}`}
                 >
                   <span className="text-base leading-none">‹</span>
                   Tillbaka
@@ -823,7 +823,7 @@ export default function SettingsScreen({
                   onClick={onOpenProfileSetup}
                   disabled={!onOpenProfileSetup}
                   className={`flex w-full items-center gap-3 rounded-2xl px-1 pb-3 pt-1 text-left transition disabled:cursor-default ${
-                    onOpenProfileSetup ? (isLight ? "hover:bg-white/40" : "hover:bg-white/[0.03]") : ""
+                    onOpenProfileSetup ? (isLight ? "hover:bg-white/40" : "hover:bg-white/[0.035]") : ""
                   }`}
                 >
                   <div
@@ -878,7 +878,7 @@ export default function SettingsScreen({
                   aria-checked={autoStartRestTimer}
                   onClick={() => onAutoStartRestTimerChange(!autoStartRestTimer)}
                   className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition ${
-                    isLight ? "hover:bg-white/60" : "hover:bg-white/[0.04]"
+                    isLight ? "hover:bg-white/60" : "hover:bg-white/[0.035]"
                   }`}
                 >
                   <span className={`min-w-0 text-[15px] font-medium ${titleClassName}`}>
@@ -1165,7 +1165,7 @@ export default function SettingsScreen({
                     {isAuthBusy ? "Vänta..." : "Logga ut"}
                   </button>
                 </div>
-                <div className={`border-t px-4 py-3 ${isLight ? "border-[#7a6548]/10" : "border-white/[0.045]"}`}>
+                <div className={`border-t px-4 py-3 ${isLight ? "border-[#7a6548]/10" : "border-white/[0.06]"}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className={`text-sm font-semibold ${titleClassName}`}>Konto-data</p>
@@ -1316,7 +1316,7 @@ export default function SettingsScreen({
                   key={document.id}
                   type="button"
                   onClick={() => setOpenLegalDocumentId(document.id)}
-                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-white/[0.04]"
+                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-white/[0.035]"
                 >
                   <div>
                     <p className={`text-sm font-semibold ${titleClassName}`}>{document.label}</p>
@@ -1484,7 +1484,7 @@ export default function SettingsScreen({
             role="dialog"
             aria-modal="true"
             aria-label={openLegalDocument.title}
-            className={`max-h-[100svh] min-h-[100svh] w-full overflow-y-auto rounded-none p-4 sm:max-h-[calc(100svh-2rem)] sm:min-h-0 sm:max-w-lg sm:rounded-[1.75rem] sm:p-5 ${panelClassName}`}
+            className={`max-h-[100svh] min-h-[100svh] w-full overflow-y-auto rounded-none p-4 sm:max-h-[calc(100svh-2rem)] sm:min-h-0 sm:max-w-lg sm:rounded-[1.5rem] sm:p-5 ${panelClassName}`}
           >
             <header className="sticky top-0 z-10 -mx-4 -mt-4 flex items-start justify-between gap-3 px-4 pb-3 pt-4 backdrop-blur-2xl sm:-mx-5 sm:-mt-5 sm:px-5 sm:pt-5">
               <div>
@@ -1506,7 +1506,7 @@ export default function SettingsScreen({
               </button>
             </header>
 
-            <div className={`mt-4 rounded-[1.25rem] p-4 ${isLight ? "bg-white/34" : "bg-black/12"}`}>
+            <div className={`mt-4 rounded-[1.5rem] p-4 ${isLight ? "bg-white/34" : "bg-black/12"}`}>
               <p className={`text-sm leading-6 ${bodyClassName}`}>
                 {openLegalDocument.intro}
               </p>
@@ -1516,7 +1516,7 @@ export default function SettingsScreen({
               {openLegalDocument.sections.map((section) => (
                 <section
                   key={section.title}
-                  className={`rounded-[1.25rem] p-4 ${isLight ? "bg-white/30" : "bg-white/[0.035]"}`}
+                  className={`rounded-[1.5rem] p-4 ${isLight ? "bg-white/30" : "bg-white/[0.035]"}`}
                 >
                   <h3 className={`text-base font-semibold ${titleClassName}`}>{section.title}</h3>
                   <div className="mt-2 grid gap-2">

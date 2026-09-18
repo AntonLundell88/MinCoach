@@ -522,7 +522,7 @@ function TrendChart({
   const maxValue = Math.max(...items.map((item) => item.value), 1);
 
   return (
-    <div className="h-40 rounded-[1.25rem] border border-white/[0.09] bg-slate-950/18 p-3 sm:h-48">
+    <div className="h-40 rounded-[1.5rem] border border-white/[0.09] bg-slate-950/18 p-3 sm:h-48">
       <div className="flex h-full items-end gap-2">
         {items.map((item) => {
           const height = Math.max((item.value / maxValue) * 100, item.value > 0 ? 12 : 4);
@@ -666,13 +666,13 @@ export default function StatisticsScreen({
 
         <button
           onClick={onBack}
-          className="rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
+          className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
         >
           Tillbaka
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-1 rounded-xl border border-white/[0.09] bg-white/[0.052] p-1 backdrop-blur-xl">
+      <div className="mt-4 grid grid-cols-3 gap-1 rounded-xl border border-white/[0.09] bg-white/[0.05] p-1 backdrop-blur-xl">
         {[
           ["days", "Dagar"],
           ["weeks", "Veckor"],
@@ -681,7 +681,7 @@ export default function StatisticsScreen({
           <button
             key={mode}
             onClick={() => setChartMode(mode as ChartMode)}
-            className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+            className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
               chartMode === mode
                 ? "bg-blue-500/[0.14] text-blue-100"
                 : "text-white/45 hover:text-white/75"
@@ -698,7 +698,7 @@ export default function StatisticsScreen({
         {statTiles.map((tile) => (
           <div
             key={tile.label}
-            className="rounded-[1.25rem] border border-white/[0.09] bg-white/[0.052] p-3.5 backdrop-blur-xl"
+            className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-3.5 backdrop-blur-xl"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
               {tile.label}
@@ -715,7 +715,7 @@ export default function StatisticsScreen({
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[1.35fr_0.85fr]">
-        <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl sm:p-5">
+        <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
@@ -727,12 +727,12 @@ export default function StatisticsScreen({
               <p className="mt-1 text-sm text-white/48">{metricConfig.helper}</p>
             </div>
 
-            <div className="flex gap-1 rounded-xl border border-white/[0.09] bg-white/[0.042] p-1">
+            <div className="flex gap-1 rounded-xl border border-white/[0.09] bg-white/[0.035] p-1">
               {(["sets", "volume"] as ChartMetric[]).map((metric) => (
                 <button
                   key={metric}
                   onClick={() => setChartMetric(metric)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
                     chartMetric === metric
                       ? "bg-blue-500/[0.14] text-blue-100"
                       : "text-white/45 hover:text-white/75"
@@ -750,7 +750,7 @@ export default function StatisticsScreen({
         <div className="space-y-4">
           <button
             onClick={() => mostTrained && onOpenExercises(mostTrained[0])}
-            className="w-full rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 text-left shadow-[0_14px_34px_rgba(0,0,0,0.14)] backdrop-blur-xl transition hover:border-white/16 hover:bg-white/[0.06] sm:p-5"
+            className="w-full rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 text-left shadow-[0_14px_34px_rgba(0,0,0,0.14)] backdrop-blur-xl transition hover:border-white/16 hover:bg-white/[0.07] sm:p-5"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
               Mest körda övning
@@ -765,7 +765,7 @@ export default function StatisticsScreen({
 
           <button
             onClick={onOpenHistory}
-            className="w-full rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 text-left backdrop-blur-xl transition hover:border-white/16 hover:bg-white/[0.06] sm:p-5"
+            className="w-full rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 text-left backdrop-blur-xl transition hover:border-white/16 hover:bg-white/[0.07] sm:p-5"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
               {chartConfig.activeLabel}
@@ -783,7 +783,7 @@ export default function StatisticsScreen({
       </section>
 
       {muscleBreakdown.length > 0 ? (
-        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl sm:p-5">
+        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
             Hela historiken
           </p>
@@ -797,7 +797,7 @@ export default function StatisticsScreen({
                 <p className="w-20 shrink-0 text-sm font-medium text-white/70 sm:w-24">
                   {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
                 </p>
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.07]">
                   <div
                     className="h-full rounded-full bg-[linear-gradient(90deg,rgba(37,99,235,0.55),rgba(96,165,250,0.85))]"
                     style={{ width: `${Math.max(item.percent, 3)}%` }}
@@ -813,7 +813,7 @@ export default function StatisticsScreen({
       ) : null}
 
       {history.length > 0 ? (
-        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl sm:p-5">
+        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
@@ -835,7 +835,7 @@ export default function StatisticsScreen({
       ) : null}
 
       {history.length === 0 ? (
-        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl sm:p-5">
+        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
             Inga pass än
           </p>

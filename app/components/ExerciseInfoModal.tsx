@@ -193,7 +193,7 @@ export default function ExerciseInfoModal({
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 px-4 py-4">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-3 rounded-[1.8rem] bg-black/42 backdrop-blur-sm sm:inset-5"
+        className="pointer-events-none absolute inset-3 rounded-[1.5rem] bg-black/42 backdrop-blur-sm sm:inset-5"
       />
       <div className="relative z-10 max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
         <div className="flex items-start justify-between gap-3">
@@ -210,7 +210,7 @@ export default function ExerciseInfoModal({
           </div>
           <button
             type="button"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
             onClick={onClose}
             aria-label="Stäng övningsinfo"
           >

@@ -205,7 +205,7 @@ export default function HistoryScreen({
 
         <button
           onClick={showWorkoutDetail ? () => setShowWorkoutDetail(false) : onBack}
-          className="rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
+          className="rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
         >
           Tillbaka
         </button>
@@ -214,7 +214,7 @@ export default function HistoryScreen({
       {selected ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-[0.85fr_1.45fr]">
           <section
-            className={`rounded-[1.5rem] border border-white/[0.09] bg-white/[0.032] p-3.5 backdrop-blur-2xl sm:p-4 ${
+            className={`rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-3.5 backdrop-blur-2xl sm:p-4 ${
               showWorkoutDetail ? "hidden lg:block" : ""
             }`}
           >
@@ -236,7 +236,7 @@ export default function HistoryScreen({
                     className={`w-full rounded-xl border px-3.5 py-2.5 text-left transition ${
                       isActive
                         ? "border-blue-400/25 bg-blue-500/[0.14]"
-                        : "border-white/[0.09] bg-white/[0.048] hover:border-white/16 hover:bg-white/[0.06]"
+                        : "border-white/[0.09] bg-white/[0.05] hover:border-white/16 hover:bg-white/[0.07]"
                     }`}
                   >
                     <span className="block text-sm font-semibold text-white">
@@ -259,12 +259,12 @@ export default function HistoryScreen({
           >
             <button
               onClick={() => setShowWorkoutDetail(false)}
-              className="w-full rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2.5 text-left text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07] lg:hidden"
+              className="w-full rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2.5 text-left text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07] lg:hidden"
             >
               Passlista
             </button>
 
-            <div className="relative overflow-hidden rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl sm:p-5">
+            <div className="relative overflow-hidden rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl sm:p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
                 {formatDate(selected.startedAt)} · {formatTime(selected.startedAt)}
               </p>
@@ -297,7 +297,7 @@ export default function HistoryScreen({
               ].map(([label, value]) => (
                 <div
                   key={label}
-                  className="rounded-[1.15rem] border border-white/[0.09] bg-white/[0.032] p-3 backdrop-blur-2xl"
+                  className="rounded-2xl border border-white/[0.09] bg-white/[0.035] p-3 backdrop-blur-2xl"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
                     {label}
@@ -309,7 +309,7 @@ export default function HistoryScreen({
               ))}
             </div>
 
-            <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.032] p-4 backdrop-blur-2xl sm:p-5">
+            <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-4 backdrop-blur-2xl sm:p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
                 Passinnehåll
               </p>
@@ -318,7 +318,7 @@ export default function HistoryScreen({
                 {selected.exercises.map((exercise) => (
                   <div
                     key={exercise.name}
-                    className="rounded-[1.25rem] border border-white/[0.09] bg-slate-950/22 p-3.5"
+                    className="rounded-[1.5rem] border border-white/[0.09] bg-slate-950/22 p-3.5"
                   >
                     <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                       <div>
@@ -333,7 +333,7 @@ export default function HistoryScreen({
                       {exercise.sets.length > 0 ? (
                         <button
                           onClick={() => onOpenExercise(exercise.name)}
-                          className="w-full rounded-xl border border-white/[0.09] bg-white/[0.052] px-3.5 py-2 text-sm font-medium text-blue-100 transition hover:border-blue-400/25 hover:bg-[#4f83ff]/[0.10] sm:w-auto"
+                          className="w-full rounded-xl border border-white/[0.09] bg-white/[0.05] px-3.5 py-2 text-sm font-medium text-blue-100 transition hover:border-blue-400/25 hover:bg-[#4f83ff]/[0.10] sm:w-auto"
                         >
                           Visa progression
                         </button>
@@ -346,7 +346,7 @@ export default function HistoryScreen({
                           <div
                             key={`${set.createdAt}-${index}`}
                             onClick={() => onEditSet && openEdit(selected.id, exercise.name, index, set)}
-                            className={`grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl bg-white/[0.032] px-3 py-1.5 ${onEditSet ? "cursor-pointer active:bg-white/[0.06]" : ""}`}
+                            className={`grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl bg-white/[0.035] px-3 py-1.5 ${onEditSet ? "cursor-pointer active:bg-white/[0.07]" : ""}`}
                           >
                             <span className="text-xs font-semibold text-white/35">
                               {index + 1}
@@ -374,7 +374,7 @@ export default function HistoryScreen({
           </section>
         </div>
       ) : (
-        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.032] p-4 backdrop-blur-2xl sm:p-5">
+        <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-4 backdrop-blur-2xl sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
             Inga pass än
           </p>
@@ -387,7 +387,7 @@ export default function HistoryScreen({
       {editingSet && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end">
           <div className="absolute inset-0 bg-black/5 backdrop-blur-[3px]" onClick={() => setEditingSet(null)} />
-          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-3xl bg-[#0f172a] px-6 py-6 shadow-2xl">
+          <div className="relative mx-4 mb-10 w-full max-w-md space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
             <p className="text-center text-base font-semibold text-white">
               Redigera set {editingSet.setIdx + 1}
             </p>
@@ -398,7 +398,7 @@ export default function HistoryScreen({
                 <label className="text-xs text-white/50">Tid (sekunder)</label>
                 <input
                   autoFocus
-                  className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
+                  className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
                   inputMode="numeric"
                   value={editDuration}
                   onChange={(e) => setEditDuration(e.target.value.replace(/[^0-9]/g, ""))}
@@ -411,7 +411,7 @@ export default function HistoryScreen({
                 <div className="space-y-1">
                   <label className="text-xs text-white/50">Vikt (kg)</label>
                   <input
-                    className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
+                    className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
                     inputMode="decimal"
                     value={editWeight}
                     onChange={(e) => { setEditWeight(e.target.value); setEditError(null); }}
@@ -420,7 +420,7 @@ export default function HistoryScreen({
                 <div className="space-y-1">
                   <label className="text-xs text-white/50">Reps</label>
                   <input
-                    className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
+                    className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-3 py-2.5 text-center text-base font-semibold text-white outline-none focus:border-blue-400/40"
                     inputMode="numeric"
                     value={editReps}
                     onChange={(e) => { setEditReps(e.target.value); setEditError(null); }}
@@ -465,7 +465,7 @@ export default function HistoryScreen({
                 Spara
               </button>
               <button
-                className="w-full rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/60 transition active:scale-[0.98]"
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] px-5 py-3.5 text-base font-semibold text-white/60 transition active:scale-[0.98]"
                 onClick={() => setEditingSet(null)}
               >
                 Avbryt

@@ -70,10 +70,10 @@ type Props = {
 };
 
 const cardClassName =
-  "rounded-[1.5rem] border border-white/[0.09] bg-white/[0.052] p-4 backdrop-blur-xl";
+  "rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl";
 
 const secondaryButtonClassName =
-  "rounded-lg px-2.5 py-1 text-xs font-medium text-white/42 transition hover:bg-white/5 hover:text-white/78";
+  "rounded-xl px-2.5 py-1 text-xs font-medium text-white/42 transition hover:bg-white/5 hover:text-white/78";
 
 const unknownExerciseFeedback =
   "Den finns inte i biblioteket. Bläddra i listan, eller lägg in den som egen övning:";
@@ -91,7 +91,7 @@ function CustomCategoryButtons({ onPick }: { onPick: (category: string) => void 
           key={category}
           type="button"
           onClick={() => onPick(category)}
-          className="rounded-lg border border-white/[0.07] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
+          className="rounded-xl border border-white/[0.09] bg-slate-950/22 px-2 py-2 text-[11px] font-semibold capitalize text-white/64 transition hover:border-blue-300/32 hover:text-white"
         >
           {category}
         </button>
@@ -284,7 +284,7 @@ export default function StartScreen({
 
   return (
     <div className="w-full max-w-lg space-y-5">
-      <div className="rounded-[1.75rem] border border-white/[0.09] bg-white/[0.05] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14)] backdrop-blur-xl">
+      <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14)] backdrop-blur-xl">
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
             <h1
@@ -297,7 +297,7 @@ export default function StartScreen({
             <button
               type="button"
               onClick={onBack}
-              className="shrink-0 rounded-xl border border-white/[0.09] bg-white/[0.048] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
+              className="shrink-0 rounded-xl border border-white/[0.09] bg-white/[0.05] px-3 py-2 text-sm font-medium text-white/76 transition hover:border-blue-400/20 hover:bg-[#4f83ff]/[0.07]"
             >
               Tillbaka
             </button>
@@ -322,7 +322,7 @@ export default function StartScreen({
                         }
                         if (e.key === "Escape") setIsEditingPassName(false);
                       }}
-                      className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-base text-white placeholder-white/25 outline-none focus:border-white/20 sm:text-sm"
+                      className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.07] px-3 py-2 text-base text-white placeholder-white/25 outline-none focus:border-white/20 sm:text-sm"
                     />
                     <button
                       type="button"
@@ -357,7 +357,7 @@ export default function StartScreen({
                         setIsEditingPassName(true);
                       }}
                       aria-label="Byt namn på passet"
-                      className="shrink-0 rounded-lg px-1.5 py-1 text-sm text-white/28 transition hover:bg-white/[0.06] hover:text-white/60"
+                      className="shrink-0 rounded-xl px-1.5 py-1 text-sm text-white/28 transition hover:bg-white/[0.07] hover:text-white/60"
                     >
                       ✎
                     </button>
@@ -373,7 +373,7 @@ export default function StartScreen({
                   Coachens val
                 </span>
               ) : (
-                <span className="rounded-full border border-white/[0.09] bg-white/[0.045] px-2.5 py-1 text-[11px] font-semibold text-white/55">
+                <span className="rounded-full border border-white/[0.09] bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-white/55">
                   Bytt idag
                 </span>
               )}
@@ -392,7 +392,7 @@ export default function StartScreen({
                       className={`rounded-xl border px-3 py-2.5 text-left transition ${
                         isActive
                           ? "border-blue-300/28 bg-blue-500/[0.14] text-white"
-                          : "border-white/[0.08] bg-white/[0.035] text-white/58 hover:bg-white/[0.06] hover:text-white"
+                          : "border-white/[0.09] bg-white/[0.035] text-white/58 hover:bg-white/[0.07] hover:text-white"
                       }`}
                     >
                       <span className="block text-sm font-semibold">
@@ -413,7 +413,7 @@ export default function StartScreen({
             className={`rounded-2xl border px-4 py-3 transition ${
               gymConfirmationRequired && gymConfirmationNudge
                 ? "border-amber-400/40 bg-amber-400/[0.06]"
-                : "border-white/[0.07] bg-white/[0.03]"
+                : "border-white/[0.09] bg-white/[0.035]"
             }`}
           >
             <p className="mb-2 text-xs text-white/35">
@@ -453,7 +453,7 @@ export default function StartScreen({
             )}
 
             {showGymPicker && (
-              <div className="mt-3 space-y-1 border-t border-white/[0.07] pt-3">
+              <div className="mt-3 space-y-1 border-t border-white/[0.09] pt-3">
                 {gyms.map((g) => (
                   <div key={g.id}>
                     {editingGymId === g.id ? (
@@ -469,7 +469,7 @@ export default function StartScreen({
                             }
                             if (e.key === "Escape") setEditingGymId(null);
                           }}
-                          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-base text-white placeholder-white/25 outline-none focus:border-white/20 sm:text-sm"
+                          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.07] px-3 py-2 text-base text-white placeholder-white/25 outline-none focus:border-white/20 sm:text-sm"
                         />
                         <button
                           type="button"
@@ -493,7 +493,7 @@ export default function StartScreen({
                         </button>
                       </div>
                     ) : (
-                      <div className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition hover:bg-white/[0.06]">
+                      <div className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition hover:bg-white/[0.07]">
                         <button
                           type="button"
                           className="flex flex-1 items-center gap-2 text-left"
@@ -513,7 +513,7 @@ export default function StartScreen({
                             setEditingGymId(g.id);
                             setEditingGymName(g.name);
                           }}
-                          className="ml-2 shrink-0 rounded-lg px-2 py-1 text-xs text-white/28 transition hover:bg-white/[0.06] hover:text-white/60"
+                          className="ml-2 shrink-0 rounded-xl px-2 py-1 text-xs text-white/28 transition hover:bg-white/[0.07] hover:text-white/60"
                           aria-label={`Byt namn på ${g.name}`}
                         >
                           Byt namn
@@ -556,7 +556,7 @@ export default function StartScreen({
                           }
                         }}
                         placeholder="Gymnamn"
-                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-base text-white placeholder-white/25 outline-none focus:border-white/20 sm:text-sm"
+                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.07] px-3 py-2 text-base text-white placeholder-white/25 outline-none focus:border-white/20 sm:text-sm"
                       />
                       <button
                         type="button"
@@ -585,7 +585,7 @@ export default function StartScreen({
                 ) : (
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-white/38 transition hover:bg-white/[0.06] hover:text-white/55"
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-white/38 transition hover:bg-white/[0.07] hover:text-white/55"
                     onClick={() => setShowAddGymInput(true)}
                   >
                     <span>+</span>
@@ -618,7 +618,7 @@ export default function StartScreen({
           <button
             type="button"
             onClick={() => setIsEditingExercises((v) => !v)}
-            className="rounded-lg px-2.5 py-1 text-xs font-medium text-white/42 transition hover:bg-white/5 hover:text-white/78"
+            className="rounded-xl px-2.5 py-1 text-xs font-medium text-white/42 transition hover:bg-white/5 hover:text-white/78"
           >
             {isEditingExercises ? "Klar" : "Redigera"}
           </button>
@@ -630,7 +630,7 @@ export default function StartScreen({
             return (
               <div
                 key={exerciseKey(ex)}
-                className="flex items-center justify-between rounded-xl border border-white/8 bg-slate-950/20 px-3 py-3 transition hover:border-white/14 hover:bg-white/[0.042]"
+                className="flex items-center justify-between rounded-xl border border-white/8 bg-slate-950/20 px-3 py-3 transition hover:border-white/14 hover:bg-white/[0.035]"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="text-xs font-semibold text-white/35">
@@ -651,7 +651,7 @@ export default function StartScreen({
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
                     type="button"
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-xs font-semibold text-white/58 transition hover:bg-white/[0.10] hover:text-white"
                     onClick={() => setExerciseInfoName(todayNameOf(ex))}
                     aria-label={`Visa info om ${todayNameOf(ex)}`}
                   >
@@ -747,7 +747,7 @@ export default function StartScreen({
               setLibraryCategory("alla");
               setShowLibrary(true);
             }}
-            className="w-full rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+            className="w-full rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
           >
             Bläddra i biblioteket
           </button>
@@ -767,7 +767,7 @@ export default function StartScreen({
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
                     type="button"
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-xs font-semibold text-white/58 transition hover:bg-white/[0.10] hover:text-white"
                     onClick={() => setExerciseInfoName(ex)}
                     aria-label={`Visa info om ${ex}`}
                   >
@@ -801,7 +801,7 @@ export default function StartScreen({
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
                     type="button"
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-xs font-semibold text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-xs font-semibold text-white/58 transition hover:bg-white/[0.10] hover:text-white"
                     onClick={() => setExerciseInfoName(ex)}
                     aria-label={`Visa info om ${ex}`}
                   >
@@ -893,7 +893,7 @@ export default function StartScreen({
                   </p>
                   <button
                     type="button"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.048] text-white/60 transition hover:bg-white/[0.08] hover:text-white"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.05] text-white/60 transition hover:bg-white/[0.10] hover:text-white"
                     onClick={() => setSwapTarget(null)}
                     aria-label="Stäng"
                   >
@@ -933,7 +933,7 @@ export default function StartScreen({
                 <button
                   type="button"
                   onClick={() => setSwapStep("browse")}
-                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
+                  className="w-full rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-white/58 transition hover:bg-white/[0.07] hover:text-white"
                 >
                   Tillbaka till listan
                 </button>
@@ -1042,7 +1042,7 @@ export default function StartScreen({
                 Jag förstår och vill starta
               </button>
               <button
-                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.048] py-3 text-sm font-medium text-white/62 transition hover:bg-white/[0.07] hover:text-white"
+                className="w-full rounded-2xl border border-white/[0.09] bg-white/[0.05] py-3 text-sm font-medium text-white/62 transition hover:bg-white/[0.07] hover:text-white"
                 onClick={() => setShowSafetyModal(false)}
               >
                 Tillbaka
