@@ -83,7 +83,7 @@ export default function ProgramBuildLoadingScreen({
           />
         </div>
 
-        <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.28em] text-blue-100/45">
+        <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.28em] text-blue-100/60">
           MinCoach
         </p>
 

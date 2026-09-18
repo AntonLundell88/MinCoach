@@ -152,7 +152,7 @@ export default function LobbyScreen({
     : "border border-white/[0.06] bg-white/[0.05] shadow-[0_14px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl";
   const labelClassName = isLight
     ? "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a7661]"
-    : "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35";
+    : "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50";
   const titleClassName = isLight ? "text-[#2d251c]" : "text-white";
   const bodyClassName = isLight ? "text-[#665b4f]" : "text-white/58";
   const buttonSubtleClassName = isLight

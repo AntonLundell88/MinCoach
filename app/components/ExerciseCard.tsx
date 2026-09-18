@@ -320,7 +320,7 @@ useEffect(() => {
       <div className="rounded-2xl border border-white/[0.09] bg-slate-950/14 px-3 py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/60">
               Övning hoppad
             </p>
             <p className="mt-1 truncate text-sm text-white/82">

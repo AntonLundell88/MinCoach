@@ -553,7 +553,7 @@ function TrendChart({
                 >
                   {formatValue(item.value)}
                 </p>
-                <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.12em] text-white/34">
+                <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.12em] text-white/50">
                   {item.label}
                 </p>
               </div>
@@ -697,7 +697,7 @@ export default function StatisticsScreen({
             key={tile.label}
             className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-3.5 backdrop-blur-xl"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
               {tile.label}
             </p>
             <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white sm:text-2xl">
@@ -715,7 +715,7 @@ export default function StatisticsScreen({
         <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
                 {chartConfig.eyebrow}
               </p>
               <h2 className="mt-1.5 text-xl font-semibold tracking-[-0.03em] text-white">
@@ -749,7 +749,7 @@ export default function StatisticsScreen({
             onClick={() => mostTrained && onOpenExercises(mostTrained[0])}
             className="w-full rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 text-left shadow-[0_14px_34px_rgba(0,0,0,0.14)] backdrop-blur-xl transition hover:border-white/16 hover:bg-white/[0.07] sm:p-5"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
               Mest körda övning
             </p>
             <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
@@ -764,7 +764,7 @@ export default function StatisticsScreen({
             onClick={onOpenHistory}
             className="w-full rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 text-left backdrop-blur-xl transition hover:border-white/16 hover:bg-white/[0.07] sm:p-5"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
               {chartConfig.activeLabel}
             </p>
             <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
@@ -781,7 +781,7 @@ export default function StatisticsScreen({
 
       {muscleBreakdown.length > 0 ? (
         <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
             Hela historiken
           </p>
           <h2 className="mt-1.5 text-xl font-semibold tracking-[-0.03em] text-white">
@@ -813,7 +813,7 @@ export default function StatisticsScreen({
         <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
                 Övningar
               </p>
               <h2 className="mt-1.5 text-xl font-semibold tracking-[-0.03em] text-white">
@@ -833,7 +833,7 @@ export default function StatisticsScreen({
 
       {history.length === 0 ? (
         <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
             Inga pass än
           </p>
           <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">

@@ -219,7 +219,7 @@ export default function SetupScreen({
         <div className="absolute inset-0 bg-black/10 backdrop-blur-[3px]" />
         <div className="relative mx-4 mb-10 w-full max-w-lg space-y-4 rounded-[1.5rem] bg-[#0f172a] px-6 py-6 shadow-2xl">
           <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/60">
               Coachen
             </p>
             <h1 className="text-xl font-semibold text-white">Hej!</h1>
@@ -279,7 +279,7 @@ export default function SetupScreen({
               </div>
 
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/42">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/60">
                   Coachen
                 </p>
                 <h1 className="mt-1 text-[22px] font-semibold leading-tight tracking-normal text-white">
@@ -303,7 +303,7 @@ export default function SetupScreen({
               }}
             >
               <div className="rounded-2xl border border-white/[0.06] bg-slate-950/16 p-3.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
                   Du
                 </p>
 
@@ -378,7 +378,7 @@ export default function SetupScreen({
               </div>
 
               <div className="rounded-2xl border border-white/[0.09] bg-slate-950/18 p-3.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
                   Din träning
                 </p>
 
@@ -643,7 +643,7 @@ export default function SetupScreen({
 
               {!isEditing ? (
                 <label className="block rounded-2xl border border-white/[0.09] bg-slate-950/22 p-3.5 text-[12px] leading-5 text-white/68">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
                     AI-coach
                   </p>
                   <p className="mt-1.5">

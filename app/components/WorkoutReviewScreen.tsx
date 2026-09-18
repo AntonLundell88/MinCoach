@@ -108,7 +108,7 @@ function formatSet(set: ReviewSet, exerciseName: string): string {
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-[1.5rem] border border-white/[0.09] bg-slate-950/18 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
         {label}
       </p>
       <p className="mt-2 truncate text-xl font-semibold tracking-normal text-white">
@@ -312,7 +312,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
   return (
     <div className="mc-enter w-full max-w-none space-y-3 text-white sm:max-w-xl sm:space-y-4">
       <section className="rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:rounded-[1.5rem] sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-100/45">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-100/60">
           Pass klart
         </p>
         <div className="mt-4 space-y-3">
@@ -341,7 +341,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
 
       {(review.loggedExercises ?? []).length > 0 && (
         <section className="rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-white/35">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-white/50">
             Dagens set
           </p>
           {onEditSet && (
@@ -370,7 +370,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
       )}
 
       <section className="rounded-[1.5rem] border border-white/[0.06] bg-white/[0.035] p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-white/35">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-white/50">
           Bra att tänka på
         </p>
         <p className="mt-3 text-sm leading-6 text-white/76">{nextSessionTip}</p>

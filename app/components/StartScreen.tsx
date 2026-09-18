@@ -613,7 +613,7 @@ export default function StartScreen({
 
       <div className={cardClassName}>
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/30">Övningar</p>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-white/50">Övningar</p>
           <button
             type="button"
             onClick={() => setIsEditingExercises((v) => !v)}
@@ -683,7 +683,7 @@ export default function StartScreen({
       <div className="rounded-[1.5rem] border border-white/8 bg-slate-950/18 p-3 backdrop-blur-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-white/30">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-white/50">
               Lägg till övning
             </p>
           </div>
@@ -950,7 +950,7 @@ export default function StartScreen({
       {showNewGymModal ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/72 px-4 py-4 backdrop-blur-sm">
           <div className="w-full max-w-[430px] rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
               Nytt gym
             </p>
             <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
@@ -991,7 +991,7 @@ export default function StartScreen({
       {showSafetyModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-4 backdrop-blur-sm">
           <div className="max-h-[calc(100svh-2rem)] w-full max-w-lg overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)] sm:p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
               Innan du startar
             </p>
             <h2 className="mt-3 text-xl font-semibold tracking-normal text-white sm:text-2xl">

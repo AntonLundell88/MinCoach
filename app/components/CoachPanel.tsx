@@ -168,7 +168,7 @@ function CoachText({ text, isPrimary = false }: { text: string; isPrimary?: bool
             key={index}
             className={
               isLabel
-                ? `${currentLineIndex > 0 ? "pt-2" : "pt-0"} text-[11px] font-semibold uppercase tracking-[0.13em] text-blue-100/45`
+                ? `${currentLineIndex > 0 ? "pt-2" : "pt-0"} text-[11px] font-semibold uppercase tracking-[0.13em] text-blue-100/60`
                 : isTargetNumber
                 ? isPrimary
                   ? "text-[17px] font-semibold leading-[1.35] tracking-normal text-white"
@@ -319,7 +319,7 @@ export default function CoachPanel({
           <button
             type="button"
             onClick={() => setIsHistoryOpen(false)}
-            className="coach-history-toggle sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-xl bg-[#0d1520] py-1 text-[11px] uppercase tracking-[0.14em] text-white/38 transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white/64"
+            className="coach-history-toggle sticky top-0 z-10 mb-1 flex w-full items-center justify-center gap-1 rounded-xl bg-[#0d1520] py-1 text-[11px] uppercase tracking-[0.14em] text-white/50 transition hover:bg-[rgba(255,255,255,0.05)] hover:text-white/64"
           >
             Dölj historik
             <ChevronDownGlyph className="h-3.5 w-3.5 rotate-180 text-white/50" />
@@ -386,7 +386,7 @@ export default function CoachPanel({
           )}
           {isCoachThinking ? (
             <div className="coach-message animate-message-in relative rounded-2xl border border-white/[0.09] bg-slate-900/50 px-3 py-2 text-white/90 shadow-[0_10px_26px_rgba(0,0,0,0.14)] sm:px-3.5">
-              <p className="coach-message-label mb-1 text-[11px] uppercase tracking-[0.12em] text-white/36">
+              <p className="coach-message-label mb-1 text-[11px] uppercase tracking-[0.12em] text-white/50">
                 Coach
               </p>
               <div className="flex items-center gap-2 text-sm text-white/68">

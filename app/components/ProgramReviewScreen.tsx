@@ -359,7 +359,7 @@ function MuscleFocusCards({ review }: { review: ReviewedMuscleMap }) {
           alsoLabel ? "" : "col-span-2"
         }`}
       >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
           Tränar framförallt
         </p>
         <p className="mt-1 text-xs font-semibold text-white/76">
@@ -368,7 +368,7 @@ function MuscleFocusCards({ review }: { review: ReviewedMuscleMap }) {
       </div>
       {alsoLabel ? (
         <div className="rounded-xl bg-white/[0.035] px-3 py-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
             Tränar också
           </p>
           <p className="mt-1 text-xs font-semibold text-white/76">
@@ -1033,7 +1033,7 @@ export default function ProgramReviewScreen({
       <div className="mx-auto flex w-full max-w-[460px] flex-col gap-4">
         <section className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/60">
               Coachen
             </p>
             {onClose ? (
@@ -1137,7 +1137,7 @@ export default function ProgramReviewScreen({
                 </div>
 
                 <div className="mt-3 rounded-2xl bg-white/[0.035] px-3 py-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.045)]">
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/36">
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/60">
                     Viktigt under passen
                   </p>
                   <div className="grid gap-1.5">
@@ -1295,7 +1295,7 @@ export default function ProgramReviewScreen({
         <section className="rounded-[1.5rem] bg-white/[0.035] p-3.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
                 {isManualBuilder ? "Översikt" : "Upplägg"}
               </p>
               <h2 className="mt-1 text-lg font-semibold text-white">
@@ -1492,7 +1492,7 @@ export default function ProgramReviewScreen({
                           </span>
                         ) : null}
                         {exercise.sets || exercise.reps || (exercise.rir && !isTimedExerciseInList) ? (
-                          <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/36">
+                          <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/60">
                             {[
                               exercise.sets && `${exercise.sets} set`,
                               exercise.reps &&
@@ -1564,7 +1564,7 @@ export default function ProgramReviewScreen({
                     >
                       <span className="min-w-0">
                         <span className="block truncate">{suggestion.name}</span>
-                        <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/44">
+                        <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/60">
                           Coachens förslag
                         </span>
                         <span className="mt-1 block text-[11px] font-medium leading-4 text-white/38">
@@ -1594,7 +1594,7 @@ export default function ProgramReviewScreen({
                   <div className="mt-1 rounded-2xl border border-blue-300/10 bg-blue-400/[0.035] p-3 shadow-[inset_0_0_0_1px_rgba(147,197,253,0.06)]">
                     <div className="mb-2 flex items-end justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/44">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/60">
                           Lägg till i {passDisplayName}
                         </p>
                         <p className="mt-1 text-xs text-white/44">
@@ -1733,7 +1733,7 @@ export default function ProgramReviewScreen({
         {infoPass ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-4 backdrop-blur-sm">
             <div className="max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
                 Övningar
               </p>
               <div className="mt-2 flex items-start justify-between gap-3">
@@ -1789,7 +1789,7 @@ export default function ProgramReviewScreen({
                       <h3 className="text-sm font-semibold text-white">
                         {exercise.name}
                       </h3>
-                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-blue-100/38">
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-blue-100/60">
                         {reviewedInfoTemplate?.equipment ?? info.equipment}
                       </p>
                       {reviewedMuscleMap ? (
@@ -1805,7 +1805,7 @@ export default function ProgramReviewScreen({
                       {reviewedInfoTemplate ? (
                         <div className="mt-3 grid gap-3">
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/60">
                               Så gör du
                             </p>
                             <div className="mt-1 grid gap-1.5 text-sm leading-6 text-white/68">
@@ -1815,7 +1815,7 @@ export default function ProgramReviewScreen({
                             </div>
                           </div>
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/60">
                               Känn efter
                             </p>
                             <p className="mt-1 text-sm leading-6 text-white/68">
@@ -1823,7 +1823,7 @@ export default function ProgramReviewScreen({
                             </p>
                           </div>
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/60">
                               Logga
                             </p>
                             <p className="mt-1 text-sm leading-6 text-white/68">
@@ -1849,7 +1849,7 @@ export default function ProgramReviewScreen({
                         >
                           {exercise.sets ? (
                             <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
                                 Set
                               </p>
                               <p className="mt-1 text-xs font-semibold text-white/72">
@@ -1859,7 +1859,7 @@ export default function ProgramReviewScreen({
                           ) : null}
                           {exercise.reps ? (
                             <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
                                 {metricLabel}
                               </p>
                               <p className="mt-1 text-xs font-semibold text-white/72">
@@ -1869,7 +1869,7 @@ export default function ProgramReviewScreen({
                           ) : null}
                           {exercise.rir && !isTimedInfoExercise ? (
                             <div className="rounded-xl border border-white/8 bg-white/[0.035] px-2 py-2">
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
                                 RIR
                               </p>
                               <p className="mt-1 text-xs font-semibold text-white/72">
@@ -1908,7 +1908,7 @@ export default function ProgramReviewScreen({
               <div className="border-b border-white/[0.09] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
                       Övningsbibliotek
                     </p>
                     <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
@@ -1983,7 +1983,7 @@ export default function ProgramReviewScreen({
                           <h3 className="truncate text-sm font-semibold text-white">
                             {exercise.name}
                           </h3>
-                          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/38">
+                          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/60">
                             {exercise.category} · {exercise.equipment}
                           </p>
                         </div>
@@ -2053,13 +2053,13 @@ export default function ProgramReviewScreen({
                 <div className="max-h-[calc(100svh-2rem)] w-full max-w-[430px] overflow-y-auto rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
                         Övningsinfo
                       </p>
                       <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">
                         {libraryInfoExercise.name}
                       </h2>
-                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-blue-100/38">
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-blue-100/60">
                         {reviewedInfoTemplate?.equipment ?? info.equipment}
                       </p>
                     </div>
@@ -2087,7 +2087,7 @@ export default function ProgramReviewScreen({
                   {reviewedInfoTemplate ? (
                     <div className="mt-4 grid gap-3">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/60">
                           Så gör du
                         </p>
                         <div className="mt-1 grid gap-1.5 text-sm leading-6 text-white/68">
@@ -2097,7 +2097,7 @@ export default function ProgramReviewScreen({
                         </div>
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/60">
                           Känn efter
                         </p>
                         <p className="mt-1 text-sm leading-6 text-white/68">
@@ -2105,7 +2105,7 @@ export default function ProgramReviewScreen({
                         </p>
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/38">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-100/60">
                           Logga
                         </p>
                         <p className="mt-1 text-sm leading-6 text-white/68">
@@ -2158,7 +2158,7 @@ export default function ProgramReviewScreen({
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-500/[0.12] shadow-[0_0_34px_rgba(47,109,246,0.22)]">
                 <div className="h-6 w-6 animate-pulse rounded-full bg-[#2f6df6]" />
               </div>
-              <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/48">
+              <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/60">
                 Coachen granskar
               </p>
               <h2 className="mt-2 text-lg font-semibold text-white">
@@ -2186,7 +2186,7 @@ export default function ProgramReviewScreen({
         <section className="program-coach-dialog rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-3.5 backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/42">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
                 Prata med coachen
               </p>
               <p className="mt-2 text-sm leading-6 text-white/66">
@@ -2214,7 +2214,7 @@ export default function ProgramReviewScreen({
                       : "ml-auto w-fit max-w-[85%] rounded-xl border border-white/[0.16] bg-white/[0.10] px-3 py-2 text-sm leading-6 text-white"
                   }
                 >
-                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
                     {entry.role === "coach" ? "Coach" : "Du"}
                   </p>
                   {cleanProgramCopy(entry.text)}
@@ -2259,7 +2259,7 @@ export default function ProgramReviewScreen({
               <div className="w-full max-w-[430px] rounded-[1.5rem] border border-white/[0.09] bg-[#131c27] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/45">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
                       Exempel
                     </p>
                     <h2 className="mt-2 text-xl font-semibold tracking-normal text-white">

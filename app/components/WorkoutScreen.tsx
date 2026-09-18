@@ -1083,7 +1083,7 @@ useEffect(() => {
           </div>
 
           <div className="mt-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/60">
               {setSourceLabel}
             </p>
             <p className="mt-0.5 truncate text-lg font-bold text-white">
@@ -1471,7 +1471,7 @@ useEffect(() => {
             höger och centrerat, eftersom vilarutan är en knapp. */}
         <div className="workout-next-card mt-2.5 grid grid-cols-[minmax(0,1fr)_auto] rounded-2xl border border-white/[0.09] bg-white/[0.05]">
           <div className="min-w-0 px-3 py-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/60">
               {setSourceLabel}
             </p>
             {currentExerciseReadyToFinish ? (
@@ -1513,7 +1513,7 @@ useEffect(() => {
             }}
             className="flex min-w-[5.8rem] flex-col items-start border-l border-white/[0.09] px-3 py-2 text-left transition active:opacity-60"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/60">
               Vila
             </p>
             <p className="mt-1 text-sm font-semibold leading-5 text-white">
@@ -1763,7 +1763,7 @@ useEffect(() => {
                   className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.035] px-3 py-2.5 opacity-50"
                 >
                   <span className="text-sm font-medium text-white/86">{splitCustomExerciseName(exercise.name).title}</span>
-                  <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/32">
+                  <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
                     Klar
                   </span>
                 </div>
@@ -2096,7 +2096,7 @@ useEffect(() => {
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/60">
                 Vila
               </p>
               <p

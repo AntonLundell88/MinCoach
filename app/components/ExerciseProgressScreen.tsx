@@ -295,7 +295,7 @@ function ProgressChart({ exercise }: { exercise: ExerciseProgress }) {
           ))}
         </svg>
 
-        <div className="pointer-events-none absolute inset-x-5 bottom-4 flex justify-between text-[11px] font-medium uppercase tracking-[0.14em] text-white/32">
+        <div className="pointer-events-none absolute inset-x-5 bottom-4 flex justify-between text-[11px] font-medium uppercase tracking-[0.14em] text-white/50">
           <span>{points[0] ? formatDate(points[0].date) : ""}</span>
           <span>{points.at(-1) ? formatDate(points.at(-1)!.date) : ""}</span>
         </div>
@@ -416,7 +416,7 @@ export default function ExerciseProgressScreen({
             }`}
           >
             <div className="flex items-start justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
                 Övningslista
               </p>
             </div>
@@ -516,7 +516,7 @@ export default function ExerciseProgressScreen({
             </button>
 
             <div className="relative overflow-hidden rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl sm:p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">
                 {selected.sessions.length} pass
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
@@ -551,7 +551,7 @@ export default function ExerciseProgressScreen({
 
               <div className="mt-4 grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-3">
                 <div className="rounded-xl border border-white/[0.09] bg-slate-950/18 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/32">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                     Senast
                   </p>
                   <p className="mt-1.5 text-lg font-semibold tracking-[-0.04em] text-white sm:text-xl">
@@ -565,7 +565,7 @@ export default function ExerciseProgressScreen({
                 </div>
 
                 <div className="rounded-xl border border-white/[0.09] bg-slate-950/18 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/32">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                     Bästa
                   </p>
                   <p className="mt-1.5 text-lg font-semibold tracking-[-0.04em] text-white sm:text-xl">
@@ -580,7 +580,7 @@ export default function ExerciseProgressScreen({
 
                 <div className="rounded-xl border border-white/[0.09] bg-slate-950/18 p-3">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/32">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                       Trend
                     </p>
                     <button
@@ -608,7 +608,7 @@ export default function ExerciseProgressScreen({
 
             <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
               <div className="mb-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
                   Graf
                 </p>
                 <h3 className="mt-1.5 text-lg font-semibold tracking-[-0.03em] text-white">
@@ -628,7 +628,7 @@ export default function ExerciseProgressScreen({
             <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-3.5 backdrop-blur-xl sm:p-4">
               <div className="flex items-end justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
                     Sethistorik
                   </p>
                   <h3 className="mt-1 text-base font-semibold tracking-[-0.02em] text-white">
@@ -718,7 +718,7 @@ export default function ExerciseProgressScreen({
         </div>
       ) : (
         <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 backdrop-blur-xl sm:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
             Inga set än
           </p>
           <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">

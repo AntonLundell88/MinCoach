@@ -195,7 +195,7 @@ export default function HistoryScreen({
 
       <div className="flex items-center justify-between gap-3 pt-1 sm:pt-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-100/45">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-100/60">
             Historik
           </p>
           <h1 className="mt-1.5 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
@@ -261,7 +261,7 @@ export default function HistoryScreen({
             </button>
 
             <div className="relative overflow-hidden rounded-[1.5rem] border border-white/[0.09] bg-white/[0.05] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl sm:p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">
                 {formatDate(selected.startedAt)} · {formatTime(selected.startedAt)}
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
@@ -295,7 +295,7 @@ export default function HistoryScreen({
                   key={label}
                   className="rounded-2xl border border-white/[0.09] bg-white/[0.035] p-3 backdrop-blur-2xl"
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
                     {label}
                   </p>
                   <p className="mt-1.5 truncate text-base font-semibold tracking-[-0.03em] text-white sm:text-lg">
@@ -306,7 +306,7 @@ export default function HistoryScreen({
             </div>
 
             <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-4 backdrop-blur-2xl sm:p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
                 Passinnehåll
               </p>
 
@@ -371,7 +371,7 @@ export default function HistoryScreen({
         </div>
       ) : (
         <section className="mt-4 rounded-[1.5rem] border border-white/[0.09] bg-white/[0.035] p-4 backdrop-blur-2xl sm:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
             Inga pass än
           </p>
           <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">

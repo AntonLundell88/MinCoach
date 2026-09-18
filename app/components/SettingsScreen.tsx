@@ -199,7 +199,7 @@ function SettingsGroup({
       {title ? (
         <p
           className={`px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] ${
-            isLight ? "text-[#8a7661]" : "text-white/35"
+            isLight ? "text-[#8a7661]" : "text-white/50"
           }`}
         >
           {title}
@@ -255,7 +255,7 @@ function SettingsRow({
       : isLight
       ? "text-[#2d251c]"
       : "text-white";
-  const valueColor = isLight ? "text-[#8a7661]" : "text-white/42";
+  const valueColor = isLight ? "text-[#7d6a54]" : "text-white/52";
   const content = (
     <>
       <span className={`min-w-0 text-[15px] font-medium ${labelColor}`}>{label}</span>
@@ -360,7 +360,7 @@ export default function SettingsScreen({
     : "bg-white/[0.05] shadow-[0_16px_44px_rgba(0,0,0,0.14)] backdrop-blur-xl";
   const labelClassName = isLight
     ? "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a7661]"
-    : "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35";
+    : "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50";
   const titleClassName = isLight ? "text-[#2d251c]" : "text-white";
   const bodyClassName = isLight ? "text-[#665b4f]" : "text-white/58";
   // Minst 44 px högt. Knapparna var 16–36 px och gick inte att träffa med en

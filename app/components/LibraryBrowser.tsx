@@ -126,7 +126,7 @@ export function LibraryBrowser({
             className="w-full rounded-2xl border border-white/[0.09] bg-slate-950/22 p-3 text-left transition hover:border-blue-300/24 hover:bg-white/[0.05]"
           >
             <p className="truncate text-sm font-semibold text-white">{exercise.name}</p>
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/38">
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-100/60">
               {exercise.category} · {exercise.equipment}
             </p>
           </button>

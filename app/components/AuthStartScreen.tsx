@@ -231,7 +231,7 @@ export default function AuthStartScreen({
             />
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-100/45">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-100/60">
               MinCoach
             </p>
             <h1 className="mt-1 text-2xl font-semibold leading-tight text-white">
