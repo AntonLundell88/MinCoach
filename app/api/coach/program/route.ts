@@ -61,7 +61,10 @@ export async function POST(request: Request) {
 
   // Netlify hard-kills the function at 30s (confirmed 2026-08-12) — must
   // fire well before that so a real fallback reply is returned instead.
-  const model = process.env.OPENAI_MODEL ?? "gpt-5.5";
+  // Reservvärdet ska vara samma modell som drift kör. Stod "gpt-5.5" här, och
+  // försvann OPENAI_MODEL ur miljön bytte hela coachen röst utan att något
+  // gick sönder eller syntes i loggen.
+  const model = process.env.OPENAI_MODEL ?? "gpt-5.6-terra";
   const openAiStartedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);

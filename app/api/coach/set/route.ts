@@ -73,7 +73,10 @@ export async function POST(request: Request) {
   // fire well before that so a real fallback reply is returned instead.
   // Instruktionen först, kontexten sist, med en cachegräns emellan. Se
   // coachPromptInput i openAi.ts.
-  const model = process.env.OPENAI_MODEL ?? "gpt-5.5";
+  // Reservvärdet ska vara samma modell som drift kör. Stod "gpt-5.5" här, och
+  // försvann OPENAI_MODEL ur miljön bytte hela coachen röst utan att något
+  // gick sönder eller syntes i loggen.
+  const model = process.env.OPENAI_MODEL ?? "gpt-5.6-terra";
   const prompt = coachPromptInput({
     model,
     instruction: payload.instruction,

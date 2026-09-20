@@ -109,7 +109,10 @@ export async function POST(request: Request) {
 
   // Was 35000 — above Netlify's confirmed 30s hard kill, so this timeout
   // could never actually fire before the platform killed the function first.
-  const model = process.env.OPENAI_MODEL ?? "gpt-5.5";
+  // Reservvärdet ska vara samma modell som drift kör. Stod "gpt-5.5" här, och
+  // försvann OPENAI_MODEL ur miljön bytte hela coachen röst utan att något
+  // gick sönder eller syntes i loggen.
+  const model = process.env.OPENAI_MODEL ?? "gpt-5.6-terra";
   const openAiStartedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);
