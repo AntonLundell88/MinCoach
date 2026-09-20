@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     return fallbackResponse(fallbackReply, "missing_api_key", payload.maxCharacters);
   }
 
-  const model = process.env.OPENAI_INTRO_MODEL ?? "gpt-5.5";
+  const model = process.env.OPENAI_INTRO_MODEL ?? "gpt-5.6-terra";
   const openAiStartedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 20000);
