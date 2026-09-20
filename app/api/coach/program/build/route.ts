@@ -1,4 +1,5 @@
 import { logAiUsage } from "@/app/lib/aiUsageLog";
+import { supportsExplicitPromptCache } from "@/app/lib/openAi";
 import { NextResponse } from "next/server";
 import { checkAiRateLimit } from "../../../../lib/aiRateLimit";
 import {
@@ -898,6 +899,11 @@ function buildAllowedExerciseLookup(
   );
 }
 
+/** Schemabyggets modell. Egen miljövariabel, men samma familj som resten. */
+function programModelName() {
+  return process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.6-terra";
+}
+
 /**
  * Ett litet OpenAI-anrop med strukturerat JSON-svar. Delas av de stegvisa
  * bygg-anropen — de skiljer sig bara i instruktion, schema och indata.
@@ -909,10 +915,16 @@ async function callProgramStage(args: {
   schemaName: string;
   schema: unknown;
   input: unknown;
+  /** Samma i varje anrop för steget — läggs före cache-brytpunkten. */
+  stableInput?: unknown;
+  /** Egen cache-nyckel per steg, så identiska prefix hamnar i samma cache. */
+  cacheKey?: string;
   effort: "minimal" | "low" | "medium";
   maxTokens: number;
 }) {
   const openAiStartedAt_program_stage = Date.now();
+  const programModel = programModelName();
+  const explicitCache = supportsExplicitPromptCache(programModel);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), PROGRAM_BUILD_TIMEOUT_MS);
   const startedAtMs = Date.now();
@@ -925,7 +937,7 @@ async function callProgramStage(args: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+        model: programModel,
         instructions: args.instruction,
         reasoning: { effort: args.effort },
         text: {
@@ -937,8 +949,32 @@ async function callProgramStage(args: {
             schema: args.schema,
           },
         },
+        ...(args.cacheKey ? { prompt_cache_key: args.cacheKey } : {}),
+        ...(args.stableInput !== undefined && explicitCache
+          ? { prompt_cache_options: { mode: "explicit" } }
+          : {}),
         input: [
-          { role: "user", content: [{ type: "input_text", text: JSON.stringify(args.input) }] },
+          {
+            role: "user",
+            content: [
+              // Övningsbiblioteket är ~5 000 tokens och identiskt för passen.
+              // Låg det i samma klump som passet skrevs det om från början i
+              // varje anrop. Nu ligger det före brytpunkten: första passet
+              // skriver cachen, resten läser den.
+              ...(args.stableInput !== undefined
+                ? [
+                    {
+                      type: "input_text",
+                      text: JSON.stringify(args.stableInput),
+                      ...(explicitCache
+                        ? { prompt_cache_breakpoint: { mode: "explicit" } }
+                        : {}),
+                    },
+                  ]
+                : []),
+              { type: "input_text", text: JSON.stringify(args.input) },
+            ],
+          },
         ],
         max_output_tokens: args.maxTokens,
       }),
@@ -955,7 +991,7 @@ async function callProgramStage(args: {
     const data = await response.json();
     logAiUsage({
       route: "program_stage",
-      model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+      model: programModel,
       data,
       startedAt: openAiStartedAt_program_stage,
     });
@@ -1012,7 +1048,7 @@ async function handleProseRequest(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+        model: programModelName(),
         instructions: [
             PROGRAM_LANGUAGE_NOTES,
             "",
@@ -1068,7 +1104,7 @@ async function handleProseRequest(
     const data = await response.json();
     logAiUsage({
       route: "program_prose",
-      model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+      model: programModelName(),
       data,
       startedAt: openAiStartedAt_program_prose,
     });
@@ -1224,11 +1260,12 @@ export async function POST(request: Request) {
       ].join("\n"),
       schemaName: "program_exercises",
       schema: PROGRAM_EXERCISES_JSON_SCHEMA,
-      input: {
+      stableInput: {
         profile: compact.profile,
-        pass: { displayName: pass.displayName, intent: pass.intent },
         availableExercises: compact.availableExercises,
       },
+      input: { pass: { displayName: pass.displayName, intent: pass.intent } },
+      cacheKey: "mincoach-program-exercises",
       effort: "low",
       maxTokens: 2500,
     });
@@ -1286,7 +1323,7 @@ export async function POST(request: Request) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+          model: programModelName(),
           instructions: PROGRAM_SUMMARY_INSTRUCTION,
           // Low, som prosan: 19 s av 25 på medium var den enda kvarvarande
           // tunna marginalen. Det här är skrivande, inte resonemang.
@@ -1333,7 +1370,7 @@ export async function POST(request: Request) {
       const data = await response.json();
       logAiUsage({
         route: "program_summary",
-        model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+        model: programModelName(),
         data,
         startedAt: openAiStartedAt_program_summary,
       });
@@ -1486,7 +1523,7 @@ export async function POST(request: Request) {
       const data = await response.json();
       logAiUsage({
         route: "program_plan",
-        model: process.env.OPENAI_PROGRAM_MODEL ?? "gpt-5.5",
+        model: programModelName(),
         data,
         startedAt: openAiStartedAt_program_plan,
       });
