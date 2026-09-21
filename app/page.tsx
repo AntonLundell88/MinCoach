@@ -3421,6 +3421,44 @@ function buildRecentConversation(
     .filter(Boolean);
 }
 
+/**
+ * Möjligheten att höja, räknad ur passets eget beslut om nästa set. Setrösten
+ * och chatten läser samma siffra härifrån.
+ *
+ * Chatten fick tidigare planen för NÄSTA pass, som räknas om med dagens set
+ * inräknade. Efter benspark 55 × 17 med 2 kvar stod där "höj nu, hög
+ * säkerhet, 70 kg" (+22,5 % avrundat till gymmets 5-kilossteg), medan
+ * beslutet sa behåll och setrösten sa 60. Coachen tog den säkraste siffran i
+ * 5 av 6 svar (betatest 2026-09-21).
+ */
+function getInSessionOpportunity(args: {
+  exerciseName: string;
+  nextSetPlan: NextSetPlan;
+  isTimedSet: boolean;
+}): CoachChatContext["progressionOpportunity"] {
+  const opportunity: ProgressionOpportunity | undefined =
+    args.nextSetPlan.opportunity ??
+    (!args.isTimedSet && args.nextSetPlan.strategy === "press"
+      ? {
+          type: "increase_now",
+          confidence: "high",
+          suggestedWeight: formatNextLoadText(args.exerciseName, args.nextSetPlan.weight),
+          reason:
+            "Setet gav nog marginal för att appen ska föreslå ett steg upp.",
+          tone: "clear",
+        }
+      : undefined);
+
+  if (!opportunity) return undefined;
+
+  return {
+    type: opportunity.type,
+    confidence: opportunity.confidence,
+    suggestedLoadText: opportunity.suggestedWeight,
+    tone: opportunity.tone,
+  };
+}
+
 function buildCoachSetContext(args: {
   userName?: string;
   goalPrimary: UserProfile["goalPrimary"];
@@ -3496,18 +3534,6 @@ function buildCoachSetContext(args: {
       })
     : undefined;
   const nextLoadText = formatNextLoadText(args.exerciseName, args.nextSetPlan.weight);
-  const progressionOpportunity: ProgressionOpportunity | undefined =
-    args.nextSetPlan.opportunity ??
-    (!isTimedSet && args.nextSetPlan.strategy === "press"
-      ? {
-          type: "increase_now",
-          confidence: "high",
-          suggestedWeight: nextLoadText,
-          reason:
-            "Setet gav nog marginal för att appen ska föreslå ett steg upp.",
-          tone: "clear",
-        }
-      : undefined);
   const failText = args.failNote.trim().toLowerCase();
   const hasUserReportedTechniqueOrPain =
     Boolean(failText) &&
@@ -3685,14 +3711,11 @@ function buildCoachSetContext(args: {
           setText: previousSetText,
         }
       : undefined,
-    progressionOpportunity: progressionOpportunity
-      ? {
-          type: progressionOpportunity.type,
-          confidence: progressionOpportunity.confidence,
-          suggestedLoadText: progressionOpportunity.suggestedWeight,
-          tone: progressionOpportunity.tone,
-        }
-      : undefined,
+    progressionOpportunity: getInSessionOpportunity({
+      exerciseName: args.exerciseName,
+      nextSetPlan: args.nextSetPlan,
+      isTimedSet,
+    }),
     // Strategin och orsaken står i nextTarget. Här låg de en gång till, plus
     // shouldMentionTechniqueCue: teknikcuen skickas redan bara när den ska
     // användas, och flaggan lästes som en order — "ska nämna teknik: nej".
@@ -5166,6 +5189,13 @@ const observedWeightStep = useMemo(() => {
 const snapObservedWeight = (weight: number, mode: "nearest" | "down" | "up") =>
   observedWeightStep ? snapWeightToStep(weight, observedWeightStep, mode) : weight;
 
+// Vad utrustningen faktiskt har närmast upp och ner från en vikt. Setrösten
+// och chatten läser samma siffror härifrån.
+const getNearestWeights = (weight: number, exerciseName: string) => ({
+  up: snapObservedWeight(getNextAvailableWeight(weight, exerciseName, "up"), "up"),
+  down: snapObservedWeight(getNextAvailableWeight(weight, exerciseName, "down"), "down"),
+});
+
 const lastSessionSetsAtGym = useMemo(() => {
   if (!currentExerciseName) return [];
 
@@ -6012,32 +6042,32 @@ async function sendChat() {
     // förklarade chatten besluten lika ofta och lika bra, och "sitter" skrev
     // den då också. Den resonerar ur seten, inte ur meningen. Därför inte
     // omgjord.
+    const setsToday = currentWorkoutExercise?.sets ?? [];
+    const latestSetToday = setsToday[setsToday.length - 1];
+    const latestDecision =
+      currentWorkoutExercise && latestSetToday && !currentWorkoutExercise.completed
+        ? getNextSetPlan({
+            weight: latestSetToday.weight,
+            reps: latestSetToday.reps,
+            rir: latestSetToday.rir ?? 2,
+            failNote: latestSetToday.failNote,
+            setNumber: setsToday.length,
+            plannedSetCount: currentWorkoutExercise.plannedSets,
+            targetReps: goalTargets.targetReps,
+            exerciseName: currentExerciseName,
+            previousSets: setsToday.slice(0, -1),
+            dayForm: overrides?.dayForm ?? dayForm,
+            weightStep: observedWeightStep,
+          })
+        : null;
     const slimDecision =
-      currentWorkoutExercise && currentWorkoutExercise.sets.length > 0
-        ? (() => {
-            if (currentWorkoutExercise.completed) {
-              return {
-                strategy: toWireStrategy("complete"),
-                reason: "Övningen är klar. Prata om nästa gång eller nästa övning, inte nästa set.",
-              };
-            }
-            const latestSet =
-              currentWorkoutExercise.sets[currentWorkoutExercise.sets.length - 1];
-            const decision = getNextSetPlan({
-              weight: latestSet.weight,
-              reps: latestSet.reps,
-              rir: latestSet.rir ?? 2,
-              failNote: latestSet.failNote,
-              setNumber: currentWorkoutExercise.sets.length,
-              plannedSetCount: currentWorkoutExercise.plannedSets,
-              targetReps: goalTargets.targetReps,
-              exerciseName: currentExerciseName,
-              previousSets: currentWorkoutExercise.sets.slice(0, -1),
-              dayForm: overrides?.dayForm ?? dayForm,
-              weightStep: observedWeightStep,
-            });
-            return { strategy: toWireStrategy(decision.strategy), reason: decision.reason };
-          })()
+      currentWorkoutExercise?.completed && setsToday.length > 0
+        ? {
+            strategy: toWireStrategy("complete"),
+            reason: "Övningen är klar. Prata om nästa gång eller nästa övning, inte nästa set.",
+          }
+        : latestDecision
+        ? { strategy: toWireStrategy(latestDecision.strategy), reason: latestDecision.reason }
         : undefined;
 
     return {
@@ -6078,15 +6108,33 @@ async function sendChat() {
         failNote: set.failNote,
       })),
       currentCoachDecision: slimDecision,
-      progressionOpportunity: progressionPlan.opportunity
-        ? {
-            type: progressionPlan.opportunity.type,
-            confidence: progressionPlan.opportunity.confidence,
-            suggestedLoadText: `${progressionPlan.opportunity.suggestedWeight} kg`,
-            tone: progressionPlan.opportunity.tone,
-          }
-        : undefined,
-      heavierTestSet: progressionPlan.calibrationTestCandidate,
+      // Före första setet i övningen gäller planen ur historiken, samma som
+      // introt läser. Efter första setet gäller passets eget beslut och samma
+      // siffror som setrösten får — planen räknas då om med dagens set och
+      // blir en plan för nästa pass. Se getInSessionOpportunity.
+      progressionOpportunity:
+        setsToday.length > 0
+          ? latestDecision
+            ? getInSessionOpportunity({
+                exerciseName: currentExerciseName,
+                nextSetPlan: latestDecision,
+                isTimedSet:
+                  latestSetToday?.metricType === "time" || isTimedExercise(currentExerciseName),
+              })
+            : undefined
+          : progressionPlan.opportunity
+          ? {
+              type: progressionPlan.opportunity.type,
+              confidence: progressionPlan.opportunity.confidence,
+              suggestedLoadText: `${progressionPlan.opportunity.suggestedWeight} kg`,
+              tone: progressionPlan.opportunity.tone,
+            }
+          : undefined,
+      heavierTestSet: setsToday.length > 0 ? undefined : progressionPlan.calibrationTestCandidate,
+      nearestWeights:
+        latestSetToday && latestSetToday.weight > 0
+          ? getNearestWeights(latestSetToday.weight, currentExerciseName)
+          : undefined,
       // Samma personalRecords som avgör den blå PB-ramen på setsvaret. Läser
       // båda rösterna ur samma lagring kan de inte längre säga emot varandra.
       personalRecord: currentExerciseName
@@ -7365,18 +7413,7 @@ const coachSetContext = buildCoachSetContext({
   // samma 2,5 kg försumbart. Bara siffrorna: vad de betyder för just den här
   // övningen vet coachen redan bättre än vi kan skriva i en regel.
   nearestWeights:
-    weight > 0
-      ? {
-          up: snapObservedWeight(
-            getNextAvailableWeight(weight, currentExerciseName, "up"),
-            "up"
-          ),
-          down: snapObservedWeight(
-            getNextAvailableWeight(weight, currentExerciseName, "down"),
-            "down"
-          ),
-        }
-      : undefined,
+    weight > 0 ? getNearestWeights(weight, currentExerciseName) : undefined,
   limitations: userProfile?.limitations,
   recentHealthNotes: getRecentHealthNotes(coachMemory),
   recentWorkingWeights: formatRecentWorkingWeights(

@@ -257,6 +257,10 @@ export type CoachChatContext = {
   heavierTestSet?: {
     weight: string;
   };
+  // Närmaste vikt upp och ner som utrustningen har, från dagens senaste set.
+  // Samma siffror som setrösten får. Utan dem var planen för nästa pass den
+  // enda vikten chatten kunde hämta ett förslag ur.
+  nearestWeights?: { up: number; down: number };
   activePlan?: string[];
   activePlanExerciseInfo?: CoachExerciseLibraryInfo[];
   warmupNote?: string;

@@ -90,6 +90,10 @@ const LOBBY_COACH_SYSTEM = [
 const DAGENS_PASS_NOTE =
   "- dagensPass är hela passet, en rad per övning. Ett streck betyder att den inte är gjord än. Du ser alltså både vad som gjorts idag och vad som är kvar.";
 
+// Samma sak med nearestWeights: samma siffror till båda, samma beskrivning.
+const NEAREST_WEIGHTS_NOTE =
+  "- nearestWeights: närmaste vikt upp och ner som utrustningen faktiskt har. Det finns inget däremellan.";
+
 const SET_COACH_INSTRUCTION = [
   "Ditt uppdrag: förstå vad användaren faktiskt försöker uppnå. Hitta den minsta förändringen som löser situationen.",
   "",
@@ -118,7 +122,7 @@ const SET_COACH_INSTRUCTION = [
   // laga "15 × 2" och blev en inbjudan att alltid inleda med siffrorna.
   "- currentSet / previousSet: vikt, reps, RIR — fakta. setText är samma set färdigskrivet.",
   "- nextTarget: systemets förslag på nästa steg",
-  "- nearestWeights: närmaste vikt upp och ner som utrustningen faktiskt har. Det finns inget däremellan.",
+  NEAREST_WEIGHTS_NOTE,
   "- setPlan.plannedSetCount är övningens ursprungliga mål, setPlan.setsCompleted är vad som faktiskt är loggat just nu. De skiljer sig ibland (t.ex. tidigt avslut). Om du nämner antal set: utgå alltid från setsCompleted, aldrig plannedSetCount.",
   DAGENS_PASS_NOTE,
   "- personalRecordText: PB — reagera",
@@ -197,14 +201,15 @@ const CHAT_QUESTION_INSTRUCTION = [
   "- Läs recentConversation INNAN du svarar — det är ditt korttidsminne. Vad har du redan föreslagit? Vad avvisade användaren?",
   "- Om lastCoachMessageWasVideoFeedback är true: din senaste rad byggde på en video du tittade på en gång, som sedan raderades direkt — den går inte att se igen. Om användaren ber dig kolla igen, zooma in eller peka på något nytt i klippet: säg ärligt att du inte kan se det längre, och referera bara till vad du redan sa.",
   "- personalRecord är det stående personbästat i den aktuella övningen. Facit när frågan kommer — jämför aldrig mot senaste passet och kalla det ett PB. Saknas fältet finns inget registrerat bästa än; säg det istället för att räkna fram ett eget.",
-  "- Om användaren frågar om att höja och context.progressionOpportunity finns: använd den som facit.",
-  // Raden sa tidigare också "förklara kort att det är ett medvetet test (inte
-  // ett krav), och gör tydligt att ett lägre resultat än vanligt är helt okej".
-  // Coachen upprepade den nästan ordagrant i 6 av 6 svar: "Medvetet test, inte
-  // ett krav … helt okej." Utan meningen: 0 av 6, och i stället motiverar den
-  // med loggen — "Du har 8:or med RIR 3 på 80". Vikten stämde 6 av 6 båda
-  // gångerna (mätt 2026-09-12).
-  "- Om användaren själv säger att något känns för lätt, att de vill testa var gränsen går, eller liknande — och context.heavierTestSet finns: det räcker som skäl, oavsett vad passloggen i övrigt visar. Använd heavierTestSet.weight som facit. Finns heavierTestSet inte när de frågar om det: var ärlig om att det inte känns som läget än — hitta aldrig på en egen siffra istället.",
+  // Här stod två rader som gjorde motorns höjning till facit: "Om användaren
+  // frågar om att höja och context.progressionOpportunity finns: använd den
+  // som facit", och att heavierTestSet räckte som skäl "oavsett vad passloggen
+  // i övrigt visar". Efter benspark 55 × 17 med 2 kvar och "Kändes lätt" sa
+  // coachen 70 kg i 5 av 6 svar — siffran kom ur planen för nästa pass. När
+  // användaren ifrågasatte resonerade den ur setet och landade på 55. Nu får
+  // chatten passets eget beslut och nearestWeights, samma som setrösten, och
+  // resonerar själv (betatest och mätning 2026-09-21).
+  NEAREST_WEIGHTS_NOTE,
   "- Om context.currentExerciseCompleted är true: övningen är redan klar. Prata om nästa gång, inte nästa set. Be aldrig användaren köra ett set till om appen inte uttryckligen har ett nästa set.",
   "- Om currentExerciseInfo finns och användaren frågar om övningen: använd den som facit, men svara som coach, inte lexikon.",
   // Raden sa tidigare "bekräfta vad du tror användaren menar och säg nästa
