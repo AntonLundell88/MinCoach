@@ -7,7 +7,6 @@ import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
 import SetVideoReview from "./SetVideoReview";
 import VideoFeedbackInfoModal from "./VideoFeedbackInfoModal";
-import ToggleSwitch from "./ToggleSwitch";
 import { CameraGlyph, ChevronDownGlyph, ChevronLeftGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
   formatRestClock,
@@ -161,7 +160,8 @@ type Props = {
   showWarmupHint?: boolean;
   /** Sparad preferens från page.tsx — se autoStartRestTimer där. */
   autoStartRestTimer: boolean;
-  setAutoStartRestTimer: (value: boolean) => void;
+  /** När passets senaste set loggades. Se resumedRestStart. */
+  lastSetLoggedAt?: string;
   /**
    * Har användaren själv ändrat vikt/reps/RIR sedan siffrorna hamnade i
    * fälten? Falskt betyder att de kommer från något som redan hänt — förra
@@ -188,6 +188,18 @@ function getRestTime(exerciseName: string) {
 
 // Tio minuter. Längre än så är det inte en vila längre.
 const REST_AUTO_STOP_SECONDS = 600;
+
+// Vilan som pågick när vyn startade, räknad från senaste loggade set. Timern
+// fanns bara i komponentens minne: laddade telefonen om appen i bakgrunden var
+// vilan borta fast setet låg kvar (betatest 2026-09-21). Setets tid sparas
+// redan med passet, så den räcker som minne.
+function resumedRestStart(lastSetLoggedAt: string | undefined, autoStart: boolean) {
+  if (!autoStart || !lastSetLoggedAt) return null;
+  const loggedAt = Date.parse(lastSetLoggedAt);
+  if (!Number.isFinite(loggedAt)) return null;
+  const elapsedMs = Date.now() - loggedAt;
+  return elapsedMs >= 0 && elapsedMs < REST_AUTO_STOP_SECONDS * 1000 ? loggedAt : null;
+}
 
 function formatRestTimer(seconds: number) {
   const minutes = Math.floor(seconds / 60);
@@ -594,14 +606,16 @@ export default function WorkoutScreen({
   exerciseAlreadyIntroduced,
   showWarmupHint = false,
   autoStartRestTimer,
-  setAutoStartRestTimer,
+  lastSetLoggedAt,
   inputsTouched = false,
   previousWorkoutSummary,
   otherGymReference,
   recentHealthNotes,
   limitations,
 }: Props) {
-  const [showRestTimer, setShowRestTimer] = useState(false);
+  const [showRestTimer, setShowRestTimer] = useState(
+    () => resumedRestStart(lastSetLoggedAt, autoStartRestTimer) !== null
+  );
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showSwapExercise, setShowSwapExercise] = useState(false);
   const [addManualMode, setAddManualMode] = useState(false);
@@ -631,8 +645,13 @@ export default function WorkoutScreen({
   const [showVideoInfo, setShowVideoInfo] = useState(false);
   const [isNormalChatHistoryOpen, setIsNormalChatHistoryOpen] = useState(false);
   const normalChatCardRef = useRef<HTMLDivElement | null>(null);
-  const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
-  const [restElapsed, setRestElapsed] = useState(0);
+  const [restStartedAt, setRestStartedAt] = useState<number | null>(() =>
+    resumedRestStart(lastSetLoggedAt, autoStartRestTimer)
+  );
+  const [restElapsed, setRestElapsed] = useState(() => {
+    const resumed = resumedRestStart(lastSetLoggedAt, autoStartRestTimer);
+    return resumed === null ? 0 : Math.floor((Date.now() - resumed) / 1000);
+  });
   const [isInlineRestWidgetVisible, setIsInlineRestWidgetVisible] = useState(true);
   const inlineRestWidgetRef = useRef<HTMLButtonElement | null>(null);
   // Sant när användaren själv tryckt på den lilla "Vila"-rutan för att se
@@ -845,7 +864,11 @@ export default function WorkoutScreen({
       if (hideTimeout !== null) window.clearTimeout(hideTimeout);
       observer.disconnect();
     };
-  }, [showRestTimer]);
+    // chatFocusMode: fokusläget byter ut hela den vanliga vyn, rutan med.
+    // Utan beroendet bevakades rutan som fanns innan fokusläget, och den
+    // syntes aldrig igen — dockan låg kvar över "Lägg till set" och chatten
+    // även när vilorutan stod mitt på skärmen (betatest 2026-09-21).
+  }, [showRestTimer, chatFocusMode]);
 
   function endRest() {
     setRestStartedAt(null);
@@ -2146,14 +2169,22 @@ useEffect(() => {
               : "border-blue-400/20 bg-[#162032]/70 shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_16px_rgba(96,165,250,0.07)]"
           }`}
         >
+          {/* Dockan är vilorutans tvilling och säger samma korta ord. Här stod
+              också Starta med text och ett autostartreglage bredvid krysset:
+              kontrollerna tog 210 av 345 pixlar, "2 minuter" bröts över
+              knappen och "1:22 vilat" låg under den. Autostart är en
+              inställning man gör en gång, och den finns under Du → Under
+              passet. */}
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/60">
                 Vila
               </p>
-              <p className="mt-0.5 flex items-baseline gap-2">
+              <p className="mt-0.5 flex items-baseline gap-2 whitespace-nowrap">
                 <span
-                  className={`text-[26px] font-semibold leading-none tracking-tight tabular-nums ${
+                  className={`font-semibold leading-none tracking-tight tabular-nums ${
+                    restStartedAt === null ? "text-lg" : "text-[26px]"
+                  } ${
                     restTimerState === "ready"
                       ? "text-emerald-100"
                       : "text-white"
@@ -2173,12 +2204,12 @@ useEffect(() => {
                   </span>
                 )}
               </p>
-              <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+              <p className="mt-0.5 whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
                 {restStartedAt === null
                   ? "mål"
                   : restTimerState === "ready"
-                  ? "kör när du vill"
-                  : "kvar av vilan"}
+                  ? "kör"
+                  : "kvar"}
               </p>
             </div>
 
@@ -2186,27 +2217,25 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={restStartedAt ? restartRestTimer : startRestTimer}
-                className="workout-ai-action inline-flex items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/[0.14] px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-[#4f83ff]/[0.18]"
+                aria-label={restStartedAt ? "Börja om vilan" : "Starta vilan"}
+                className="workout-ai-action inline-flex h-9 w-11 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/[0.14] text-blue-100 transition hover:bg-[#4f83ff]/[0.18]"
               >
-                {restStartedAt ? <RotateGlyph className="h-5 w-5" /> : <><PlayGlyph className="h-5 w-5" /><span>Starta</span></>}
+                {restStartedAt ? <RotateGlyph className="h-5 w-5" /> : <PlayGlyph className="h-5 w-5" />}
               </button>
-              <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.035] px-2 py-1.5 text-[11px] font-semibold text-white/50">
-                <span>Autostart</span>
-                <ToggleSwitch
-                  checked={autoStartRestTimer}
-                  onChange={setAutoStartRestTimer}
-                  size="sm"
-                />
-              </div>
+              {/* Krysset döljer dockan, det stoppar inte vilan. Dockan är en
+                  genväg som dyker upp över sidan, och den trycker man bort för
+                  att komma åt det under. När krysset stoppade vilan försvann
+                  timern i båda lägena (betatest 2026-09-21). Att stoppa vilan
+                  finns vid fokuslägets timer, och efter tio minuter slutar
+                  den ändå av sig själv och släpper skärmlåset. */}
               <button
                 type="button"
                 onClick={() => {
-                  endRest();
                   setShowRestTimer(false);
                   setRestDockForcedOpen(false);
                 }}
-                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.07] text-sm font-semibold text-white/52 transition hover:bg-white/[0.10] hover:text-white"
-                aria-label="Avsluta vilan"
+                className="tryckyta flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.07] text-sm font-semibold text-white/52 transition hover:bg-white/[0.10] hover:text-white"
+                aria-label="Dölj vilan"
               >
                 <CloseGlyph className="h-4 w-4" />
               </button>

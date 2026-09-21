@@ -8943,10 +8943,12 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName, aiStatus) =>
         // ingen texten igen, fast vanan att logga uppvärmning inte går över.
         showWarmupHint={!workout?.exercises.some((exercise) => exercise.sets.length > 0)}
         autoStartRestTimer={autoStartRestTimer}
-        setAutoStartRestTimer={(value) => {
-          setAutoStartRestTimer(value);
-          saveJSON("autoStartRestTimer", value);
-        }}
+        lastSetLoggedAt={workout.exercises
+          .flatMap((exercise) => exercise.sets)
+          .reduce<string | undefined>(
+            (latest, set) => (!latest || set.createdAt > latest ? set.createdAt : latest),
+            undefined
+          )}
         inputsTouched={inputsTouched}
         validateSetWeight={(weight) => {
           if (isBodyweightExercise(currentExerciseName) || isTimedExercise(currentExerciseName)) return null;
