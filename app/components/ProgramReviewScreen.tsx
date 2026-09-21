@@ -941,13 +941,13 @@ export default function ProgramReviewScreen({
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-200/70">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#93c5fd]">
                     Liknande övningar
                   </p>
-                  <h3 className="mt-1 text-base font-semibold text-white">
+                  <h3 className="mt-1 text-base font-semibold text-[#f5f7fb]">
                     Byt {cleanProgramCopy(alternativeTarget.exerciseName)}
                   </h3>
-                  <p className="mt-1 text-xs leading-5 text-white/48">
+                  <p className="mt-1 text-xs leading-5 text-[#9aa4b2]">
                     Välj ett alternativ som passar bättre på ditt gym.
                   </p>
                 </div>
@@ -955,7 +955,7 @@ export default function ProgramReviewScreen({
                   type="button"
                   onClick={() => setAlternativeTarget(null)}
                   aria-label="Stäng alternativ"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.07] text-white/48 transition hover:bg-white/[0.10] hover:text-white"
+                  className="tryckyta flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.07] text-[#9aa4b2] transition hover:bg-white/[0.10] hover:text-[#f5f7fb]"
                 >
                   <CloseGlyph className="h-4 w-4" />
                 </button>
