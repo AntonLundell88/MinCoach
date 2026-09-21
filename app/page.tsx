@@ -4932,7 +4932,7 @@ async function askProgramCoach(message: string) {
 }
 
 const PROGRAM_CHECKIN_OPENER =
-  "Redo att köra igång tillsammans, eller något du undrar över först?";
+  "Säg bara till om något skaver — en övning du inte gillar, något som gör ont, eller om passen känns för långa.";
 
 useEffect(() => {
   if (!userProfile || !showProgramReview || !workoutPlan) return;

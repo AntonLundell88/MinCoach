@@ -1265,10 +1265,10 @@ export default function ProgramReviewScreen({
           {!isManualBuilder ? (
             <div className="program-coach-nudge mt-3 rounded-2xl px-3.5 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-200/72">
-                Behöver något justeras?
+                Vill du ändra något?
               </p>
               <p className="mt-1 text-sm leading-5 text-white/66">
-                Prata med coachen längst ner. Den pekar på rätt övning — du gör ändringen själv med knapparna i passen.
+                Skriv till coachen längst ner på sidan.
               </p>
             </div>
           ) : null}
@@ -2182,10 +2182,10 @@ export default function ProgramReviewScreen({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/60">
-                Prata med coachen
+                Vill du ändra något?
               </p>
               <p className="mt-2 text-sm leading-6 text-white/66">
-                Coachen svarar och pekar på var du gör ändringen — du trycker själv på knappen vid övningen.
+                Helt okej. Skriv vad du vill byta eller undrar över, så hjälper coachen dig. Inget ändras utan att du själv gör det.
               </p>
             </div>
             <button
@@ -2306,6 +2306,9 @@ export default function ProgramReviewScreen({
             >
               Ändra mina svar
             </button>
+            <p className="px-1 text-center text-xs leading-5 text-white/55">
+              Här ändrar du mål, dagar och tid. Påverkar det schemat får du frågan innan något byggs om.
+            </p>
           </div>
         </section>
         )}
