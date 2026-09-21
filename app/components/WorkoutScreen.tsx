@@ -7,7 +7,7 @@ import SetList from "./SetList";
 import CoachPanel from "./CoachPanel";
 import SetVideoReview from "./SetVideoReview";
 import VideoFeedbackInfoModal from "./VideoFeedbackInfoModal";
-import { CameraGlyph, ChevronDownGlyph, ChevronLeftGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
+import { CameraGlyph, ChevronLeftGlyph, CloseGlyph, DoubleChevronDownGlyph, PlayGlyph, RotateGlyph } from "./IconGlyphs";
 import {
   formatRestClock,
   formatRestProse,
@@ -32,13 +32,12 @@ type ExerciseActionResult = { handled: boolean; message?: string };
 
 type Props = {
   progression: { weight: number; reps: number; rir?: number | null; failNote?: string | null }[];
+  /** Förra passet i övningen på gymmet du står i — samma set som introt läser. */
   previousExerciseSets: {
-    createdAt: string;
     weight: number;
     reps: number;
     durationSeconds?: number;
     metricType?: "reps" | "time";
-    rir?: number;
   }[];
   progressionPlan: {
     weight: string;
@@ -222,28 +221,28 @@ function formatWeightLabel(weight: number) {
   return Number(weight.toFixed(2)).toString().replace(".", ",");
 }
 
-function formatPreviousSetLabel(
+// Ett set i förra passet, kort nog för att hela passet ska få plats på en rad
+// i kortet: "150 × 10 · 140 × 10 · 140 × 10". Hårda mellanslag inne i setet,
+// så att raden bara bryts vid punkterna och aldrig mitt i "55 × 14".
+function formatLastSessionSet(
   exerciseName: string,
   set: Props["previousExerciseSets"][number]
 ) {
   const isTimed = set.metricType === "time" || isTimedExercise(exerciseName);
+  const text = (() => {
+    if (isTimed) {
+      const time = formatDurationLabel(set.durationSeconds ?? 0);
+      return Number.isFinite(set.weight) && set.weight > 0
+        ? `${time} + ${formatWeightLabel(set.weight)} kg`
+        : time;
+    }
 
-  if (isTimed) {
-    const time = formatDurationLabel(set.durationSeconds ?? 0);
-    const load =
-      Number.isFinite(set.weight) && set.weight > 0
-        ? ` + ${formatWeightLabel(set.weight)} kg`
-        : "";
-
-    return `${time}${load}`;
-  }
-
-  const base =
-    Number.isFinite(set.weight) && set.weight > 0
-      ? `${formatWeightLabel(set.weight)} kg x ${set.reps}`
+    return Number.isFinite(set.weight) && set.weight > 0
+      ? `${formatWeightLabel(set.weight)} × ${set.reps}`
       : `${set.reps} reps`;
+  })();
 
-  return typeof set.rir === "number" ? `${base} · RIR ${set.rir}` : base;
+  return text.replace(/ /g, " ");
 }
 
 // Intervallet kommer från biblioteket (exercises.ts) så att timern och texten
@@ -639,7 +638,6 @@ export default function WorkoutScreen({
   const [exerciseCardHasPendingConfirm, setExerciseCardHasPendingConfirm] = useState(false);
   const [showExerciseInfo, setShowExerciseInfo] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-  const [showForraGangen, setShowForraGangen] = useState(false);
   const [chatFocusMode, setChatFocusMode] = useState(false);
   const [showVideoReview, setShowVideoReview] = useState(false);
   const [showVideoInfo, setShowVideoInfo] = useState(false);
@@ -742,6 +740,19 @@ export default function WorkoutScreen({
     !currentExerciseReadyToFinish &&
     (Boolean(nextWeightLabel) || Boolean(currentMetricLabel));
 
+  // Hela förra passet på gymmet du står i, innan du loggat eller rört något
+  // idag. Kortet sa "Senast 140 kg" — sista setet förra gången, ett lättare
+  // avslut — medan coachen sa "du var till stopp på 150 sist" om setet före.
+  // Båda stämde men handlade om olika set (betatest 2026-09-21). Nu står samma
+  // set som coachen läser, och den hopfällda rutan "Förra gången" längre ner
+  // är borta: den läste dessutom alla gym.
+  const lastSessionLine =
+    currentSets.length === 0 && !inputsTouched && !currentExerciseReadyToFinish
+      ? previousExerciseSets
+          .map((set) => formatLastSessionSet(currentExerciseName, set))
+          .join(" · ")
+      : "";
+
   // Etiketten följer var siffrorna kommer ifrån. "Nästa set" lovade framtid och
   // innehöll dåtid: förra veckans vikt, reps och RIR, ibland från ett annat
   // gym, samtidigt som coachen bad om något annat.
@@ -754,6 +765,8 @@ export default function WorkoutScreen({
     ? "Klar"
     : inputsTouched
     ? "Ditt set"
+    : lastSessionLine
+    ? "Förra gången"
     : // "Senast" förutsätter att det FINNS ett senast. På en övning utan
       // historik stod det "Senast — Logga första setet", vilket säger emot sig
       // självt. Utan siffror finns inget att missförstå, så där duger den gamla
@@ -1122,11 +1135,17 @@ useEffect(() => {
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-100/60">
               {setSourceLabel}
             </p>
-            <p className="mt-0.5 truncate text-lg font-bold text-white">
+            <p
+              className={`mt-0.5 text-lg font-bold text-white ${
+                lastSessionLine ? "line-clamp-2 tabular-nums" : "truncate"
+              }`}
+            >
               {currentExerciseReadyToFinish
                 ? isLastExercise
                   ? "Passet kan avslutas"
                   : "Gå vidare när du är redo"
+                : lastSessionLine
+                ? lastSessionLine
                 : hasNextPrescription
                 ? [nextWeightLabel, currentMetricLabel, nextRirLabel].filter(Boolean).join(" · ")
                 : "Logga första setet"}
@@ -1536,6 +1555,10 @@ useEffect(() => {
               <p className="mt-1 text-sm font-semibold leading-5 text-white">
                 {isLastExercise ? "Passet kan avslutas" : "Gå vidare när du är redo"}
               </p>
+            ) : lastSessionLine ? (
+              <p className="mt-1.5 text-[15px] font-semibold leading-snug tabular-nums text-white">
+                {lastSessionLine}
+              </p>
             ) : hasNextPrescription ? (
               <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                 {nextWeightLabel && (
@@ -1700,41 +1723,6 @@ useEffect(() => {
             </div>
           );
         })()}
-
-        {/* Förra gången — collapsible */}
-        {previousExerciseSets.length > 0 ? (
-          <div className="workout-history-card mt-2 rounded-2xl border border-white/[0.09] bg-white/[0.035] px-3 py-2.5">
-            <button
-              type="button"
-              onClick={() => setShowForraGangen((v) => !v)}
-              className="flex w-full items-center justify-between gap-2"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100/55">
-                Förra gången
-              </p>
-              <ChevronDownGlyph
-                className={`h-3.5 w-3.5 text-white/38 transition-transform duration-200 ${showForraGangen ? "rotate-180" : ""}`}
-              />
-            </button>
-            {showForraGangen && (
-              <div className="mt-2 space-y-1.5">
-                {previousExerciseSets.map((set, index) => (
-                  <div
-                    key={`${set.createdAt}-${index}`}
-                    className="flex items-center justify-between gap-3 text-sm"
-                  >
-                    <span className="shrink-0 text-xs font-semibold text-white/38">
-                      Set {index + 1}
-                    </span>
-                    <span className="min-w-0 text-right font-semibold text-white/86">
-                      {formatPreviousSetLabel(currentExerciseName, set)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : null}
 
         {/* Set history for this session */}
         <SetList currentSets={currentSets} exerciseName={currentExerciseName} onEditSet={updateSet} validateWeight={validateSetWeight} />

@@ -804,38 +804,6 @@ function getExerciseProgression(
   return getExerciseBestSets(history, exerciseName, 3);
 }
 
-function getPreviousExerciseSets(
-  history: Workout[],
-  exerciseName: string
-) {
-  const key = exerciseKey(exerciseName);
-  const workouts = [...history].sort(
-    (a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt)
-  );
-  const matches: LoggedExercise[] = [];
-
-  for (const workout of workouts) {
-    const exercise = workout.exercises.find(
-      (item) => exerciseKey(item.name) === key
-    );
-
-    if (exercise?.sets.length) matches.push(exercise);
-  }
-
-  const completedMatch = matches.find(
-    (exercise) =>
-      typeof exercise.plannedSets === "number" &&
-      exercise.plannedSets > 1 &&
-      exercise.sets.length >= exercise.plannedSets
-  );
-
-  if (completedMatch) return completedMatch.sets;
-
-  const usefulMatch = matches.find((exercise) => exercise.sets.length > 1);
-
-  return usefulMatch?.sets ?? matches[0]?.sets ?? [];
-}
-
 function isHardOrFailedSet(set: ExerciseBestSet) {
   if (set.failNote) return true;
   return typeof set.rir === "number" && set.rir <= 0;
@@ -5143,11 +5111,6 @@ const goalTargets = useMemo(() => {
   return getGoalTargets(userProfile?.goalPrimary ?? "muskel");
 }, [userProfile]);
 
-const previousExerciseSets = useMemo(() => {
-  if (!currentExerciseName) return [];
-
-  return getPreviousExerciseSets(history, currentExerciseName);
-}, [history, currentExerciseName]);
 
 // Första passet på ett nytt gym ska ge TOM historik, inte hela historiken.
 // Raden här föll tidigare tillbaka på allt när gymmet saknade pass, så
@@ -5192,14 +5155,18 @@ const getNearestWeights = (weight: number, exerciseName: string) => ({
   down: snapObservedWeight(getNextAvailableWeight(weight, exerciseName, "down"), "down"),
 });
 
-const lastSessionSetsAtGym = useMemo(() => {
+// Seten som de loggades, till kortets "Förra gången". Introt får samma set
+// färdigskrivna nedan, så kortet och coachen pratar alltid om samma pass.
+const lastSessionRawAtGym = useMemo(() => {
   if (!currentExerciseName) return [];
 
   const logged = lastSessionSetsByExercise(gymFilteredHistory, currentExerciseName);
   const stored = lastAtCurrentGym[exerciseKey(currentExerciseName)];
-  const sets = logged.length ? logged : stored ? [stored] : [];
+  return logged.length ? logged : stored ? [stored] : [];
+}, [gymFilteredHistory, currentExerciseName, lastAtCurrentGym]);
 
-  return sets.map((set) => ({
+const lastSessionSetsAtGym = useMemo(() => {
+  return lastSessionRawAtGym.map((set) => ({
     setText: formatLoggedSetText({
       exerciseName: currentExerciseName,
       weight: set.weight,
@@ -5210,7 +5177,7 @@ const lastSessionSetsAtGym = useMemo(() => {
     }),
     failNote: set.failNote ?? null,
   }));
-}, [gymFilteredHistory, currentExerciseName, lastAtCurrentGym]);
+}, [lastSessionRawAtGym, currentExerciseName]);
 
 const otherGymReference = useMemo(() => {
   if (!currentExerciseName) return undefined;
@@ -9034,7 +9001,7 @@ addCoachMessage={(text, eventKey, source = "engine", exerciseName, aiStatus) =>
         finishWorkout={finishWorkout}
         personalRecords={personalRecords}
         progression={progression}
-        previousExerciseSets={previousExerciseSets}
+        previousExerciseSets={lastSessionRawAtGym}
         progressionPlan={progressionPlan}
         plannedWeightKg={systemSuggestedWeightRef.current}
         plannedReps={systemSuggestedRepsRef.current}
