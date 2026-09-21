@@ -75,7 +75,16 @@ export function snapSuggestedWeight(args: {
   const { weight, from, step } = args;
   if (!Number.isFinite(weight) || !Number.isFinite(from) || weight === from) return weight;
 
-  const snapped = snapWeightToStep(weight, step, "nearest");
+  // Exakt mitt emellan två steg väljs steget närmast vikten vi utgår från.
+  // Förslaget har redan avrundats en gång till schablonens 2,5, så mitten är
+  // en avrundningsrest, inte ett mål. Math.round tog alltid det tyngre:
+  // benspark 55 × 17 med 2 kvar gav +22,5 % = 67,375, avrundat 67,5 och sedan
+  // 70 på gymmets 5-steg, fast 67,375 ligger närmast 65 (betatest 2026-09-21).
+  const factor = weight / step;
+  const isMidway = Math.abs(factor - Math.floor(factor) - 0.5) < 0.0001;
+  const snapped = isMidway
+    ? snapWeightToStep(weight, step, weight > from ? "down" : "up")
+    : snapWeightToStep(weight, step, "nearest");
 
   if (weight > from && snapped <= from) {
     return snapWeightToStep(from + step, step, "up");
