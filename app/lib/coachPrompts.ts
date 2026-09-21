@@ -35,8 +35,11 @@ const MEMORY_PRECEDENCE_RULE =
 const HEALTH_NOTES_PRECEDENCE_RULE =
   "limitations är vad användaren angav vid start (skador, begränsningar, oro) och kan vara gammal. recentHealthNotes är skador eller besvär nämnda senare, i tidsordning (äldst först), med daysAgo och vilken övning det gällde. Om de säger emot varandra vinner alltid det senaste — säger den sista raden att ett besvär är bättre eller helt borta, lita på det och sluta vara försiktig eller bygga runt det av gammal vana. Har användaren inte tagit upp besväret nu: gör klart att det är något du minns sen tidigare — fråga hur det känns idag snarare än att anta att det gör ont.";
 
+// "på gymmet användaren står på": listan har alltid varit gymfiltrerad, men
+// det stod ingenstans. Med gymmets namn i kontexten svarade chatten ändå att
+// den inte hade "gymmet kopplat till de gamla seten" (mätt 2026-09-21).
 const RECENT_WORKING_WEIGHTS_NOTE =
-  "recentWorkingWeights visar de faktiska arbetsvikterna från senaste passen på den här övningen, i tidsordning (äldst först).";
+  "recentWorkingWeights visar de faktiska arbetsvikterna i den här övningen från senaste passen på gymmet användaren står på, i tidsordning (äldst först).";
 
 const RECOVERY_CONTEXT_NOTE =
   "recoveryContext.exerciseLastTrainedDays gäller bara den aktuella övningen. Om den är null finns ingen tidigare logg av just den övningen i historiken — det betyder INTE att det varit ett uppehåll, det kan lika gärna vara första gången du ser den. Nämn aldrig hur länge sen en övning kördes om inte exerciseLastTrainedDays faktiskt har ett tal. recoveryContext.previousSession beskriver hela förra passet oavsett övning — blanda inte ihop det med hur ofta just den aktuella övningen körs.";

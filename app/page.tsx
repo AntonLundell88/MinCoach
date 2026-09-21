@@ -6129,6 +6129,13 @@ async function sendChat() {
         latestSetToday && latestSetToday.weight > 0
           ? getNearestWeights(latestSetToday.weight, currentExerciseName)
           : undefined,
+      gymComparison: buildGymComparison({
+        history,
+        currentGymId: activeGymId,
+        currentGymName: gym,
+        gyms,
+      }),
+      otherGymReference,
       // Samma personalRecords som avgör den blå PB-ramen på setsvaret. Läser
       // båda rösterna ur samma lagring kan de inte längre säga emot varandra.
       personalRecord: currentExerciseName

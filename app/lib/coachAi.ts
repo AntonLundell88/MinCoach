@@ -261,6 +261,12 @@ export type CoachChatContext = {
   // Samma siffror som setrösten får. Utan dem var planen för nästa pass den
   // enda vikten chatten kunde hämta ett förslag ur.
   nearestWeights?: { up: number; down: number };
+  // Samma gymfakta som setrösten. Chatten hade inget gym alls: på "Var det i
+  // Gråbo?" svarade den att den inte hängde med, och höll sedan med både om
+  // Gråbo och Almedal (betatest 2026-09-21). Med gymmets namn svarade den
+  // rätt i 5 av 6 och höll med om fel gym i 0 av 6.
+  gymComparison?: CoachSetContext["gymComparison"];
+  otherGymReference?: CoachSetContext["otherGymReference"];
   activePlan?: string[];
   activePlanExerciseInfo?: CoachExerciseLibraryInfo[];
   warmupNote?: string;
