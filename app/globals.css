@@ -288,8 +288,11 @@ html[data-theme="light"],
   --mc-soft-blue: rgba(47, 109, 246, 0.085);
 }
 
-[data-theme="dark"] .workout-status-panel,
-[data-theme="dark"] .exercise-card-shell {
+/* .exercise-card-shell stod med i de här ytreglerna, i båda teman. Kortet
+   används bara inbäddat i passpanelen och ska inte ha en egen yta: den lade
+   en andra toning med skugga och fyrkantiga hörn rakt under det rundade
+   kortet ovanför. Reglerna för fält och knappar inuti skalet står kvar. */
+[data-theme="dark"] .workout-status-panel {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.018)) !important;
   border-color: var(--mc-border) !important;
@@ -331,7 +334,6 @@ html[data-theme="light"],
 }
 
 [data-theme="light"] .workout-status-panel,
-[data-theme="light"] .exercise-card-shell,
 [data-theme="light"] .coach-panel-shell {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(250, 247, 240, 0.56)) !important;
@@ -519,8 +521,7 @@ html[data-theme="light"],
 
 [data-theme="light"] .coach-panel-shell,
 [data-theme="light"] .coach-message,
-[data-theme="light"] .workout-status-panel,
-[data-theme="light"] .exercise-card-shell {
+[data-theme="light"] .workout-status-panel {
   background: linear-gradient(180deg, var(--mc-surface-strong), var(--mc-surface)) !important;
   border-color: var(--mc-border) !important;
   box-shadow: var(--mc-shadow) !important;
@@ -623,8 +624,7 @@ html[data-theme="light"],
 
 /* Workout light palette v2: closer to the warm program builder surfaces. */
 [data-theme="light"] .coach-panel-shell,
-[data-theme="light"] .workout-status-panel,
-[data-theme="light"] .exercise-card-shell {
+[data-theme="light"] .workout-status-panel {
   background:
     linear-gradient(180deg, rgba(255, 254, 250, 0.94), rgba(248, 245, 238, 0.84)) !important;
   border-color: rgba(82, 69, 51, 0.13) !important;
@@ -1029,8 +1029,7 @@ main[data-theme="light"]:has(.workout-screen-shell) > div:not([class*="fixed"]) 
 }
 
 [data-theme="light"] .workout-screen-shell .coach-panel-shell,
-[data-theme="light"] .workout-screen-shell .workout-status-panel,
-[data-theme="light"] .workout-screen-shell .exercise-card-shell {
+[data-theme="light"] .workout-screen-shell .workout-status-panel {
   background:
     linear-gradient(180deg, var(--mc-wellness-surface), var(--mc-wellness-surface-soft)) !important;
   border-color: var(--mc-wellness-border) !important;
@@ -1170,7 +1169,6 @@ main[data-theme="light"]:has(.workout-screen-shell) {
 [data-theme="light"] .workout-screen-shell :is(
   .coach-panel-shell,
   .workout-status-panel,
-  .exercise-card-shell,
   .workout-focus-card,
   .workout-navigation
 ) {
