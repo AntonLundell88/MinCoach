@@ -11,6 +11,7 @@ type ChatMessage = {
   setNumber?: number;
   exerciseName?: string;
   source?: "engine" | "llm" | "fallback" | "video" | "event";
+  aiStatus?: "fallback";
   highlight?: boolean;
   emphasis?: boolean;
 };
@@ -353,10 +354,15 @@ export default function CoachPanel({
                 <div className="mb-1 flex items-center gap-1.5">
                   {m.role === "coach" && m.source === "video" ? (
                     <CameraGlyph className="h-3 w-3 shrink-0 text-blue-300/75" />
-                  ) : m.role === "coach" && m.source ? (
+                  ) : m.role === "coach" && (m.source || m.aiStatus === "fallback") ? (
+                    /* Gul är motorns text. Setsvar har ingen source, bara
+                       aiStatus när de är reservtext, så ett setsvar som var
+                       mallen såg ut precis som coachens (betatest 2026-09-21). */
                     <span
                       className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        m.source === "llm" ? "bg-blue-400/70" : "bg-yellow-400/70"
+                        m.source === "llm" && m.aiStatus !== "fallback"
+                          ? "bg-blue-400/70"
+                          : "bg-yellow-400/70"
                       }`}
                     />
                   ) : null}

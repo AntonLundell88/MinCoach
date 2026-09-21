@@ -822,6 +822,79 @@ export async function requestAiCoachSetVideoReply(args: {
   }
 }
 
+/**
+ * Skickar ett anrop till en coachröst och gör om det en gång om det dör utan
+ * svar.
+ *
+ * Betatestet 2026-09-21 gav tre reservtexter på ett pass: introt till
+ * benspark, svaret på sista setet och sammanfattningen. De två som loggades
+ * var network_error — fetch kastade, inget svar alls — och båda rapporterades
+ * i samma stund som skärmen tändes igen, med fungerande nät. Troligast låstes
+ * telefonen medan coachen tänkte, och då dör anropet.
+ *
+ * Syns appen igen görs anropet om. Ett avbrutet anrop görs aldrig om, och går
+ * det nya också fel faller rösten tillbaka som förut. Ett svar med felkod görs
+ * inte om: då kom servern fram, och ett nytt försök kan ta lika lång tid.
+ */
+async function postCoachJson(url: string, body: unknown, signal?: AbortSignal) {
+  const send = () =>
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+  try {
+    return await send();
+  } catch (error) {
+    if (isAbortError(error) || signal?.aborted) throw error;
+    await waitUntilVisible(signal);
+    return send();
+  }
+}
+
+// En sekund efter att appen syns: nätet behöver ofta ett ögonblick efter att
+// skärmen tänts. Syns appen redan är det samma paus.
+function waitUntilVisible(signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (typeof document === "undefined") {
+      resolve();
+      return;
+    }
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const cleanup = () => {
+      if (timer !== null) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      signal?.removeEventListener("abort", onAbort);
+    };
+    const armTimer = () => {
+      if (timer !== null) clearTimeout(timer);
+      timer = setTimeout(() => {
+        cleanup();
+        resolve();
+      }, 1000);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        armTimer();
+      } else if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    if (document.visibilityState === "visible") armTimer();
+  });
+}
+
 export async function requestAiCoachSetReply(args: {
   context: CoachSetContext;
   fallbackReply: string;
@@ -838,17 +911,7 @@ export async function requestAiCoachSetReply(args: {
   };
 
   try {
-    const response = await fetch("/api/coach/set", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        context,
-        fallbackReply,
-      }),
-      signal,
-    });
+    const response = await postCoachJson("/api/coach/set", { context, fallbackReply }, signal);
 
     if (!response.ok) {
       return {
@@ -892,17 +955,7 @@ export async function requestAiCoachChatReply(args: {
   );
 
   try {
-    const response = await fetch("/api/coach/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        context,
-        fallbackReply,
-      }),
-      signal,
-    });
+    const response = await postCoachJson("/api/coach/chat", { context, fallbackReply }, signal);
 
     if (!response.ok) {
       return {
@@ -959,17 +1012,11 @@ export async function requestAiCoachExerciseIntro(args: {
   );
 
   try {
-    const response = await fetch("/api/coach/exercise-intro", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        context,
-        fallbackReply,
-      }),
-      signal,
-    });
+    const response = await postCoachJson(
+      "/api/coach/exercise-intro",
+      { context, fallbackReply },
+      signal
+    );
 
     if (!response.ok) {
       return {
@@ -1353,17 +1400,7 @@ export async function requestAiWorkoutReview(args: {
   const { context, fallbackReview, signal } = args;
 
   try {
-    const response = await fetch("/api/coach/review", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        context,
-        fallbackReview,
-      }),
-      signal,
-    });
+    const response = await postCoachJson("/api/coach/review", { context, fallbackReview }, signal);
 
     if (!response.ok) {
       return {

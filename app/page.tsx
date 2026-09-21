@@ -4062,11 +4062,12 @@ function buildCoachMessage(args: {
       ]);
     }
 
+    // Här sa varje gren att övningen var klar två gånger och avslutade med
+    // "Tryck Nästa övning när du är redo" — som upprepade knappen och stod
+    // kvar även på passets sista övning, där knappen heter något annat.
+    // Motorns reason säger redan att övningen är klar (betatest 2026-09-21).
     if (hasPayoff) {
-      return coachResponse([
-        `${exerciseName} är klar för idag.`,
-        "Tryck Nästa övning när du är redo.",
-      ]);
+      return coachResponse([`${exerciseName} är klar för idag.`]);
     }
 
     if (fail || rir <= 0) {
@@ -4076,17 +4077,10 @@ function buildCoachMessage(args: {
         hasPreviousSet
           ? "Du fick ut det vi behövde utan att pressa vidare i onödan."
           : "Det räcker för idag.",
-        `${exerciseName} är klar för idag.`,
-        "Tryck Nästa övning när du är redo.",
       ]);
     }
 
-    return coachResponse([
-      "Snyggt. Den här övningen är klar för idag.",
-      currentText,
-      nextSetPlan.reason,
-      "Tryck Nästa övning när du är redo.",
-    ]);
+    return coachResponse(["Snyggt.", currentText, nextSetPlan.reason]);
   }
 
   if (fail) {
@@ -8438,6 +8432,11 @@ void requestAiWorkoutReview({
   },
   fallbackReview: getReviewCoachParts(review),
 }).then((response) => {
+  // Sammanfattningen var den enda coachrösten som föll tillbaka utan att det
+  // syntes någonstans (betatest 2026-09-21: mallen ord för ord, ingen rad i
+  // loggen). Passet är redan avslutat här, så fyndet går direkt och inte via
+  // passets händelser.
+  if (response.mode !== "ai") reportAiFallback("review", response.reason);
   const finalReview =
     response.mode === "ai"
       ? applyReviewCoachParts(review, response.review)
