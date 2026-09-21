@@ -101,7 +101,9 @@ function getSetScore(set: LoggedSet) {
     return (set.durationSeconds ?? 0) + set.weight * 0.1;
   }
 
-  return set.weight * set.reps;
+  // Tyngst först, reps avgör lika vikt — samma som sammanfattningens
+  // "Tyngsta set". Här stod vikt × reps, och raden hette "Bästa set".
+  return set.weight * 1000 + set.reps;
 }
 
 function getBestSet(exercises: LoggedExercise[]) {
@@ -285,7 +287,9 @@ export default function HistoryScreen({
                   }`,
                 ],
                 [
-                  "Bästa set",
+                  // Tyngst över alla övningar, inte bäst — samma etikett som
+                  // sammanfattningen sedan 2026-09-21.
+                  "Tyngsta set",
                   bestSet
                     ? `${bestSet.exerciseName} · ${getSetLabel(bestSet)}`
                     : selected.summary?.bestSetText ?? "-",

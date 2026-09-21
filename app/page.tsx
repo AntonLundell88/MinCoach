@@ -3421,10 +3421,17 @@ function getInSessionOpportunity(args: {
 
   if (!opportunity) return undefined;
 
+  // Testsetens vikt kommer som "57.5" (formatWeightInput, för fälten). Till
+  // coachen går den som i setText, "57,5 kg" — introt skrev annars "62.5 kg är
+  // nära", samma fel som "97.5" i otherGymReference 2026-09-16.
+  const suggestedLoadText = /^\d+(\.\d+)?$/.test(opportunity.suggestedWeight)
+    ? formatNextLoadText(args.exerciseName, Number(opportunity.suggestedWeight))
+    : opportunity.suggestedWeight;
+
   return {
     type: opportunity.type,
     confidence: opportunity.confidence,
-    suggestedLoadText: opportunity.suggestedWeight,
+    suggestedLoadText,
     tone: opportunity.tone,
   };
 }
@@ -6089,11 +6096,21 @@ async function sendChat() {
           ? {
               type: progressionPlan.opportunity.type,
               confidence: progressionPlan.opportunity.confidence,
-              suggestedLoadText: `${progressionPlan.opportunity.suggestedWeight} kg`,
+              suggestedLoadText: formatNextLoadText(
+                currentExerciseName,
+                Number(progressionPlan.opportunity.suggestedWeight)
+              ),
               tone: progressionPlan.opportunity.tone,
             }
           : undefined,
-      heavierTestSet: setsToday.length > 0 ? undefined : progressionPlan.calibrationTestCandidate,
+      heavierTestSet:
+        setsToday.length > 0 || !progressionPlan.calibrationTestCandidate
+          ? undefined
+          : {
+              weight: formatCoachWeight(
+                Number(progressionPlan.calibrationTestCandidate.weight)
+              ),
+            },
       nearestWeights:
         latestSetToday && latestSetToday.weight > 0
           ? getNearestWeights(latestSetToday.weight, currentExerciseName)
@@ -8264,7 +8281,12 @@ function buildWorkoutSummary(w: Workout) {
     const newHistory = hasLoggedSets
       ? [workoutWithSummary, ...history].slice(0, 50) // spara senaste 50 pass
       : history;
-    const progressionComparison = getWorkoutComparison(newHistory);
+    // Utan set i dagens pass jämförde den här de två senaste passen i
+    // historiken, och mallen sa "Du tog steg framåt i Benpress" om ett pass där
+    // ingenting loggades.
+    const progressionComparison = hasLoggedSets
+      ? getWorkoutComparison(newHistory)
+      : { improved: [], same: [], worse: [] };
 
     if (hasLoggedSets) {
       setHistory(newHistory);

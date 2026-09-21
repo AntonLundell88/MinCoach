@@ -530,7 +530,8 @@ function buildExerciseIntroAiContext(args: {
       progressionPlan.opportunity && topSet && baseWeight === topSet.weight
         ? {
             type: progressionPlan.opportunity.type,
-            suggestedWeight: progressionPlan.opportunity.suggestedWeight,
+            // "62.5" från fältformatet blev "62.5 kg är nära" i introt.
+            suggestedWeight: formatWeightLabel(Number(progressionPlan.opportunity.suggestedWeight)),
           }
         : undefined,
     sessionsAtTopWeight: progressionPlan.sessionsAtTopWeight,
