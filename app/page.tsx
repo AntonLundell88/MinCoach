@@ -363,6 +363,8 @@ type WorkoutReview = {
   totalVolumeKg: number;
   totalVolumeText: string;
   bestSetText: string;
+  /** Dagens personbästan. Se personalRecordsToday i finishWorkout. */
+  personalRecordsToday?: Array<{ exerciseName: string; text: string }>;
   coachHeadline: string;
   coachSummary: string;
   positives: string[];
@@ -7946,8 +7948,9 @@ function buildWorkoutReview(args: {
     worse: string[];
   };
   videoNotes?: Array<{ exerciseName: string; text: string }>;
+  personalRecordsToday?: Array<{ exerciseName: string; text: string }>;
 }): WorkoutReview {
-  const { workout, summary, progression, videoNotes = [] } = args;
+  const { workout, summary, progression, videoNotes = [], personalRecordsToday = [] } = args;
   const coachMemoryTakeaway: string[] = [];
 
   const allSets = workout.exercises.flatMap((ex) => ex.sets);
@@ -7989,8 +7992,13 @@ function buildWorkoutReview(args: {
     );
   }
 
-  if (summary.bestSetText && summary.bestSetText !== "Inget set loggat.") {
-    positives.push(`Starkaste träffen idag: ${summary.bestSetText}. Den sticker ut.`);
+  // Här stod "Starkaste träffen idag: X. Den sticker ut." där X var passets
+  // tyngsta set över alla övningar. Benpressen vann alltid, även den dag
+  // bensparken var rekordet (betatest 2026-09-21). Ett rekord är ett faktum
+  // appen äger; vad som sticker ut i övrigt får AI:n avgöra.
+  if (personalRecordsToday.length > 0) {
+    const [first] = personalRecordsToday;
+    positives.push(`Nytt personbästa i ${first.exerciseName}: ${first.text}.`);
   }
 
   if (painOrStopEvents.length > 0) {
@@ -8064,8 +8072,8 @@ function buildWorkoutReview(args: {
 
   if (positives.length === 0) {
     // Raden når i praktiken bara pass utan loggade set (finns set får
-    // positives alltid "Starkaste träffen idag"). Och de passen sparas inte
-    // — så säg inte att de gjort det.
+    // positives alltid raden om antal set eller tunga set). Och de passen
+    // sparas inte — så säg inte att de gjort det.
     positives.push("Du dök upp. Det räknas.");
   }
 
@@ -8140,6 +8148,7 @@ return {
   totalVolumeKg: summary.totalVolumeKg,
   totalVolumeText: summary.totalVolumeText,
   bestSetText: summary.bestSetText,
+  personalRecordsToday,
   coachHeadline,
   coachSummary: summary.coachSummary,
   positives,
@@ -8325,11 +8334,47 @@ const gymCalibrationNote = getGymCalibrationNote({
   gyms,
 });
 
+// Dagens personbästan, ur samma personalRecords som ger PB-ramen i chatten.
+// Ett första set i en ny övning sparas också som rekord men är inget PB, och
+// ett ångrat rekordset ska inte räknas. Därför krävs tidigare historik i
+// övningen och att setet fortfarande finns i passet.
+const personalRecordsToday = workoutWithSummary.exercises.flatMap((exercise) => {
+  const key = exerciseKey(exercise.name);
+  const record = personalRecords[key];
+  if (!record || Date.parse(record.createdAt) < Date.parse(workoutWithSummary.startedAt)) {
+    return [];
+  }
+  const hadEarlierSets = history.some((earlier) =>
+    earlier.exercises.some((item) => exerciseKey(item.name) === key && item.sets.length > 0)
+  );
+  const recordSetStillLogged = exercise.sets.some(
+    (set) =>
+      set.weight === record.weight &&
+      set.reps === record.reps &&
+      (set.durationSeconds ?? null) === (record.durationSeconds ?? null)
+  );
+  if (!hadEarlierSets || !recordSetStillLogged) return [];
+
+  return [
+    {
+      exerciseName: exercise.name,
+      text: formatLoggedSetText({
+        exerciseName: exercise.name,
+        weight: record.weight,
+        reps: record.reps,
+        durationSeconds: record.durationSeconds,
+        metricType: record.metricType,
+      }),
+    },
+  ];
+});
+
 const review = buildWorkoutReview({
   workout: workoutWithSummary,
   summary,
   progression: progressionComparison,
   videoNotes,
+  personalRecordsToday,
 });
 
 setWorkoutReview(null);
@@ -8390,20 +8435,34 @@ void requestAiWorkoutReview({
       completedExerciseCount: summary.completedExerciseCount,
       exerciseCount: summary.exerciseCount,
       totalVolumeText: summary.totalVolumeText,
-      bestSetText: summary.bestSetText,
       isPartial: summary.isPartial,
     },
     progression: progressionComparison,
     gymCalibrationNote,
-    exercises: workoutWithSummary.exercises.map((exercise) => ({
-      name: exercise.name,
-      sets: exercise.sets.map((set) => ({
-        weight: set.weight,
-        reps: set.reps,
-        rir: set.rir,
-        failNote: set.failNote,
-      })),
-    })),
+    exercises: workoutWithSummary.exercises.map((exercise) => {
+      const lastTime = lastSessionSetsByExercise(gymFilteredHistory, exercise.name);
+
+      return {
+        name: exercise.name,
+        sets: exercise.sets.map((set) => ({
+          weight: set.weight,
+          reps: set.reps,
+          rir: set.rir,
+          failNote: set.failNote,
+        })),
+        förraGången: lastTime.length
+          ? lastTime.map((set) => ({
+              weight: set.weight,
+              reps: set.reps,
+              rir: set.rir ?? undefined,
+              failNote: set.failNote ?? undefined,
+            }))
+          : undefined,
+        nyttPersonbästa: personalRecordsToday.find(
+          (record) => record.exerciseName === exercise.name
+        )?.text,
+      };
+    }),
     warmupNote: workoutWithSummary.warmupContext?.note,
     conditioningNote: workoutWithSummary.conditioningContext?.note,
     events: workoutWithSummary.events

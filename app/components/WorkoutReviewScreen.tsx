@@ -55,6 +55,7 @@ type WorkoutReviewData = {
   totalVolumeKg: number;
   totalVolumeText: string;
   bestSetText: string;
+  personalRecordsToday?: Array<{ exerciseName: string; text: string }>;
   coachHeadline: string;
   coachSummary: string;
   positives: string[];
@@ -305,6 +306,7 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
   const title = review.coachHeadline;
 
   const takeaways = uniqueItems(review.positives).slice(0, 3);
+  const personalRecordsToday = review.personalRecordsToday ?? [];
   const nextTime = uniqueItems(
     review.nextFocus.length > 0 ? review.nextFocus : review.adjustments
   ).slice(0, 2);
@@ -336,7 +338,18 @@ export default function WorkoutReviewScreen({ review, onClose, onEditSet }: Prop
       <section className="grid grid-cols-2 gap-3">
         <StatCard label="Tid" value={`${review.durationMinutes} min`} />
         <StatCard label="Set" value={review.totalSets} />
-        <StatCard label="Bästa set" value={review.bestSetText} />
+        {/* "Bästa set" var passets tyngsta set över alla övningar: benpressen
+            vann alltid, även den dag bensparken var rekordet (betatest
+            2026-09-21). Ett rekord är det som faktiskt sticker ut — finns inget
+            heter rutan det den är. */}
+        {personalRecordsToday.length > 0 ? (
+          <StatCard
+            label={personalRecordsToday.length > 1 ? `${personalRecordsToday.length} nya PB` : "Nytt PB"}
+            value={`${personalRecordsToday[0].exerciseName} · ${personalRecordsToday[0].text}`}
+          />
+        ) : (
+          <StatCard label="Tyngsta set" value={review.bestSetText} />
+        )}
         <StatCard label="Lyft totalt" value={review.totalVolumeText} />
       </section>
 

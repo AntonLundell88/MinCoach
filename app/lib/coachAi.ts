@@ -412,13 +412,15 @@ export type CoachWorkoutReviewContext = {
    * när appen öppnas (api/coach/lobby). Står kvar som framåtblick för nextFocus.
    */
   nextPassLabel?: string;
+  // bestSetText stod här: passets tyngsta set över alla övningar, kallat
+  // bästa. Benpressen vann alltid, och AI:n kallade 150 × 12 "passets
+  // starkaste set" i hälften av svaren den dag bensparken var rekordet.
   summary: {
     durationMinutes: number;
     totalSets: number;
     completedExerciseCount: number;
     exerciseCount: number;
     totalVolumeText: string;
-    bestSetText: string;
     isPartial: boolean;
   };
   progression: {
@@ -427,6 +429,10 @@ export type CoachWorkoutReviewContext = {
     worse: string[];
   };
   gymCalibrationNote?: string;
+  // förraGången är seten förra gången övningen kördes på det här gymmet,
+  // nyttPersonbästa dagens rekord ur personalRecords. Med dem jämför AI:n
+  // varje övning med sig själv: bensparkrekordet nämndes i 6 av 6 svar mot
+  // 0 av 6 utan (mätt 2026-09-21).
   exercises: Array<{
     name: string;
     sets: Array<{
@@ -435,6 +441,13 @@ export type CoachWorkoutReviewContext = {
       rir?: number;
       failNote?: string;
     }>;
+    förraGången?: Array<{
+      weight: number;
+      reps: number;
+      rir?: number;
+      failNote?: string;
+    }>;
+    nyttPersonbästa?: string;
   }>;
   events?: Array<{
     type: "pain" | "exercise_replaced" | "exercise_completed_early";
