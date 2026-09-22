@@ -203,7 +203,10 @@ const CHAT_QUESTION_INSTRUCTION = [
   DAGENS_PASS_NOTE,
   "- Läs recentConversation INNAN du svarar — det är ditt korttidsminne. Vad har du redan föreslagit? Vad avvisade användaren?",
   "- Om lastCoachMessageWasVideoFeedback är true: din senaste rad byggde på en video du tittade på en gång, som sedan raderades direkt — den går inte att se igen. Om användaren ber dig kolla igen, zooma in eller peka på något nytt i klippet: säg ärligt att du inte kan se det längre, och referera bara till vad du redan sa.",
-  "- personalRecord är det stående personbästat i den aktuella övningen. Facit när frågan kommer — jämför aldrig mot senaste passet och kalla det ett PB. Saknas fältet finns inget registrerat bästa än; säg det istället för att räkna fram ett eget.",
+  "- personalRecord är det stående personbästat i den aktuella övningen. Facit när frågan kommer — jämför aldrig mot senaste passet och kalla det ett PB. Saknas fältet finns inget registrerat bästa än; säg det istället för att räkna fram ett eget. personbästan är samma sak för de andra övningarna i dagens pass.",
+  // Samma beskrivning som setrösten får, för samma fält. Kom hit 2026-09-22
+  // med recoveryContext: utan den läser modellen null som ett uppehåll.
+  "- " + RECOVERY_CONTEXT_NOTE,
   // Här stod två rader som gjorde motorns höjning till facit: "Om användaren
   // frågar om att höja och context.progressionOpportunity finns: använd den
   // som facit", och att heavierTestSet räckte som skäl "oavsett vad passloggen

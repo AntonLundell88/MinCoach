@@ -6122,6 +6122,45 @@ async function sendChat() {
         gyms,
       }),
       otherGymReference,
+      recoveryContext: buildRecoveryContext({
+        exerciseName: currentExerciseName,
+        history,
+      }),
+      programmet: workoutPlan
+        ? {
+            passPerVecka: userProfile?.daysPerWeek,
+            minuterPerPass: userProfile?.minutesPerSession,
+            pass: workoutPlan.passes.map((pass) => ({
+              namn: cleanPassDisplayLabel(pass.displayName ?? `Pass ${pass.key}`),
+              övningar: pass.exercises.map((exercise) => exercise.name),
+            })),
+          }
+        : undefined,
+      personbästan: (() => {
+        const records = (workout?.exercises ?? []).flatMap((exercise) => {
+          const record = personalRecords[exerciseKey(exercise.name)];
+          if (!record) return [];
+
+          return [
+            {
+              övning: exercise.name,
+              set: formatLoggedSetText({
+                exerciseName: exercise.name,
+                weight: record.weight,
+                reps: record.reps,
+                durationSeconds: record.durationSeconds,
+                metricType: record.metricType,
+              }),
+              dagarSedan: Math.max(
+                0,
+                Math.round((Date.now() - Date.parse(record.createdAt)) / 86400000)
+              ),
+            },
+          ];
+        });
+
+        return records.length > 0 ? records : undefined;
+      })(),
       // Samma personalRecords som avgör den blå PB-ramen på setsvaret. Läser
       // båda rösterna ur samma lagring kan de inte längre säga emot varandra.
       personalRecord: currentExerciseName

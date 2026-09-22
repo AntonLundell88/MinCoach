@@ -267,6 +267,26 @@ export type CoachChatContext = {
   // rätt i 5 av 6 och höll med om fel gym i 0 av 6.
   gymComparison?: CoachSetContext["gymComparison"];
   otherGymReference?: CoachSetContext["otherGymReference"];
+  // Också samma som setrösten: dagar sedan övningen kördes, och förra passet.
+  // Viktlistan har inga datum, så "när körde jag det här senast?" gick inte
+  // att svara på (2026-09-22).
+  recoveryContext?: CoachSetContext["recoveryContext"];
+  /**
+   * Resten av schemat, i korthet. Chatten såg bara dagens pass, så "vad kör
+   * jag nästa gång?" och "hur många pass i veckan?" saknade svar — de
+   * uppgifterna gick bara till programcoachen.
+   */
+  programmet?: {
+    passPerVecka?: number;
+    minuterPerPass?: number;
+    pass: Array<{ namn: string; övningar: string[] }>;
+  };
+  /**
+   * Personbästan i dagens övningar. personalRecord ovan gäller bara den
+   * aktuella övningen, så frågor om en annan övning i passet saknade facit.
+   * Samma personalRecords som PB-ramen läser.
+   */
+  personbästan?: Array<{ övning: string; set: string; dagarSedan: number }>;
   activePlan?: string[];
   activePlanExerciseInfo?: CoachExerciseLibraryInfo[];
   warmupNote?: string;
